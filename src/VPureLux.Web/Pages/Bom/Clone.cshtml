@@ -1,0 +1,19 @@
+@page "{id:guid}"
+@model VPureLux.Web.Pages.Bom.CloneModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{
+    ViewData["Title"] = L["Bom:Clone"];
+}
+
+<abp-card>
+    <abp-card-header><h2>@L["Bom:Clone"]</h2></abp-card-header>
+    <abp-card-body>
+        <form method="post">
+            <label asp-for="EffectiveFromText" class="form-label">@L["Bom:EffectiveFrom"]</label>
+            <input asp-for="EffectiveFromText" class="form-control mb-3" inputmode="numeric" placeholder="dd/MM/yyyy" />
+            <span asp-validation-for="EffectiveFromText" class="text-danger"></span>
+            <abp-button button-type="Primary" type="submit">@L["Bom:Clone"]</abp-button>
+            <a class="btn btn-secondary" asp-page="/Bom/Details" asp-route-id="@Model.Id">@L["Cancel"]</a>
+        </form>
+    </abp-card-body>
+</abp-card>

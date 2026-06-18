@@ -1,0 +1,66 @@
+@using Volo.Abp.GlobalFeatures
+@using Volo.CmsKit.GlobalFeatures
+@using Volo.CmsKit.Pro.Web.Pages.Public.Shared.Components.Newsletter
+@using Volo.Abp.Localization
+<div class="lpx-landing-footer mt-5">
+  <div class="mb-5 text-center">
+    <a href="#"><i class="bi bi-twitter text-dark fs-2 mx-3"></i></a>
+    <a href="#"><i class="bi bi-linkedin text-dark fs-2 mx-3"></i></a>
+    <a href="#"><i class="bi bi-github text-dark fs-2 mx-3"></i></a>
+    <a href="#"><i class="bi bi-instagram text-dark fs-2 mx-3"></i></a>
+    <a href="#"><i class="bi bi-youtube text-dark fs-2 mx-3"></i></a>
+    <a href="#"><i class="bi bi-facebook text-dark fs-2 mx-3"></i></a>
+    <a href="#"><i class="bi bi-medium text-dark fs-2 mx-3"></i></a>
+  </div>
+
+  @if (GlobalFeatureManager.Instance.IsEnabled<NewslettersFeature>())
+  {
+    <div class="card mb-4">
+      <div class="card-body p-lg-4">
+        @await Component.InvokeAsync(typeof(NewsletterViewComponent), new { preference = "Newsletter_Default", source = "Footer", requestAdditionalPreferencesLater = false, privacyPolicyConfirmation = new LocalizableString("I accept the Privacy Policy.") })
+      </div>
+    </div>
+  }
+
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-5">  
+    <div>
+      <a href="" class="lpx-brand-logo mb-3"></a>
+      <p>2023 © LeptonTheme by Volosoft</p>
+    </div> 
+         
+    <div class="d-flex flex-grow-1 justify-content-between align-items-start flex-wrap gap-3">  
+      <ul class="list-unstyled">
+        <li><h4>Features</h4></li>
+        <li><a href="#" class="text-muted text-decoration-none">Cool Stuff</a></li> 
+        <li><a href="#" class="text-muted text-decoration-none">Random Feature</a></li> 
+        <li><a href="#" class="text-muted text-decoration-none">Team Feature</a></li> 
+        <li><a href="#" class="text-muted text-decoration-none">Stuff for Developers</a></li> 
+        <li><a href="#" class="text-muted text-decoration-none">Another One</a></li> 
+        <li><a href="#" class="text-muted text-decoration-none">Last Time</a></li> 
+      </ul>
+      <ul class="list-unstyled">
+        <li><h4>Pages</h4></li>
+        <li><a href="#" class="text-muted text-decoration-none">Home Page</a></li>  
+        <li><a href="#" class="text-muted text-decoration-none">Products</a></li>  
+        <li><a href="#" class="text-muted text-decoration-none">Pricing</a></li>  
+        <li><a href="#" class="text-muted text-decoration-none">Live Support</a></li>  
+        <li><a href="#" class="text-muted text-decoration-none">F.A.Q.</a></li>  
+        <li><a href="#" class="text-muted text-decoration-none">Terms and Conditions</a></li>  
+      </ul>
+      <ul class="list-unstyled">
+        <li><h4>Resources</h4></li>
+        <li><a href="#" class="text-muted text-decoration-none">Business</a></li>  
+        <li><a href="#" class="text-muted text-decoration-none">Education</a></li>  
+        <li><a href="#" class="text-muted text-decoration-none">Government</a></li>  
+        <li><a href="#" class="text-muted text-decoration-none">Gaming</a></li>   
+      </ul>
+      <ul class="list-unstyled">
+        <li><h4>About</h4></li>
+        <li><a href="#" class="text-muted text-decoration-none">Team</a></li>  
+        <li><a href="#" class="text-muted text-decoration-none">Locations</a></li>  
+        <li><a href="#" class="text-muted text-decoration-none">Privacy</a></li>  
+        <li><a href="#" class="text-muted text-decoration-none">Terms</a></li>   
+      </ul>
+    </div>
+  </div>
+</div>

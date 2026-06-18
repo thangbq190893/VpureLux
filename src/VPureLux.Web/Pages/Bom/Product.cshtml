@@ -1,0 +1,60 @@
+@page "{productId:guid}"
+@model VPureLux.Web.Pages.Bom.ProductModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{
+    ViewData["Title"] = L["Bom:History"];
+}
+
+<abp-card>
+    <abp-card-header>
+        <abp-row>
+            <abp-column size-md="_8"><h2>@L["Bom:History"]</h2></abp-column>
+            <abp-column size-md="_4" class="text-end">
+                @if (Model.CanCreate)
+                {
+                    <a asp-page="/Bom/Create" asp-route-productId="@Model.ProductId" class="btn btn-primary"><i class="fa fa-plus"></i> @L["Bom:Create"]</a>
+                }
+            </abp-column>
+        </abp-row>
+    </abp-card-header>
+    <abp-card-body>
+        <div class="mb-3"><strong>@L["Bom:Product"]:</strong> @Model.ProductLabel</div>
+        <abp-table striped-rows="true">
+            <thead><tr><th>@L["Bom:VersionNo"]</th><th>@L["Bom:Status"]</th><th>@L["Bom:EffectiveFrom"]</th><th>@L["Bom:EffectiveTo"]</th><th class="text-end">@L["Actions"]</th></tr></thead>
+            <tbody>
+            @foreach (var version in Model.Versions)
+            {
+                <tr>
+                    <td>@version.VersionNo</td>
+                    <td>@L[$"Bom:Status:{version.Status}"]</td>
+                    <td>@VPureLux.Web.Pages.Bom.BomUi.FormatDate(version.EffectiveFrom)</td>
+                    <td>@VPureLux.Web.Pages.Bom.BomUi.FormatDate(version.EffectiveTo)</td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-secondary" asp-page="/Bom/Details" asp-route-id="@version.Id">@L["Bom:Details"]</a>
+                        @if (Model.CanCreate && version.Status == VPureLux.Bom.BomStatus.Draft)
+                        {
+                            <a class="btn btn-sm btn-outline-primary" asp-page="/Bom/Edit" asp-route-id="@version.Id">@L["Edit"]</a>
+                        }
+                        @if (Model.CanCreate)
+                        {
+                            <a class="btn btn-sm btn-outline-secondary" asp-page="/Bom/Clone" asp-route-id="@version.Id">@L["Bom:Clone"]</a>
+                        }
+                        @if (Model.CanPublish && version.Status == VPureLux.Bom.BomStatus.Draft)
+                        {
+                            <form method="post" asp-page-handler="Publish" asp-route-id="@version.Id" class="d-inline">
+                                <abp-button button-type="Primary" size="Small" type="submit">@L["Bom:Publish"]</abp-button>
+                            </form>
+                        }
+                        @if (Model.CanArchive && version.Status == VPureLux.Bom.BomStatus.Published)
+                        {
+                            <form method="post" asp-page-handler="Archive" asp-route-id="@version.Id" class="d-inline">
+                                <abp-button button-type="Secondary" size="Small" type="submit">@L["Bom:Archive"]</abp-button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </abp-table>
+    </abp-card-body>
+</abp-card>

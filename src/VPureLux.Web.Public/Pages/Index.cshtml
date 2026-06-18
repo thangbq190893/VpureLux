@@ -1,0 +1,1129 @@
+﻿@page
+@model VPureLux.Web.Public.Pages.IndexModel
+@using Volo.Abp.Users
+@inject ICurrentUser CurrentUser
+
+
+<div class="lpx-landing-hero">
+  <div id="carouselExampleIndicators" class="carousel carousel-fade lpx-landing-carousel" data-bs-ride="carousel">
+    <div class="carousel-indicators">
+      <button
+        type="button"
+        data-bs-target="#carouselExampleIndicators"
+        data-bs-slide-to="0"
+        class="active"
+        aria-current="true"
+        aria-label="Slide 1"
+      ></button>
+      <button
+        type="button"
+        data-bs-target="#carouselExampleIndicators"
+        data-bs-slide-to="1"
+        aria-label="Slide 2"
+      ></button>
+      <button
+        type="button"
+        data-bs-target="#carouselExampleIndicators"
+        data-bs-slide-to="2"
+        aria-label="Slide 3"
+      ></button>
+    </div>
+    <div class="carousel-inner">
+      <div class="carousel-item active">
+        <div class="carousel-caption d-flex align-items-center">
+          <div class="w-100 text-center">
+            <h1>Your imagination, <span class="text-brand">our code!</span> Building dreams in digital.</h1>
+            <p class="d-none d-md-block">
+              With our expertise in coding, we turn your imaginative dreams into tangible, innovative solutions,
+              crafting a digital landscape where aspirations come to life.
+            </p>
+            <div>
+              <a href="https://leptontheme.com/" target="_blank" class="btn btn-primary soft mx-1">See Details</a>
+              <a href="https://leptontheme.com/" target="_blank" class="btn btn-primary mx-1">Explore LeptonX</a>
+            </div>
+          </div>
+        </div>
+        <img src="/images/backgrounds/landing-carousel-bg-2.svg" class="d-block w-100" alt="..." />
+      </div>
+      <div class="carousel-item">
+        <div class="carousel-caption d-flex align-items-center">
+          <div class="w-100 text-center">
+            <h1>
+              You deserve a <span class="text-primary">good UI</span><br />and a
+              <span class="text-success">better UX.</span>
+            </h1>
+            <p class="d-none d-md-block">
+              LeptonX Theme by ABP is here to serve it. It is designed for you to easily use in every device of yours.
+              It is responsive on mobile devices and tablet sizes.
+            </p>
+            <div>
+              <a href="https://leptontheme.com/" target="_blank" class="btn btn-primary mx-1">Features</a>
+              <a href="https://leptontheme.com/" target="_blank" class="btn btn-success mx-1">Layouts</a>
+            </div>
+          </div>
+        </div>
+        <img src="/images/backgrounds/landing-carousel-bg-3.svg" class="d-block w-100" alt="..." />
+      </div>
+      <div class="carousel-item">
+        <div class="carousel-caption d-flex align-items-center">
+          <div class="w-100 text-center">
+            <h1>LeptonX Theme is currently only available to <span class="highlight">ABP Platform</span> users.</h1>
+            <p class="d-none d-md-block">
+              For now, Open Source ABP Framework users can use LeptonX Lite Theme. ABP Commercial customers can use
+              LeptonX Pro Theme and access all source code.
+            </p>
+            <div> 
+              <a href="https://abp.io/" target="_blank" class="btn btn-brand mx-1">Meet the ABP Platform</a>
+            </div>
+          </div>
+        </div>
+        <img src="/images/backgrounds/landing-carousel-bg-1.svg" class="d-block w-100" alt="..." />
+      </div>
+    </div>
+    <button
+      class="carousel-control-prev"
+      type="button"
+      data-bs-target="#carouselExampleIndicators"
+      data-bs-slide="prev"
+    >
+      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Previous</span>
+    </button>
+    <button
+      class="carousel-control-next"
+      type="button"
+      data-bs-target="#carouselExampleIndicators"
+      data-bs-slide="next"
+    >
+      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Next</span>
+    </button>
+  </div>
+</div>
+
+
+<div class="row d-flex align-items-center mt-3 mt-mb-5 mb-5">
+  <div class="col-md order-2 order-md-1">
+    <h2>
+      Build your own amazing project
+    </h2>
+    <p class="lead">
+      Utilize our intuitive interface, robust development tools, and seamless integration features to turn your ideas into reality.
+    </p>
+    <p>
+      Seize the potential for seamless integration as our software seamlessly merges with your existing systems, providing a cohesive ecosystem for innovation to thrive. Whether you're a seasoned professional or a budding entrepreneur, our platform caters to all, offering a dynamic environment where innovation knows no limits.
+    </p>
+    <ul class="list-unstyled">
+      <li class="mb-1"><i class="bi bi-check-circle-fill text-secondary me-1"></i> Intuitive Interface</li>
+      <li class="mb-1"><i class="bi bi-check-circle-fill text-secondary me-1"></i> Seamless Integration</li>
+      <li class="mb-1"><i class="bi bi-check-circle-fill text-secondary me-1"></i> Real-time Collaboration</li>
+      <li class="mb-1"><i class="bi bi-check-circle-fill text-secondary me-1"></i> Continuous Updates and Support</li>
+    </ul>
+  </div>
+  <div class="col-md order-1 order-md-2 mb-4 mb-md-0 p-3 p-md-0">
+    <img src="/images/index/landing-page-intro.svg" class="d-block w-100" alt="...">
+  </div>
+</div> 
+
+<div class="row d-flex align-items-center mb-5">
+  <div class="col-md">
+    <div class="card">
+      <div class="card-body text-center">
+        <i class="bi bi-heart-fill text-danger fs-1 my-2 d-block"></i>
+        <h4>Happy Customers</h4>
+        <p>Experience unparalleled satisfaction as our commitment to excellence and personalized service ensures happy customers at every interaction.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md">
+    <div class="card">
+      <div class="card-body text-center">
+        <i class="bi bi-lightning-fill text-primary fs-1 my-2 d-block"></i>
+        <h4>Super Responsive Support</h4>
+        <p>Experience unparalleled assistance with our support team where fast and effective solutions are just a message away.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md">
+    <div class="card">
+      <div class="card-body text-center">
+        <i class="bi bi-star-fill text-secondary fs-1 my-2 d-block"></i>
+        <h4>Users’ Favorite</h4>
+        <p>Elevating experiences and earning hearts, where our product becomes not just a choice but a cherished preference among discerning users.</p>
+      </div>
+    </div>
+  </div>
+</div> 
+ 
+
+<div class="row d-flex align-items-center mb-5 text-center">
+  <div class="col-12"> 
+    <h2>
+      Statistics
+    </h2>
+    <p class="lead px-lg-5 mx-lg-5">
+      From impressive user adoption rates to robust performance metrics, these statistics showcase the tangible impact and reliability of our software product, demonstrating a track record of excellence. 
+    </p>
+  </div>
+  <div class="col">
+      <i class="bi bi-folder-check text-success fs-1 my-2 d-block"></i>
+      <h4 class="mb-1">Completed Projects</h4>
+      <span class="fs-1 text-brand">100+</span>
+  </div>  
+  <div class="col">
+      <i class="bi bi-emoji-smile text-secondary fs-1 my-2 d-block"></i>
+      <h4 class="mb-1">Customer Satisfaction</h4>
+      <span class="fs-1 text-brand">98%</span>
+  </div>  
+  <div class="col">
+      <i class="bi bi-graph-up-arrow text-warning fs-1 my-2 d-block"></i>
+      <h4 class="mb-1">Raised by Clients</h4>
+      <span class="fs-1 text-brand">$12.345.990</span>
+  </div>  
+  <div class="col">
+      <i class="bi bi-calendar4-week text-primary fs-1 my-2 d-block"></i>
+      <h4 class="mb-1">Years in Business</h4>
+      <span class="fs-1 text-brand">12yrs</span>
+  </div>  
+  <div class="col">
+      <i class="bi bi-download text-info fs-1 my-2 d-block"></i>
+      <h4 class="mb-1">Downloads</h4>
+      <span class="fs-1 text-brand">9.885.120</span>
+  </div>   
+</div> 
+ 
+
+<div class="mb-5">
+  <h2 class="text-center mb-3">
+    Features
+  </h2>
+  <div class="d-md-flex align-items-start">
+    <div class="nav flex-column nav-pills me-3 col-md-2" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+      <button class="nav-link fs-5 fw-semibold text-start active" id="v-pills-home-tab" data-bs-toggle="pill" data-bs-target="#v-pills-home" type="button" role="tab" aria-controls="v-pills-home" aria-selected="true">
+        Multiple UI Options
+      </button>
+      <button class="nav-link fs-5 fw-semibold text-start" id="v-pills-profile-tab" data-bs-toggle="pill" data-bs-target="#v-pills-profile" type="button" role="tab" aria-controls="v-pills-profile" aria-selected="false">
+        Modularity
+      </button>
+      <button class="nav-link fs-5 fw-semibold text-start" id="v-pills-messages-tab" data-bs-toggle="pill" data-bs-target="#v-pills-messages" type="button" role="tab" aria-controls="v-pills-messages" aria-selected="false">
+        Theming
+      </button>
+      <button class="nav-link fs-5 fw-semibold text-start" id="v-pills-settings-tab" data-bs-toggle="pill" data-bs-target="#v-pills-settings" type="button" role="tab" aria-controls="v-pills-settings" aria-selected="false">
+        Auto REST APIs
+      </button>
+      <button class="nav-link fs-5 fw-semibold text-start" id="v-pills-settings-tab" data-bs-toggle="pill" data-bs-target="#v-pills-settings" type="button" role="tab" aria-controls="v-pills-settings" aria-selected="false">
+        Localization
+      </button>
+      <button class="nav-link fs-5 fw-semibold text-start" id="v-pills-settings-tab" data-bs-toggle="pill" data-bs-target="#v-pills-settings" type="button" role="tab" aria-controls="v-pills-settings" aria-selected="false">
+        Extension Methods
+      </button>
+      <button class="nav-link fs-5 fw-semibold text-start" id="v-pills-settings-tab" data-bs-toggle="pill" data-bs-target="#v-pills-settings" type="button" role="tab" aria-controls="v-pills-settings" aria-selected="false">
+        Data Filtering
+      </button>
+    </div> 
+
+    <div class="tab-content card p-0" id="v-pills-tabContent">
+      <div class="tab-pane fade show card-body p-lg-4 active" id="v-pills-home" role="tabpanel" aria-labelledby="v-pills-home-tab"> 
+            <h3>Multiple UI Options</h3>
+            <p>Discover the freedom to tailor your digital experience with our multiple UI options. Whether you prefer sleek minimalism or feature-rich interfaces, our software provides a range of customizable user interfaces, ensuring your interaction is not just functional but personally curated to suit your preferences.</p> 
+            <img src="/images/index/landing-page-features.png" class="d-block w-100" alt="..."> 
+      </div>
+      <div class="tab-pane fade card-body p-lg-4" id="v-pills-profile" role="tabpanel" aria-labelledby="v-pills-profile-tab"> 
+            <h3>Modularity</h3>
+            <p>Discover the freedom to tailor your digital experience with our multiple UI options. Whether you prefer sleek minimalism or feature-rich interfaces, our software provides a range of customizable user interfaces, ensuring your interaction is not just functional but personally curated to suit your preferences.</p> 
+            <img src="/images/index/landing-page-features.png" class="d-block w-100" alt="..."> 
+      </div>
+      <div class="tab-pane fade card-body p-lg-4" id="v-pills-messages" role="tabpanel" aria-labelledby="v-pills-messages-tab"> 
+            <h3>Theming</h3>
+            <p>Discover the freedom to tailor your digital experience with our multiple UI options. Whether you prefer sleek minimalism or feature-rich interfaces, our software provides a range of customizable user interfaces, ensuring your interaction is not just functional but personally curated to suit your preferences.</p> 
+            <img src="/images/index/landing-page-features.png" class="d-block w-100" alt="..."> 
+      </div>
+      <div class="tab-pane fade card-body p-lg-4" id="v-pills-settings" role="tabpanel" aria-labelledby="v-pills-settings-tab"> 
+            <h3>Auto REST APIs</h3>
+            <p>Discover the freedom to tailor your digital experience with our multiple UI options. Whether you prefer sleek minimalism or feature-rich interfaces, our software provides a range of customizable user interfaces, ensuring your interaction is not just functional but personally curated to suit your preferences.</p> 
+            <img src="/images/index/landing-page-features.png" class="d-block w-100" alt="..."> 
+      </div>
+    </div>
+  </div>
+</div>
+ 
+<div class="mb-5">
+  <h2 class="text-center mb-3">
+    Create a Project
+  </h2> 
+  <div class="row mb-5 mb-md-3">
+    <div class="col-md-4"> 
+      <img src="/images/index/landing-page-create-1.svg" class="w-100" alt="..."> 
+    </div>
+    <div class="col-md-8 d-flex align-items-center"> 
+        <div> 
+          <h3><span class="badge bg-brand text-white me-2">1</span> Download</h3>
+          <p class="lead">Begin by accessing our website and effortlessly download the software package. </p>
+          <p>Our streamlined process ensures you get started swiftly, minimizing wait times.</p>
+          <p>Begin your journey by initiating the installation process.</p>
+          <div class="d-flex flex-wrap gap-3">
+            <a href="#" class="btn btn-brand soft">Download Latest</a>
+            <a href="#" class="btn btn-brand">Download Nightly Build</a>
+          </div>
+        </div> 
+    </div>
+  </div> 
+  <div class="row mb-5 mb-md-3">
+    <div class="col-md-8 d-flex align-items-center"> 
+        <div> 
+          <h3><span class="badge bg-primary text-white me-2">2</span> License Key</h3>
+          <p class="lead">Once downloaded, enter your unique license key provided during the purchase process.</p>
+          <p>This step ensures a secure and authorized installation, granting you access to the full spectrum of features.</p>
+          <p>Proceed by retrieving your license key.</p>
+          <div class="d-flex flex-wrap gap-3">
+            <a href="#" class="btn btn-primary soft">Learn License Key</a>
+            <a href="#" class="btn btn-primary">Purchase License</a>
+          </div>
+        </div> 
+    </div>
+    <div class="col-md-4"> 
+      <img src="/images/index/landing-page-create-2.svg" class="w-100" alt="..."> 
+    </div>
+  </div> 
+  <div class="row mb-5 mb-md-3">
+    <div class="col-md-4"> 
+      <img src="/images/index/landing-page-create-3.svg" class="w-100" alt="..."> 
+    </div>
+    <div class="col-md-8 d-flex align-items-center"> 
+        <div> 
+          <h3><span class="badge bg-secondary text-white me-2">1</span> Customize</h3>
+          <p class="lead">Tailor the software to your specific needs by customizing settings and preferences.  </p>
+          <p>This step allows you to optimize the user interface, functionality, and any other elements to match your workflow seamlessly.</p>
+          <p>Make it your own by exploring detailed instructions on customizing LeptonX.</p>
+          <div class="d-flex flex-wrap gap-3">
+            <a href="https://abp.io/docs/latest/ui-themes/lepton-x/mvc" class="btn btn-secondary soft">Customization Page</a>
+            <a href="https://abp.io/docs/latest/ui-themes/lepton-x/mvc" class="btn btn-secondary">See Documentation</a>
+          </div>
+        </div> 
+    </div>
+  </div> 
+  <div class="row mb-5 mb-md-3">
+    <div class="col-md-8 d-flex align-items-center"> 
+        <div> 
+          <h3><span class="badge bg-success text-white me-2">1</span> Done</h3>
+          <p class="lead">Congratulations! You've successfully completed the installation process.</p>
+          <p>Now enjoy the enhanced capabilities of our software, ready to elevate your digital experience. Should you need any assistance, our support team is just a message away, ensuring a smooth transition into the world of our innovative and feature-rich product.</p>
+          <p>Conclude with comprehensive details, features, functionalities.</p>
+          <div class="d-flex flex-wrap gap-3">
+            <a href="#" class="btn btn-success soft">LeptonX Document</a>
+            <a href="#" class="btn btn-success">Live Demo</a>
+          </div>
+        </div> 
+    </div>
+    <div class="col-md-4"> 
+      <img src="/images/index/landing-page-create-4.svg" class="w-100" alt="..."> 
+    </div>
+  </div>  
+</div>
+
+<div class="mb-5 card bg-dark text-center overflow-hidden"> 
+  <div class="p-3 p-md-4 position-relative" style="background-image: url(/images/backgrounds/landing-carousel-bg-1.svg); background-size: cover; background-position: center bottom;"> 
+    <div class="card-body">
+      <h2 class="text-light">Get Started Today</h2>
+      <p class="lead text-light">
+        Initiate your journey to success by taking the crucial step to get started today.
+      </p> 
+      <div class="d-flex flex-wrap gap-3 align-items-center justify-content-center">
+        <a href="https://leptontheme.com/" class="btn btn-secondary soft me-2">Live Demo</a>
+        <a href="https://leptontheme.com/" class="btn btn-secondary">Get Started</a>
+      </div> 
+    </div>
+  </div> 
+</div>
+ 
+
+<div class="mb-5">
+  <h2 class="text-center">Our Team</h2>
+  <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+    <li class="nav-item me-3" role="presentation">
+      <button class="nav-link fs-5 fw-semibold active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab" aria-controls="home" aria-selected="true" >
+        Design
+      </button>
+    </li>
+    <li class="nav-item me-3" role="presentation">
+      <button class="nav-link fs-5 fw-semibold" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="false" >
+        Development
+      </button>
+    </li>
+    <li class="nav-item me-3" role="presentation">
+      <button class="nav-link fs-5 fw-semibold" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact" type="button" role="tab" aria-controls="contact" aria-selected="false" >
+        QA
+      </button>
+    </li>
+    <li class="nav-item me-3" role="presentation">
+      <button class="nav-link fs-5 fw-semibold" id="contact-tab2" data-bs-toggle="tab" data-bs-target="#contact2" type="button" role="tab" aria-controls="contact2" aria-selected="false" >
+        Management
+      </button>
+    </li>
+  </ul>
+  <div class="tab-content p-0" id="myTabContent">
+    <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab" >
+      <div class="row">
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-01.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-02.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-03.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-04.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-01.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-02.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-03.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-04.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tab-pane fade" id="profile" role="tabpanel" aria-labelledby="profile-tab" >
+      <div class="row">
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-01.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-02.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-03.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-04.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-01.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-02.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-03.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-04.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tab-pane fade" id="contact" role="tabpanel" aria-labelledby="contact-tab" >
+      <div class="row">
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-01.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-02.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-03.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-04.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-01.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-02.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-03.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-04.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tab-pane fade" id="contact2" role="tabpanel" aria-labelledby="contact-tab2" >
+      <div class="row">
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-01.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-02.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-03.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-04.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-01.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-02.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-03.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="lpx-avatar">
+                <img class="lpx-avatar-img" src="/images/avatars/user-04.png" alt="avatar" tabindex="-1" style="width: 120px; height: 120px; border-radius:120px;">
+              </div>
+              <h4 class="mb-0 mt-3">Jane D. Doe</h4>
+              <p>UI/UX Designer</p>
+              <div>
+                <a href="#"><i class="bi bi-twitter text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-linkedin text-dark fs-3 mx-2"></i></a>
+                <a href="#"><i class="bi bi-github text-dark fs-3 mx-2"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div> 
+</div>
+
+<div class="row d-flex align-items-center mb-5 text-center">
+  <div class="col-12"> 
+    <h2>
+      Awards
+    </h2>
+    <p class="lead px-lg-5 mx-lg-5">
+      These awards stand as a testament to the innovation, quality, and impact that our product has achieved, reinforcing its position as a distinguished leader in the industry.
+    </p>
+  </div>
+  <div class="col-6 col-md"> 
+    <img src="/images/index/landing-page-award-1.svg" class="p-2 w-100" alt="..."> 
+  </div>   
+  <div class="col-6 col-md"> 
+    <img src="/images/index/landing-page-award-2.svg" class="p-2 w-100" alt="..."> 
+  </div>   
+  <div class="col-6 col-md"> 
+    <img src="/images/index/landing-page-award-3.svg" class="p-2 w-100" alt="..."> 
+  </div>   
+  <div class="col-6 col-md"> 
+    <img src="/images/index/landing-page-award-4.svg" class="p-2 w-100" alt="..."> 
+  </div>   
+</div>
+
+<div class="align-items-center mb-5">
+    <h2 class="text-center mb-3">
+      Testimonials
+    </h2> 
+  <div class="row">
+    <div class="col-md-4">
+      <div class="card lpx-testimonial-card">
+        <div class="card-body">
+          <div class="d-flex">
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star text-warning fs-4 me-1"></i> 
+          </div>
+          <h5 class="my-2">Incredible efficiency!</h5>
+          <p>LeptonX revolutionized our workflow, streamlining tasks and boosting productivity. A game-changer for our team!</p>
+        </div>
+      </div> 
+      <div class="d-flex mb-4 px-3">
+        <div class="lpx-avatar">
+          <img class="lpx-avatar-img" src="/images/avatars/user-01.png" alt="avatar" tabindex="-1" style="width: 64px; height: 64px; border-radius:64px;">
+        </div>
+        <div class="ms-2"> 
+          <h5 class="mb-0">Kaiya Septimus</h5>
+          <p class="mb-0">CTO, Standart Chartered Bank</p>
+          <span class="text-muted small">Singapore</span>
+        </div> 
+      </div> 
+    </div>  
+    <div class="col-md-4">
+      <div class="card lpx-testimonial-card">
+        <div class="card-body">
+          <div class="d-flex">
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+          </div>
+          <h5 class="my-2">User-friendly and powerful! A game-changer for our team!</h5>
+          <p>LeptonX exceeded our expectations, providing a seamless experience with its intuitive interface and robust features. A must-have for any business! </p>
+        </div>
+      </div> 
+      <div class="d-flex mb-4 px-3">
+        <div class="lpx-avatar">
+          <img class="lpx-avatar-img" src="/images/avatars/user-02.png" alt="avatar" tabindex="-1" style="width: 64px; height: 64px; border-radius:64px;">
+        </div>
+        <div class="ms-2"> 
+          <h5 class="mb-0">Carla Bator</h5>
+          <p class="mb-0">CTO, Standart Chartered Bank</p>
+          <span class="text-muted small">Singapore</span>
+        </div> 
+      </div> 
+    </div>  
+    <div class="col-md-4">
+      <div class="card lpx-testimonial-card">
+        <div class="card-body">
+          <div class="d-flex">
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-empty text-warning fs-4 me-1"></i> 
+          </div>
+          <h5 class="my-2">Reliable and innovative. </h5>
+          <p>Has been the backbone of our success. It adapts to our evolving needs, making it an indispensable asset for our tech stack. </p>
+        </div>
+      </div> 
+      <div class="d-flex mb-4 px-3">
+        <div class="lpx-avatar">
+          <img class="lpx-avatar-img" src="/images/avatars/user-03.png" alt="avatar" tabindex="-1" style="width: 64px; height: 64px; border-radius:64px;">
+        </div>
+        <div class="ms-2"> 
+          <h5 class="mb-0">Marvin McKinney</h5>
+          <p class="mb-0">CTO, Standart Chartered Bank</p>
+          <span class="text-muted small">Singapore</span>
+        </div> 
+      </div> 
+    </div>  
+    <div class="col-md-4">
+      <div class="card lpx-testimonial-card">
+        <div class="card-body">
+          <div class="d-flex">
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-half text-warning fs-4 me-1"></i> 
+          </div>
+          <h5 class="my-2">Exceptional support!</h5>
+          <p>The team is always responsive and helpful. Their commitment to customer satisfaction sets them apart in the software industry.</p>
+        </div>
+      </div> 
+      <div class="d-flex mb-4 px-3">
+        <div class="lpx-avatar">
+          <img class="lpx-avatar-img" src="/images/avatars/user-04.png" alt="avatar" tabindex="-1" style="width: 64px; height: 64px; border-radius:64px;">
+        </div>
+        <div class="ms-2"> 
+          <h5 class="mb-0">Davis Kenter</h5>
+          <p class="mb-0">CTO, Standart Chartered Bank</p>
+          <span class="text-muted small">Singapore</span>
+        </div> 
+      </div> 
+    </div>  
+    <div class="col-md-4">
+      <div class="card lpx-testimonial-card">
+        <div class="card-body">
+          <div class="d-flex">
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-half text-warning fs-4 me-1"></i> 
+          </div>
+          <h5 class="my-2">Transformative results!</h5>
+          <p>Enabled us to unlock new possibilities in our projects. Its versatility and scalability make it an indispensable tool in our development toolkit.</p>
+        </div>
+      </div> 
+      <div class="d-flex mb-4 px-3">
+        <div class="lpx-avatar">
+          <img class="lpx-avatar-img" src="/images/avatars/user-05.png" alt="avatar" tabindex="-1" style="width: 64px; height: 64px; border-radius:64px;">
+        </div>
+        <div class="ms-2"> 
+          <h5 class="mb-0">Theresa Webb</h5>
+          <p class="mb-0">CTO, Standart Chartered Bank</p>
+          <span class="text-muted small">Singapore</span>
+        </div> 
+      </div> 
+    </div>  
+    <div class="col-md-4">
+      <div class="card lpx-testimonial-card">
+        <div class="card-body">
+          <div class="d-flex">
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+            <i class="bi bi-star-fill text-warning fs-4 me-1"></i> 
+          </div>
+          <h5 class="my-2">Effortless integration!</h5>
+          <p>Seamlessly integrated with our existing systems, enhancing our overall efficiency and allowing us to focus on what matters most – delivering quality services to our clients</p>
+        </div>
+      </div> 
+      <div class="d-flex mb-4 px-3">
+        <div class="lpx-avatar">
+          <img class="lpx-avatar-img" src="/images/avatars/user-06.png" alt="avatar" tabindex="-1" style="width: 64px; height: 64px; border-radius:64px;">
+        </div>
+        <div class="ms-2"> 
+          <h5 class="mb-0">Ralph Edwards</h5>
+          <p class="mb-0">CTO, Standart Chartered Bank</p>
+          <span class="text-muted small">Singapore</span>
+        </div> 
+      </div> 
+    </div>  
+  </div> 
+  <div class="text-center">
+    <a href="#" class="btn btn-secondary soft">Show More</a>
+  </div>
+</div>
+
+
+<div class="row d-flex align-items-center mb-5">
+  <div class="col-12 text-center"> 
+    <h2>
+      Trusted By
+    </h2> 
+    <p class="lead">+650,000 designers and +3,000 best design teams around the world.</p>
+  </div>
+  <div class="d-flex flex-wrap align-items-center justify-content-between">  
+      <a href="#"><img src="/images/index/brands/amazon.png" class="m-2 mw-100" alt="..."></a>
+      <a href="#"><img src="/images/index/brands/disney.png" class="m-2 mw-100" alt="..."></a>
+      <a href="#"><img src="/images/index/brands/expedia.png" class="m-2 mw-100" alt="..."></a>
+      <a href="#"><img src="/images/index/brands/google.png" class="m-2 mw-100" alt="..."></a> 
+      <a href="#"><img src="/images/index/brands/netflix.png" class="m-2 mw-100" alt="..."></a> 
+  </div>  
+</div>
+
+
+
+<div class="mb-5 card ">  
+    <div class="card-body p-lg-5">
+      <div class="row">
+        <div class="col-md-6 d-flex align-items-center"> 
+          <div>
+            <h2>Join Our Community</h2>
+            <p class="lead">
+              Embark on a journey of collaboration and innovation by joining our community! 
+            </p> 
+            <p>We're thrilled to invite you to become an integral part of a dynamic network where users, developers, and enthusiasts converge. </p>
+            <p>By joining, you'll have the opportunity to share insights, gain exclusive access to resources, and contribute to the evolution of our software.</p>
+            <div class="grid">
+              <a href="https://abp.io/community" class="btn btn-brand soft me-2">Join Community</a> 
+            </div> 
+          </div>
+        </div>
+        <div class="col-md-6">
+          <img src="/images/index/landing-page-community.svg" class="p-lg-3"  alt="...">
+        </div>
+      </div>
+    </div> 
+</div>
+

@@ -1,0 +1,92 @@
+@page
+@model VPureLux.Web.Pages.Pricing.IndexModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
+@using VPureLux.Permissions
+@{ ViewData["Title"] = L["Pricing:Title"]; }
+@{
+    var canViewComponentHistory = (await AuthorizationService.AuthorizeAsync(
+        User,
+        null,
+        VPureLuxPermissions.Pricing.ComponentSuggestedSellingPrices.History)).Succeeded;
+    var canViewProductHistory = (await AuthorizationService.AuthorizeAsync(User, null, VPureLuxPermissions.Pricing.History)).Succeeded;
+}
+
+<h2 class="mb-4">@L["Pricing:Title"]</h2>
+<abp-tabs>
+    <abp-tab title="@L["Pricing:ComponentSuggestedSellingPrices"]">
+        <abp-table striped-rows="true">
+            <thead><tr><th>@L["Pricing:Code"]</th><th>@L["Pricing:Name"]</th><th class="text-end">@L["Actions"]</th></tr></thead>
+            <tbody>
+            @foreach (var component in Model.Components)
+            {
+                <tr><td>@component.Code</td><td>@component.Name</td><td class="text-end">@if (canViewComponentHistory) { <a class="btn btn-sm btn-outline-primary" asp-page="/Pricing/Components/History" asp-route-componentId="@component.Id">@L["Pricing:OpenHistory"]</a> }</td></tr>
+            }
+            </tbody>
+        </abp-table>
+    </abp-tab>
+    <abp-tab title="@L["Pricing:ProductSuggestedPrices"]">
+        <abp-table striped-rows="true">
+            <thead>
+            <tr>
+                <th>@L["Pricing:Code"]</th>
+                <th>@L["Pricing:Name"]</th>
+                <th>@L["Pricing:BomStatus"]</th>
+                <th class="text-end">@L["Pricing:ComponentBuildPrice"]</th>
+                <th class="text-end">@L["Pricing:CurrentProductSuggestedPrice"]</th>
+                <th class="text-end">@L["Pricing:Difference"]</th>
+                <th class="text-end">@L["Actions"]</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var product in Model.ProductPricingContexts)
+            {
+                <tr>
+                    <td>@product.ProductCode</td>
+                    <td>@product.ProductName</td>
+                    <td>
+                        @if (product.HasPublishedBom)
+                        {
+                            <span class="badge bg-success">@L["Pricing:PublishedBom"]</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning text-dark">@L["Pricing:NoPublishedBom"]</span>
+                        }
+                    </td>
+                    <td class="text-end">
+                        @if (!product.HasPublishedBom)
+                        {
+                            <span class="text-muted">@L["Pricing:NoPublishedBom"]</span>
+                        }
+                        else if (product.HasMissingComponentSuggestedPrices)
+                        {
+                            <span class="text-warning">@L["Pricing:MissingComponentPrices"]</span>
+                        }
+                        else if (product.ComponentBuildPrice.HasValue)
+                        {
+                            <span>@product.ComponentBuildPrice.Value.ToString("N0") @VPureLux.Pricing.PricingConsts.Currency</span>
+                        }
+                    </td>
+                    <td class="text-end">
+                        @(product.CurrentProductSuggestedPrice.HasValue
+                            ? $"{product.CurrentProductSuggestedPrice.Value:N0} {VPureLux.Pricing.PricingConsts.Currency}"
+                            : L["Pricing:NoProductSuggestedPrice"].Value)
+                    </td>
+                    <td class="text-end">
+                        @(product.Difference.HasValue
+                            ? $"{product.Difference.Value:N0} {VPureLux.Pricing.PricingConsts.Currency}"
+                            : "-")
+                    </td>
+                    <td class="text-end">
+                        @if (canViewProductHistory)
+                        {
+                            <a class="btn btn-sm btn-outline-primary" asp-page="/Pricing/Products/History" asp-route-productId="@product.ProductId">@L["Pricing:OpenHistory"]</a>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </abp-table>
+    </abp-tab>
+</abp-tabs>

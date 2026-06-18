@@ -1,0 +1,14 @@
+@page
+@model VPureLux.Web.Pages.Inventory.IndexModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{ ViewData["Title"] = L["Inventory:Title"]; }
+<h2 class="mb-4">@L["Inventory:Title"]</h2>
+<div class="list-group">
+ @if(Model.CanManageWarehouses){<a class="list-group-item list-group-item-action" asp-page="/Inventory/Warehouses">@L["Inventory:Warehouses"]</a>}
+ @if(Model.CanReceive){<a class="list-group-item list-group-item-action" asp-page="/Inventory/Receipt">@L["Inventory:Receipt"]</a>}
+ @if(Model.CanIssue){<a class="list-group-item list-group-item-action" asp-page="/Inventory/Issue">@L["Inventory:Issue"]</a>}
+ @if(Model.CanAdjust){<a class="list-group-item list-group-item-action" asp-page="/Inventory/Adjustment">@L["Inventory:Adjustment"]</a>}
+ <a class="list-group-item list-group-item-action" asp-page="/Inventory/Balances">@L["Inventory:Balances"]</a>
+ <a class="list-group-item list-group-item-action" asp-page="/Inventory/Lots">@L["Inventory:Lots"]</a>
+ @if(Model.CanViewLedger){<a class="list-group-item list-group-item-action" asp-page="/Inventory/Ledger">@L["Inventory:Ledger"]</a>}
+</div>

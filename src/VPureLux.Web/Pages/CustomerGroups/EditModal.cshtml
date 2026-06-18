@@ -1,0 +1,21 @@
+@page "{id:guid}"
+@model VPureLux.Web.Pages.CustomerGroups.EditModalModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Modal
+@{
+    Layout = null;
+}
+
+<form method="post" asp-page="/CustomerGroups/EditModal" asp-route-id="@Model.Id">
+    <abp-modal>
+        <abp-modal-header title="@L["CustomerGroups:Edit"]"></abp-modal-header>
+        <abp-modal-body>
+            <label>@L["CustomerGroups:Code"]</label>
+            <input value="@Model.Code" class="form-control mb-3" disabled/>
+            <abp-input asp-for="Input.Name"/>
+            <abp-input asp-for="Input.Description"/>
+            <abp-input asp-for="Input.SortOrder"/>
+        </abp-modal-body>
+        <abp-modal-footer buttons="@(AbpModalButtons.Cancel|AbpModalButtons.Save)"></abp-modal-footer>
+    </abp-modal>
+</form>

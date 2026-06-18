@@ -1,0 +1,110 @@
+@page
+@model VPureLux.Web.Pages.Inventory.ReceiptModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{
+    ViewData["Title"] = L["Inventory:Receipt"];
+    var postSuccessMessageKey = TempData["InventoryPostSuccessMessage"] as string;
+}
+
+<div data-inventory-posting-page data-post-success="@(postSuccessMessageKey == null ? null : L[postSuccessMessageKey].Value)">
+    <h2>@L["Inventory:Receipt"]</h2>
+</div>
+
+<abp-card>
+    <abp-card-body>
+        <form method="post" data-inventory-posting-form data-confirm-message="@L["Inventory:ConfirmPostReceipt"]">
+            <input asp-for="Input.IdempotencyKey" type="hidden" />
+            <div asp-validation-summary="All" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Input.WarehouseId" class="form-label">@L["Inventory:Warehouse"]</label>
+                <select asp-for="Input.WarehouseId" asp-items="Model.WarehouseOptions" class="form-select">
+                    <option value="">@L["Select"]</option>
+                </select>
+                <span asp-validation-for="Input.WarehouseId" class="text-danger"></span>
+            </div>
+
+            <h5 class="mt-4">@L["Inventory:Lines"]</h5>
+            <div id="receipt-lines" data-inventory-line-container data-add-button="#add-receipt-line">
+                @for (var i = 0; i < Model.Input.Lines.Count; i++)
+                {
+                    <div class="border rounded p-3 mb-3" data-inventory-line-row>
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-4">
+                                <label class="form-label" for="Input_Lines_@i.ToString()__StockItemId"
+                                       data-for="Input_Lines___index____StockItemId">@L["Inventory:StockItem"]</label>
+                                <select class="form-select"
+                                        name="Input.Lines[@i].StockItemId"
+                                        id="Input_Lines_@i.ToString()__StockItemId"
+                                        data-name="Input.Lines[__index__].StockItemId"
+                                        data-id="Input_Lines___index____StockItemId">
+                                    <option value="">@L["Select"]</option>
+                                    @foreach (var option in Model.StockItemOptions)
+                                    {
+                                        if (InventoryPostingUi.IsOptionSelected(option.Value!, Model.Input.Lines[i].StockItemId))
+                                        {
+                                            <option value="@option.Value" selected="selected">@option.Text</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@option.Value">@option.Text</option>
+                                        }
+                                    }
+                                </select>
+                                <span class="text-danger" data-valmsg-for="Input.Lines[@i].StockItemId"
+                                      data-valmsg-for-template="Input.Lines[__index__].StockItemId" data-valmsg-replace="true"></span>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label" for="Input_Lines_@i.ToString()__Quantity"
+                                       data-for="Input_Lines___index____Quantity">@L["Inventory:Quantity"]</label>
+                                <input class="form-control" name="Input.Lines[@i].Quantity" id="Input_Lines_@i.ToString()__Quantity"
+                                       value="@Model.Input.Lines[i].Quantity" data-name="Input.Lines[__index__].Quantity"
+                                       data-id="Input_Lines___index____Quantity" />
+                                <span class="text-danger" data-valmsg-for="Input.Lines[@i].Quantity"
+                                      data-valmsg-for-template="Input.Lines[__index__].Quantity" data-valmsg-replace="true"></span>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label" for="Input_Lines_@i.ToString()__LotNo"
+                                       data-for="Input_Lines___index____LotNo">@L["Inventory:LotNo"]</label>
+                                <input class="form-control" name="Input.Lines[@i].LotNo" id="Input_Lines_@i.ToString()__LotNo"
+                                       value="@Model.Input.Lines[i].LotNo" data-name="Input.Lines[__index__].LotNo"
+                                       data-id="Input_Lines___index____LotNo" />
+                                <span class="text-danger" data-valmsg-for="Input.Lines[@i].LotNo"
+                                      data-valmsg-for-template="Input.Lines[__index__].LotNo" data-valmsg-replace="true"></span>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label" for="ReceivedAtTexts_@i.ToString()_"
+                                       data-for="ReceivedAtTexts___index___">@L["Inventory:ReceivedAt"]</label>
+                                <input class="form-control" name="ReceivedAtTexts[@i]" id="ReceivedAtTexts_@i.ToString()_"
+                                       value="@Model.ReceivedAtTexts[i]" inputmode="numeric" placeholder="dd/MM/yyyy"
+                                       data-default-value="@Model.DefaultDateText"
+                                       data-name="ReceivedAtTexts[__index__]" data-id="ReceivedAtTexts___index___" />
+                                <span class="text-danger" data-valmsg-for="ReceivedAtTexts[@i]"
+                                      data-valmsg-for-template="ReceivedAtTexts[__index__]" data-valmsg-replace="true"></span>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label" for="Input_Lines_@i.ToString()__UnitCost"
+                                       data-for="Input_Lines___index____UnitCost">@L["Inventory:UnitCost"]</label>
+                                <input class="form-control" name="Input.Lines[@i].UnitCost" id="Input_Lines_@i.ToString()__UnitCost"
+                                       value="@Model.Input.Lines[i].UnitCost" data-name="Input.Lines[__index__].UnitCost"
+                                       data-id="Input_Lines___index____UnitCost" />
+                                <span class="text-danger" data-valmsg-for="Input.Lines[@i].UnitCost"
+                                      data-valmsg-for-template="Input.Lines[__index__].UnitCost" data-valmsg-replace="true"></span>
+                            </div>
+                            <div class="col-md-12 text-end">
+                                <button class="btn btn-outline-danger btn-sm" type="button" data-remove-line>@L["Inventory:RemoveLine"]</button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <button class="btn btn-outline-secondary" type="button" id="add-receipt-line">@L["Inventory:AddLine"]</button>
+            <button class="btn btn-primary" type="submit">@L["Inventory:Post"]</button>
+        </form>
+    </abp-card-body>
+</abp-card>
+
+@section scripts {
+    <abp-script src="/Pages/Inventory/Posting.js" />
+}

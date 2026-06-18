@@ -1,0 +1,39 @@
+@page "{id:guid}"
+@model VPureLux.Web.Pages.Bom.DetailsModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{
+    ViewData["Title"] = L["Bom:Details"];
+}
+
+<abp-card>
+    <abp-card-header>
+        <abp-row>
+            <abp-column size-md="_8"><h2>@L["Bom:Details"]</h2></abp-column>
+            <abp-column size-md="_4" class="text-end">
+                @if (Model.CanEdit)
+                {
+                    <a class="btn btn-primary" asp-page="/Bom/Edit" asp-route-id="@Model.BomVersion.Id">@L["Edit"]</a>
+                }
+            </abp-column>
+        </abp-row>
+    </abp-card-header>
+    <abp-card-body>
+        <dl class="row">
+            <dt class="col-sm-3">@L["Bom:Product"]</dt><dd class="col-sm-9">@Model.ProductLabel</dd>
+            <dt class="col-sm-3">@L["Bom:VersionNo"]</dt><dd class="col-sm-9">@Model.BomVersion.VersionNo</dd>
+            <dt class="col-sm-3">@L["Bom:Status"]</dt><dd class="col-sm-9">@L[$"Bom:Status:{Model.BomVersion.Status}"]</dd>
+            <dt class="col-sm-3">@L["Bom:EffectiveFrom"]</dt><dd class="col-sm-9">@VPureLux.Web.Pages.Bom.BomUi.FormatDate(Model.BomVersion.EffectiveFrom)</dd>
+            <dt class="col-sm-3">@L["Bom:EffectiveTo"]</dt><dd class="col-sm-9">@VPureLux.Web.Pages.Bom.BomUi.FormatDate(Model.BomVersion.EffectiveTo)</dd>
+        </dl>
+        <abp-table striped-rows="true">
+            <thead><tr><th>@L["Bom:Component"]</th><th>@L["Bom:Quantity"]</th></tr></thead>
+            <tbody>
+            @foreach (var item in Model.BomVersion.Items)
+            {
+                <tr><td>@Model.GetComponentLabel(item.ComponentId)</td><td>@VPureLux.Web.Pages.Bom.BomUi.FormatQuantity(item.Quantity)</td></tr>
+            }
+            </tbody>
+        </abp-table>
+        <a class="btn btn-secondary" asp-page="/Bom/Product" asp-route-productId="@Model.BomVersion.ProductId">@L["Back"]</a>
+    </abp-card-body>
+</abp-card>

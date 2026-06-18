@@ -1,0 +1,10 @@
+@page
+@model VPureLux.Web.Pages.Audit.ExportModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{ ViewData["Title"] = L["Audit:Export"]; }
+<h2>@L["Audit:Export"]</h2>
+<form method="post">
+<abp-input asp-for="Input.From" /><abp-input asp-for="Input.To" />
+<abp-input asp-for="Input.Module" /><abp-input asp-for="Input.EntityType" />
+<abp-button button-type="Primary" type="submit">@L["Audit:Export"]</abp-button>
+</form>

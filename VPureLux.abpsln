@@ -1,0 +1,59 @@
+{
+  "id": "95ec7e1d-cefa-414a-9e27-a06fd467207e",
+  "creationTime": "06/10/2026 17:58:17 +00:00",
+  "template": "app",
+  "versions": {
+    "LeptonX": "5.4.1",
+    "AbpFramework": "10.4.1",
+    "AbpCommercial": "10.4.1",
+    "AbpStudio": "3.0.4",
+    "TargetDotnetFramework": "net10.0"
+  },
+  "modules": {
+    "VPureLux": {
+      "path": "VPureLux.abpmdl"
+    }
+  },
+  "runProfiles": {
+    "Default": {
+      "path": "etc/abp-studio/run-profiles/Default.abprun.json"
+    }
+  },
+  "options": {
+    "httpRequests": {
+      "ignoredUrls": [
+      
+      ]
+    }
+  },
+  "creatingStudioConfiguration": {
+    "template": "app",
+    "createdAbpStudioVersion": "3.0.4",
+    "creationTool": "ABP Studio UI",
+    "tiered": "false",
+    "runInstallLibs": "",
+    "useLocalReferences": "false",
+    "multiTenancy": "true",
+    "includeTests": "true",
+    "kubernetesConfiguration": "false",
+    "uiFramework": "mvc",
+    "mobileFramework": "none",
+    "distributedEventBus": "rabbitmq",
+    "databaseProvider": "ef",
+    "runDbMigrator": "",
+    "databaseManagementSystem": "sqlserver",
+    "separateTenantSchema": "false",
+    "createInitialMigration": "",
+    "theme": "leptonx",
+    "themeStyle": "system",
+    "themeMenuPlacement": "side",
+    "mobileFramework": "none",
+    "publicWebsite": "true",
+    "optionalModules": "GDPR FileManagement TextTemplateManagement LanguageManagement AuditLogging Chat OpenIddictAdmin",
+    "socialLogin": "true",
+    "sampleCrudPage": "false",
+    "selectedLanguages": ["Vietnamese (Vietnam)", ],
+    "defaultLanguage": "Vietnamese (Vietnam)",
+    "createCommand": "abp new VPureLux -t app --ui-framework mvc --database-provider ef --database-management-system sqlserver --theme leptonx --skip-migration  --skip-migrator  --public-website --without-cms-kit --dont-run-install-libs --dont-run-bundling -chat -file-management"
+  }
+}

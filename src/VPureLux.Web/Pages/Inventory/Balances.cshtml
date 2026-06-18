@@ -1,0 +1,25 @@
+@page
+@model VPureLux.Web.Pages.Inventory.BalancesModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+<h2>@L["Inventory:Balances"]</h2>
+<abp-table striped-rows="true">
+    <thead>
+        <tr>
+            <th>@L["Inventory:Warehouse"]</th>
+            <th>@L["Inventory:StockItem"]</th>
+            <th>@L["Inventory:Quantity"]</th>
+            <th>@L["Inventory:Value"]</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var x in Model.Items)
+    {
+        <tr>
+            <td>@Model.GetWarehouseLabel(x.WarehouseId)</td>
+            <td>@Model.GetStockItemLabel(x.StockItemId)</td>
+            <td>@x.QuantityOnHand</td>
+            <td>@x.InventoryValue</td>
+        </tr>
+    }
+    </tbody>
+</abp-table>

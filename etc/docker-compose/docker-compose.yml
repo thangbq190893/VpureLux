@@ -1,0 +1,120 @@
+services:
+  vpurelux-web:
+    image: vpurelux-web:latest
+    container_name: vpurelux-web
+    hostname: vpurelux-web
+    build:
+      context: ../../
+      dockerfile: src/VPureLux.Web/Dockerfile.local
+    environment:
+      - ASPNETCORE_URLS=https://+:8081;http://+:8080;
+      - Kestrel__Certificates__Default__Path=/app/certs/localhost.pfx
+      - Kestrel__Certificates__Default__Password=4f8614ec-1ec5-405f-a2c0-baa4ba612397
+      - App__SelfUrl=https://localhost:44325
+      - App__HealthCheckUrl=http://vpurelux-web:8080/health-status
+      - AuthServer__RequireHttpsMetadata=false
+      - AuthServer__Authority=http://vpurelux-web:8080      
+      - App__MVCPublicUrl=https://localhost:44304
+      - ConnectionStrings__Default=Data Source=sql-server;Initial Catalog=VPureLux;User Id=sa;Password=myPassw0rd;MultipleActiveResultSets=true;TrustServerCertificate=True;
+      - Redis__Configuration=redis
+    ports:
+      - "44325:8081"
+    depends_on:
+      sql-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: on-failure
+    volumes:
+      - ./certs:/app/certs
+    networks:
+      - abp-network
+
+  
+
+  vpurelux-web-public:
+    image: vpurelux-web-public:latest
+    container_name: vpurelux-web-public
+    build:
+      context: ../../
+      dockerfile: src/VPureLux.Web.Public/Dockerfile.local
+    environment:
+      - ASPNETCORE_URLS=https://+:8081;http://+:8080;
+      - Kestrel__Certificates__Default__Path=/app/certs/localhost.pfx
+      - Kestrel__Certificates__Default__Password=4f8614ec-1ec5-405f-a2c0-baa4ba612397
+      - App__SelfUrl=https://localhost:44304
+      - App__HealthCheckUrl=http://vpurelux-web-public:8080/health-status
+      - AuthServer__RequireHttpsMetadata=false
+      - AuthServer__IsOnK8s=true      
+      - RemoteServices__Default__BaseUrl=http://vpurelux-api:8080
+      - AuthServer__Authority=https://localhost:44329/
+      - AuthServer__MetaAddress=http://vpurelux-api:8080
+      - ConnectionStrings__Default=Data Source=sql-server;Initial Catalog=VPureLux;User Id=sa;Password=myPassw0rd;MultipleActiveResultSets=true;TrustServerCertificate=True;
+      - Redis__Configuration=redis
+    ports:
+      - "44304:8081"
+    depends_on:
+      sql-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: on-failure
+    volumes:
+      - ./certs:/app/certs
+    networks:
+      - abp-network  
+  
+  db-migrator:
+    image: vpurelux-db-migrator:latest
+    container_name: db-migrator
+    build:
+      context: ../../
+      dockerfile: src/VPureLux.DbMigrator/Dockerfile.local
+    environment:
+      - OpenIddict__Applications__VPureLux_Web__RootUrl=https://localhost:44325
+      - OpenIddict__Applications__VPureLux_Swagger__RootUrl=https://localhost:44329
+      - OpenIddict__Applications__VPureLux_Web_Public__RootUrl=https://localhost:44304
+      - ConnectionStrings__Default=Data Source=sql-server;Initial Catalog=VPureLux;User Id=sa;Password=myPassw0rd;MultipleActiveResultSets=true;TrustServerCertificate=True;
+      - Redis__Configuration=redis
+    restart: on-failure
+    depends_on:
+      sql-server:
+        condition: service_healthy
+    networks:
+      - abp-network
+  
+  sql-server:
+    container_name: sql-server
+    image: mcr.microsoft.com/azure-sql-edge:1.0.7
+    ports:
+      - "1434:1433"
+    environment:
+      SA_PASSWORD: "myPassw0rd"
+      ACCEPT_EULA: "Y"
+    volumes:
+      - sqldata:/var/opt/mssql
+    networks:
+      - abp-network
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S sql-server -U sa -P "myPassw0rd" -Q "SELECT 1" -C -b -o /dev/null
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+  redis:
+    container_name: redis
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - abp-network
+    healthcheck:
+      test: ["CMD", "redis-cli","ping"]
+
+volumes:
+  sqldata:
+    name: vpurelux_sqldata
+networks:
+  abp-network:
+    name: vpurelux-network
+    driver: bridge

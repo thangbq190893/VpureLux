@@ -1,0 +1,27 @@
+@page
+@model VPureLux.Web.Pages.Inventory.LedgerModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+<h2>@L["Inventory:Ledger"]</h2>
+<abp-table striped-rows="true">
+    <thead>
+        <tr>
+            <th>@L["Inventory:PostedAt"]</th>
+            <th>@L["Inventory:Warehouse"]</th>
+            <th>@L["Inventory:Type"]</th>
+            <th>@L["Inventory:Reason"]</th>
+            <th>@L["Inventory:IssueCost"]</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var x in Model.Items)
+    {
+        <tr>
+            <td>@x.PostedAt</td>
+            <td>@Model.GetWarehouseLabel(x.WarehouseId)</td>
+            <td>@L[$"Inventory:TransactionType:{x.Type}"]</td>
+            <td>@x.Reason</td>
+            <td>@x.TotalIssueCost</td>
+        </tr>
+    }
+    </tbody>
+</abp-table>

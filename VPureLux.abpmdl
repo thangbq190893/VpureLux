@@ -1,0 +1,152 @@
+{
+  "template": "app",
+  "imports": {
+    "Volo.Abp.LeptonXTheme": {
+      "version": "5.4.1",
+      "isInstalled": true,
+      "creationTime": "06/10/2026 17:58:17 +00:00"      
+    },
+    "Volo.Abp.TextTemplateManagement": {
+      "version": "10.4.1",
+      "isInstalled": true,
+      "creationTime": "06/10/2026 17:58:17 +00:00"
+    },
+    "Volo.Chat": {
+      "version": "10.4.1",
+      "isInstalled": true,
+      "creationTime": "06/10/2026 17:58:17 +00:00" 
+    },
+    "Volo.Abp.LanguageManagement": {
+      "version": "10.4.1",
+      "isInstalled": true,
+      "creationTime": "06/10/2026 17:58:17 +00:00"
+    },
+    "Volo.FileManagement": {
+      "version": "10.4.1",
+      "isInstalled": true,
+      "creationTime": "06/10/2026 17:58:17 +00:00"
+    },
+    "Volo.Abp.OpenIddict.Pro": {
+      "version": "10.4.1",
+      "isInstalled": true,
+      "creationTime": "06/10/2026 17:58:17 +00:00"
+    },
+    "Volo.Abp.Gdpr": {
+      "version": "10.4.1",
+      "isInstalled": true,
+      "creationTime": "06/10/2026 17:58:17 +00:00"
+    },
+    "Volo.Abp.AuditLogging.Pro": {
+      "version": "10.4.1",
+      "isInstalled": true,
+      "creationTime": "06/10/2026 17:58:17 +00:00"
+    },
+    "Volo.CmsKit.Pro": {
+      "version": "10.4.1",
+      "isInstalled": true,
+      "creationTime": "06/10/2026 17:58:17 +00:00"
+    },
+    "Volo.Saas": {
+      "version": "10.4.1",
+      "isInstalled": true,
+      "creationTime": "06/10/2026 17:58:17 +00:00"
+    },
+    "Volo.Abp.Identity.Pro": {
+      "version": "10.4.1",
+      "isInstalled": true,
+      "creationTime": "06/10/2026 17:58:17 +00:00"
+    },
+    "Volo.Abp.Account.Pro": {
+      "version": "10.4.1",
+      "isInstalled": true,
+      "creationTime": "06/10/2026 17:58:17 +00:00"
+    },
+    "Volo.Abp.SettingManagement": {
+      "version": "10.4.1",
+      "isInstalled": true,
+      "creationTime": "06/10/2026 17:58:17 +00:00"
+    },
+    "Volo.Abp.PermissionManagement": {
+      "version": "10.4.1",
+      "isInstalled": true,
+      "creationTime": "06/10/2026 17:58:17 +00:00"
+    },
+    "Volo.Abp.FeatureManagement": {
+      "version": "10.4.1",
+      "isInstalled": true,
+      "creationTime": "06/10/2026 17:58:17 +00:00"
+    }
+  },
+  "folders": {
+    "items": {
+      "src": {},
+      "test": {}
+    }
+  },
+  "packages": {
+    "VPureLux.Application": {
+      "path": "src/VPureLux.Application/VPureLux.Application.abppkg",
+      "folder": "src"
+    },
+    "VPureLux.Application.Tests": {
+      "path": "test/VPureLux.Application.Tests/VPureLux.Application.Tests.abppkg",
+      "folder": "test"
+    },
+    "VPureLux.Domain.Shared": {
+      "path": "src/VPureLux.Domain.Shared/VPureLux.Domain.Shared.abppkg",
+      "folder": "src"
+    },
+    "VPureLux.Application.Contracts": {
+      "path": "src/VPureLux.Application.Contracts/VPureLux.Application.Contracts.abppkg",
+      "folder": "src"
+    },
+    "VPureLux.HttpApi": {
+      "path": "src/VPureLux.HttpApi/VPureLux.HttpApi.abppkg",
+      "folder": "src"
+    },
+    "VPureLux.HttpApi.Client": {
+      "path": "src/VPureLux.HttpApi.Client/VPureLux.HttpApi.Client.abppkg",
+      "folder": "src"
+    },
+    "VPureLux.Web": {
+      "path": "src/VPureLux.Web/VPureLux.Web.abppkg",
+      "folder": "src"
+    },
+    "VPureLux.Web.Tests": {
+      "path": "test/VPureLux.Web.Tests/VPureLux.Web.Tests.abppkg",
+      "folder": "test"
+    },
+    "VPureLux.EntityFrameworkCore.Tests": {
+      "path": "test/VPureLux.EntityFrameworkCore.Tests/VPureLux.EntityFrameworkCore.Tests.abppkg",
+      "folder": "test"
+    },
+    "VPureLux.EntityFrameworkCore": {
+      "path": "src/VPureLux.EntityFrameworkCore/VPureLux.EntityFrameworkCore.abppkg",
+      "folder": "src"
+    },
+    "VPureLux.TestBase": {
+      "path": "test/VPureLux.TestBase/VPureLux.TestBase.abppkg",
+      "folder": "test"
+    },
+    "VPureLux.Domain.Tests": {
+      "path": "test/VPureLux.Domain.Tests/VPureLux.Domain.Tests.abppkg",
+      "folder": "test"
+    },
+    "VPureLux.HttpApi.Client.ConsoleTestApp": {
+      "path": "test/VPureLux.HttpApi.Client.ConsoleTestApp/VPureLux.HttpApi.Client.ConsoleTestApp.abppkg",
+      "folder": "test"
+    },
+    "VPureLux.DbMigrator": {
+      "path": "src/VPureLux.DbMigrator/VPureLux.DbMigrator.abppkg",
+      "folder": "src"
+    },
+    "VPureLux.Web.Public": {
+      "path": "src/VPureLux.Web.Public/VPureLux.Web.Public.abppkg",
+      "folder": "src"
+    },
+    "VPureLux.Domain": {
+      "path": "src/VPureLux.Domain/VPureLux.Domain.abppkg",
+      "folder": "src"
+    }
+  }
+}

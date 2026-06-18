@@ -1,0 +1,86 @@
+@page
+@model VPureLux.Web.Pages.Catalog.Products.IndexModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{
+    ViewData["Title"] = L["Catalog:Products"];
+}
+
+<abp-card>
+    <abp-card-header>
+        <abp-row>
+            <abp-column size-md="_6">
+                <h2>@L["Catalog:Products"]</h2>
+            </abp-column>
+            <abp-column size-md="_6" class="text-end">
+                @if (Model.CanCreate)
+                {
+                    <a asp-page="/Catalog/Products/Create" class="btn btn-primary"><i class="fa fa-plus"></i> @L["Catalog:NewProduct"]</a>
+                }
+            </abp-column>
+        </abp-row>
+    </abp-card-header>
+    <abp-card-body>
+        <form method="get" class="mb-3">
+            <abp-row>
+                <abp-column size-md="_4">
+                    <input asp-for="Keyword" class="form-control" placeholder="@L["Search"]" />
+                </abp-column>
+                <abp-column size-md="_2">
+                    <abp-button button-type="Secondary" type="submit">@L["Search"]</abp-button>
+                </abp-column>
+            </abp-row>
+        </form>
+        <abp-table striped-rows="true">
+            <thead>
+            <tr>
+                <th>@L["Catalog:Image"]</th>
+                <th>@L["Catalog:Code"]</th>
+                <th>@L["Catalog:Name"]</th>
+                <th>@L["Catalog:Status"]</th>
+                <th class="text-end">@L["Actions"]</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var product in Model.Products)
+            {
+                <tr>
+                    <td style="width:72px">
+                        @if (product.HasImage)
+                        {
+                            <img src="/api/catalog/products/@product.Id/thumbnail?v=@product.ImageHash"
+                                 loading="lazy" width="56" height="56" style="object-fit:contain"
+                                 class="border rounded" alt="@product.Name" />
+                        }
+                        else
+                        {
+                            <div class="border rounded d-flex align-items-center justify-content-center text-muted"
+                                 style="width:56px;height:56px" title="@L["Catalog:NoImage"]">-</div>
+                        }
+                    </td>
+                    <td>@product.Code</td>
+                    <td>@product.Name</td>
+                    <td>@L[$"Status:{product.Status}"]</td>
+                    <td class="text-end">
+                        @if (Model.CanEdit)
+                        {
+                            <a class="btn btn-sm btn-outline-primary" asp-page="/Catalog/Products/Edit" asp-route-id="@product.Id">@L["Edit"]</a>
+                            @if (product.Status == VPureLux.Catalog.CatalogItemStatus.Active)
+                            {
+                                <form method="post" asp-page-handler="Deactivate" asp-route-id="@product.Id" class="d-inline">
+                                    <abp-button button-type="Secondary" size="Small" type="submit">@L["Deactivate"]</abp-button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form method="post" asp-page-handler="Activate" asp-route-id="@product.Id" class="d-inline">
+                                    <abp-button button-type="Secondary" size="Small" type="submit">@L["Activate"]</abp-button>
+                                </form>
+                            }
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </abp-table>
+    </abp-card-body>
+</abp-card>

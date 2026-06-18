@@ -1,0 +1,5 @@
+@page "{id:guid}"
+@model VPureLux.Web.Pages.CustomerGroups.DetailsModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{ ViewData["Title"] = L["CustomerGroups:Details"]; }
+<abp-card><abp-card-header><h2>@L["CustomerGroups:Details"]</h2></abp-card-header><abp-card-body><dl class="row"><dt class="col-sm-3">@L["CustomerGroups:Code"]</dt><dd class="col-sm-9">@Model.CustomerGroup.Code</dd><dt class="col-sm-3">@L["CustomerGroups:Name"]</dt><dd class="col-sm-9">@Model.CustomerGroup.Name</dd><dt class="col-sm-3">@L["CustomerGroups:Description"]</dt><dd class="col-sm-9">@Model.CustomerGroup.Description</dd><dt class="col-sm-3">@L["CustomerGroups:Status"]</dt><dd class="col-sm-9">@L[$"Status:{Model.CustomerGroup.Status}"]</dd><dt class="col-sm-3">@L["CustomerGroups:SortOrder"]</dt><dd class="col-sm-9">@Model.CustomerGroup.SortOrder</dd></dl><a class="btn btn-secondary" asp-page="/CustomerGroups/Index">@L["Back"]</a></abp-card-body></abp-card>

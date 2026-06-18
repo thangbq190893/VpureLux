@@ -1,0 +1,25 @@
+<Solution>
+    <Configurations>
+        <Platform Name="Any CPU" />
+    </Configurations>
+    <Folder Name="/src/">
+        <Project Path="src/VPureLux.Domain/VPureLux.Domain.csproj" />
+        <Project Path="src/VPureLux.Application/VPureLux.Application.csproj" />
+        <Project Path="src/VPureLux.EntityFrameworkCore/VPureLux.EntityFrameworkCore.csproj" />
+        <Project Path="src/VPureLux.Web/VPureLux.Web.csproj" />
+        <Project Path="src/VPureLux.Domain.Shared/VPureLux.Domain.Shared.csproj" />
+        <Project Path="src/VPureLux.Application.Contracts/VPureLux.Application.Contracts.csproj" />
+        <Project Path="src/VPureLux.HttpApi/VPureLux.HttpApi.csproj" />
+        <Project Path="src/VPureLux.HttpApi.Client/VPureLux.HttpApi.Client.csproj" />
+        <Project Path="src/VPureLux.DbMigrator/VPureLux.DbMigrator.csproj" />
+        <Project Path="src/VPureLux.Web.Public/VPureLux.Web.Public.csproj" />
+    </Folder>
+    <Folder Name="/test/">
+        <Project Path="test/VPureLux.Application.Tests/VPureLux.Application.Tests.csproj" />
+        <Project Path="test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj" />
+        <Project Path="test/VPureLux.EntityFrameworkCore.Tests/VPureLux.EntityFrameworkCore.Tests.csproj" />
+        <Project Path="test/VPureLux.TestBase/VPureLux.TestBase.csproj" />
+        <Project Path="test/VPureLux.Domain.Tests/VPureLux.Domain.Tests.csproj" />
+        <Project Path="test/VPureLux.HttpApi.Client.ConsoleTestApp/VPureLux.HttpApi.Client.ConsoleTestApp.csproj" />
+    </Folder>
+</Solution>

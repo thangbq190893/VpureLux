@@ -1,0 +1,8 @@
+@page "{id:guid}"
+@model VPureLux.Web.Pages.Customers.EditModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{ ViewData["Title"] = L["Customers:Edit"]; }
+<abp-card><abp-card-header><h2>@L["Customers:Edit"]</h2></abp-card-header><abp-card-body><form method="post">
+<label>@L["Customers:Code"]</label><input value="@Model.Code" class="form-control mb-3" disabled/><abp-input asp-for="Input.Name"/><label asp-for="Input.CustomerGroupId">@L["Customers:CustomerGroup"]</label><select asp-for="Input.CustomerGroupId" asp-items="Model.CustomerGroups" class="form-select mb-3"></select>
+<abp-input asp-for="Input.PhoneNumber"/><abp-input asp-for="Input.Email"/><abp-input asp-for="Input.Address"/><abp-input asp-for="Input.TaxCode"/><abp-input asp-for="Input.Notes"/>
+<button class="btn btn-primary" type="submit">@L["Save"]</button> <a class="btn btn-secondary" asp-page="/Customers/Index">@L["Cancel"]</a></form></abp-card-body></abp-card>

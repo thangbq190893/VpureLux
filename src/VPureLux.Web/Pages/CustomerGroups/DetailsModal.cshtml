@@ -1,0 +1,20 @@
+@page "{id:guid}"
+@model VPureLux.Web.Pages.CustomerGroups.DetailsModalModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{
+    Layout = null;
+}
+
+<abp-modal>
+    <abp-modal-header title="@L["CustomerGroups:Details"]"></abp-modal-header>
+    <abp-modal-body>
+        <dl class="row">
+            <dt class="col-sm-3">@L["CustomerGroups:Code"]</dt><dd class="col-sm-9">@Model.CustomerGroup.Code</dd>
+            <dt class="col-sm-3">@L["CustomerGroups:Name"]</dt><dd class="col-sm-9">@Model.CustomerGroup.Name</dd>
+            <dt class="col-sm-3">@L["CustomerGroups:Description"]</dt><dd class="col-sm-9">@Model.CustomerGroup.Description</dd>
+            <dt class="col-sm-3">@L["CustomerGroups:Status"]</dt><dd class="col-sm-9">@L[$"Status:{Model.CustomerGroup.Status}"]</dd>
+            <dt class="col-sm-3">@L["CustomerGroups:SortOrder"]</dt><dd class="col-sm-9">@Model.CustomerGroup.SortOrder</dd>
+        </dl>
+    </abp-modal-body>
+    <abp-modal-footer buttons="Close"></abp-modal-footer>
+</abp-modal>

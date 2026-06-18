@@ -1,0 +1,22 @@
+@page "{id:guid}"
+@model VPureLux.Web.Pages.Customers.DetailsModalModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{
+    Layout = null;
+}
+
+<abp-modal>
+    <abp-modal-header title="@L["Customers:Details"]"></abp-modal-header>
+    <abp-modal-body>
+        <dl class="row">
+            <dt class="col-sm-3">@L["Customers:Code"]</dt><dd class="col-sm-9">@Model.Customer.Code</dd>
+            <dt class="col-sm-3">@L["Customers:Name"]</dt><dd class="col-sm-9">@Model.Customer.Name</dd>
+            <dt class="col-sm-3">@L["Customers:CustomerGroup"]</dt><dd class="col-sm-9">@Model.Customer.CustomerGroupCode - @Model.Customer.CustomerGroupName</dd>
+            <dt class="col-sm-3">@L["Customers:Status"]</dt><dd class="col-sm-9">@L[$"Status:{Model.Customer.Status}"]</dd>
+            <dt class="col-sm-3">@L["Customers:PhoneNumber"]</dt><dd class="col-sm-9">@Model.Customer.PhoneNumber</dd>
+            <dt class="col-sm-3">@L["Customers:Email"]</dt><dd class="col-sm-9">@Model.Customer.Email</dd>
+            <dt class="col-sm-3">@L["Customers:Address"]</dt><dd class="col-sm-9">@Model.Customer.Address</dd>
+        </dl>
+    </abp-modal-body>
+    <abp-modal-footer buttons="Close"></abp-modal-footer>
+</abp-modal>

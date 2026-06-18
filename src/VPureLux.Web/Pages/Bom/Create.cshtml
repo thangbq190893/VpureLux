@@ -1,0 +1,45 @@
+@page "{productId:guid}"
+@model VPureLux.Web.Pages.Bom.CreateModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{
+    ViewData["Title"] = L["Bom:Create"];
+}
+
+<abp-card>
+    <abp-card-header><h2>@L["Bom:Create"]</h2></abp-card-header>
+    <abp-card-body>
+        <form method="post">
+            <label asp-for="EffectiveFromText" class="form-label">@L["Bom:EffectiveFrom"]</label>
+            <input asp-for="EffectiveFromText" class="form-control mb-3" inputmode="numeric" placeholder="dd/MM/yyyy" />
+            <span asp-validation-for="EffectiveFromText" class="text-danger"></span>
+            <div id="bom-items">
+                @for (var i = 0; i < Model.Items.Count; i++)
+                {
+                    <div class="row mb-2 bom-item">
+                        <div class="col-md-7">
+                            <label class="form-label">@L["Bom:Component"]</label>
+                            <select asp-for="Items[i].ComponentId" asp-items="Model.ComponentOptions" class="form-select component-id">
+                                <option value="">@L["Bom:SelectComponent"]</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">@L["Bom:Quantity"]</label>
+                            <input type="number" min="1" step="1" name="Items[@i].Quantity" id="Items_@(i)__Quantity" class="form-control quantity" value="@VPureLux.Web.Pages.Bom.BomUi.FormatQuantity(Model.Items[i].Quantity)" />
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end">
+                            <button type="button" class="btn btn-outline-danger remove-item" title="@L["Bom:RemoveItem"]"><i class="fa fa-trash"></i></button>
+                        </div>
+                    </div>
+                }
+            </div>
+            <button type="button" id="add-item" class="btn btn-outline-secondary mb-3"><i class="fa fa-plus"></i> @L["Bom:AddItem"]</button>
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <abp-button button-type="Primary" type="submit">@L["Save"]</abp-button>
+            <a class="btn btn-secondary" asp-page="/Bom/Product" asp-route-productId="@Model.ProductId">@L["Cancel"]</a>
+        </form>
+    </abp-card-body>
+</abp-card>
+
+@section scripts {
+    <abp-script src="/Pages/Bom/BomItems.js" />
+}

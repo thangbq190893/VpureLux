@@ -1,0 +1,57 @@
+@using Volo.CmsKit.Pro.Web.Pages.Public.Shared.Components.Newsletter
+@model NewsletterViewModel
+
+<div class="cms-newsletter-area newsletter-container row m-0 align-items-center"
+     data-preference="@Model.Preference"
+     data-source="@Model.Source"
+     data-get-preferences-later="@Model.RequestAdditionalPreferencesLater">
+
+    <div class="col-12 col-lg-6 pe-lg-4">
+        <div class="d-flex align-items-center">
+            <div>
+                <i class="bi bi-envelope-check-fill text-primary d-none d-md-block" style="font-size: 56px;"></i>
+            </div>
+            <div class="ps-md-3">
+                <h4>Subscribe to the Newsletter</h4>
+                <p class="mb-3 mb-md-0">
+                    Get information about happenings in ABP like new releases, free sources, articles, and more.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-6 ps-lg-4">
+        <form id="newsletter-form-@Model.NormalizedSource" class="newsletter-form">
+            <div class="row mb-2">
+                <div class="col-12 col-md-9 pe-md-2 mb-3 mb-md-0">
+                    <input id="newsletter-email-input-@Model.NormalizedSource"
+                           type="email"
+                           required
+                           class="form-control"
+                           name="newsletterEmail"
+                           placeholder="E-mail Address"
+                           aria-label="Subscription" />
+                </div>
+                <div class="col-12 col-md-3 p-md-0">
+                    <button class="btn btn-primary w-100"
+                            type="submit"
+                            id="newsletter-submit-button-@Model.NormalizedSource">Subscribe</button>
+                </div>
+            </div>
+            @if (Model.PrivacyPolicyConfirmation != null)
+            {
+                <div class="form-check mb-1">
+                    <input id="privacy-policy-checkbox-@Model.NormalizedSource"
+                           name="privacyPolicyAccepted"
+                           type="checkbox"
+                           required
+                           class="form-check-input" />
+                    <label class="form-check-label" for="privacy-policy-checkbox-@Model.NormalizedSource">
+                        @Html.Raw(Model.PrivacyPolicyConfirmation)
+                    </label>
+                </div>
+            }
+        </form>
+    </div>
+
+</div>

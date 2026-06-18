@@ -1,0 +1,15 @@
+@page "{id:guid}"
+@model VPureLux.Web.Pages.Audit.DetailsModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{ ViewData["Title"] = L["Audit:Details"]; }
+<h2>@L["Audit:Details"]</h2>
+<dl class="row">
+<dt class="col-sm-3">@L["Audit:EventTime"]</dt><dd class="col-sm-9">@Model.Log.EventTime</dd>
+<dt class="col-sm-3">@L["Audit:Module"]</dt><dd class="col-sm-9">@Model.Log.Module</dd>
+<dt class="col-sm-3">@L["Audit:Action"]</dt><dd class="col-sm-9">@Model.Log.Action</dd>
+<dt class="col-sm-3">@L["Audit:Entity"]</dt><dd class="col-sm-9">@Model.Log.EntityType / @Model.Log.EntityId</dd>
+<dt class="col-sm-3">@L["Audit:CorrelationId"]</dt><dd class="col-sm-9">@Model.Log.CorrelationId</dd>
+</dl>
+<h5>@L["Audit:OldValue"]</h5><pre>@Model.Log.OldValueJson</pre>
+<h5>@L["Audit:NewValue"]</h5><pre>@Model.Log.NewValueJson</pre>
+<h5>@L["Audit:Metadata"]</h5><pre>@Model.Log.MetadataJson</pre>

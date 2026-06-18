@@ -1,0 +1,53 @@
+@page "{id:guid}"
+@model VPureLux.Web.Pages.Catalog.Products.EditModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{
+    ViewData["Title"] = L["Edit"];
+    var imageActionSuccessMessageKey = TempData["CatalogImageSuccessMessage"] as string;
+}
+
+<abp-card data-catalog-image-page
+          data-image-action-success="@(imageActionSuccessMessageKey == null ? null : L[imageActionSuccessMessageKey].Value)">
+    <abp-card-header>
+        <h2>@L["Edit"]</h2>
+    </abp-card-header>
+    <abp-card-body>
+        <form method="post" enctype="multipart/form-data">
+            <abp-input asp-for="Code" disabled="true" />
+            <abp-input asp-for="Input.Name" />
+            <abp-input asp-for="Input.Description" />
+            @if (Model.HasImage)
+            {
+                <img id="image-preview" src="/api/catalog/products/@Model.Id/thumbnail" loading="lazy"
+                     class="mt-3 border rounded" width="96" height="96" style="object-fit:contain"
+                     alt="@L["Catalog:ImagePreview"]" />
+            }
+            else
+            {
+                <img id="image-preview" class="d-none mt-3 border rounded" width="96" height="96"
+                     style="object-fit:contain" alt="@L["Catalog:ImagePreview"]" />
+            }
+            <label class="form-label mt-3" for="Image">@L[Model.HasImage ? "Catalog:ReplaceImage" : "Catalog:UploadImage"]</label>
+            <input asp-for="Image" type="file" accept=".jpg,.jpeg,.png,.webp" class="form-control"
+                   data-catalog-image-input data-preview-target="#image-preview" />
+            <div class="form-text">@L["Catalog:SupportedImageFormats"]</div>
+            <div class="mt-3">
+                <abp-button button-type="Primary" type="submit">@L["Save"]</abp-button>
+                <a class="btn btn-secondary" asp-page="/Catalog/Products/Index">@L["Cancel"]</a>
+            </div>
+        </form>
+        @if (Model.HasImage)
+        {
+            <form method="post" asp-page-handler="RemoveImage" class="mt-2"
+                  data-catalog-image-remove-form
+                  data-confirm-message="@L["Catalog:ConfirmRemoveImage"]">
+                <input type="hidden" asp-for="Id" />
+                <abp-button button-type="Danger" type="submit">@L["Catalog:RemoveImage"]</abp-button>
+            </form>
+        }
+    </abp-card-body>
+</abp-card>
+
+@section scripts {
+    <abp-script src="/Pages/Catalog/catalog-image-preview.js" />
+}

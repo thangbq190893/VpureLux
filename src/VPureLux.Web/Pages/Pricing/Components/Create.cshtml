@@ -1,0 +1,31 @@
+@page "/Pricing/Components/Create/{componentId:guid}"
+@model VPureLux.Web.Pages.Pricing.Components.CreateModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{ ViewData["Title"] = L["Pricing:CreateComponentSuggestedSellingPrice"]; }
+
+<abp-card>
+    <abp-card-header><h2>@L["Pricing:CreateComponentSuggestedSellingPrice"]</h2></abp-card-header>
+    <abp-card-body>
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <p class="text-muted">@L["Pricing:ComponentContext", Model.ComponentLabel]</p>
+            <div class="mb-3">
+                <label asp-for="Input.Price" class="form-label">@L["Pricing:SuggestedSellingPrice"]</label>
+                <input asp-for="Input.Price" class="form-control" />
+                <span asp-validation-for="Input.Price" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.Reason" class="form-label">@L["Pricing:Reason"]</label>
+                <input asp-for="Input.Reason" class="form-control" />
+                <span asp-validation-for="Input.Reason" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="EffectiveFromText" class="form-label">@L["Pricing:EffectiveFrom"]</label>
+                <input asp-for="EffectiveFromText" class="form-control" inputmode="numeric" placeholder="dd/MM/yyyy" />
+                <span asp-validation-for="EffectiveFromText" class="text-danger"></span>
+            </div>
+            <button class="btn btn-primary" type="submit">@L["Pricing:CreateNewVersion"]</button>
+            <a class="btn btn-secondary" asp-page="/Pricing/Components/History" asp-route-componentId="@Model.ComponentId">@L["Cancel"]</a>
+        </form>
+    </abp-card-body>
+</abp-card>

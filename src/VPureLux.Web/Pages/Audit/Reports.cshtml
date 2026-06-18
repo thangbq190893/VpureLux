@@ -1,0 +1,18 @@
+@page
+@model VPureLux.Web.Pages.Audit.ReportsModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using System.Collections.Generic
+@{ ViewData["Title"] = L["Audit:Reports"]; }
+@{
+    var pricingRoute = new Dictionary<string, string> { ["Input.Module"] = "Pricing" };
+    var bomRoute = new Dictionary<string, string> { ["Input.Module"] = "BOM" };
+    var inventoryRoute = new Dictionary<string, string> { ["Input.Module"] = "Inventory" };
+    var salesRoute = new Dictionary<string, string> { ["Input.Module"] = "Sales" };
+}
+<h2>@L["Audit:Reports"]</h2>
+<div class="list-group">
+<a class="list-group-item list-group-item-action" asp-page="/Audit/Index" asp-all-route-data="pricingRoute">@L["Audit:PriceChanges"]</a>
+<a class="list-group-item list-group-item-action" asp-page="/Audit/Index" asp-all-route-data="bomRoute">@L["Audit:BomChanges"]</a>
+<a class="list-group-item list-group-item-action" asp-page="/Audit/Index" asp-all-route-data="inventoryRoute">@L["Audit:InventoryActions"]</a>
+<a class="list-group-item list-group-item-action" asp-page="/Audit/Index" asp-all-route-data="salesRoute">@L["Audit:SalesActions"]</a>
+</div>

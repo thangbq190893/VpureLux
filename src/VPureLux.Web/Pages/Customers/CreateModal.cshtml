@@ -1,0 +1,25 @@
+@page
+@model VPureLux.Web.Pages.Customers.CreateModalModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Modal
+@{
+    Layout = null;
+}
+
+<form method="post" asp-page="/Customers/CreateModal">
+    <abp-modal>
+        <abp-modal-header title="@L["Customers:Create"]"></abp-modal-header>
+        <abp-modal-body>
+            <abp-input asp-for="Input.Code"/>
+            <abp-input asp-for="Input.Name"/>
+            <label asp-for="Input.CustomerGroupId">@L["Customers:CustomerGroup"]</label>
+            <select asp-for="Input.CustomerGroupId" asp-items="Model.CustomerGroups" class="form-select mb-3"></select>
+            <abp-input asp-for="Input.PhoneNumber"/>
+            <abp-input asp-for="Input.Email"/>
+            <abp-input asp-for="Input.Address"/>
+            <abp-input asp-for="Input.TaxCode"/>
+            <abp-input asp-for="Input.Notes"/>
+        </abp-modal-body>
+        <abp-modal-footer buttons="@(AbpModalButtons.Cancel|AbpModalButtons.Save)"></abp-modal-footer>
+    </abp-modal>
+</form>

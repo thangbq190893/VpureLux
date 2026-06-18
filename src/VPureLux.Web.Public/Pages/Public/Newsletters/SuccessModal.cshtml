@@ -1,0 +1,89 @@
+@page
+@using Microsoft.AspNetCore.Mvc.Localization
+@using Volo.CmsKit.Localization
+@model Volo.CmsKit.Pro.Public.Web.Pages.Public.Newsletters.SuccessModalModel
+@inject IHtmlLocalizer<CmsKitResource> L
+@{
+    Layout = null;
+}
+
+@if (Model.RequestAdditionalPreferences && Model.AdditionalPreferences.Count > 0)
+{
+    <form id="newsletterSuccessForm"
+          data-email="@Model.EmailAddress"
+          data-preference="@Model.Preference"
+          data-additional="@Model.RequestAdditionalPreferences"
+          data-source="@Model.Source"
+          data-sourceurl="@Model.SourceUrl"
+          data-ajaxForm="true"
+          asp-page="/Newsletter/SuccessModal"
+          asp-route-Preference="@Model.Preference"
+          asp-route-Source="@Model.Source"
+          asp-route-RequestAdditionalPreferences="@Model.RequestAdditionalPreferences">
+        <abp-modal id="newsletter-success-modal-@Model.NormalizedSource" centered="true" size="Small">
+            <abp-modal-body>
+                <div class="text-center py-2">
+                    <div class="swal-icon swal-icon--success" style="transform: scale(0.75); margin: 0 auto 0.75rem;">
+                        <span class="swal-icon--success__line swal-icon--success__line--long"></span>
+                        <span class="swal-icon--success__line swal-icon--success__line--tip"></span>
+                        <div class="swal-icon--success__ring"></div>
+                        <div class="swal-icon--success__hide-corners"></div>
+                    </div>
+                    <p class="fs-6 fw-semibold mb-0">
+                        @L["NewsletterSuccessMessage"]
+                    </p>
+                    <p class="text-muted small mt-2 mb-0">
+                        @L["DoYouPreferAdditionalEmails"]
+                    </p>
+                </div>
+
+                <div id="additional-preferences" class="mt-3">
+                    @for (int i = 0; i < Model.AdditionalPreferences.Count; i++)
+                    {
+                        <div class="mb-2 form-check" data-additional-preference="@Model.AdditionalPreferences[i]">
+                            <input id="additional-@Model.AdditionalPreferences[i]"
+                                   type="checkbox"
+                                   name="AdditionalPreferences"
+                                   data-val="false"
+                                   data-additional-preference="@Model.AdditionalPreferences[i]"
+                                   class="form-check-input additional-checkbox" />
+                            <label class="form-check-label small" for="additional-@Model.AdditionalPreferences[i]">
+                                @L["GetDealsAndSpecialOffersForThe", Model.DisplayAdditionalPreferences[i]]
+                            </label>
+                        </div>
+                    }
+                </div>
+            </abp-modal-body>
+
+            <div class="modal-footer py-2">
+                <button id="newsletterSuccessBtn" type="button" class="btn btn-primary btn-sm">
+                    @L["OK"]
+                </button>
+            </div>
+        </abp-modal>
+    </form>
+}
+else
+{
+    <abp-modal id="newsletter-success-modal-@Model.NormalizedSource" centered="true" size="Small">
+        <abp-modal-body>
+            <div class="text-center py-2">
+                <div class="swal-icon swal-icon--success" style="transform: scale(0.75); margin: 0 auto 0.75rem;">
+                    <span class="swal-icon--success__line swal-icon--success__line--long"></span>
+                    <span class="swal-icon--success__line swal-icon--success__line--tip"></span>
+                    <div class="swal-icon--success__ring"></div>
+                    <div class="swal-icon--success__hide-corners"></div>
+                </div>
+                <p class="fs-6 fw-semibold mb-0">
+                    @L["NewsletterSuccessMessage"]
+                </p>
+            </div>
+        </abp-modal-body>
+
+        <div class="modal-footer py-2">
+            <button id="newsletterSuccessBtn" type="button" class="btn btn-primary btn-sm">
+                @L["OK"]
+            </button>
+        </div>
+    </abp-modal>
+}

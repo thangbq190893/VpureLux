@@ -1,0 +1,7 @@
+@page
+@model VPureLux.Web.Pages.Inventory.WarehousesModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{ ViewData["Title"] = L["Inventory:Warehouses"]; }
+<h2>@L["Inventory:Warehouses"]</h2>
+<form method="post" class="row g-2 mb-4"><div class="col"><input asp-for="NewWarehouse.Code" class="form-control" placeholder="@L["Inventory:Code"]"/></div><div class="col"><input asp-for="NewWarehouse.Name" class="form-control" placeholder="@L["Inventory:Name"]"/></div><div class="col"><input asp-for="NewWarehouse.Address" class="form-control" placeholder="@L["Inventory:Address"]"/></div><div class="col-auto"><button class="btn btn-primary">@L["Create"]</button></div></form>
+<abp-table striped-rows="true"><thead><tr><th>@L["Inventory:Code"]</th><th>@L["Inventory:Name"]</th><th>@L["Inventory:Status"]</th><th></th></tr></thead><tbody>@foreach(var x in Model.Warehouses){<tr><td>@x.Code</td><td>@x.Name</td><td>@L[$"Status:{x.Status}"]</td><td><form method="post" asp-page-handler="@(x.Status == VPureLux.Inventory.InventoryEntityStatus.Active ? "Deactivate" : "Activate")" asp-route-id="@x.Id"><button class="btn btn-sm btn-outline-secondary">@(x.Status == VPureLux.Inventory.InventoryEntityStatus.Active ? L["Deactivate"] : L["Activate"])</button></form></td></tr>}</tbody></abp-table>

@@ -1,0 +1,22 @@
+@page
+@model VPureLux.Web.Pages.Audit.IndexModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{ ViewData["Title"] = L["Audit:Title"]; }
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>@L["Audit:Title"]</h2>
+    <div>
+        <a class="btn btn-outline-secondary" asp-page="/Audit/Reports">@L["Audit:Reports"]</a>
+        @if(Model.CanExport){<a class="btn btn-primary" asp-page="/Audit/Export">@L["Audit:Export"]</a>}
+    </div>
+</div>
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-2"><input asp-for="Input.Module" class="form-control" placeholder="@L["Audit:Module"]" /></div>
+    <div class="col-md-2"><input asp-for="Input.EntityType" class="form-control" placeholder="@L["Audit:Entity"]" /></div>
+    <div class="col-md-3"><input asp-for="Input.CorrelationId" class="form-control" placeholder="@L["Audit:CorrelationId"]" /></div>
+    <div class="col-md-2"><select asp-for="Input.Severity" asp-items="Html.GetEnumSelectList<VPureLux.Audit.AuditSeverity>()" class="form-select"><option value="">@L["Audit:AllSeverity"]</option></select></div>
+    <div class="col-md-2"><button class="btn btn-secondary" type="submit">@L["Search"]</button></div>
+</form>
+<abp-table striped-rows="true">
+<thead><tr><th>@L["Audit:EventTime"]</th><th>@L["Audit:Module"]</th><th>@L["Audit:Action"]</th><th>@L["Audit:Entity"]</th><th>@L["Audit:Severity"]</th><th></th></tr></thead>
+<tbody>@foreach(var log in Model.Logs){<tr><td>@log.EventTime</td><td>@log.Module</td><td>@log.Action</td><td>@log.EntityType / @log.EntityDisplay</td><td>@log.Severity</td><td><a asp-page="/Audit/Details" asp-route-id="@log.Id">@L["Details"]</a></td></tr>}</tbody>
+</abp-table>

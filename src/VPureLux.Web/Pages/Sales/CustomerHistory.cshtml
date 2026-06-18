@@ -1,0 +1,40 @@
+@page
+@model VPureLux.Web.Pages.Sales.CustomerHistoryModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+<h2>@L["Sales:CustomerHistory"]</h2>
+<form method="get" class="row g-2 mb-3">
+    <div class="col">
+        <label asp-for="CustomerId" class="form-label">@L["Sales:Customer"]</label>
+        <select asp-for="CustomerId" asp-items="Model.Customers" class="form-select">
+            <option value="">@L["Select"]</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-primary">@L["Search"]</button>
+    </div>
+</form>
+<abp-table striped-rows="true">
+    <thead>
+        <tr>
+            <th>@L["Sales:ProductSku"]</th>
+            <th>@L["Sales:LastPurchaseDate"]</th>
+            <th>@L["Sales:LastPurchasePrice"]</th>
+            <th>@L["Sales:AveragePurchasePrice"]</th>
+            <th>@L["Sales:Revenue"]</th>
+            <th>@L["Sales:Profit"]</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var item in Model.Items)
+    {
+        <tr>
+            <td>@Model.GetProductLabel(item)</td>
+            <td>@item.LastPurchaseDate</td>
+            <td>@item.LastPurchasePrice</td>
+            <td>@item.AveragePurchasePrice</td>
+            <td>@item.Revenue</td>
+            <td>@item.Profit</td>
+        </tr>
+    }
+    </tbody>
+</abp-table>

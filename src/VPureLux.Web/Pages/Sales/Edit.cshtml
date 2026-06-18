@@ -1,0 +1,91 @@
+@page "{id:guid}"
+@model VPureLux.Web.Pages.Sales.EditModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{ ViewData["Title"] = L["Sales:Edit"]; }
+<div id="SalesEditPage" data-sales-context-endpoint="@Url.Page(null, "ProductContext", new { id = Model.Order.Id })">
+    <h2>@L["Sales:Edit"] - @Model.Order.OrderNo</h2>
+    <abp-validation-summary />
+
+    <abp-table striped-rows="true">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>@L["Sales:ProductSku"]</th>
+                <th>@L["Sales:Quantity"]</th>
+                <th>@L["Sales:ActualPrice"]</th>
+                <th>@L["Sales:OverrideReason"]</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var line in Model.Order.Lines)
+        {
+            <tr>
+                <td>@line.LineNo</td>
+                <td>
+                    <div>@Model.GetProductLabel(line)</div>
+                    @if (line.BomVersionNoSnapshot.HasValue)
+                    {
+                        <small class="text-muted">@L["Sales:PublishedBomVersion", line.BomVersionNoSnapshot.Value]</small>
+                    }
+                </td>
+                <td colspan="4">
+                    <form method="post" asp-page-handler="Update" class="row g-2">
+                        <input type="hidden" name="LineId" value="@line.Id" />
+                        <div class="col">
+                            <label class="form-label">@L["Sales:Quantity"]</label>
+                            <input class="form-control" name="UpdateLine.Quantity" value="@line.Quantity" />
+                        </div>
+                        <div class="col">
+                            <label class="form-label">@L["Sales:ActualPrice"]</label>
+                            <input class="form-control" name="UpdateLine.ActualSellingPrice" value="@line.ActualSellingPrice" />
+                        </div>
+                        <div class="col">
+                            <label class="form-label">@L["Sales:OverrideReason"]</label>
+                            <input class="form-control" name="UpdateLine.OverrideReason" value="@line.OverrideReason" />
+                        </div>
+                        <div class="col-auto d-flex align-items-end">
+                            <button class="btn btn-sm btn-primary">@L["Save"]</button>
+                        </div>
+                    </form>
+                    <form method="post" asp-page-handler="Remove" class="mt-1">
+                        <input type="hidden" name="lineId" value="@line.Id" />
+                        <button class="btn btn-sm btn-danger">@L["Delete"]</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </abp-table>
+
+    <abp-card>
+        <abp-card-header>
+            <h3>@L["Sales:AddLine"]</h3>
+        </abp-card-header>
+        <abp-card-body>
+            <form method="post" asp-page-handler="Add">
+                <label asp-for="NewLine.ProductId">@L["Sales:ProductSku"]</label>
+                <select asp-for="NewLine.ProductId" asp-items="Model.Products" class="form-select mb-2" data-sales-product-selector></select>
+
+                <div class="alert alert-light border mb-3" data-sales-product-context>
+                    @L["Sales:SelectProductForContext"]
+                </div>
+
+                <abp-input asp-for="NewLine.Quantity" />
+                <div class="mb-3">
+                    <label asp-for="NewLine.ActualSellingPrice" class="form-label">@L["Sales:ActualPrice"]</label>
+                    <input asp-for="NewLine.ActualSellingPrice" class="form-control" data-sales-actual-price />
+                    <span asp-validation-for="NewLine.ActualSellingPrice" class="text-danger"></span>
+                </div>
+                <abp-input asp-for="NewLine.OverrideReason" />
+
+                <button class="btn btn-primary">@L["Sales:AddLine"]</button>
+                <a class="btn btn-secondary" asp-page="/Sales/Details" asp-route-id="@Model.Order.Id">@L["Back"]</a>
+            </form>
+        </abp-card-body>
+    </abp-card>
+</div>
+
+@section scripts {
+    <abp-script src="/Pages/Sales/Edit.js" />
+}
