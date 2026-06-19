@@ -1,0 +1,24 @@
+@page "{id:guid}"
+@model VPureLux.Web.Pages.Catalog.Components.DetailsModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{
+    ViewData["Title"] = L["Details"];
+}
+
+<abp-card>
+    <abp-card-header><h2>@L["Details"]</h2></abp-card-header>
+    <abp-card-body>
+        <dl class="row">
+            <dt class="col-sm-3">@L["Catalog:Code"]</dt><dd class="col-sm-9">@Model.Component.Code</dd>
+            <dt class="col-sm-3">@L["Catalog:Name"]</dt><dd class="col-sm-9">@Model.Component.Name</dd>
+            <dt class="col-sm-3">@L["Catalog:Unit"]</dt><dd class="col-sm-9">@Model.Component.Unit</dd>
+            <dt class="col-sm-3">@L["Catalog:Status"]</dt><dd class="col-sm-9">@L[$"Status:{Model.Component.Status}"]</dd>
+            <dt class="col-sm-3">@L["Catalog:Image"]</dt><dd class="col-sm-9">@(Model.Component.HasImage ? L["Catalog:HasImage"] : L["Catalog:NoImage"])</dd>
+            @if (!string.IsNullOrWhiteSpace(Model.Component.Description))
+            {
+                <dt class="col-sm-3">@L["Catalog:Description"]</dt><dd class="col-sm-9">@Model.Component.Description</dd>
+            }
+        </dl>
+        <a class="btn btn-secondary" asp-page="/Catalog/Components/Index">@L["Back"]</a>
+    </abp-card-body>
+</abp-card>

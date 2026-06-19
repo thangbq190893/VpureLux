@@ -2,6 +2,30 @@
 @model VPureLux.Web.Pages.Inventory.LotsModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
 <h2>@L["Inventory:Lots"]</h2>
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-4">
+        <label asp-for="WarehouseId" class="form-label">@L["Inventory:Warehouse"]</label>
+        <select asp-for="WarehouseId" asp-items="Model.WarehouseOptions" class="form-select">
+            <option value="">@L["Select"]</option>
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="StockItemId" class="form-label">@L["Inventory:StockItem"]</label>
+        <select asp-for="StockItemId" asp-items="Model.StockItemOptions" class="form-select">
+            <option value="">@L["Select"]</option>
+        </select>
+    </div>
+    <div class="col-md-4 d-flex align-items-end gap-2">
+        <button type="submit" class="btn btn-primary">@L["Inventory:ApplyFilter"]</button>
+        <a class="btn btn-outline-secondary" asp-page="/Inventory/Lots">@L["Inventory:ClearFilter"]</a>
+    </div>
+</form>
+@if (Model.Items.Count == 0)
+{
+    <div class="alert alert-light border">@L["Inventory:NoLots"]</div>
+}
+else
+{
 <abp-table striped-rows="true">
     <thead>
         <tr>
@@ -20,10 +44,11 @@
             <td>@x.LotNo</td>
             <td>@Model.GetWarehouseLabel(x.WarehouseId)</td>
             <td>@Model.GetStockItemLabel(x.StockItemId)</td>
-            <td>@x.ReceivedAt</td>
+            <td>@InventoryPostingUi.FormatDate(x.ReceivedAt)</td>
             <td>@x.AvailableQuantity</td>
             <td>@x.UnitCost</td>
         </tr>
     }
     </tbody>
 </abp-table>
+}

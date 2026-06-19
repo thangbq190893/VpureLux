@@ -24,10 +24,7 @@
                 <td>@line.LineNo</td>
                 <td>
                     <div>@Model.GetProductLabel(line)</div>
-                    @if (line.BomVersionNoSnapshot.HasValue)
-                    {
-                        <small class="text-muted">@L["Sales:PublishedBomVersion", line.BomVersionNoSnapshot.Value]</small>
-                    }
+                    <span class="@Model.GetBomBadgeClass(line)">@Model.GetBomStatusText(line)</span>
                 </td>
                 <td colspan="4">
                     <form method="post" asp-page-handler="Update" class="row g-2">
@@ -87,5 +84,5 @@
 </div>
 
 @section scripts {
-    <abp-script src="/Pages/Sales/Edit.js" />
+    <abp-script src="/Pages/Sales/SalesProductContext.js" />
 }

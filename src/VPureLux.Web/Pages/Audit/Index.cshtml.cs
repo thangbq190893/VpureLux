@@ -28,4 +28,25 @@ public class IndexModel : VPureLuxPageModel
         Logs = (await _service.GetListAsync(Input)).Items;
         CanExport = (await _authorization.AuthorizeAsync(User, VPureLuxPermissions.Audit.Export)).Succeeded;
     }
+
+    public string GetActionLabel(BusinessAuditLogDto log)
+    {
+        var localized = L[AuditUiFormatter.GetActionLocalizationKey(log.Action)];
+        return localized.ResourceNotFound ? log.Action : localized.Value;
+    }
+
+    public string GetActorTypeLabel(BusinessAuditLogDto log) => L[AuditUiFormatter.GetActorTypeLocalizationKey(log.ActorType)].Value;
+
+    public string GetGeneratedStatusLabel(BusinessAuditLogDto log) =>
+        L[AuditUiFormatter.GetGeneratedStatusLocalizationKey(log)].Value;
+
+    public string GetSeverityLabel(BusinessAuditLogDto log) =>
+        L[AuditUiFormatter.GetSeverityLocalizationKey(log.Severity)].Value;
+
+    public string GetSeverityBadgeClass(BusinessAuditLogDto log) => AuditUiFormatter.GetSeverityBadgeClass(log.Severity);
+
+    public string GetGeneratedStatusBadgeClass(BusinessAuditLogDto log) =>
+        AuditUiFormatter.GetGeneratedStatusBadgeClass(log);
+
+    public string GetPrimaryEntityLabel(BusinessAuditLogDto log) => AuditUiFormatter.GetPrimaryEntityLabel(log);
 }

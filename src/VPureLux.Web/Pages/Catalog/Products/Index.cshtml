@@ -5,6 +5,17 @@
     ViewData["Title"] = L["Catalog:Products"];
 }
 
+@section scripts {
+    <abp-script src="/Pages/Catalog/CatalogIndex.js" />
+}
+
+<div data-catalog-index
+     data-create-view-url="Catalog/Products/CreateModal"
+     data-edit-view-url="Catalog/Products/EditModal"
+     data-details-view-url="Catalog/Products/DetailsModal"
+     data-saved-message="@L["Catalog:ProductSavedSuccessfully"]"
+     data-status-success="@(string.IsNullOrWhiteSpace(Model.StatusMessageKey) ? string.Empty : L[Model.StatusMessageKey].Value)"></div>
+
 <abp-card>
     <abp-card-header>
         <abp-row>
@@ -14,7 +25,7 @@
             <abp-column size-md="_6" class="text-end">
                 @if (Model.CanCreate)
                 {
-                    <a asp-page="/Catalog/Products/Create" class="btn btn-primary"><i class="fa fa-plus"></i> @L["Catalog:NewProduct"]</a>
+                    <a asp-page="/Catalog/Products/Create" class="btn btn-primary" data-catalog-create><i class="fa fa-plus"></i> @L["Catalog:NewProduct"]</a>
                 }
             </abp-column>
         </abp-row>
@@ -37,6 +48,11 @@
                 <th>@L["Catalog:Code"]</th>
                 <th>@L["Catalog:Name"]</th>
                 <th>@L["Catalog:Status"]</th>
+                @if (Model.CanViewPricingContext)
+                {
+                    <th class="text-end">@L["Catalog:CurrentProductSuggestedPrice"]</th>
+                    <th>@L["Catalog:BomStatus"]</th>
+                }
                 <th class="text-end">@L["Actions"]</th>
             </tr>
             </thead>
@@ -60,23 +76,57 @@
                     <td>@product.Code</td>
                     <td>@product.Name</td>
                     <td>@L[$"Status:{product.Status}"]</td>
-                    <td class="text-end">
-                        @if (Model.CanEdit)
-                        {
-                            <a class="btn btn-sm btn-outline-primary" asp-page="/Catalog/Products/Edit" asp-route-id="@product.Id">@L["Edit"]</a>
-                            @if (product.Status == VPureLux.Catalog.CatalogItemStatus.Active)
+                    @if (Model.CanViewPricingContext)
+                    {
+                        var context = Model.GetPricingContext(product.Id);
+                        <td class="text-end">
+                            @(context?.CurrentProductSuggestedPrice.HasValue == true
+                                ? $"{context.CurrentProductSuggestedPrice.Value:N0} {VPureLux.Pricing.PricingConsts.Currency}"
+                                : L["Catalog:NoProductSuggestedPrice"].Value)
+                        </td>
+                        <td>
+                            @if (context?.HasPublishedBom == true)
                             {
-                                <form method="post" asp-page-handler="Deactivate" asp-route-id="@product.Id" class="d-inline">
-                                    <abp-button button-type="Secondary" size="Small" type="submit">@L["Deactivate"]</abp-button>
-                                </form>
+                                <span class="badge bg-success">@L["Catalog:PublishedBomAvailable"]</span>
                             }
                             else
                             {
-                                <form method="post" asp-page-handler="Activate" asp-route-id="@product.Id" class="d-inline">
-                                    <abp-button button-type="Secondary" size="Small" type="submit">@L["Activate"]</abp-button>
-                                </form>
+                                <span class="badge bg-warning text-dark">@L["Catalog:NoPublishedBom"]</span>
                             }
-                        }
+                        </td>
+                    }
+                    <td class="text-end">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">@L["Actions"]</button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                                <a class="dropdown-item" asp-page="/Catalog/Products/Details" asp-route-id="@product.Id" data-catalog-details data-id="@product.Id">@L["Details"]</a>
+                                @if (Model.CanEdit)
+                                {
+                                    <a class="dropdown-item" asp-page="/Catalog/Products/Edit" asp-route-id="@product.Id" data-catalog-edit data-id="@product.Id">@L["Edit"]</a>
+                                    <a class="dropdown-item" asp-page="/Catalog/Products/Edit" asp-route-id="@product.Id">@L["Catalog:ManageImage"]</a>
+                                    @if (product.Status == VPureLux.Catalog.CatalogItemStatus.Active)
+                                    {
+                                        <form method="post"
+                                              asp-page-handler="Deactivate"
+                                              asp-route-id="@product.Id"
+                                              data-catalog-status-form
+                                              data-confirm-message="@L["Catalog:ConfirmDeactivateProduct"]">
+                                            <button class="dropdown-item" type="submit">@L["Deactivate"]</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form method="post"
+                                              asp-page-handler="Activate"
+                                              asp-route-id="@product.Id"
+                                              data-catalog-status-form
+                                              data-confirm-message="@L["Catalog:ConfirmActivateProduct"]">
+                                            <button class="dropdown-item" type="submit">@L["Activate"]</button>
+                                        </form>
+                                    }
+                                }
+                            </div>
+                        </div>
                     </td>
                 </tr>
             }

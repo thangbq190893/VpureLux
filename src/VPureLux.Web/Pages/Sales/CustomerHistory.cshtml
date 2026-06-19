@@ -9,32 +9,83 @@
             <option value="">@L["Select"]</option>
         </select>
     </div>
-    <div class="col-auto">
+    <div class="col-auto d-flex align-items-end">
         <button class="btn btn-primary">@L["Search"]</button>
     </div>
 </form>
-<abp-table striped-rows="true">
-    <thead>
-        <tr>
-            <th>@L["Sales:ProductSku"]</th>
-            <th>@L["Sales:LastPurchaseDate"]</th>
-            <th>@L["Sales:LastPurchasePrice"]</th>
-            <th>@L["Sales:AveragePurchasePrice"]</th>
-            <th>@L["Sales:Revenue"]</th>
-            <th>@L["Sales:Profit"]</th>
-        </tr>
-    </thead>
-    <tbody>
-    @foreach (var item in Model.Items)
+
+@if (Model.CustomerId.HasValue && Model.Items.Count > 0)
+{
+    @if (!string.IsNullOrWhiteSpace(Model.SelectedCustomerLabel))
     {
-        <tr>
-            <td>@Model.GetProductLabel(item)</td>
-            <td>@item.LastPurchaseDate</td>
-            <td>@item.LastPurchasePrice</td>
-            <td>@item.AveragePurchasePrice</td>
-            <td>@item.Revenue</td>
-            <td>@item.Profit</td>
-        </tr>
+        <p class="text-muted mb-3">@L["Sales:CustomerHistoryFor", Model.SelectedCustomerLabel]</p>
     }
-    </tbody>
-</abp-table>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="text-muted small">@L["Sales:SummaryProductCount"]</div>
+                    <div class="fs-4 fw-semibold">@Model.ProductCount</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="text-muted small">@L["Sales:Revenue"]</div>
+                    <div class="fs-4 fw-semibold">@Model.TotalRevenue</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="text-muted small">@L["Sales:Profit"]</div>
+                    <div class="fs-4 fw-semibold">@Model.TotalProfit</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="text-muted small">@L["Sales:LastPurchaseDate"]</div>
+                    <div class="fs-4 fw-semibold">@(Model.LatestPurchaseDate?.ToString("dd/MM/yyyy") ?? L["Sales:NoPurchaseHistory"].Value)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (Model.CustomerId.HasValue && Model.Items.Count == 0)
+{
+    <div class="alert alert-light border">@L["Sales:NoPurchaseHistory"]</div>
+}
+else if (Model.Items.Count > 0)
+{
+    <abp-table striped-rows="true">
+        <thead>
+            <tr>
+                <th>@L["Sales:ProductSku"]</th>
+                <th>@L["Sales:LastPurchaseDate"]</th>
+                <th>@L["Sales:LastPurchasePrice"]</th>
+                <th>@L["Sales:AveragePurchasePrice"]</th>
+                <th>@L["Sales:Revenue"]</th>
+                <th>@L["Sales:Profit"]</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var item in Model.Items)
+        {
+            <tr>
+                <td>@Model.GetProductLabel(item)</td>
+                <td>@item.LastPurchaseDate.ToString("dd/MM/yyyy")</td>
+                <td>@item.LastPurchasePrice</td>
+                <td>@item.AveragePurchasePrice</td>
+                <td>@item.Revenue</td>
+                <td>@item.Profit</td>
+            </tr>
+        }
+        </tbody>
+    </abp-table>
+}

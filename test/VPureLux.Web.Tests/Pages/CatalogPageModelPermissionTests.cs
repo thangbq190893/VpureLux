@@ -7,6 +7,7 @@ using NSubstitute;
 using Shouldly;
 using VPureLux.Catalog.Components;
 using VPureLux.Catalog.Products;
+using VPureLux.Pricing;
 using Xunit;
 
 namespace VPureLux.Pages;
@@ -17,6 +18,7 @@ public class CatalogPageModelPermissionTests
     public async Task Component_Actions_Should_Be_Hidden_Without_Permissions()
     {
         var appService = Substitute.For<IComponentAppService>();
+        var pricingService = Substitute.For<IComponentSuggestedSellingPriceAppService>();
         var authorizationService = Substitute.For<IAuthorizationService>();
         appService.GetListAsync(Arg.Any<GetComponentListInput>())
             .Returns(new Volo.Abp.Application.Dtos.PagedResultDto<ComponentDto>());
@@ -26,7 +28,7 @@ public class CatalogPageModelPermissionTests
                 Arg.Any<string>())
             .Returns(AuthorizationResult.Failed());
 
-        var model = new Web.Pages.Catalog.Components.IndexModel(appService, authorizationService)
+        var model = new Web.Pages.Catalog.Components.IndexModel(appService, pricingService, authorizationService)
         {
             PageContext = CreatePageContext()
         };
@@ -41,6 +43,7 @@ public class CatalogPageModelPermissionTests
     public async Task Product_Actions_Should_Be_Hidden_Without_Permissions()
     {
         var appService = Substitute.For<IProductAppService>();
+        var pricingContextService = Substitute.For<IProductPricingContextAppService>();
         var authorizationService = Substitute.For<IAuthorizationService>();
         appService.GetListAsync(Arg.Any<GetProductListInput>())
             .Returns(new Volo.Abp.Application.Dtos.PagedResultDto<ProductDto>());
@@ -50,7 +53,7 @@ public class CatalogPageModelPermissionTests
                 Arg.Any<string>())
             .Returns(AuthorizationResult.Failed());
 
-        var model = new Web.Pages.Catalog.Products.IndexModel(appService, authorizationService)
+        var model = new Web.Pages.Catalog.Products.IndexModel(appService, pricingContextService, authorizationService)
         {
             PageContext = CreatePageContext()
         };

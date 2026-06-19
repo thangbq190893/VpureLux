@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -75,8 +76,22 @@ public class PricingPagesTests : VPureLuxWebTestBase
 
         html.ShouldContain(localizer["Pricing:SuggestedSellingPrice"].Value);
         html.ShouldContain(localizer["Pricing:EffectiveFrom"].Value);
+        html.ShouldContain($"Sản phẩm: {product.Code} - {product.Name}");
         html.ShouldContain($"value=\"{today}\"");
         html.ShouldNotContain("type=\"date\"");
+    }
+
+    [Fact]
+    public async Task Product_Price_History_Should_Render_Empty_State_And_Product_Context()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var product = await GetRequiredService<IProductAppService>()
+            .CreateAsync(ProductInput("PRICE-PH", "History Empty Product"));
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Pricing/Products/{product.Id}"));
+
+        html.ShouldContain(localizer["Pricing:NoVersion"].Value);
+        html.ShouldContain($"Sản phẩm: {product.Code} - {product.Name}");
     }
 
     [Fact]
@@ -100,7 +115,9 @@ public class PricingPagesTests : VPureLuxWebTestBase
                 Reason = "Điều chỉnh giá bán đề xuất linh kiện"
             }
         };
-        var productModel = new ProductCreateModel(GetRequiredService<IProductSuggestedPriceAppService>())
+        var productModel = new ProductCreateModel(
+            GetRequiredService<IProductSuggestedPriceAppService>(),
+            GetRequiredService<IProductAppService>())
         {
             ProductId = product.Id,
             EffectiveFromText = today,
@@ -133,6 +150,61 @@ public class PricingPagesTests : VPureLuxWebTestBase
         html.ShouldContain(localizer["Pricing:NoProductSuggestedPrice"].Value);
     }
 
+    [Fact]
+    public async Task Pricing_Index_Component_Tab_Should_Render_Current_Suggested_Price_And_Effective_Date()
+    {
+        var component = await GetRequiredService<IComponentAppService>()
+            .CreateAsync(ComponentInput("PRICE-CUR", "Current Price Component"));
+        var effectiveFrom = DateTime.Now.Date;
+        await GetRequiredService<IComponentSuggestedSellingPriceAppService>()
+            .CreateAsync(component.Id, new CreateComponentSuggestedSellingPriceVersionDto
+            {
+                Price = 123456m,
+                Reason = "Giá bán đề xuất hiện tại",
+                EffectiveFrom = effectiveFrom
+            });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Pricing"));
+
+        html.ShouldContain(component.Code);
+        html.ShouldContain(component.Name);
+        html.ShouldContain($"{123456m.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))} VND");
+        html.ShouldContain(effectiveFrom.ToString("dd/MM/yyyy", CultureInfo.GetCultureInfo("vi-VN")));
+    }
+
+    [Fact]
+    public async Task Pricing_Index_Component_Tab_Should_Render_Friendly_Empty_State_When_No_Current_Price()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var component = await GetRequiredService<IComponentAppService>()
+            .CreateAsync(ComponentInput("PRICE-NO", "No Current Price Component"));
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Pricing"));
+
+        html.ShouldContain(component.Name);
+        html.ShouldContain(localizer["Pricing:NoComponentSuggestedPrice"].Value);
+    }
+
+    [Fact]
+    public async Task Pricing_Razor_Pages_Should_Stay_Script_Link_And_Raw_Id_Compliant()
+    {
+        foreach (var relativePath in new[]
+        {
+            "src/VPureLux.Web/Pages/Pricing/Index.cshtml",
+            "src/VPureLux.Web/Pages/Pricing/Components/Create.cshtml",
+            "src/VPureLux.Web/Pages/Pricing/Components/History.cshtml",
+            "src/VPureLux.Web/Pages/Pricing/Products/Create.cshtml",
+            "src/VPureLux.Web/Pages/Pricing/Products/History.cshtml"
+        })
+        {
+            var pageSource = await File.ReadAllTextAsync(GetRepoFilePath(relativePath));
+            pageSource.ShouldNotContain("<abp-button href=");
+            pageSource.ShouldNotContain("href=\"/");
+            pageSource.ShouldNotContain("<script>");
+            pageSource.ShouldNotContain("<script src=");
+        }
+    }
+
     private static CreateComponentDto ComponentInput(string prefix, string name) => new()
     {
         Code = prefix + Guid.NewGuid().ToString("N")[..8],
@@ -145,4 +217,21 @@ public class PricingPagesTests : VPureLuxWebTestBase
         Code = prefix + Guid.NewGuid().ToString("N")[..8],
         Name = name
     };
+
+    private static string GetRepoFilePath(string relativePath)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory != null)
+        {
+            var candidate = Path.Combine(directory.FullName, relativePath);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new FileNotFoundException($"Could not locate {relativePath} from {AppContext.BaseDirectory}.");
+    }
 }

@@ -2,9 +2,27 @@
 @model VPureLux.Web.Pages.Audit.ExportModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
 @{ ViewData["Title"] = L["Audit:Export"]; }
+@section scripts {
+    <abp-script src="/Pages/Audit/Export.js" />
+}
+
 <h2>@L["Audit:Export"]</h2>
-<form method="post">
-<abp-input asp-for="Input.From" /><abp-input asp-for="Input.To" />
-<abp-input asp-for="Input.Module" /><abp-input asp-for="Input.EntityType" />
-<abp-button button-type="Primary" type="submit">@L["Audit:Export"]</abp-button>
-</form>
+<abp-card>
+    <abp-card-body>
+        <p class="text-muted">@L["Audit:ExportDescription"]</p>
+        <form method="post"
+              data-audit-export-form
+              data-confirm-message="@L["Audit:ConfirmExport"]"
+              data-started-message="@L["Audit:ExportStarted"]"
+              data-error-message="@L["Audit:ExportFailed"]">
+            <abp-input asp-for="Input.From" />
+            <abp-input asp-for="Input.To" />
+            <abp-input asp-for="Input.Module" />
+            <abp-input asp-for="Input.EntityType" />
+            <div class="mt-3">
+                <abp-button button-type="Primary" type="submit" data-audit-export-submit>@L["Audit:Export"]</abp-button>
+                <a class="btn btn-outline-secondary" asp-page="/Audit/Index">@L["Back"]</a>
+            </div>
+        </form>
+    </abp-card-body>
+</abp-card>

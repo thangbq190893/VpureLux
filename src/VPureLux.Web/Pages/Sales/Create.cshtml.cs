@@ -64,7 +64,7 @@ public class CreateModel : VPureLuxPageModel
         }
         catch (BusinessException exception)
         {
-            ModelState.AddModelError(string.Empty, GetFriendlyErrorMessage(exception));
+            ModelState.AddModelError(string.Empty, SalesUiFormatter.GetFriendlyErrorMessage(L, exception));
             await LoadSelectionsAsync();
             return Page();
         }
@@ -92,13 +92,14 @@ public class CreateModel : VPureLuxPageModel
             .Select(x => new SelectListItem($"{x.Code} - {x.Name}", x.Id.ToString())).ToList();
         Warehouses = (await _warehouses.GetListAsync(new GetInventoryListInput { MaxResultCount = 500 })).Items
             .Select(x => new SelectListItem($"{x.Code} - {x.Name}", x.Id.ToString())).ToList();
-        Products = (await _products.GetListAsync(new GetProductListInput { MaxResultCount = 500 })).Items
+        var productItems = (await _products.GetListAsync(new GetProductListInput { MaxResultCount = 1000 })).Items;
+        Products = productItems
             .Where(x => x.Status == CatalogItemStatus.Active)
             .Select(x => new SelectListItem($"{x.Code} - {x.Name}", x.Id.ToString())).ToList();
-        await LoadProductContextsAsync();
+        await LoadProductContextsAsync(productItems.ToDictionary(x => x.Id));
     }
 
-    private async Task LoadProductContextsAsync()
+    private async Task LoadProductContextsAsync(IReadOnlyDictionary<Guid, ProductDto>? productsById = null)
     {
         if (ProductContexts.Count > 0)
         {
@@ -107,37 +108,30 @@ public class CreateModel : VPureLuxPageModel
 
         try
         {
+            productsById ??= (await _products.GetListAsync(new GetProductListInput { MaxResultCount = 1000 })).Items
+                .ToDictionary(x => x.Id);
             ProductContexts = (await _productPricingContext.GetListAsync())
                 .ToDictionary(
                     x => x.ProductId,
-                    x => new SalesProductContextViewModel
+                    x =>
                     {
-                        ProductId = x.ProductId,
-                        ProductLabel = $"{x.ProductCode} - {x.ProductName}",
-                        SuggestedPrice = x.CurrentProductSuggestedPrice,
-                        BomStatusText = x.HasPublishedBom
-                            ? L["Sales:PublishedBomAvailable"]
-                            : L["Sales:NoPublishedBom"]
+                        productsById.TryGetValue(x.ProductId, out var product);
+                        return new SalesProductContextViewModel
+                        {
+                            ProductId = x.ProductId,
+                            ProductLabel = $"{x.ProductCode} - {x.ProductName}",
+                            HasPublishedBom = x.HasPublishedBom,
+                            HasImage = product?.HasImage ?? false,
+                            SuggestedPrice = x.CurrentProductSuggestedPrice,
+                            BomStatusText = x.HasPublishedBom
+                                ? L["Sales:PublishedBomAvailable"]
+                                : L["Sales:NoPublishedBom"]
+                        };
                     });
         }
         catch (AbpAuthorizationException)
         {
             ProductContexts = new Dictionary<Guid, SalesProductContextViewModel>();
         }
-    }
-
-    private string GetFriendlyErrorMessage(BusinessException exception)
-    {
-        return string.IsNullOrWhiteSpace(exception.Code)
-            ? exception.Message
-            : L[exception.Code].Value;
-    }
-
-    public class SalesProductContextViewModel
-    {
-        public Guid ProductId { get; set; }
-        public string ProductLabel { get; set; } = string.Empty;
-        public decimal? SuggestedPrice { get; set; }
-        public string BomStatusText { get; set; } = string.Empty;
     }
 }

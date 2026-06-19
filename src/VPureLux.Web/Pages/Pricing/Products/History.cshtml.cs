@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using VPureLux.Catalog;
+using VPureLux.Catalog.Products;
 using VPureLux.Permissions;
 using VPureLux.Pricing;
 using VPureLux.Web.Pages.Pricing;
@@ -14,6 +16,7 @@ namespace VPureLux.Web.Pages.Pricing.Products;
 public class HistoryModel : VPureLuxPageModel
 {
     private readonly IProductSuggestedPriceAppService _appService;
+    private readonly IProductAppService _productAppService;
     private readonly IAuthorizationService _authorizationService;
 
     [BindProperty(SupportsGet = true)] public Guid ProductId { get; set; }
@@ -24,17 +27,23 @@ public class HistoryModel : VPureLuxPageModel
     public ProductSuggestedPriceVersionDto? CurrentVersion { get; private set; }
     public ProductSuggestedPriceVersionDto? HistoricalVersion { get; private set; }
     public bool CanCreate { get; private set; }
+    public string ProductLabel { get; private set; } = string.Empty;
 
     public HistoryModel(
         IProductSuggestedPriceAppService appService,
+        IProductAppService productAppService,
         IAuthorizationService authorizationService)
     {
         _appService = appService;
+        _productAppService = productAppService;
         _authorizationService = authorizationService;
     }
 
     public async Task OnGetAsync()
     {
+        var product = await _productAppService.GetAsync(ProductId);
+        ProductLabel = $"{product.Code} - {product.Name}";
+
         Versions = await _appService.GetHistoryAsync(ProductId);
         CurrentVersion = await TryGetAsync(() => _appService.GetCurrentAsync(ProductId));
         if (!string.IsNullOrWhiteSpace(LookupDateText))
@@ -56,7 +65,8 @@ public class HistoryModel : VPureLuxPageModel
         }
 
         CanCreate = (await _authorizationService.AuthorizeAsync(
-            User, VPureLuxPermissions.Pricing.ProductSuggestedPrices.Create)).Succeeded;
+            User, VPureLuxPermissions.Pricing.ProductSuggestedPrices.Create)).Succeeded &&
+            product.Status == CatalogItemStatus.Active;
     }
 
     private static async Task<ProductSuggestedPriceVersionDto?> TryGetAsync(

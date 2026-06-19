@@ -3,10 +3,13 @@ using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
 using Shouldly;
 using VPureLux.Bom;
 using VPureLux.Catalog.Components;
 using VPureLux.Catalog.Products;
+using VPureLux.Localization;
+using VPureLux.Pricing;
 using Xunit;
 
 namespace VPureLux.Pages;
@@ -46,6 +49,10 @@ public class BomPagesTests : VPureLuxWebTestBase
 
         var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/BomItems.js"));
         scriptSource.ShouldContain("component.innerHTML = sourceComponent.innerHTML");
+        scriptSource.ShouldContain("component.name = 'Items[' + index + '].ComponentId'");
+        scriptSource.ShouldContain("quantity.name = 'Items[' + index + '].Quantity'");
+        scriptSource.ShouldContain("component.id = 'Items_' + index + '__ComponentId'");
+        scriptSource.ShouldContain("quantity.id = 'Items_' + index + '__Quantity'");
     }
 
     [Fact]
@@ -78,6 +85,102 @@ public class BomPagesTests : VPureLuxWebTestBase
         detailsHtml.ShouldContain(">1</td>");
         detailsHtml.ShouldNotContain("1,0000");
         detailsHtml.ShouldNotContain("1.0000");
+    }
+
+    [Fact]
+    public async Task Bom_Product_Should_Render_Publish_Archive_Confirmation_And_Notification_Hooks()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var product = await CreateProductAsync("BOM-ACT-P", "BOM Action Product");
+        var component = await CreateComponentAsync("BOM-ACT-C", "BOM Action Component");
+        var bomService = GetRequiredService<IBomAppService>();
+        var draft = await bomService.CreateAsync(product.Id, BomInput(component.Id, DateTime.Today));
+
+        var draftHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom/Product/{product.Id}"));
+        draftHtml.ShouldContain("data-bom-product");
+        draftHtml.ShouldContain("data-bom-action-form");
+        draftHtml.ShouldContain(localizer["Bom:ConfirmPublish"].Value);
+
+        await bomService.PublishAsync(draft.Id);
+        var publishedHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom/Product/{product.Id}"));
+        publishedHtml.ShouldContain(localizer["Bom:ConfirmArchive"].Value);
+
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/Product.cshtml"));
+        pageSource.ShouldContain("@section scripts");
+        pageSource.ShouldContain("<abp-script src=\"/Pages/Bom/BomProduct.js\" />");
+        pageSource.ShouldNotContain("<script>");
+        pageSource.ShouldNotContain("<script src=");
+        pageSource.ShouldNotContain("<abp-button href=");
+        pageSource.ShouldNotContain("href=\"/");
+
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/BomProduct.js"));
+        scriptSource.ShouldContain("abp.message.confirm");
+        scriptSource.ShouldContain("abp.notify.success");
+        scriptSource.ShouldContain("abp.ui.setBusy");
+        scriptSource.ShouldContain("dataset.confirmed");
+    }
+
+    [Fact]
+    public async Task Bom_Product_Should_Render_Product_And_Existing_Pricing_Context()
+    {
+        var product = await CreateProductAsync("BOM-CTX-P", "BOM Context Product");
+        var component = await CreateComponentAsync("BOM-CTX-C", "BOM Context Component");
+        await GetRequiredService<IComponentSuggestedSellingPriceAppService>()
+            .CreateAsync(component.Id, new CreateComponentSuggestedSellingPriceVersionDto
+            {
+                Price = 50000m,
+                Reason = "Giá linh kiện cho ngữ cảnh BOM",
+                EffectiveFrom = DateTime.Today
+            });
+        await GetRequiredService<IProductSuggestedPriceAppService>()
+            .CreateAsync(product.Id, new CreateProductSuggestedPriceVersionDto
+            {
+                Price = 120000m,
+                Reason = "Giá sản phẩm cho ngữ cảnh BOM",
+                EffectiveFrom = DateTime.Today
+            });
+
+        var bom = await GetRequiredService<IBomAppService>().CreateAsync(
+            product.Id,
+            BomInput(component.Id, DateTime.Today, quantity: 2));
+        await GetRequiredService<IBomAppService>().PublishAsync(bom.Id);
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom/Product/{product.Id}"));
+
+        html.ShouldContain($"Sản phẩm: {product.Code} - {product.Name}");
+        html.ShouldContain("Giá bán đề xuất hiện tại");
+        html.ShouldContain("Giá cấu thành linh kiện");
+        html.ShouldContain("120.000 VND");
+        html.ShouldContain("100.000 VND");
+        html.ShouldContain("Đã có định mức công bố");
+    }
+
+    [Fact]
+    public async Task Bom_Edit_Should_Preserve_Component_Selections_And_Quantities()
+    {
+        var product = await CreateProductAsync("BOM-EDIT-P", "BOM Edit Product");
+        var firstComponent = await CreateComponentAsync("BOM-EDIT-C1", "BOM Edit Component 1");
+        var secondComponent = await CreateComponentAsync("BOM-EDIT-C2", "BOM Edit Component 2");
+        var bom = await GetRequiredService<IBomAppService>().CreateAsync(product.Id, new CreateBomVersionDto
+        {
+            EffectiveFrom = DateTime.Today,
+            Items =
+            [
+                new CreateBomItemDto { ComponentId = firstComponent.Id, Quantity = 2 },
+                new CreateBomItemDto { ComponentId = secondComponent.Id, Quantity = 3 }
+            ]
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom/Edit/{bom.Id}"));
+
+        html.ShouldContain($"{firstComponent.Code} - {firstComponent.Name}");
+        html.ShouldContain($"{secondComponent.Code} - {secondComponent.Name}");
+        html.ShouldContain("name=\"Items[0].ComponentId\"");
+        html.ShouldContain("name=\"Items[1].ComponentId\"");
+        html.ShouldContain("name=\"Items[0].Quantity\"");
+        html.ShouldContain("name=\"Items[1].Quantity\"");
+        html.ShouldContain("value=\"2\"");
+        html.ShouldContain("value=\"3\"");
     }
 
     [Fact]
@@ -135,6 +238,19 @@ public class BomPagesTests : VPureLuxWebTestBase
             Unit = "pcs"
         });
     }
+
+    private static CreateBomVersionDto BomInput(Guid componentId, DateTime effectiveFrom, decimal quantity = 1) => new()
+    {
+        EffectiveFrom = effectiveFrom,
+        Items =
+        [
+            new CreateBomItemDto
+            {
+                ComponentId = componentId,
+                Quantity = quantity
+            }
+        ]
+    };
 
     private static string GetRepoFilePath(string relativePath)
     {

@@ -28,6 +28,7 @@ public class EditModel : VPureLuxPageModel
     public SalesOrderDto Order { get; private set; } = new();
     public List<SelectListItem> Products { get; private set; } = new();
     public Dictionary<Guid, SalesProductContextViewModel> ProductContexts { get; private set; } = new();
+    public Dictionary<Guid, string> ProductLabels { get; private set; } = new();
 
     public EditModel(
         ISalesOrderAppService service,
@@ -49,7 +50,7 @@ public class EditModel : VPureLuxPageModel
         }
         catch (BusinessException exception)
         {
-            ModelState.AddModelError(string.Empty, GetFriendlyErrorMessage(exception));
+            ModelState.AddModelError(string.Empty, SalesUiFormatter.GetFriendlyErrorMessage(L, exception));
             await LoadAsync();
             return Page();
         }
@@ -64,7 +65,7 @@ public class EditModel : VPureLuxPageModel
         }
         catch (BusinessException exception)
         {
-            ModelState.AddModelError(string.Empty, GetFriendlyErrorMessage(exception));
+            ModelState.AddModelError(string.Empty, SalesUiFormatter.GetFriendlyErrorMessage(L, exception));
             await LoadAsync();
             return Page();
         }
@@ -79,7 +80,7 @@ public class EditModel : VPureLuxPageModel
         }
         catch (BusinessException exception)
         {
-            ModelState.AddModelError(string.Empty, GetFriendlyErrorMessage(exception));
+            ModelState.AddModelError(string.Empty, SalesUiFormatter.GetFriendlyErrorMessage(L, exception));
             await LoadAsync();
             return Page();
         }
@@ -101,29 +102,45 @@ public class EditModel : VPureLuxPageModel
         });
     }
 
-    public string GetProductLabel(SalesOrderLineDto line)
+    public string GetProductLabel(SalesOrderLineDto line) =>
+        SalesUiFormatter.GetProductLabel(line, ProductLabels, L);
+
+    public string GetBomBadgeClass(SalesOrderLineDto line)
     {
-        if (!string.IsNullOrWhiteSpace(line.ItemCodeSnapshot) || !string.IsNullOrWhiteSpace(line.ItemNameSnapshot))
+        if (line.BomVersionNoSnapshot.HasValue)
         {
-            return $"{line.ItemCodeSnapshot} - {line.ItemNameSnapshot}".Trim(' ', '-');
+            return SalesUiFormatter.GetBomBadgeClass(true);
         }
 
-        return ProductContexts.TryGetValue(line.ProductId, out var product)
-            ? product.ProductLabel
+        return ProductContexts.TryGetValue(line.ProductId, out var context)
+            ? SalesUiFormatter.GetBomBadgeClass(context.HasPublishedBom)
+            : "badge bg-secondary";
+    }
+
+    public string GetBomStatusText(SalesOrderLineDto line)
+    {
+        if (line.BomVersionNoSnapshot.HasValue)
+        {
+            return L["Sales:PublishedBomVersion", line.BomVersionNoSnapshot.Value];
+        }
+
+        return ProductContexts.TryGetValue(line.ProductId, out var context)
+            ? context.BomStatusText
             : L["Sales:ProductContextUnavailable"];
     }
 
     private async Task LoadAsync()
     {
         Order = await _service.GetAsync(Id);
-        Products = (await _products.GetListAsync(new GetProductListInput { MaxResultCount = 500 })).Items
+        var productItems = (await _products.GetListAsync(new GetProductListInput { MaxResultCount = 1000 })).Items;
+        Products = productItems
             .Where(x => x.Status == CatalogItemStatus.Active)
             .Select(x => new SelectListItem($"{x.Code} - {x.Name}", x.Id.ToString()))
             .ToList();
-        await LoadProductContextsAsync();
+        await LoadProductContextsAsync(productItems.ToDictionary(x => x.Id));
     }
 
-    private async Task LoadProductContextsAsync()
+    private async Task LoadProductContextsAsync(IReadOnlyDictionary<Guid, ProductDto>? productsById = null)
     {
         if (ProductContexts.Count > 0)
         {
@@ -132,37 +149,32 @@ public class EditModel : VPureLuxPageModel
 
         try
         {
+            productsById ??= (await _products.GetListAsync(new GetProductListInput { MaxResultCount = 1000 })).Items
+                .ToDictionary(x => x.Id);
             ProductContexts = (await _productPricingContext.GetListAsync())
                 .ToDictionary(
                     x => x.ProductId,
-                    x => new SalesProductContextViewModel
+                    x =>
                     {
-                        ProductId = x.ProductId,
-                        ProductLabel = $"{x.ProductCode} - {x.ProductName}",
-                        SuggestedPrice = x.CurrentProductSuggestedPrice,
-                        BomStatusText = x.HasPublishedBom
-                            ? L["Sales:PublishedBomAvailable"]
-                            : L["Sales:NoPublishedBom"]
+                        productsById.TryGetValue(x.ProductId, out var product);
+                        return new SalesProductContextViewModel
+                        {
+                            ProductId = x.ProductId,
+                            ProductLabel = $"{x.ProductCode} - {x.ProductName}",
+                            HasPublishedBom = x.HasPublishedBom,
+                            HasImage = product?.HasImage ?? false,
+                            SuggestedPrice = x.CurrentProductSuggestedPrice,
+                            BomStatusText = x.HasPublishedBom
+                                ? L["Sales:PublishedBomAvailable"]
+                                : L["Sales:NoPublishedBom"]
+                        };
                     });
+            ProductLabels = ProductContexts.ToDictionary(x => x.Key, x => x.Value.ProductLabel);
         }
         catch (AbpAuthorizationException)
         {
             ProductContexts = new Dictionary<Guid, SalesProductContextViewModel>();
+            ProductLabels = new Dictionary<Guid, string>();
         }
-    }
-
-    private string GetFriendlyErrorMessage(BusinessException exception)
-    {
-        return string.IsNullOrWhiteSpace(exception.Code)
-            ? exception.Message
-            : L[exception.Code].Value;
-    }
-
-    public class SalesProductContextViewModel
-    {
-        public Guid ProductId { get; set; }
-        public string ProductLabel { get; set; } = string.Empty;
-        public decimal? SuggestedPrice { get; set; }
-        public string BomStatusText { get; set; } = string.Empty;
     }
 }

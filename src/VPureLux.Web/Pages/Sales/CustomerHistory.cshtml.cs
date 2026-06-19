@@ -24,6 +24,12 @@ public class CustomerHistoryModel : VPureLuxPageModel
     public IReadOnlyList<CustomerPurchaseHistoryDto> Items { get; private set; } = Array.Empty<CustomerPurchaseHistoryDto>();
     public List<SelectListItem> Customers { get; private set; } = new();
     public Dictionary<Guid, string> ProductLabels { get; private set; } = new();
+    public string? SelectedCustomerLabel { get; private set; }
+
+    public int ProductCount => Items.Select(x => x.ProductId).Distinct().Count();
+    public decimal TotalRevenue => Items.Sum(x => x.Revenue);
+    public decimal TotalProfit => Items.Sum(x => x.Profit);
+    public DateTime? LatestPurchaseDate => Items.Count == 0 ? null : Items.Max(x => x.LastPurchaseDate);
 
     public CustomerHistoryModel(
         ISalesOrderAppService service,
@@ -40,6 +46,8 @@ public class CustomerHistoryModel : VPureLuxPageModel
         await LoadCustomerOptionsAsync();
         if (CustomerId.HasValue)
         {
+            SelectedCustomerLabel = Customers
+                .FirstOrDefault(x => x.Value == CustomerId.Value.ToString())?.Text;
             Items = await _service.GetCustomerHistoryAsync(CustomerId.Value);
             ProductLabels = (await _products.GetListAsync(new GetProductListInput { MaxResultCount = 1000 })).Items
                 .Where(x => Items.Any(item => item.ProductId == x.Id))
@@ -47,12 +55,8 @@ public class CustomerHistoryModel : VPureLuxPageModel
         }
     }
 
-    public string GetProductLabel(CustomerPurchaseHistoryDto item)
-    {
-        return ProductLabels.TryGetValue(item.ProductId, out var product)
-            ? product
-            : L["Sales:ProductContextUnavailable"];
-    }
+    public string GetProductLabel(CustomerPurchaseHistoryDto item) =>
+        SalesUiFormatter.GetProductLabel(item, ProductLabels, L);
 
     private async Task LoadCustomerOptionsAsync()
     {
