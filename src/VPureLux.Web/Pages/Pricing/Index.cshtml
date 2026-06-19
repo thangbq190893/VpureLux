@@ -2,6 +2,7 @@
 @model VPureLux.Web.Pages.Pricing.IndexModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
 @inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
+@using VPureLux.Web.Pages.Pricing
 @using VPureLux.Permissions
 @{ ViewData["Title"] = L["Pricing:Title"]; }
 @{
@@ -16,11 +17,43 @@
 <abp-tabs>
     <abp-tab title="@L["Pricing:ComponentSuggestedSellingPrices"]">
         <abp-table striped-rows="true">
-            <thead><tr><th>@L["Pricing:Code"]</th><th>@L["Pricing:Name"]</th><th class="text-end">@L["Actions"]</th></tr></thead>
+            <thead>
+            <tr>
+                <th>@L["Pricing:Code"]</th>
+                <th>@L["Pricing:Name"]</th>
+                <th class="text-end">@L["Pricing:CurrentComponentSuggestedPrice"]</th>
+                <th>@L["Pricing:EffectiveFrom"]</th>
+                <th class="text-end">@L["Actions"]</th>
+            </tr>
+            </thead>
             <tbody>
-            @foreach (var component in Model.Components)
+            @foreach (var row in Model.Components)
             {
-                <tr><td>@component.Code</td><td>@component.Name</td><td class="text-end">@if (canViewComponentHistory) { <a class="btn btn-sm btn-outline-primary" asp-page="/Pricing/Components/History" asp-route-componentId="@component.Id">@L["Pricing:OpenHistory"]</a> }</td></tr>
+                <tr>
+                    <td>@row.Component.Code</td>
+                    <td>@row.Component.Name</td>
+                    <td class="text-end">
+                        @if (row.CurrentSuggestedSellingPrice == null)
+                        {
+                            <span class="text-muted">@L["Pricing:NoComponentSuggestedPrice"]</span>
+                        }
+                        else
+                        {
+                            <span>@row.CurrentSuggestedSellingPrice.Price.ToString("N0") @row.CurrentSuggestedSellingPrice.Currency</span>
+                        }
+                    </td>
+                    <td>
+                        @(row.CurrentSuggestedSellingPrice == null
+                            ? L["Pricing:NoVersion"].Value
+                            : PricingDateUi.Format(row.CurrentSuggestedSellingPrice.EffectiveFrom))
+                    </td>
+                    <td class="text-end">
+                        @if (canViewComponentHistory)
+                        {
+                            <a class="btn btn-sm btn-outline-primary" asp-page="/Pricing/Components/History" asp-route-componentId="@row.Component.Id">@L["Pricing:OpenHistory"]</a>
+                        }
+                    </td>
+                </tr>
             }
             </tbody>
         </abp-table>

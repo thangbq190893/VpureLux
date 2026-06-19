@@ -5,6 +5,13 @@
     ViewData["Title"] = L["Bom:History"];
 }
 
+@section scripts {
+    <abp-script src="/Pages/Bom/BomProduct.js" />
+}
+
+<div data-bom-product
+     data-status-success="@(string.IsNullOrWhiteSpace(Model.StatusMessageKey) ? string.Empty : L[Model.StatusMessageKey].Value)"></div>
+
 <abp-card>
     <abp-card-header>
         <abp-row>
@@ -18,7 +25,58 @@
         </abp-row>
     </abp-card-header>
     <abp-card-body>
-        <div class="mb-3"><strong>@L["Bom:Product"]:</strong> @Model.ProductLabel</div>
+        <div class="mb-3">
+            <h5 class="mb-2">@L["Bom:ProductContext", Model.ProductLabel]</h5>
+            @if (Model.PricingContext != null)
+            {
+                <abp-row>
+                    <abp-column size-md="_3">
+                        <div class="text-muted">@L["Bom:CurrentProductSuggestedPrice"]</div>
+                        <strong>
+                            @(Model.PricingContext.CurrentProductSuggestedPrice.HasValue
+                                ? $"{Model.PricingContext.CurrentProductSuggestedPrice.Value:N0} {VPureLux.Pricing.PricingConsts.Currency}"
+                                : L["Bom:NoProductSuggestedPrice"].Value)
+                        </strong>
+                    </abp-column>
+                    <abp-column size-md="_3">
+                        <div class="text-muted">@L["Bom:ComponentBuildPrice"]</div>
+                        <strong>
+                            @if (!Model.PricingContext.HasPublishedBom)
+                            {
+                                @L["Bom:NoPublishedBom"]
+                            }
+                            else if (Model.PricingContext.HasMissingComponentSuggestedPrices)
+                            {
+                                @L["Bom:MissingComponentPrices"]
+                            }
+                            else if (Model.PricingContext.ComponentBuildPrice.HasValue)
+                            {
+                                @($"{Model.PricingContext.ComponentBuildPrice.Value:N0} {VPureLux.Pricing.PricingConsts.Currency}")
+                            }
+                            else
+                            {
+                                @L["Bom:NoPriceContext"]
+                            }
+                        </strong>
+                    </abp-column>
+                    <abp-column size-md="_3">
+                        <div class="text-muted">@L["Bom:PublishedBomStatus"]</div>
+                        @if (Model.PricingContext.HasPublishedBom)
+                        {
+                            <span class="badge bg-success">@L["Bom:HasPublishedBom"]</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning text-dark">@L["Bom:NoPublishedBom"]</span>
+                        }
+                    </abp-column>
+                </abp-row>
+            }
+            else
+            {
+                <p class="text-muted mb-0">@L["Bom:NoPriceContext"]</p>
+            }
+        </div>
         <abp-table striped-rows="true">
             <thead><tr><th>@L["Bom:VersionNo"]</th><th>@L["Bom:Status"]</th><th>@L["Bom:EffectiveFrom"]</th><th>@L["Bom:EffectiveTo"]</th><th class="text-end">@L["Actions"]</th></tr></thead>
             <tbody>
@@ -41,13 +99,25 @@
                         }
                         @if (Model.CanPublish && version.Status == VPureLux.Bom.BomStatus.Draft)
                         {
-                            <form method="post" asp-page-handler="Publish" asp-route-id="@version.Id" class="d-inline">
+                            <form method="post"
+                                  asp-page-handler="Publish"
+                                  asp-route-id="@version.Id"
+                                  class="d-inline"
+                                  data-bom-action-form
+                                  data-confirm-message="@L["Bom:ConfirmPublish"]"
+                                  data-error-message="@L["Bom:ActionFailed"]">
                                 <abp-button button-type="Primary" size="Small" type="submit">@L["Bom:Publish"]</abp-button>
                             </form>
                         }
                         @if (Model.CanArchive && version.Status == VPureLux.Bom.BomStatus.Published)
                         {
-                            <form method="post" asp-page-handler="Archive" asp-route-id="@version.Id" class="d-inline">
+                            <form method="post"
+                                  asp-page-handler="Archive"
+                                  asp-route-id="@version.Id"
+                                  class="d-inline"
+                                  data-bom-action-form
+                                  data-confirm-message="@L["Bom:ConfirmArchive"]"
+                                  data-error-message="@L["Bom:ActionFailed"]">
                                 <abp-button button-type="Secondary" size="Small" type="submit">@L["Bom:Archive"]</abp-button>
                             </form>
                         }

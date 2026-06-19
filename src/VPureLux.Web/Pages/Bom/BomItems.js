@@ -6,10 +6,12 @@
 
             if (component) {
                 component.name = 'Items[' + index + '].ComponentId';
+                component.id = 'Items_' + index + '__ComponentId';
             }
 
             if (quantity) {
                 quantity.name = 'Items[' + index + '].Quantity';
+                quantity.id = 'Items_' + index + '__Quantity';
             }
         });
     }

@@ -7,6 +7,8 @@
     <abp-card-header><h2>@L["Pricing:CreateProductSuggestedPrice"]</h2></abp-card-header>
     <abp-card-body>
         <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <p class="text-muted">@L["Pricing:ProductContext", Model.ProductLabel]</p>
             <div class="mb-3">
                 <label asp-for="Input.Price" class="form-label">@L["Pricing:SuggestedSellingPrice"]</label>
                 <input asp-for="Input.Price" class="form-control" />
