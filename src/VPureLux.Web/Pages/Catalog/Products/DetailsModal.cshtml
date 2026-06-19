@@ -1,0 +1,24 @@
+@page "{id:guid}"
+@model VPureLux.Web.Pages.Catalog.Products.DetailsModalModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Modal
+@{
+    Layout = null;
+}
+
+<abp-modal>
+    <abp-modal-header title="@L["Details"]"></abp-modal-header>
+    <abp-modal-body>
+        <dl class="row mb-0">
+            <dt class="col-sm-4">@L["Catalog:Code"]</dt><dd class="col-sm-8">@Model.Product.Code</dd>
+            <dt class="col-sm-4">@L["Catalog:Name"]</dt><dd class="col-sm-8">@Model.Product.Name</dd>
+            <dt class="col-sm-4">@L["Catalog:Status"]</dt><dd class="col-sm-8">@L[$"Status:{Model.Product.Status}"]</dd>
+            <dt class="col-sm-4">@L["Catalog:Image"]</dt><dd class="col-sm-8">@(Model.Product.HasImage ? L["Catalog:HasImage"] : L["Catalog:NoImage"])</dd>
+            @if (!string.IsNullOrWhiteSpace(Model.Product.Description))
+            {
+                <dt class="col-sm-4">@L["Catalog:Description"]</dt><dd class="col-sm-8">@Model.Product.Description</dd>
+            }
+        </dl>
+    </abp-modal-body>
+    <abp-modal-footer buttons="@(AbpModalButtons.Close)"></abp-modal-footer>
+</abp-modal>
