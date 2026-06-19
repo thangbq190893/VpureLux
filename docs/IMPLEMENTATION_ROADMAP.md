@@ -7,6 +7,10 @@
 - `dotnet test VPureLux.slnx --no-build`
 - Containers running per `AGENTS.md` only if you need to run the apps (tests use SQLite in-memory).
 
+## Current Execution Note
+
+This roadmap is the canonical long-term structure, but it is not a command to restart from Phase 1 on every new task. Before starting a batch, compare this roadmap with the current active backlog, open PRs, and latest branch state. If a UAT backlog batch is already in progress, continue the active backlog and its current acceptance criteria instead of restarting Phase 1.
+
 Each phase below lists: **Goal · Scope · Likely files/modules · Validation · Risks · Done criteria.**
 
 ---
