@@ -30,7 +30,7 @@
 ## Scope hygiene
 - [ ] No unintended module touches — the diff stays within the batch's module/concern.
 - [ ] No EF Core migration or schema change unless explicitly requested and reviewed as its own batch.
-- [ ] No generated code modified (except fixing broken markdown links).
+- [ ] No vendor/framework generated code modified. Application source files may be modified only when explicitly in the approved batch scope.
 
 ## Final report (required)
 - [ ] Report includes: docs/files created or updated, modules touched, build result, test result, `rg` checks run, and any `Needs verification` items.

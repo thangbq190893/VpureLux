@@ -2,14 +2,70 @@
 @model VPureLux.Web.Pages.Audit.DetailsModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
 @{ ViewData["Title"] = L["Audit:Details"]; }
-<h2>@L["Audit:Details"]</h2>
-<dl class="row">
-<dt class="col-sm-3">@L["Audit:EventTime"]</dt><dd class="col-sm-9">@Model.Log.EventTime</dd>
-<dt class="col-sm-3">@L["Audit:Module"]</dt><dd class="col-sm-9">@Model.Log.Module</dd>
-<dt class="col-sm-3">@L["Audit:Action"]</dt><dd class="col-sm-9">@Model.Log.Action</dd>
-<dt class="col-sm-3">@L["Audit:Entity"]</dt><dd class="col-sm-9">@Model.Log.EntityType / @Model.Log.EntityId</dd>
-<dt class="col-sm-3">@L["Audit:CorrelationId"]</dt><dd class="col-sm-9">@Model.Log.CorrelationId</dd>
-</dl>
-<h5>@L["Audit:OldValue"]</h5><pre>@Model.Log.OldValueJson</pre>
-<h5>@L["Audit:NewValue"]</h5><pre>@Model.Log.NewValueJson</pre>
-<h5>@L["Audit:Metadata"]</h5><pre>@Model.Log.MetadataJson</pre>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>@L["Audit:Details"]</h2>
+    <a class="btn btn-outline-secondary" asp-page="/Audit/Index">@L["Back"]</a>
+</div>
+
+<abp-card class="mb-3">
+    <abp-card-header><h5 class="mb-0">@L["Audit:Summary"]</h5></abp-card-header>
+    <abp-card-body>
+        <dl class="row mb-0">
+            <dt class="col-sm-3">@L["Audit:EventTime"]</dt><dd class="col-sm-9">@Model.Log.EventTime</dd>
+            <dt class="col-sm-3">@L["Audit:Module"]</dt><dd class="col-sm-9">@Model.Log.Module</dd>
+            <dt class="col-sm-3">@L["Audit:Action"]</dt><dd class="col-sm-9"><span class="fw-semibold">@Model.ActionLabel</span><div class="text-muted small">@Model.Log.EventName</div></dd>
+            <dt class="col-sm-3">@L["Audit:Severity"]</dt><dd class="col-sm-9"><span class="badge @Model.SeverityBadgeClass">@Model.SeverityLabel</span></dd>
+            <dt class="col-sm-3">@L["Audit:Status"]</dt><dd class="col-sm-9"><span class="badge @Model.GeneratedStatusBadgeClass">@Model.GeneratedStatusLabel</span></dd>
+        </dl>
+    </abp-card-body>
+</abp-card>
+
+<abp-card class="mb-3">
+    <abp-card-header><h5 class="mb-0">@L["Audit:ActorAndSource"]</h5></abp-card-header>
+    <abp-card-body>
+        <dl class="row mb-0">
+            <dt class="col-sm-3">@L["Audit:ActorType"]</dt><dd class="col-sm-9">@Model.ActorTypeLabel</dd>
+            <dt class="col-sm-3">@L["Audit:User"]</dt><dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.Log.UserNameSnapshot) ? L["Audit:SystemActor"] : Model.Log.UserNameSnapshot)</dd>
+            <dt class="col-sm-3">@L["Audit:UserId"]</dt><dd class="col-sm-9"><code>@(Model.Log.UserId?.ToString() ?? L["Unspecified"].Value)</code></dd>
+        </dl>
+    </abp-card-body>
+</abp-card>
+
+<abp-card class="mb-3">
+    <abp-card-header><h5 class="mb-0">@L["Audit:EntityContext"]</h5></abp-card-header>
+    <abp-card-body>
+        <dl class="row mb-0">
+            <dt class="col-sm-3">@L["Audit:Entity"]</dt><dd class="col-sm-9"><span class="fw-semibold">@Model.PrimaryEntityLabel</span></dd>
+            <dt class="col-sm-3">@L["Audit:EntityType"]</dt><dd class="col-sm-9">@Model.Log.EntityType</dd>
+            @if (Model.HasEntityDisplay)
+            {
+                <dt class="col-sm-3">@L["Audit:EntityDisplay"]</dt><dd class="col-sm-9">@Model.Log.EntityDisplay</dd>
+            }
+            <dt class="col-sm-3">@L["Audit:EntityIdSupport"]</dt><dd class="col-sm-9"><code>@Model.Log.EntityId</code></dd>
+        </dl>
+    </abp-card-body>
+</abp-card>
+
+<abp-card class="mb-3">
+    <abp-card-header><h5 class="mb-0">@L["Audit:EventData"]</h5></abp-card-header>
+    <abp-card-body>
+        <h6>@L["Audit:OldValue"]</h6>
+        <pre class="bg-light border rounded p-3 text-break audit-json-payload">@(string.IsNullOrWhiteSpace(Model.OldValueJson) ? L["Audit:NoPayload"].Value : Model.OldValueJson)</pre>
+        <h6>@L["Audit:NewValue"]</h6>
+        <pre class="bg-light border rounded p-3 text-break audit-json-payload">@(string.IsNullOrWhiteSpace(Model.NewValueJson) ? L["Audit:NoPayload"].Value : Model.NewValueJson)</pre>
+        <h6>@L["Audit:Metadata"]</h6>
+        <pre class="bg-light border rounded p-3 text-break audit-json-payload mb-0">@(string.IsNullOrWhiteSpace(Model.MetadataJson) ? L["Audit:NoPayload"].Value : Model.MetadataJson)</pre>
+    </abp-card-body>
+</abp-card>
+
+<abp-card>
+    <abp-card-header><h5 class="mb-0">@L["Audit:TechnicalSupportInfo"]</h5></abp-card-header>
+    <abp-card-body>
+        <dl class="row mb-0">
+            <dt class="col-sm-3">@L["Audit:EventId"]</dt><dd class="col-sm-9"><code>@Model.Log.EventId</code></dd>
+            <dt class="col-sm-3">@L["Audit:EventVersion"]</dt><dd class="col-sm-9">@Model.Log.EventVersion</dd>
+            <dt class="col-sm-3">@L["Audit:CorrelationId"]</dt><dd class="col-sm-9"><code>@Model.Log.CorrelationId</code></dd>
+            <dt class="col-sm-3">@L["Audit:CausationId"]</dt><dd class="col-sm-9"><code>@Model.Log.CausationId</code></dd>
+        </dl>
+    </abp-card-body>
+</abp-card>

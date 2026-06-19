@@ -91,3 +91,10 @@ openiddict.pfx
 *.orig
 docker-data/
 .docker/
+**/NuGet.Config
+.abpignore
+.abpstudio/
+.cursor/
+.editorconfig
+.gitattributes
+**.abppkg.**
