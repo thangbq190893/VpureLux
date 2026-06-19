@@ -1,0 +1,93 @@
+# ---------------------------------------------------------------------------
+# .gitignore for the VPureLux ABP / .NET 10 solution
+#
+# NOTE: appsettings.secrets.json files are INTENTIONALLY tracked in this repo
+# (they carry the runtime AbpLicenseCode). They are deliberately NOT ignored.
+# ---------------------------------------------------------------------------
+
+# --- .NET build artifacts ---
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Dd]ebug/
+[Rr]elease/
+[Dd]ebugPublic/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+*.dll
+*.exe
+*.pdb
+*.cache
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# --- Publish output ---
+[Pp]ublish/
+publish/
+*.[Pp]ublish.xml
+*.azurePubxml
+PublishScripts/
+*_Publish/
+
+# --- MSBuild / test results ---
+*.binlog
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.coverage
+*.coveragexml
+[Cc]overage*/
+TestResults/
+
+# --- IDE / editor files ---
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.DotSettings.user
+*~
+*.swp
+*.swo
+.history/
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# --- Node / front-end (ABP client-side) ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ABP client libraries installed via `abp install-libs` (regenerated, do not commit)
+**/wwwroot/libs/
+
+# --- Logs ---
+[Ll]ogs/
+*.log
+
+# --- Local certificates / secrets (NEVER commit) ---
+*.pfx
+*.p12
+*.key
+*.pem
+openiddict.pfx
+
+# --- Docker / temp files ---
+*.tmp
+*.temp
+*.bak
+*.orig
+docker-data/
+.docker/
