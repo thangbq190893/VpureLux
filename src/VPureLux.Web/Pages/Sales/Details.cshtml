@@ -4,6 +4,7 @@
 @inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @using VPureLux.Permissions
 @{ ViewData["Title"] = Model.Order.OrderNo; }
+@{ var canViewCost = (await AuthorizationService.AuthorizeAsync(User, null, VPureLuxPermissions.Sales.ViewCost)).Succeeded; }
 @{ var canViewProfit = (await AuthorizationService.AuthorizeAsync(User, null, VPureLuxPermissions.Sales.ViewProfit)).Succeeded; }
 <div id="SalesDetailsPage" data-sales-success-message="@Model.SuccessMessage">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -46,6 +47,11 @@
         <dd class="col-sm-9">@Model.Order.CustomerCodeSnapshot - @Model.Order.CustomerNameSnapshot</dd>
         <dt class="col-sm-3">@L["Sales:Revenue"]</dt>
         <dd class="col-sm-9">@Model.Order.TotalRevenueAmount</dd>
+        @if (canViewCost)
+        {
+            <dt class="col-sm-3">@L["Sales:Cost"]</dt>
+            <dd class="col-sm-9">@Model.Order.TotalCostAmount</dd>
+        }
         @if (canViewProfit)
         {
             <dt class="col-sm-3">@L["Sales:Profit"]</dt>
@@ -62,6 +68,11 @@
                 <th>@L["Sales:SuggestedPrice"]</th>
                 <th>@L["Sales:ActualPrice"]</th>
                 <th>@L["Sales:OverrideReason"]</th>
+                @if (canViewCost)
+                {
+                    <th>@L["Sales:CostPrice"]</th>
+                    <th>@L["Sales:Cost"]</th>
+                }
                 @if (canViewProfit)
                 {
                     <th>@L["Sales:Profit"]</th>
@@ -75,10 +86,7 @@
                 <td>@line.LineNo</td>
                 <td>
                     <div>@Model.GetProductLabel(line)</div>
-                    @if (line.BomVersionNoSnapshot.HasValue)
-                    {
-                        <small class="text-muted">@L["Sales:PublishedBomVersion", line.BomVersionNoSnapshot.Value]</small>
-                    }
+                    <span class="@Model.GetBomBadgeClass(line)">@Model.GetBomStatusText(line)</span>
                     @if (line.BomSnapshotItems.Count > 0)
                     {
                         <ul class="mb-0 mt-1 small text-muted">
@@ -93,6 +101,11 @@
                 <td>@line.SuggestedPriceSnapshot</td>
                 <td>@line.ActualSellingPrice</td>
                 <td>@line.OverrideReason</td>
+                @if (canViewCost)
+                {
+                    <td>@line.CostPriceSnapshot</td>
+                    <td>@line.CostAmountSnapshot</td>
+                }
                 @if (canViewProfit)
                 {
                     <td>@line.ProfitAmount</td>
