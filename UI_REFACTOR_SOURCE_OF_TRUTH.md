@@ -50,7 +50,7 @@ Important certified rules to preserve:
 - Inactive Warehouses and StockItems cannot be used.
 - Inventory-disabled StockItems cannot be used.
 - Receipt/Issue/Adjustment posting operations are atomic and idempotent.
-- Pricing owns only Component Purchase Price Versions and Product Suggested Price Versions.
+- Pricing owns only Component Suggested Selling Price Versions and Product Suggested Price Versions.
 - Pricing does not own Actual Selling Price, Inventory FIFO issue cost, Sales profit, or Customer-specific pricing.
 - Sales owns Actual Selling Price, snapshots, revenue, cost, profit, and customer purchase history.
 - Catalog images must not leak Base64 content into general DTOs, Razor HTML, logs, domain events, or audit payloads.

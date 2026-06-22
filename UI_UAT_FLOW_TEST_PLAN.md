@@ -70,7 +70,7 @@ Create or confirm existing:
 5. Quantity: `10`.
 6. UnitCost: `30000`.
 7. LotNo: `PP-LOT-001`.
-8. ReceivedAt: `01/06/2026 09:00`.
+8. ReceivedAt: `01/06/2026`.
 9. Submit.
 10. Expected: confirmation appears if implemented.
 11. Expected: success notification or clear success result.
@@ -85,7 +85,7 @@ Create or confirm existing:
 3. Quantity: `10`.
 4. UnitCost: `25000`.
 5. LotNo: `PP-LOT-002`.
-6. ReceivedAt: `10/06/2026 09:00`.
+6. ReceivedAt: `10/06/2026`.
 7. Submit.
 8. Expected Balance: PP1M total `20`.
 9. Expected Lots:
@@ -123,13 +123,17 @@ Goal: Verify BOM can be created without typing ProductId/ComponentId GUIDs.
 3. Select a Product.
 4. Open product BOM history.
 5. Expected: title/header shows product code/name.
-6. Create BOM draft.
+6. Create a draft BOM with at least one component line.
 7. Expected: component rows use component selector showing `COMP-... - Component Name`.
-8. Add components and quantities.
+8. Add any additional components and quantities as needed.
 9. Save draft.
 10. Publish with confirmation.
 11. Expected: Published status localized.
 12. Edit should be hidden/disabled for Published BOM.
+13. For draft BOM edits, open `/Bom/Edit/{id}`.
+14. Expected: draft edit page preserves component selectors and allows updating quantities/components.
+
+Note: a public HTTP update endpoint is not part of the current V2 UAT flow. Browser UAT should use the Razor Page workflow.
 
 ## 4. Catalog Image and Status Flow
 
@@ -151,7 +155,7 @@ Goal: Verify BOM can be created without typing ProductId/ComponentId GUIDs.
 1. Open `/Pricing`.
 2. Product/Component names should be readable, not raw IDs.
 3. History link visible only with `Pricing.History`.
-4. Create new Component Purchase Price Version.
+4. Create new Component Suggested Selling Price Version.
 5. Required:
    - Price > 0.
    - Reason required.
@@ -160,26 +164,53 @@ Goal: Verify BOM can be created without typing ProductId/ComponentId GUIDs.
 7. Repeat for Product Suggested Price.
 8. Pricing must not show or calculate sales profit.
 
-## 6. Sales Flow Deferred
+V2 pricing notes:
+
+- Component purchase/input cost is not owned by Pricing.
+- Actual component purchase/input cost is Inventory Receipt `UnitCost`.
+- Product profit uses FIFO receipt lots consumed by Inventory, not Component Suggested Selling Price or Product Suggested Selling Price.
+
+## 6. Catalog API Note
+
+Current Catalog create APIs bind create input through query-string/form-style parameters in the existing implementation.
+
+UAT scope:
+
+- Browser/Razor Catalog workflows are the primary UAT path.
+- If API smoke tests are run, use the current query-string binding behavior.
+
+Technical debt:
+
+- Catalog create API JSON body consistency should be reviewed in a future API consistency batch.
+- Do not treat this as a UAT runtime blocker for V2 unless API-first operation becomes an approved UAT requirement.
+
+## 7. Sales Flow Deferred
 
 Do not run full Sales UAT until:
 
 - Inventory Receipt/Issue/Adjustment selectors work.
 - BOM selectors work.
 - Catalog products/components are usable.
+- Customer groups exist.
+- At least one test customer exists.
+
+Customer data prerequisite:
+
+- Run `VPureLux.DbMigrator` to seed required reference data such as customer groups, or create a CustomerGroup and Customer manually in UAT before Sales testing.
+- No sample customer is seeded by code today. The UAT script must create or confirm the customer explicitly.
 
 When ready, Sales UAT must verify:
 
 - Customer selector.
 - Warehouse selector.
-- Product/Component selector.
+- Product/SKU selector.
 - Published BOM selection for Product lines.
 - Actual Selling Price is revenue source.
-- FIFO cost comes from Inventory, not UI calculation.
+- FIFO cost comes from Inventory receipt lots, not UI calculation and not suggested prices.
 - Profit hidden without `Sales.ViewProfit`.
 - Cost hidden without `Sales.ViewCost` if present.
 
-## 7. Audit Flow
+## 8. Audit Flow
 
 1. Perform business actions in Catalog/Customer/Inventory.
 2. Open `/Audit`.
@@ -189,3 +220,17 @@ When ready, Sales UAT must verify:
 6. No Base64 image content.
 7. Export with `Audit.Export` permission only.
 8. Export action should be audited.
+
+## 9. UAT Readiness Note
+
+UAT entry is allowed after this documentation update when seed/data prerequisites are handled:
+
+- Customer groups exist.
+- A test customer exists.
+- Catalog Products/Components, BOM, Pricing, Inventory stock, Sales order, and Audit verification data are prepared according to the scenarios above.
+
+Runtime E2E validation has confirmed the chain:
+
+Catalog -> Pricing -> BOM -> Inventory -> Sales -> Audit.
+
+Final sign-off still requires hands-on operator UAT in the browser. Automated tests and scripted checks do not replace business-user acceptance.

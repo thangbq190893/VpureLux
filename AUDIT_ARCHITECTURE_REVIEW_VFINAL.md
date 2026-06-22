@@ -145,7 +145,7 @@ become an unrestricted customer-data export.
 
 #### Pricing
 
-- Component Purchase Price Version created and closed.
+- Component Suggested Selling Price Version created and closed.
 - Product Suggested Selling Price Version created and closed.
 
 Price audit records include price type, item identifier, version number,
