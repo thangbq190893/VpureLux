@@ -174,6 +174,26 @@ public class InventoryPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task InventoryPostingUi_Should_Request_Active_Inventory_Enabled_Component_Selector_Data()
+    {
+        var warehouses = Substitute.For<IWarehouseAppService>();
+        warehouses.GetListAsync(Arg.Any<GetInventoryListInput>())
+            .Returns(new PagedResultDto<WarehouseDto>());
+
+        var stockItems = Substitute.For<IStockItemAppService>();
+        stockItems.GetListAsync(Arg.Any<GetInventoryListInput>())
+            .Returns(new PagedResultDto<StockItemDto>());
+
+        await InventoryPostingUi.LoadSelectorOptionsAsync(warehouses, stockItems);
+
+        await stockItems.Received(1).GetListAsync(Arg.Is<GetInventoryListInput>(input =>
+            input.Status == InventoryEntityStatus.Active &&
+            input.ItemType == StockItemType.Component &&
+            input.IsInventoryEnabled == true &&
+            input.MaxResultCount == LimitedResultRequestDto.MaxMaxResultCount));
+    }
+
+    [Fact]
     public void Inventory_TransactionType_Localization_Should_Map_All_Enum_Names()
     {
         var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();

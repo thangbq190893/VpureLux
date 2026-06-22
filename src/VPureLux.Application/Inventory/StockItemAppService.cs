@@ -33,6 +33,14 @@ public class StockItemAppService : ApplicationService, IStockItemAppService
         {
             query = query.Where(x => x.Status == input.Status.Value);
         }
+        if (input.ItemType.HasValue)
+        {
+            query = query.Where(x => x.ItemType == input.ItemType.Value);
+        }
+        if (input.IsInventoryEnabled.HasValue)
+        {
+            query = query.Where(x => x.IsInventoryEnabled == input.IsInventoryEnabled.Value);
+        }
 
         var count = await AsyncExecuter.CountAsync(query);
         var items = await AsyncExecuter.ToListAsync(query.OrderBy(x => x.CodeSnapshot).PageBy(input));

@@ -47,6 +47,8 @@ public static class InventoryPostingUi
         var stockItems = await stockItemAppService.GetListAsync(new GetInventoryListInput
         {
             Status = InventoryEntityStatus.Active,
+            ItemType = StockItemType.Component,
+            IsInventoryEnabled = true,
             MaxResultCount = LimitedResultRequestDto.MaxMaxResultCount
         });
 
