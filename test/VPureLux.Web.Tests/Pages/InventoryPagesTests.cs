@@ -6,6 +6,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Localization;
 using NSubstitute;
@@ -137,12 +138,52 @@ public class InventoryPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Warehouses_Page_Should_Render_Create_Form_Inputs_For_Authorized_User()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Inventory/Warehouses"));
+
+        html.ShouldContain("data-warehouse-create-form");
+        html.ShouldContain("name=\"NewWarehouse.Code\"");
+        html.ShouldContain("name=\"NewWarehouse.Name\"");
+        html.ShouldContain("name=\"NewWarehouse.Address\"");
+        html.ShouldContain("type=\"text\"");
+        html.ShouldContain("form-label");
+        html.ShouldContain(localizer["Inventory:Code"].Value);
+        html.ShouldContain(localizer["Inventory:Name"].Value);
+        html.ShouldContain(localizer["Inventory:Address"].Value);
+        html.ShouldContain(localizer["Create"].Value);
+    }
+
+    [Fact]
+    public async Task WarehousesModel_OnPostAsync_Should_Create_Warehouse()
+    {
+        var code = Unique("WH-UI");
+        var model = new WarehousesModel(GetRequiredService<IWarehouseAppService>())
+        {
+            NewWarehouse = new CreateWarehouseDto
+            {
+                Code = code,
+                Name = "Warehouse UI Test",
+                Address = "UAT address"
+            }
+        };
+
+        var result = await model.OnPostAsync();
+
+        result.ShouldBeOfType<RedirectToPageResult>();
+        model.StatusMessageKey.ShouldBe("Inventory:WarehouseCreatedSuccessfully");
+    }
+
+    [Fact]
     public async Task Warehouses_Page_Should_Register_External_Script_And_Action_Safety_Hooks()
     {
         var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Warehouses.cshtml"));
 
         pageSource.ShouldContain("@section scripts");
         pageSource.ShouldContain("<abp-script src=\"/Pages/Inventory/Warehouses.js\" />");
+        pageSource.ShouldContain("data-warehouse-create-form");
+        pageSource.ShouldContain("form-label");
         pageSource.ShouldContain("asp-validation-summary");
         pageSource.ShouldContain("data-warehouses-page");
         pageSource.ShouldContain("data-status-success");
