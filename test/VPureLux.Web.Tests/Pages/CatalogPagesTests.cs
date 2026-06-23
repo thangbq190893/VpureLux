@@ -182,7 +182,7 @@ public class CatalogPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
-    public async Task Catalog_Modal_Routes_Should_Render_With_ModalManager_Query_Id()
+    public async Task Catalog_Modal_Routes_Should_Render_With_Path_And_Query_Id()
     {
         var component = await GetRequiredService<IComponentAppService>().CreateAsync(new CreateComponentDto
         {
@@ -198,7 +198,13 @@ public class CatalogPagesTests : VPureLuxWebTestBase
 
         foreach (var route in new[]
         {
+            $"/Catalog/Products/DetailsModal/{product.Id}",
             $"/Catalog/Products/DetailsModal?id={product.Id}",
+            $"/Catalog/Products/EditModal/{product.Id}",
+            $"/Catalog/Products/EditModal?id={product.Id}",
+            $"/Catalog/Components/DetailsModal/{component.Id}",
+            $"/Catalog/Components/DetailsModal?id={component.Id}",
+            $"/Catalog/Components/EditModal/{component.Id}",
             $"/Catalog/Components/EditModal?id={component.Id}"
         })
         {
