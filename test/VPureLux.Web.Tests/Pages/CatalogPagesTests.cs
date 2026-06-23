@@ -182,6 +182,39 @@ public class CatalogPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Catalog_Modal_Routes_Should_Render_With_Path_And_Query_Id()
+    {
+        var component = await GetRequiredService<IComponentAppService>().CreateAsync(new CreateComponentDto
+        {
+            Code = Unique("CAT-MQ"),
+            Name = "Modal Query Component",
+            Unit = "pcs"
+        });
+        var product = await GetRequiredService<IProductAppService>().CreateAsync(new CreateProductDto
+        {
+            Code = Unique("CAT-MPQ"),
+            Name = "Modal Query Product"
+        });
+
+        foreach (var route in new[]
+        {
+            $"/Catalog/Products/DetailsModal/{product.Id}",
+            $"/Catalog/Products/DetailsModal?id={product.Id}",
+            $"/Catalog/Products/EditModal/{product.Id}",
+            $"/Catalog/Products/EditModal?id={product.Id}",
+            $"/Catalog/Components/DetailsModal/{component.Id}",
+            $"/Catalog/Components/DetailsModal?id={component.Id}",
+            $"/Catalog/Components/EditModal/{component.Id}",
+            $"/Catalog/Components/EditModal?id={component.Id}"
+        })
+        {
+            var html = await GetResponseAsStringAsync(route);
+            html.ShouldContain("class=\"modal");
+            html.ShouldNotContain("<html");
+        }
+    }
+
+    [Fact]
     public async Task Catalog_Modal_Routes_Should_Render()
     {
         var component = await GetRequiredService<IComponentAppService>().CreateAsync(new CreateComponentDto
@@ -199,11 +232,11 @@ public class CatalogPagesTests : VPureLuxWebTestBase
         foreach (var route in new[]
         {
             "/Catalog/Products/CreateModal",
-            $"/Catalog/Products/EditModal/{product.Id}",
-            $"/Catalog/Products/DetailsModal/{product.Id}",
+            $"/Catalog/Products/EditModal?id={product.Id}",
+            $"/Catalog/Products/DetailsModal?id={product.Id}",
             "/Catalog/Components/CreateModal",
-            $"/Catalog/Components/EditModal/{component.Id}",
-            $"/Catalog/Components/DetailsModal/{component.Id}"
+            $"/Catalog/Components/EditModal?id={component.Id}",
+            $"/Catalog/Components/DetailsModal?id={component.Id}"
         })
         {
             var html = await GetResponseAsStringAsync(route);

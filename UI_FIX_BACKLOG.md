@@ -179,6 +179,31 @@ Classification:
 
 - UI-only for menu/confirmation; Product/Component activation is backend/business gap unless existing service exists.
 
+## Batch 13 - UI Brand Polish / VPURELUX visual alignment
+
+Priority: Deferred after functional UAT blockers
+
+Scope:
+
+- Global LeptonX theme overrides
+- Navigation, typography, color palette, spacing
+- Alignment with public site branding at `https://vpurelux.com`
+
+Required fixes:
+
+- Audit current admin UI against VPURELUX brand guidelines from the public site.
+- Apply consistent primary/secondary colors, logo placement, and operator-facing typography.
+- Do not change business logic, routes, permissions, or backend behavior.
+
+Classification:
+
+- UI-only visual polish. No backend/business change.
+
+Exit criteria:
+
+- Operator screens visually align with VPURELUX brand direction.
+- No functional regressions in Catalog, Inventory, Sales, or Audit workflows.
+
 ## Batch 8 - Pricing display/action cleanup
 
 Priority: Medium-Low

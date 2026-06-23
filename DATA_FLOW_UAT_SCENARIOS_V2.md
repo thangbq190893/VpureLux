@@ -30,6 +30,8 @@ Create Product Suggested Selling Price for RO-STD-01: 500000.
 
 Expected Product price screen: BOM published, Giá cấu thành linh kiện = 300000, Giá bán đề xuất sản phẩm = 500000, Chênh lệch = 200000.
 
+Pricing note: Component Suggested Selling Price is a sales suggestion/reference. It is not component purchase/input cost.
+
 ## Flow 2: Sell Loose Component as Product/SKU
 
 Existing Component: LOI-PP-01 - Lõi PP số 1.
@@ -56,9 +58,13 @@ Receipt into WH-HN:
 
 Expected: no raw GUID, IdempotencyKey hidden, lots/balance/ledger created.
 
+Inventory cost note: `UnitCost` is the actual receipt/input cost for the lot. Sales profit uses FIFO consumption of these receipt lots, not suggested selling prices.
+
 ## Flow 4: Sales Order for Product/SKU
 
 Prerequisites: Product has published BOM, components have inventory lots, product has suggested selling price.
+
+Customer prerequisite: customer groups must exist and a test customer must be created or confirmed before Sales UAT. Run DbMigrator for reference seed data or create a CustomerGroup and Customer manually in the script. No sample customer is seeded by code today.
 
 Create Sales Order line: Product RO-STD-01, quantity 1, actual price defaults 500000.
 

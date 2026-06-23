@@ -94,4 +94,6 @@ public class GetInventoryListInput : PagedAndSortedResultRequestDto
 {
     public string? SearchText { get; set; }
     public InventoryEntityStatus? Status { get; set; }
+    public StockItemType? ItemType { get; set; }
+    public bool? IsInventoryEnabled { get; set; }
 }

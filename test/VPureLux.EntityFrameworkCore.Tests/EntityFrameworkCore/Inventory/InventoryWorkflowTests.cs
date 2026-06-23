@@ -121,6 +121,43 @@ public class InventoryWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
             .Code.ShouldBe(VPureLuxDomainErrorCodes.StockItemInventoryDisabled);
     }
 
+    [Fact]
+    public async Task StockItem_List_Should_Filter_Component_Inventory_Enabled_Items_Before_Paging()
+    {
+        var marker = Unique("INV-SEL");
+        var productService = GetRequiredService<VPureLux.Catalog.Products.IProductAppService>();
+        var product = await productService.CreateAsync(new VPureLux.Catalog.Products.CreateProductDto
+        {
+            Code = $"{marker}-A",
+            Name = "Selector Product"
+        });
+        var component = await _components.CreateAsync(new CreateComponentDto
+        {
+            Code = $"{marker}-Z",
+            Name = "Selector Component",
+            Unit = "Piece"
+        });
+        var productItem = (await _stockItems.FindByCatalogItemAsync(StockItemType.Product, product.Id))!;
+        var componentItem = (await _stockItems.FindByCatalogItemAsync(StockItemType.Component, component.Id))!;
+
+        var result = await GetRequiredService<IStockItemAppService>().GetListAsync(new GetInventoryListInput
+        {
+            SearchText = marker,
+            Status = InventoryEntityStatus.Active,
+            ItemType = StockItemType.Component,
+            IsInventoryEnabled = true,
+            MaxResultCount = 1
+        });
+
+        result.TotalCount.ShouldBe(1);
+        result.Items.Select(x => x.Id).ShouldContain(componentItem.Id);
+        result.Items.Select(x => x.Id).ShouldNotContain(productItem.Id);
+        result.Items.ShouldAllBe(x =>
+            x.ItemType == StockItemType.Component &&
+            x.IsInventoryEnabled &&
+            x.Status == InventoryEntityStatus.Active);
+    }
+
     private async Task<(Guid WarehouseId, Guid StockItemId)> CreateContextAsync()
     {
         var component = await CreateComponentAsync();

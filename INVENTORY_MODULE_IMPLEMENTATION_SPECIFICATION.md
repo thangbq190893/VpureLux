@@ -67,8 +67,10 @@ require a Reason.
 * Sales orchestrates Product BOM expansion and calls Inventory with Component
   requirements.
 * BOM remains the owner of immutable BOM versions.
-* Pricing purchase prices may be references for receipt data entry but never
-  replace actual lot UnitCost.
+* Pricing suggested selling prices are sales references only and must not be
+  used for receipt data entry or inventory valuation.
+* Receipt `UnitCost` is the actual lot input cost and remains the source for
+  FIFO issue cost.
 * Sales copies Inventory issue cost into its immutable CostPriceSnapshot.
 
 ## STEP 05 Persistence Requirements
