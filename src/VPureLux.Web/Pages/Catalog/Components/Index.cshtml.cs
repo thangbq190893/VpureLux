@@ -1,19 +1,19 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using VPureLux.Catalog.Components;
 using VPureLux.Permissions;
 using VPureLux.Pricing;
-using Volo.Abp;
 
 namespace VPureLux.Web.Pages.Catalog.Components;
 
 public class IndexModel : VPureLuxPageModel
 {
     private readonly IComponentAppService _componentAppService;
-    private readonly IComponentSuggestedSellingPriceAppService _componentSuggestedSellingPriceAppService;
+    private readonly IComponentSuggestedSellingPriceLookupService _componentPriceLookupService;
     private readonly IAuthorizationService _authorizationService;
 
     [BindProperty(SupportsGet = true)]
@@ -26,11 +26,11 @@ public class IndexModel : VPureLuxPageModel
 
     public IndexModel(
         IComponentAppService componentAppService,
-        IComponentSuggestedSellingPriceAppService componentSuggestedSellingPriceAppService,
+        IComponentSuggestedSellingPriceLookupService componentPriceLookupService,
         IAuthorizationService authorizationService)
     {
         _componentAppService = componentAppService;
-        _componentSuggestedSellingPriceAppService = componentSuggestedSellingPriceAppService;
+        _componentPriceLookupService = componentPriceLookupService;
         _authorizationService = authorizationService;
     }
 
@@ -46,12 +46,18 @@ public class IndexModel : VPureLuxPageModel
         CanEdit = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Catalog.Components.Edit)).Succeeded;
         CanViewPricingContext = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Pricing.View)).Succeeded;
 
+        var currentPrices = CanViewPricingContext
+            ? await _componentPriceLookupService.FindCurrentMapAsync(
+                result.Items.Select(x => x.Id).ToArray(),
+                Clock.Now)
+            : new Dictionary<Guid, ComponentSuggestedSellingPriceVersionDto>();
+
         var rows = new List<ComponentCatalogRow>(result.Items.Count);
         foreach (var component in result.Items)
         {
             rows.Add(new ComponentCatalogRow(
                 component,
-                CanViewPricingContext ? await TryGetCurrentComponentPriceAsync(component.Id) : null));
+                currentPrices.GetValueOrDefault(component.Id)));
         }
 
         Components = rows;
@@ -72,18 +78,6 @@ public class IndexModel : VPureLuxPageModel
     }
 
     [TempData] public string? StatusMessageKey { get; set; }
-
-    private async Task<ComponentSuggestedSellingPriceVersionDto?> TryGetCurrentComponentPriceAsync(Guid componentId)
-    {
-        try
-        {
-            return await _componentSuggestedSellingPriceAppService.GetCurrentAsync(componentId);
-        }
-        catch (BusinessException exception) when (exception.Code == VPureLuxDomainErrorCodes.PriceVersionNotFound)
-        {
-            return null;
-        }
-    }
 
     public sealed record ComponentCatalogRow(
         ComponentDto Component,

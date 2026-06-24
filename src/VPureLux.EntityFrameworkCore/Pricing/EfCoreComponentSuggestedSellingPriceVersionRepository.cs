@@ -52,6 +52,28 @@ public class EfCoreComponentSuggestedSellingPriceVersionRepository :
             GetCancellationToken(cancellationToken));
     }
 
+    public async Task<IReadOnlyDictionary<Guid, ComponentSuggestedSellingPriceVersion>> FindAtDateMapAsync(
+        IReadOnlyCollection<Guid> componentIds,
+        DateTime date,
+        CancellationToken cancellationToken = default)
+    {
+        if (componentIds.Count == 0)
+        {
+            return new Dictionary<Guid, ComponentSuggestedSellingPriceVersion>();
+        }
+
+        var idSet = componentIds.Distinct().ToHashSet();
+        var versions = await (await GetDbSetAsync())
+            .Where(x => idSet.Contains(x.ComponentId) &&
+                        x.EffectivePeriod.EffectiveFrom <= date &&
+                        (!x.EffectivePeriod.EffectiveTo.HasValue || date < x.EffectivePeriod.EffectiveTo.Value))
+            .ToListAsync(GetCancellationToken(cancellationToken));
+
+        return versions
+            .GroupBy(x => x.ComponentId)
+            .ToDictionary(x => x.Key, x => x.First());
+    }
+
     public async Task<List<ComponentSuggestedSellingPriceVersion>> GetHistoryAsync(
         Guid componentId,
         CancellationToken cancellationToken = default)

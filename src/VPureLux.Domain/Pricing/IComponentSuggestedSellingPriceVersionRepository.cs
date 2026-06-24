@@ -20,6 +20,11 @@ public interface IComponentSuggestedSellingPriceVersionRepository
         DateTime date,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyDictionary<Guid, ComponentSuggestedSellingPriceVersion>> FindAtDateMapAsync(
+        IReadOnlyCollection<Guid> componentIds,
+        DateTime date,
+        CancellationToken cancellationToken = default);
+
     Task<List<ComponentSuggestedSellingPriceVersion>> GetHistoryAsync(
         Guid componentId,
         CancellationToken cancellationToken = default);

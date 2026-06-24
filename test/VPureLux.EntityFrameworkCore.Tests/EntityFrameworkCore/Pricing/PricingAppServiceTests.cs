@@ -136,6 +136,26 @@ public class PricingAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     [Fact]
+    public async Task Component_Current_Price_Map_Should_Return_Current_Prices_And_Omit_Missing()
+    {
+        var pricedComponent = await CreateComponentAsync();
+        var componentWithoutPrice = await CreateComponentAsync();
+        var current = await _componentPriceAppService.CreateAsync(
+            pricedComponent.Id,
+            ComponentInput(price: 33000m));
+
+        var map = await GetRequiredService<IComponentSuggestedSellingPriceLookupService>()
+            .FindCurrentMapAsync(
+                new[] { pricedComponent.Id, componentWithoutPrice.Id, Guid.NewGuid() },
+                DateTime.Now);
+
+        map.Count.ShouldBe(1);
+        map[pricedComponent.Id].Id.ShouldBe(current.Id);
+        map[pricedComponent.Id].Price.ShouldBe(33000m);
+        map.ContainsKey(componentWithoutPrice.Id).ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task Product_Pricing_Context_Should_Show_No_Published_Bom()
     {
         var product = await CreateProductAsync();
