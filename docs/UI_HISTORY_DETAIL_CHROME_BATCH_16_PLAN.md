@@ -263,4 +263,4 @@ Batch 16B **may** apply `.vpl-empty-state` on Sales CustomerHistory and Pricing 
 
 ---
 
-**Status:** Batch 16B.1 audit/plan **complete**. Batch 16B.2 Sales history/detail chrome **complete** (16B.2a History, 16B.2b CustomerHistory, 16B.2c Details). Next: Batch 16B.3 Pricing history/detail chrome.
+**Status:** Batch 16B.1 audit/plan **complete**. Batch 16B.2 Sales history/detail chrome **complete**. Batch 16B.3 (Pricing component/product history chrome) **complete** — applied `.vpl-page`, `.vpl-page-header`, `.vpl-page-title`, `.vpl-page-subtitle`, `.vpl-card-dense`, `.vpl-btn-toolbar`, and `.vpl-empty-state` to both Pricing history pages. Next: Batch 16B.4 final validation and PR summary.
