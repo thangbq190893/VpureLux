@@ -8,12 +8,75 @@
 }
 
 <div data-customers-index data-status-success="@(string.IsNullOrWhiteSpace(Model.StatusMessageKey) ? string.Empty : L[Model.StatusMessageKey].Value)"></div>
-<abp-card>
-  <abp-card-header><abp-row><abp-column size-md="_6"><h2>@L["Customers:Title"]</h2></abp-column><abp-column size-md="_6" class="text-end">@if(Model.CanCreate){<a class="btn btn-primary" asp-page="/Customers/Create" data-customer-create>@L["Customers:Create"]</a>}</abp-column></abp-row></abp-card-header>
-  <abp-card-body>
-    <form method="get" class="mb-3"><abp-row><abp-column size-md="_4"><input asp-for="SearchText" class="form-control" placeholder="@L["Search"]" /></abp-column><abp-column size-md="_3"><select asp-for="Status" asp-items="Html.GetEnumSelectList<VPureLux.Customers.CustomerStatus>()" class="form-select"><option value="">@L["Customers:Status"]</option></select></abp-column><abp-column size-md="_2"><button class="btn btn-secondary" type="submit">@L["Search"]</button></abp-column></abp-row></form>
-    <abp-table striped-rows="true"><thead><tr><th>@L["Customers:Code"]</th><th>@L["Customers:Name"]</th><th>@L["Customers:CustomerGroup"]</th><th>@L["Customers:Status"]</th><th class="text-end">@L["Actions"]</th></tr></thead><tbody>
-    @foreach(var customer in Model.Customers){<tr><td>@customer.Code</td><td>@customer.Name</td><td>@customer.CustomerGroupName</td><td>@L[$"Status:{customer.Status}"]</td><td class="text-end"><div class="dropdown"><button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">@L["Actions"]</button><div class="dropdown-menu dropdown-menu-end"><a class="dropdown-item" asp-page="/Customers/Details" asp-route-id="@customer.Id" data-customer-details data-id="@customer.Id">@L["Details"]</a>@if(Model.CanEdit){<a class="dropdown-item" asp-page="/Customers/Edit" asp-route-id="@customer.Id" data-customer-edit data-id="@customer.Id">@L["Edit"]</a>} @if(Model.CanManageStatus){<form method="post" asp-page-handler="@(customer.Status == VPureLux.Customers.CustomerStatus.Active ? "Deactivate" : "Activate")" asp-route-id="@customer.Id" data-customer-status-form data-confirm-message="@(customer.Status == VPureLux.Customers.CustomerStatus.Active ? L["Customers:ConfirmDeactivate"].Value : L["Customers:ConfirmActivate"].Value)"><button class="dropdown-item" type="submit">@(customer.Status == VPureLux.Customers.CustomerStatus.Active ? L["Deactivate"] : L["Activate"])</button></form>}</div></div></td></tr>}
-    </tbody></abp-table>
-  </abp-card-body>
-</abp-card>
+
+<div class="vpl-page">
+    <div class="vpl-page-header">
+        <h2 class="vpl-page-title mb-0">@L["Customers:Title"]</h2>
+        <div class="vpl-btn-toolbar">
+            @if (Model.CanCreate)
+            {
+                <a class="btn btn-primary" asp-page="/Customers/Create" data-customer-create>@L["Customers:Create"]</a>
+            }
+        </div>
+    </div>
+
+    <abp-card class="vpl-card-dense">
+        <abp-card-body>
+            <form method="get" class="mb-3">
+                <abp-row>
+                    <abp-column size-md="_4">
+                        <input asp-for="SearchText" class="form-control" placeholder="@L["Search"]" />
+                    </abp-column>
+                    <abp-column size-md="_3">
+                        <select asp-for="Status" asp-items="Html.GetEnumSelectList<VPureLux.Customers.CustomerStatus>()" class="form-select">
+                            <option value="">@L["Customers:Status"]</option>
+                        </select>
+                    </abp-column>
+                    <abp-column size-md="_2">
+                        <button class="btn btn-secondary" type="submit">@L["Search"]</button>
+                    </abp-column>
+                </abp-row>
+            </form>
+            <abp-table striped-rows="true" class="vpl-table-dense">
+                <thead>
+                <tr>
+                    <th>@L["Customers:Code"]</th>
+                    <th>@L["Customers:Name"]</th>
+                    <th>@L["Customers:CustomerGroup"]</th>
+                    <th>@L["Customers:Status"]</th>
+                    <th class="text-end">@L["Actions"]</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var customer in Model.Customers)
+                {
+                    <tr>
+                        <td>@customer.Code</td>
+                        <td>@customer.Name</td>
+                        <td>@customer.CustomerGroupName</td>
+                        <td>@L[$"Status:{customer.Status}"]</td>
+                        <td class="text-end">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">@L["Actions"]</button>
+                                <div class="dropdown-menu dropdown-menu-end">
+                                    <a class="dropdown-item" asp-page="/Customers/Details" asp-route-id="@customer.Id" data-customer-details data-id="@customer.Id">@L["Details"]</a>
+                                    @if (Model.CanEdit)
+                                    {
+                                        <a class="dropdown-item" asp-page="/Customers/Edit" asp-route-id="@customer.Id" data-customer-edit data-id="@customer.Id">@L["Edit"]</a>
+                                    }
+                                    @if (Model.CanManageStatus)
+                                    {
+                                        <form method="post" asp-page-handler="@(customer.Status == VPureLux.Customers.CustomerStatus.Active ? "Deactivate" : "Activate")" asp-route-id="@customer.Id" data-customer-status-form data-confirm-message="@(customer.Status == VPureLux.Customers.CustomerStatus.Active ? L["Customers:ConfirmDeactivate"].Value : L["Customers:ConfirmActivate"].Value)">
+                                            <button class="dropdown-item" type="submit">@(customer.Status == VPureLux.Customers.CustomerStatus.Active ? L["Deactivate"] : L["Activate"])</button>
+                                        </form>
+                                    }
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </abp-table>
+        </abp-card-body>
+    </abp-card>
+</div>

@@ -257,4 +257,4 @@ Apply **class-only** changes using Batch 14 helpers. Do **not** change columns, 
 
 ---
 
-**Status:** Batch 15.1 audit/plan **complete**. Awaiting Batch 14 implementation merge on branch, then Batch 15.2 Pricing list chrome.
+**Status:** Batch 15.1 audit/plan **complete**. Batch 15.2A (Pricing, Customers, CustomerGroups list chrome) **complete** — applied `.vpl-page`, `.vpl-page-header`, `.vpl-page-title`, `.vpl-card-dense`, `.vpl-table-dense`, and `.vpl-btn-toolbar` to the three index pages. Next: Batch 15.4 BOM / Inventory hub chrome.
