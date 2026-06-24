@@ -98,4 +98,4 @@ Each sub-batch is an isolated commit. Revert individual commits or restore files
 
 ---
 
-**Status:** Batch 13.1 recovery plan complete (`c7c11d3`). **Batch 13.2 recovery complete** (`0655f36`) — human-approved local VPURELUX logo assets, CSS variables, ERP footer. **Batch 13.3a recovery complete** (`905f82c`) — VPURELUX ERP welcome home page with module shortcut cards. **Batch 13.3b recovery complete** (`8106a5f`) — subtle water-themed login background CSS (gradients only). **Batch 13.4a recovery complete** (`1270dd7`) — Inventory inquiry card layout (`Ledger`, `Balances`, `Lots`). **Batch 13.4b recovery complete** (`a2d8551`) — Sales Index inquiry card layout. **Batch 13.4c recovery complete** — Audit Index inquiry card layout. Sub-batches 13.5a–13.5c and wrap-up **pending reimplementation**. Batch 14 UI Visual Refinement **deferred** (see above).
+**Status:** Batch 13 recovery **complete** on `feature/ui-brand-polish-batch-13-recovery` — phases 13.1–13.5c implemented; wrap-up PR summary in `docs/UI_BRAND_POLISH_BATCH_13_PR_SUMMARY.md`. Batch 14 UI Visual Refinement **deferred** (see above).

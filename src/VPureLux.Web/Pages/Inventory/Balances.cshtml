@@ -1,6 +1,27 @@
 @page
 @model VPureLux.Web.Pages.Inventory.BalancesModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using System.Globalization
+
+@functions {
+    private static readonly CultureInfo Vi = CultureInfo.GetCultureInfo("vi-VN");
+
+    private static string FormatMoney(decimal value)
+    {
+        var amount = decimal.Round(value, 0, MidpointRounding.AwayFromZero);
+        return amount.ToString("#,0", Vi) + " ₫";
+    }
+
+    private static string FormatQuantity(decimal value)
+    {
+        if (value == decimal.Truncate(value))
+        {
+            return decimal.Truncate(value).ToString("0", Vi);
+        }
+
+        return value.ToString("0.####", Vi);
+    }
+}
 
 <div class="vpl-inquiry-page">
     <div class="vpl-inquiry-page-header mb-3">
@@ -56,8 +77,8 @@
                         <tr>
                             <td>@Model.GetWarehouseLabel(x.WarehouseId)</td>
                             <td>@Model.GetStockItemLabel(x.StockItemId)</td>
-                            <td>@x.QuantityOnHand</td>
-                            <td>@x.InventoryValue</td>
+                            <td>@FormatQuantity(x.QuantityOnHand)</td>
+                            <td>@FormatMoney(x.InventoryValue)</td>
                         </tr>
                     }
                     </tbody>

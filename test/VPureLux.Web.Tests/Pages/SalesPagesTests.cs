@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Security.Claims;
@@ -167,6 +168,59 @@ public class SalesPagesTests : VPureLuxWebTestBase
         pageSource.ShouldNotContain("ComponentId");
         pageSource.ShouldNotContain("<script>");
         pageSource.ShouldNotContain("<script src=");
+    }
+
+    [Fact]
+    public async Task Sales_Index_And_Details_Should_Format_Values_For_Vietnamese_Display()
+    {
+        var context = await CreateSalesContextAsync("SALES-FMT");
+        var salesService = GetRequiredService<ISalesOrderAppService>();
+        var orderDate = new DateTime(2026, 6, 18);
+        var vi = CultureInfo.GetCultureInfo("vi-VN");
+        const decimal quantity = 2.25m;
+        const decimal unitPrice = 310000m;
+        var expectedRevenue = decimal.Round(quantity * unitPrice, 0, MidpointRounding.AwayFromZero).ToString("#,0", vi) + " ₫";
+        var expectedPrice = unitPrice.ToString("#,0", vi) + " ₫";
+        var expectedQuantity = quantity.ToString("0.####", vi);
+
+        var order = await salesService.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            OrderDate = orderDate,
+            Lines =
+            [
+                new CreateSalesOrderLineDto
+                {
+                    ProductId = context.ProductId,
+                    Quantity = quantity,
+                    ActualSellingPrice = unitPrice
+                }
+            ]
+        });
+        await salesService.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+
+        var indexHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Sales"));
+        indexHtml.ShouldContain(orderDate.ToString("dd/MM/yyyy", vi));
+        indexHtml.ShouldContain(expectedRevenue);
+        indexHtml.ShouldNotContain($"{(quantity * unitPrice):0.000000}");
+
+        var detailsHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Sales/Details/{order.Id}"));
+        detailsHtml.ShouldContain(expectedRevenue);
+        detailsHtml.ShouldContain(expectedPrice);
+        detailsHtml.ShouldContain(expectedQuantity);
+        detailsHtml.ShouldNotContain("310000.000000");
+        detailsHtml.ShouldNotContain("2.2500");
+
+        var indexSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Index.cshtml"));
+        indexSource.ShouldContain("FormatDate(order.OrderDate)");
+        indexSource.ShouldContain("FormatMoney(order.TotalRevenueAmount)");
+
+        var detailsSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Details.cshtml"));
+        detailsSource.ShouldContain("canViewCost");
+        detailsSource.ShouldContain("canViewProfit");
+        detailsSource.ShouldContain("FormatMoney(Model.Order.TotalCostAmount)");
+        detailsSource.ShouldContain("FormatMoney(line.ProfitAmount)");
     }
 
     [Fact]

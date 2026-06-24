@@ -1,6 +1,17 @@
 @page
 @model VPureLux.Web.Pages.Inventory.LedgerModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using System.Globalization
+
+@functions {
+    private static readonly CultureInfo Vi = CultureInfo.GetCultureInfo("vi-VN");
+
+    private static string FormatMoney(decimal value)
+    {
+        var amount = decimal.Round(value, 0, MidpointRounding.AwayFromZero);
+        return amount.ToString("#,0", Vi) + " ₫";
+    }
+}
 
 <div class="vpl-inquiry-page">
     <div class="vpl-inquiry-page-header mb-3">
@@ -55,11 +66,11 @@
                     @foreach (var x in Model.Items)
                     {
                         <tr>
-                            <td>@x.PostedAt</td>
+                            <td>@(x.PostedAt is { } postedAt ? InventoryPostingUi.FormatDate(postedAt) : string.Empty)</td>
                             <td>@Model.GetWarehouseLabel(x.WarehouseId)</td>
                             <td>@L[$"Inventory:TransactionType:{x.Type}"]</td>
                             <td>@x.Reason</td>
-                            <td>@x.TotalIssueCost</td>
+                            <td>@FormatMoney(x.TotalIssueCost)</td>
                         </tr>
                     }
                     </tbody>
