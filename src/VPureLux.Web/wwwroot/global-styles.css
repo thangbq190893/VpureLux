@@ -1,7 +1,40 @@
 :root {
-    --lpx-theme-light-bg: url('/LeptonX/images/login-pages/login-bg-img-light.svg');
-    --lpx-theme-dim-bg: url('/LeptonX/images/login-pages/login-bg-img-dim.svg');
-    --lpx-theme-dark-bg: url('/LeptonX/images/login-pages/login-bg-img-dark.svg');
+    --lpx-theme-light-bg: linear-gradient(
+        165deg,
+        #f8fbff 0%,
+        #eef6fc 30%,
+        #e3f1fa 58%,
+        #f5f9fd 100%
+    );
+    --lpx-theme-dim-bg: linear-gradient(
+        165deg,
+        #e9eef4 0%,
+        #dde8f2 38%,
+        #d4e3ef 68%,
+        #ecf2f7 100%
+    );
+    --lpx-theme-dark-bg: linear-gradient(
+        165deg,
+        #0c1218 0%,
+        #132028 38%,
+        #0f1a22 72%,
+        #081016 100%
+    );
+}
+
+.abp-account-layout {
+    background: var(--lpx-theme-light-bg) !important;
+    background-image: var(--lpx-theme-light-bg) !important;
+}
+
+.lpx-theme-dim .abp-account-layout {
+    background: var(--lpx-theme-dim-bg) !important;
+    background-image: var(--lpx-theme-dim-bg) !important;
+}
+
+.lpx-theme-dark .abp-account-layout {
+    background: var(--lpx-theme-dark-bg) !important;
+    background-image: var(--lpx-theme-dark-bg) !important;
 }
 
 :root {

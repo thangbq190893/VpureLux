@@ -98,4 +98,4 @@ Each sub-batch is an isolated commit. Revert individual commits or restore files
 
 ---
 
-**Status:** Batch 13.1 recovery plan complete (`c7c11d3`). **Batch 13.2 recovery complete** — human-approved local VPURELUX logo assets, CSS variables, ERP footer. **Batch 13.3a recovery complete** (`905f82c`) — VPURELUX ERP welcome home page with module shortcut cards. Sub-batches 13.3b–13.5c and wrap-up **pending reimplementation**. Batch 14 UI Visual Refinement **deferred** (see above).
+**Status:** Batch 13.1 recovery plan complete (`c7c11d3`). **Batch 13.2 recovery complete** (`0655f36`) — human-approved local VPURELUX logo assets, CSS variables, ERP footer. **Batch 13.3a recovery complete** (`905f82c`) — VPURELUX ERP welcome home page with module shortcut cards. **Batch 13.3b recovery complete** — subtle water-themed login background CSS (gradients only). Sub-batches 13.4a–13.5c and wrap-up **pending reimplementation**. Batch 14 UI Visual Refinement **deferred** (see above).
