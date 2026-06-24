@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Security.Claims;
@@ -329,6 +330,62 @@ public class InventoryPagesTests : VPureLuxWebTestBase
 
         html.ShouldContain(InventoryPostingUi.FormatDate(receivedAt));
         html.ShouldNotContain(receivedAt.ToString("O"));
+    }
+
+    [Fact]
+    public async Task Inquiry_Pages_Should_Format_Money_And_Quantity_For_Vietnamese_Display()
+    {
+        var context = await CreateInquiryFilterContextAsync("FMT-VN");
+        var receivedAt = new DateTime(2026, 6, 18, 12, 0, 0, DateTimeKind.Utc);
+        var vi = CultureInfo.GetCultureInfo("vi-VN");
+        var expectedMoney = 41000m.ToString("#,0", vi) + " ₫";
+        var expectedQuantity = 7.25m.ToString("0.####", vi);
+        var expectedInventoryValue = decimal.Round(7.25m * 41000m, 0, MidpointRounding.AwayFromZero).ToString("#,0", vi) + " ₫";
+
+        await GetRequiredService<IInventoryTransactionAppService>().PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 7.25m,
+                    LotNo = Unique("LOT-FMT"),
+                    UnitCost = 41000,
+                    ReceivedAt = receivedAt
+                }
+            ]
+        });
+
+        var lotsHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync(
+            $"/Inventory/Lots?WarehouseId={context.WarehouseId}&StockItemId={context.StockItemId}"));
+        lotsHtml.ShouldContain(expectedMoney);
+        lotsHtml.ShouldContain(expectedQuantity);
+        lotsHtml.ShouldNotContain("41000.000000");
+        lotsHtml.ShouldNotContain("7.2500");
+
+        var balancesHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync(
+            $"/Inventory/Balances?WarehouseId={context.WarehouseId}&StockItemId={context.StockItemId}"));
+        balancesHtml.ShouldContain(expectedInventoryValue);
+        balancesHtml.ShouldContain(expectedQuantity);
+
+        await GetRequiredService<IInventoryTransactionAppService>().PostIssueAsync(new PostIssueDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines = [new IssueLineInput { StockItemId = context.StockItemId, Quantity = 2 }]
+        });
+
+        var ledgerHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync(
+            $"/Inventory/Ledger?WarehouseId={context.WarehouseId}&StockItemId={context.StockItemId}"));
+        ledgerHtml.ShouldContain((41000m * 2).ToString("#,0", vi) + " ₫");
+        ledgerHtml.ShouldNotContain("82000.000000");
+        ledgerHtml.ShouldNotContain("T00:00:00");
+
+        var ledgerSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Ledger.cshtml"));
+        ledgerSource.ShouldContain("InventoryPostingUi.FormatDate(postedAt)");
     }
 
     [Theory]
