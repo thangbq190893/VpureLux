@@ -388,4 +388,4 @@ Items with highest visibility when demoing VPURELUX ERP to stakeholders:
 
 ---
 
-**Status:** Batch 14.1 audit **complete**. Batch 14.2 global visual tokens **complete**. Batch 14.3 table density **complete**. Batch 14.4 button/action polish **complete** — `.vpl-btn-toolbar` on Catalog/Sales/Audit headers and Sales Details actions; row Details standardized to compact outline-secondary where applicable.
+**Status:** Batch 14.1 audit **complete**. Batch 14.2 global visual tokens **complete**. Batch 14.3 table density **complete**. Batch 14.4 button/action polish **complete**. Batch 14.5a Catalog list page chrome **complete** — `.vpl-page` header + `.vpl-card-dense` on Products/Components index pages.
