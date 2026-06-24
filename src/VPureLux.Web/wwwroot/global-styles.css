@@ -45,6 +45,8 @@
 .lpx-theme-dark {
     --lpx-logo: url('/images/logo/vpurelux/logo-dark.png');
     --lpx-logo-icon: url('/images/logo/vpurelux/icon.png');
+    --vpl-border-subtle: rgba(255, 255, 255, 0.12);
+    --vpl-shadow-subtle: none;
 }
 
 .vpl-inquiry-page-title {
@@ -73,4 +75,126 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
+}
+
+/* Batch 14 visual refinement tokens
+   Opt-in helpers for dense ERP layout. Apply classes in later batches (14.3–14.5). */
+:root {
+    --vpl-radius-sm: 0.25rem;
+    --vpl-radius-md: 0.375rem;
+    --vpl-radius-lg: 0.5rem;
+
+    --vpl-space-1: 0.25rem;
+    --vpl-space-2: 0.5rem;
+    --vpl-space-3: 0.75rem;
+    --vpl-space-4: 1rem;
+    --vpl-space-5: 1.25rem;
+
+    --vpl-border-subtle: #e5e7eb;
+    --vpl-shadow-subtle: 0 1px 2px rgba(15, 23, 42, 0.04);
+    --vpl-font-size-table: 0.875rem;
+    --vpl-font-size-meta: 0.8125rem;
+}
+
+.vpl-card-dense {
+    border: 1px solid var(--vpl-border-subtle);
+    border-radius: var(--vpl-radius-md);
+    box-shadow: none;
+}
+
+.vpl-card-dense .card-header {
+    padding: var(--vpl-space-2) var(--vpl-space-3);
+    border-bottom-color: var(--vpl-border-subtle);
+}
+
+.vpl-card-dense .card-body {
+    padding: var(--vpl-space-3);
+}
+
+.vpl-table-dense {
+    font-size: var(--vpl-font-size-table);
+}
+
+.vpl-table-dense th {
+    padding: var(--vpl-space-2);
+    font-size: var(--vpl-font-size-meta);
+    font-weight: 600;
+    vertical-align: middle;
+}
+
+.vpl-table-dense td {
+    padding: 0.375rem var(--vpl-space-2);
+    vertical-align: middle;
+}
+
+.vpl-btn-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--vpl-space-2);
+}
+
+.vpl-btn-toolbar .btn {
+    padding: 0.25rem 0.625rem;
+    font-size: var(--vpl-font-size-meta);
+    line-height: 1.4;
+    border-radius: var(--vpl-radius-sm);
+}
+
+.vpl-page {
+    --vpl-page-section-gap: var(--vpl-space-3);
+}
+
+.vpl-page > .vpl-page-header + .card,
+.vpl-page > .vpl-page-header + .vpl-card-dense,
+.vpl-page > .vpl-page-header + abp-card {
+    margin-top: 0;
+}
+
+.vpl-page-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--vpl-space-2);
+    margin-bottom: var(--vpl-page-section-gap, var(--vpl-space-3));
+}
+
+.vpl-page-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.3;
+    margin-bottom: 0;
+}
+
+.vpl-page-subtitle {
+    font-size: var(--vpl-font-size-meta);
+    line-height: 1.45;
+    color: var(--bs-secondary-color, #6c757d);
+    margin-bottom: 0;
+}
+
+.vpl-empty-state {
+    padding: var(--vpl-space-3) var(--vpl-space-4);
+    font-size: var(--vpl-font-size-table);
+    line-height: 1.45;
+    color: var(--bs-secondary-color, #6c757d);
+    border: 1px solid var(--vpl-border-subtle);
+    border-radius: var(--vpl-radius-md);
+    background-color: var(--bs-tertiary-bg, var(--bs-light, #f8f9fa));
+    margin-bottom: 0;
+}
+
+.vpl-catalog-thumbnail-cell {
+    width: 3rem;
+}
+
+.vpl-catalog-thumbnail {
+    width: 2.5rem;
+    height: 2.5rem;
+    object-fit: contain;
+}
+
+.vpl-catalog-thumbnail-placeholder {
+    font-size: var(--vpl-font-size-meta);
 }

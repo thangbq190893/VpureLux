@@ -13,12 +13,12 @@
     }
 }
 
-<div class="vpl-inquiry-page">
-    <div class="vpl-inquiry-page-header mb-3">
-        <h2 class="vpl-inquiry-page-title mb-0">@L["Inventory:Ledger"]</h2>
+<div class="vpl-page vpl-inquiry-page">
+    <div class="vpl-page-header">
+        <h2 class="vpl-page-title mb-0">@L["Inventory:Ledger"]</h2>
     </div>
 
-    <abp-card class="vpl-inquiry-filter-card mb-3">
+    <abp-card class="vpl-inquiry-filter-card vpl-card-dense mb-3">
         <abp-card-header>
             <h5 class="mb-0">@L["Search"]</h5>
         </abp-card-header>
@@ -44,7 +44,7 @@
         </abp-card-body>
     </abp-card>
 
-    <abp-card class="vpl-inquiry-results-card">
+    <abp-card class="vpl-inquiry-results-card vpl-card-dense">
         <abp-card-body>
             @if (Model.Items.Count == 0)
             {
@@ -52,7 +52,7 @@
             }
             else
             {
-                <abp-table striped-rows="true">
+                <abp-table striped-rows="true" class="vpl-table-dense">
                     <thead>
                         <tr>
                             <th>@L["Inventory:PostedAt"]</th>

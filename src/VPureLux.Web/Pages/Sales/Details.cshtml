@@ -36,10 +36,10 @@
 <div id="SalesDetailsPage" data-sales-success-message="@Model.SuccessMessage">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>@Model.Order.OrderNo</h2>
-        <div>
+        <div class="vpl-btn-toolbar">
             @if (Model.CanEdit)
             {
-                <a class="btn btn-primary" asp-page="/Sales/Edit" asp-route-id="@Model.Order.Id">@L["Edit"]</a>
+                <a class="btn btn-sm btn-primary" asp-page="/Sales/Edit" asp-route-id="@Model.Order.Id">@L["Edit"]</a>
             }
             @if (Model.CanConfirm)
             {
@@ -49,7 +49,7 @@
                       data-sales-action-form
                       data-confirm-message="@L["Sales:ConfirmOrderMessage"]">
                     <input type="hidden" asp-for="Confirmation.IdempotencyKey" />
-                    <button class="btn btn-success">@L["Sales:Confirm"]</button>
+                    <button class="btn btn-sm btn-success">@L["Sales:Confirm"]</button>
                 </form>
             }
             @if (Model.CanCancel)
@@ -59,7 +59,7 @@
                       class="d-inline"
                       data-sales-action-form
                       data-confirm-message="@L["Sales:CancelOrderMessage"]">
-                    <button class="btn btn-danger">@L["Sales:Cancel"]</button>
+                    <button class="btn btn-sm btn-danger">@L["Sales:Cancel"]</button>
                 </form>
             }
         </div>
@@ -141,7 +141,7 @@
         }
         </tbody>
     </abp-table>
-    <a class="btn btn-secondary" asp-page="/Sales/Index">@L["Back"]</a>
+    <a class="btn btn-sm btn-secondary" asp-page="/Sales/Index">@L["Back"]</a>
 </div>
 
 @section scripts {
