@@ -33,9 +33,9 @@
     }
 }
 
-<div id="SalesDetailsPage" data-sales-success-message="@Model.SuccessMessage">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>@Model.Order.OrderNo</h2>
+<div id="SalesDetailsPage" class="vpl-page" data-sales-success-message="@Model.SuccessMessage">
+    <div class="vpl-page-header">
+        <h2 class="vpl-page-title mb-0">@Model.Order.OrderNo</h2>
         <div class="vpl-btn-toolbar">
             @if (Model.CanEdit)
             {
@@ -67,80 +67,89 @@
 
     <abp-validation-summary />
 
-    <dl class="row">
-        <dt class="col-sm-3">@L["Sales:Status"]</dt>
-        <dd class="col-sm-9">@L[$"Sales:Status:{Model.Order.Status}"]</dd>
-        <dt class="col-sm-3">@L["Sales:Customer"]</dt>
-        <dd class="col-sm-9">@Model.Order.CustomerCodeSnapshot - @Model.Order.CustomerNameSnapshot</dd>
-        <dt class="col-sm-3">@L["Sales:Revenue"]</dt>
-        <dd class="col-sm-9">@FormatMoney(Model.Order.TotalRevenueAmount)</dd>
-        @if (canViewCost)
-        {
-            <dt class="col-sm-3">@L["Sales:Cost"]</dt>
-            <dd class="col-sm-9">@FormatMoney(Model.Order.TotalCostAmount)</dd>
-        }
-        @if (canViewProfit)
-        {
-            <dt class="col-sm-3">@L["Sales:Profit"]</dt>
-            <dd class="col-sm-9">@FormatMoney(Model.Order.TotalProfitAmount)</dd>
-        }
-    </dl>
+    <abp-card class="vpl-card-dense mb-3">
+        <abp-card-body>
+            <dl class="row mb-0">
+                <dt class="col-sm-3">@L["Sales:Status"]</dt>
+                <dd class="col-sm-9">@L[$"Sales:Status:{Model.Order.Status}"]</dd>
+                <dt class="col-sm-3">@L["Sales:Customer"]</dt>
+                <dd class="col-sm-9">@Model.Order.CustomerCodeSnapshot - @Model.Order.CustomerNameSnapshot</dd>
+                <dt class="col-sm-3">@L["Sales:Revenue"]</dt>
+                <dd class="col-sm-9">@FormatMoney(Model.Order.TotalRevenueAmount)</dd>
+                @if (canViewCost)
+                {
+                    <dt class="col-sm-3">@L["Sales:Cost"]</dt>
+                    <dd class="col-sm-9">@FormatMoney(Model.Order.TotalCostAmount)</dd>
+                }
+                @if (canViewProfit)
+                {
+                    <dt class="col-sm-3">@L["Sales:Profit"]</dt>
+                    <dd class="col-sm-9">@FormatMoney(Model.Order.TotalProfitAmount)</dd>
+                }
+            </dl>
+        </abp-card-body>
+    </abp-card>
 
-    <abp-table striped-rows="true">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>@L["Sales:ProductSku"]</th>
-                <th>@L["Sales:Quantity"]</th>
-                <th>@L["Sales:SuggestedPrice"]</th>
-                <th>@L["Sales:ActualPrice"]</th>
-                <th>@L["Sales:OverrideReason"]</th>
-                @if (canViewCost)
-                {
-                    <th>@L["Sales:CostPrice"]</th>
-                    <th>@L["Sales:Cost"]</th>
-                }
-                @if (canViewProfit)
-                {
-                    <th>@L["Sales:Profit"]</th>
-                }
-            </tr>
-        </thead>
-        <tbody>
-        @foreach (var line in Model.Order.Lines)
-        {
-            <tr>
-                <td>@line.LineNo</td>
-                <td>
-                    <div>@Model.GetProductLabel(line)</div>
-                    <span class="@Model.GetBomBadgeClass(line)">@Model.GetBomStatusText(line)</span>
-                    @if (line.BomSnapshotItems.Count > 0)
+    <abp-card class="vpl-card-dense mb-3">
+        <abp-card-body>
+            <abp-table striped-rows="true" class="vpl-table-dense">
+                <thead>
+                <tr>
+                    <th>#</th>
+                    <th>@L["Sales:ProductSku"]</th>
+                    <th>@L["Sales:Quantity"]</th>
+                    <th>@L["Sales:SuggestedPrice"]</th>
+                    <th>@L["Sales:ActualPrice"]</th>
+                    <th>@L["Sales:OverrideReason"]</th>
+                    @if (canViewCost)
                     {
-                        <ul class="mb-0 mt-1 small text-muted">
-                        @foreach (var item in line.BomSnapshotItems)
-                        {
-                            <li>@item.ComponentCode - @item.ComponentName: @FormatQuantity(item.TotalRequiredQuantity) @item.Unit</li>
-                        }
-                        </ul>
+                        <th>@L["Sales:CostPrice"]</th>
+                        <th>@L["Sales:Cost"]</th>
                     }
-                </td>
-                <td>@FormatQuantity(line.Quantity)</td>
-                <td>@FormatMoney(line.SuggestedPriceSnapshot)</td>
-                <td>@FormatMoney(line.ActualSellingPrice)</td>
-                <td>@line.OverrideReason</td>
-                @if (canViewCost)
+                    @if (canViewProfit)
+                    {
+                        <th>@L["Sales:Profit"]</th>
+                    }
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var line in Model.Order.Lines)
                 {
-                    <td>@FormatMoney(line.CostPriceSnapshot)</td>
-                    <td>@FormatMoney(line.CostAmountSnapshot)</td>
+                    <tr>
+                        <td>@line.LineNo</td>
+                        <td>
+                            <div>@Model.GetProductLabel(line)</div>
+                            <span class="@Model.GetBomBadgeClass(line)">@Model.GetBomStatusText(line)</span>
+                            @if (line.BomSnapshotItems.Count > 0)
+                            {
+                                <ul class="mb-0 mt-1 small text-muted">
+                                @foreach (var item in line.BomSnapshotItems)
+                                {
+                                    <li>@item.ComponentCode - @item.ComponentName: @FormatQuantity(item.TotalRequiredQuantity) @item.Unit</li>
+                                }
+                                </ul>
+                            }
+                        </td>
+                        <td>@FormatQuantity(line.Quantity)</td>
+                        <td>@FormatMoney(line.SuggestedPriceSnapshot)</td>
+                        <td>@FormatMoney(line.ActualSellingPrice)</td>
+                        <td>@line.OverrideReason</td>
+                        @if (canViewCost)
+                        {
+                            <td>@FormatMoney(line.CostPriceSnapshot)</td>
+                            <td>@FormatMoney(line.CostAmountSnapshot)</td>
+                        }
+                        @if (canViewProfit)
+                        {
+                            <td>@FormatMoney(line.ProfitAmount)</td>
+                        }
+                    </tr>
                 }
-                @if (canViewProfit)
-                {
-                    <td>@FormatMoney(line.ProfitAmount)</td>
-                }
-            </tr>
-        }
-        </tbody>
-    </abp-table>
+                </tbody>
+            </abp-table>
+        </abp-card-body>
+    </abp-card>
+
     <a class="btn btn-sm btn-secondary" asp-page="/Sales/Index">@L["Back"]</a>
 </div>
 
