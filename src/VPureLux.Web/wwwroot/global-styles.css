@@ -184,3 +184,17 @@
     background-color: var(--bs-tertiary-bg, var(--bs-light, #f8f9fa));
     margin-bottom: 0;
 }
+
+.vpl-catalog-thumbnail-cell {
+    width: 3rem;
+}
+
+.vpl-catalog-thumbnail {
+    width: 2.5rem;
+    height: 2.5rem;
+    object-fit: contain;
+}
+
+.vpl-catalog-thumbnail-placeholder {
+    font-size: var(--vpl-font-size-meta);
+}

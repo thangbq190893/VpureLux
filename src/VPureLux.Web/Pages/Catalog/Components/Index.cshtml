@@ -52,7 +52,7 @@
                 </abp-column>
             </abp-row>
         </form>
-        <abp-table striped-rows="true">
+        <abp-table striped-rows="true" class="vpl-table-dense">
             <thead>
             <tr>
                 <th>@L["Catalog:Image"]</th>
@@ -71,17 +71,17 @@
             @foreach (var row in Model.Components)
             {
                 <tr>
-                    <td style="width:72px">
+                    <td class="vpl-catalog-thumbnail-cell">
                         @if (row.Component.HasImage)
                         {
                             <img src="/api/catalog/components/@row.Component.Id/thumbnail?v=@row.Component.ImageHash"
-                                 loading="lazy" width="56" height="56" style="object-fit:contain"
-                                 class="border rounded" alt="@row.Component.Name" />
+                                 loading="lazy" width="40" height="40"
+                                 class="vpl-catalog-thumbnail border rounded" alt="@row.Component.Name" />
                         }
                         else
                         {
-                            <div class="border rounded d-flex align-items-center justify-content-center text-muted"
-                                 style="width:56px;height:56px" title="@L["Catalog:NoImage"]">-</div>
+                            <div class="vpl-catalog-thumbnail vpl-catalog-thumbnail-placeholder border rounded d-flex align-items-center justify-content-center text-muted"
+                                 title="@L["Catalog:NoImage"]">-</div>
                         }
                     </td>
                     <td>@row.Component.Code</td>
