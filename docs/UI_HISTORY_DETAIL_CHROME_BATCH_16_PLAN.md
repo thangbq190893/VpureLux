@@ -263,4 +263,4 @@ Batch 16B **may** apply `.vpl-empty-state` on Sales CustomerHistory and Pricing 
 
 ---
 
-**Status:** Batch 16B.1 audit/plan **complete**. Awaiting Batch 16B.2 Sales history/detail chrome.
+**Status:** Batch 16B.1 audit/plan **complete**. Batch 16B.2a (Sales History page chrome) **complete** — applied `.vpl-page`, `.vpl-page-header`, `.vpl-page-title`, `.vpl-card-dense`, and `.vpl-table-dense` to `Sales/History.cshtml`. Next: Batch 16B.2b CustomerHistory and Details chrome.
