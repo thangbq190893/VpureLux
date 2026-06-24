@@ -110,7 +110,8 @@ public class CatalogPagesTests : VPureLuxWebTestBase
         html.ShouldContain("dropdown-menu");
         html.ShouldContain(localizer["Catalog:ManageImage"].Value);
         html.ShouldContain(localizer["Catalog:CurrentProductSuggestedPrice"].Value);
-        html.ShouldContain(88888m.ToString("N0", CultureInfo.GetCultureInfo("vi-VN")));
+        html.ShouldContain(FormatVnd(88888m));
+        html.ShouldNotContain("88888.000000");
         html.ShouldContain(localizer["Catalog:NoPublishedBom"].Value);
         html.ShouldContain(localizer["Catalog:ConfirmDeactivateProduct"].Value);
     }
@@ -148,7 +149,8 @@ public class CatalogPagesTests : VPureLuxWebTestBase
         html.ShouldContain("dropdown-menu");
         html.ShouldContain(localizer["Catalog:ManageImage"].Value);
         html.ShouldContain(localizer["Catalog:CurrentComponentSuggestedPrice"].Value);
-        html.ShouldContain(45678m.ToString("N0", CultureInfo.GetCultureInfo("vi-VN")));
+        html.ShouldContain(FormatVnd(45678m));
+        html.ShouldNotContain("45678.000000");
         html.ShouldContain(localizer["Catalog:ConfirmDeactivateComponent"].Value);
     }
 
@@ -282,6 +284,12 @@ public class CatalogPagesTests : VPureLuxWebTestBase
 
         response.ShouldContain("\"success\":true");
         response.ShouldContain("\"data\":");
+    }
+
+    private static string FormatVnd(decimal value)
+    {
+        var vi = CultureInfo.GetCultureInfo("vi-VN");
+        return decimal.Round(value, 0, MidpointRounding.AwayFromZero).ToString("#,0", vi) + " ₫";
     }
 
     private static string Unique(string prefix) => prefix + Guid.NewGuid().ToString("N")[..8];

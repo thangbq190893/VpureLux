@@ -1,8 +1,19 @@
 @page
 @model VPureLux.Web.Pages.Catalog.Products.IndexModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using System.Globalization
 @{
     ViewData["Title"] = L["Catalog:Products"];
+}
+
+@functions {
+    private static readonly CultureInfo Vi = CultureInfo.GetCultureInfo("vi-VN");
+
+    private static string FormatMoney(decimal value)
+    {
+        var amount = decimal.Round(value, 0, MidpointRounding.AwayFromZero);
+        return amount.ToString("#,0", Vi) + " ₫";
+    }
 }
 
 @section scripts {
@@ -81,7 +92,7 @@
                         var context = Model.GetPricingContext(product.Id);
                         <td class="text-end">
                             @(context?.CurrentProductSuggestedPrice.HasValue == true
-                                ? $"{context.CurrentProductSuggestedPrice.Value:N0} {VPureLux.Pricing.PricingConsts.Currency}"
+                                ? FormatMoney(context.CurrentProductSuggestedPrice.Value)
                                 : L["Catalog:NoProductSuggestedPrice"].Value)
                         </td>
                         <td>

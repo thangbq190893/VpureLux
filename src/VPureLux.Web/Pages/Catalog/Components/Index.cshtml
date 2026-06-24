@@ -1,8 +1,19 @@
 @page
 @model VPureLux.Web.Pages.Catalog.Components.IndexModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using System.Globalization
 @{
     ViewData["Title"] = L["Catalog:Components"];
+}
+
+@functions {
+    private static readonly CultureInfo Vi = CultureInfo.GetCultureInfo("vi-VN");
+
+    private static string FormatMoney(decimal value)
+    {
+        var amount = decimal.Round(value, 0, MidpointRounding.AwayFromZero);
+        return amount.ToString("#,0", Vi) + " ₫";
+    }
 }
 
 @section scripts {
@@ -82,7 +93,7 @@
                         <td class="text-end">
                             @(row.CurrentSuggestedSellingPrice == null
                                 ? L["Catalog:NoComponentSuggestedPrice"].Value
-                                : $"{row.CurrentSuggestedSellingPrice.Price:N0} {row.CurrentSuggestedSellingPrice.Currency}")
+                                : FormatMoney(row.CurrentSuggestedSellingPrice.Price))
                         </td>
                     }
                     <td class="text-end">
