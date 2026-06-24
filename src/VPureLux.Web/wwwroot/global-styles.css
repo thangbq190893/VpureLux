@@ -46,3 +46,25 @@
     --lpx-logo: url('/images/logo/vpurelux/logo-dark.png');
     --lpx-logo-icon: url('/images/logo/vpurelux/icon.png');
 }
+
+.vpl-inquiry-page-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.vpl-inquiry-filter-card .card-header,
+.vpl-inquiry-results-card .card-header {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+}
+
+.vpl-inquiry-filter-card .card-body,
+.vpl-inquiry-results-card .card-body {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+.vpl-inquiry-results-card .alert:last-child,
+.vpl-inquiry-results-card .table:last-child {
+    margin-bottom: 0;
+}
