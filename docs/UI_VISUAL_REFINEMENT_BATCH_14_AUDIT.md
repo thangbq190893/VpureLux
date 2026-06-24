@@ -388,4 +388,4 @@ Items with highest visibility when demoing VPURELUX ERP to stakeholders:
 
 ---
 
-**Status:** Batch 14.1 audit **complete**. Awaiting approval to begin Batch 14.2 implementation.
+**Status:** Batch 14.1 audit **complete**. Batch 14.2 global visual tokens **complete** — opt-in `--vpl-*` variables and helper classes added to `global-styles.css` (no page wiring yet).
