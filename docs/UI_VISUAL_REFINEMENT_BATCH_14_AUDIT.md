@@ -388,4 +388,4 @@ Items with highest visibility when demoing VPURELUX ERP to stakeholders:
 
 ---
 
-**Status:** Batch 14.1 audit **complete**. Batch 14.2 global visual tokens **complete**. Batch 14.3 table density **complete**. Batch 14.4 button/action polish **complete**. Batch 14.5a Catalog list page chrome **complete**. Batch 14.5b inquiry page chrome **complete** — `.vpl-page` header + `.vpl-card-dense` on Inventory/Sales/Audit inquiry pages.
+**Status:** Batch 14 **complete** on `feature/ui-visual-refinement-batch-14` — phases 14.1–14.5b implemented; wrap-up PR summary in `docs/UI_VISUAL_REFINEMENT_BATCH_14_PR_SUMMARY.md`. Home launcher density, empty-state wiring, and remaining list pages **deferred** (see PR summary).
