@@ -80,4 +80,4 @@ Each sub-batch is an isolated commit. Revert individual commits or restore files
 
 ---
 
-**Status:** Batch 13.1 recovery plan — **in progress** on `feature/ui-brand-polish-batch-13-recovery`. Sub-batches 13.2–13.5c and wrap-up **pending reimplementation**.
+**Status:** Batch 13.1 recovery plan complete (`c7c11d3`). Batch 13.2 (logo/footer) **pending reimplementation** on this branch. **Batch 13.3a recovery complete** — VPURELUX ERP welcome home page with module shortcut cards. Sub-batches 13.3b–13.5c and wrap-up **pending reimplementation**.
