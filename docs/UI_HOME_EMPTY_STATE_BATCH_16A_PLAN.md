@@ -276,4 +276,4 @@ Apply **existing helpers + minimal Index.css tuning** (no grid redesign, no new 
 
 ---
 
-**Status:** Batch 16A.1 audit/plan **complete**. Batch 16A.2 (Home launcher density) **complete** — applied `.vpl-page`, `.vpl-card-dense`, `.vpl-page-subtitle`, and conservative `Index.css` spacing to `Pages/Index.cshtml`. Next: Batch 16A.3 Inventory inquiry empty-state polish.
+**Status:** Batch 16A.1 audit/plan **complete**. Batch 16A.2 (Home launcher density) **complete**. Batch 16A.3 (Inventory inquiry empty-state polish) **complete** — replaced `alert alert-light border` with `.vpl-empty-state` on `Ledger.cshtml`, `Balances.cshtml`, and `Lots.cshtml`. Next: Batch 16A.4 full Web.Tests + PR summary.

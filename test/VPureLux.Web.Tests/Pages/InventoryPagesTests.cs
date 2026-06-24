@@ -401,7 +401,7 @@ public class InventoryPagesTests : VPureLuxWebTestBase
             $"{route}?WarehouseId={context.WarehouseId}"));
 
         html.ShouldContain(localizer[emptyStateKey].Value);
-        html.ShouldContain("alert alert-light border");
+        html.ShouldContain("vpl-empty-state");
     }
 
     [Theory]
