@@ -68,3 +68,9 @@
 .vpl-inquiry-results-card .table:last-child {
     margin-bottom: 0;
 }
+
+.vpl-inquiry-toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}

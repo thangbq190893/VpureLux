@@ -3,13 +3,56 @@
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
 @inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @using VPureLux.Permissions
-@{ ViewData["Title"] = L["Sales:Title"]; }
-@{ var canViewCustomerHistory = Model.CanViewHistory && (await AuthorizationService.AuthorizeAsync(User, null, VPureLuxPermissions.Sales.ViewProfit)).Succeeded; }
-<div class="d-flex justify-content-between align-items-center mb-4"><h2>@L["Sales:Title"]</h2><div>
-@if(canViewCustomerHistory){<a class="btn btn-outline-secondary" asp-page="/Sales/CustomerHistory">@L["Sales:CustomerHistory"]</a>}
-<a class="btn btn-outline-secondary" asp-page="/Sales/History">@L["Sales:History"]</a>
-@if(Model.CanCreate){<a class="btn btn-primary" asp-page="/Sales/Create">@L["Sales:Create"]</a>}
-</div></div>
-<abp-table striped-rows="true"><thead><tr><th>@L["Sales:OrderNo"]</th><th>@L["Sales:OrderDate"]</th><th>@L["Sales:Customer"]</th><th>@L["Sales:Status"]</th><th>@L["Sales:Revenue"]</th><th></th></tr></thead><tbody>
-@foreach(var order in Model.Orders.Items){<tr><td>@order.OrderNo</td><td>@order.OrderDate</td><td>@(string.IsNullOrEmpty(order.CustomerNameSnapshot) ? L["Sales:CustomerContextUnavailable"] : order.CustomerNameSnapshot)</td><td>@L[$"Sales:Status:{order.Status}"]</td><td>@order.TotalRevenueAmount</td><td><a class="btn btn-sm btn-outline-primary" asp-page="/Sales/Details" asp-route-id="@order.Id">@L["Details"]</a></td></tr>}
-</tbody></abp-table>
+@{
+    ViewData["Title"] = L["Sales:Title"];
+    var canViewCustomerHistory = Model.CanViewHistory && (await AuthorizationService.AuthorizeAsync(User, null, VPureLuxPermissions.Sales.ViewProfit)).Succeeded;
+}
+
+<div class="vpl-inquiry-page">
+    <div class="vpl-inquiry-page-header vpl-inquiry-toolbar mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h2 class="vpl-inquiry-page-title mb-0">@L["Sales:Title"]</h2>
+        <div class="vpl-inquiry-toolbar-actions d-flex flex-wrap gap-2">
+            @if (canViewCustomerHistory)
+            {
+                <a class="btn btn-outline-secondary" asp-page="/Sales/CustomerHistory">@L["Sales:CustomerHistory"]</a>
+            }
+            <a class="btn btn-outline-secondary" asp-page="/Sales/History">@L["Sales:History"]</a>
+            @if (Model.CanCreate)
+            {
+                <a class="btn btn-primary" asp-page="/Sales/Create">@L["Sales:Create"]</a>
+            }
+        </div>
+    </div>
+
+    <abp-card class="vpl-inquiry-results-card">
+        <abp-card-body>
+            <abp-table striped-rows="true">
+                <thead>
+                    <tr>
+                        <th>@L["Sales:OrderNo"]</th>
+                        <th>@L["Sales:OrderDate"]</th>
+                        <th>@L["Sales:Customer"]</th>
+                        <th>@L["Sales:Status"]</th>
+                        <th>@L["Sales:Revenue"]</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var order in Model.Orders.Items)
+                {
+                    <tr>
+                        <td>@order.OrderNo</td>
+                        <td>@order.OrderDate</td>
+                        <td>@(string.IsNullOrEmpty(order.CustomerNameSnapshot) ? L["Sales:CustomerContextUnavailable"] : order.CustomerNameSnapshot)</td>
+                        <td>@L[$"Sales:Status:{order.Status}"]</td>
+                        <td>@order.TotalRevenueAmount</td>
+                        <td>
+                            <a class="btn btn-sm btn-outline-primary" asp-page="/Sales/Details" asp-route-id="@order.Id">@L["Details"]</a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </abp-table>
+        </abp-card-body>
+    </abp-card>
+</div>
