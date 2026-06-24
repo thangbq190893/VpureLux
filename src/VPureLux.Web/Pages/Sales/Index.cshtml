@@ -3,9 +3,25 @@
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
 @inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @using VPureLux.Permissions
+@using System.Globalization
 @{
     ViewData["Title"] = L["Sales:Title"];
     var canViewCustomerHistory = Model.CanViewHistory && (await AuthorizationService.AuthorizeAsync(User, null, VPureLuxPermissions.Sales.ViewProfit)).Succeeded;
+}
+
+@functions {
+    private static readonly CultureInfo Vi = CultureInfo.GetCultureInfo("vi-VN");
+
+    private static string FormatMoney(decimal value)
+    {
+        var amount = decimal.Round(value, 0, MidpointRounding.AwayFromZero);
+        return amount.ToString("#,0", Vi) + " ₫";
+    }
+
+    private static string FormatDate(DateTime value)
+    {
+        return value.ToString("dd/MM/yyyy", Vi);
+    }
 }
 
 <div class="vpl-inquiry-page">
@@ -42,10 +58,10 @@
                 {
                     <tr>
                         <td>@order.OrderNo</td>
-                        <td>@order.OrderDate</td>
+                        <td>@FormatDate(order.OrderDate)</td>
                         <td>@(string.IsNullOrEmpty(order.CustomerNameSnapshot) ? L["Sales:CustomerContextUnavailable"] : order.CustomerNameSnapshot)</td>
                         <td>@L[$"Sales:Status:{order.Status}"]</td>
-                        <td>@order.TotalRevenueAmount</td>
+                        <td>@FormatMoney(order.TotalRevenueAmount)</td>
                         <td>
                             <a class="btn btn-sm btn-outline-primary" asp-page="/Sales/Details" asp-route-id="@order.Id">@L["Details"]</a>
                         </td>
