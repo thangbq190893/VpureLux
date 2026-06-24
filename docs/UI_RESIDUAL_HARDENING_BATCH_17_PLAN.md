@@ -303,4 +303,4 @@ If **no code batches**: document-only close-out stating baseline tag acceptance.
 
 ---
 
-**Status:** Batch 17.1 audit/plan **complete**. Next: team decision — **skip to 17.4 doc close-out** or **Batch 17.3 test hardening** (recommended optional).
+**Status:** Batch 17 **closed** (documentation-only) — 17.1 audit/plan complete; 17.2 skipped; 17.3 deferred as optional future test-only hardening; 17.4 close-out PR summary (`docs/UI_RESIDUAL_HARDENING_BATCH_17_PR_SUMMARY.md`).
