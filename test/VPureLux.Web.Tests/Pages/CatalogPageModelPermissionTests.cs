@@ -18,7 +18,7 @@ public class CatalogPageModelPermissionTests
     public async Task Component_Actions_Should_Be_Hidden_Without_Permissions()
     {
         var appService = Substitute.For<IComponentAppService>();
-        var pricingService = Substitute.For<IComponentSuggestedSellingPriceAppService>();
+        var pricingService = Substitute.For<IComponentSuggestedSellingPriceLookupService>();
         var authorizationService = Substitute.For<IAuthorizationService>();
         appService.GetListAsync(Arg.Any<GetComponentListInput>())
             .Returns(new Volo.Abp.Application.Dtos.PagedResultDto<ComponentDto>());

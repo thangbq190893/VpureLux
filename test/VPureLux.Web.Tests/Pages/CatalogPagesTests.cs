@@ -128,6 +128,12 @@ public class CatalogPagesTests : VPureLuxWebTestBase
             Name = "Catalog Component Context",
             Unit = "pcs"
         });
+        var componentWithoutPrice = await componentService.CreateAsync(new CreateComponentDto
+        {
+            Code = Unique("CAT-CNP"),
+            Name = "Catalog Component Without Price",
+            Unit = "pcs"
+        });
         await priceService.CreateAsync(component.Id, new CreateComponentSuggestedSellingPriceVersionDto
         {
             Price = 45678m,
@@ -139,6 +145,8 @@ public class CatalogPagesTests : VPureLuxWebTestBase
 
         html.ShouldContain(component.Code);
         html.ShouldContain(component.Name);
+        html.ShouldContain(componentWithoutPrice.Code);
+        html.ShouldContain(componentWithoutPrice.Name);
         html.ShouldContain("data-catalog-index");
         html.ShouldContain("data-create-view-url=\"Catalog/Components/CreateModal\"");
         html.ShouldContain("data-edit-view-url=\"Catalog/Components/EditModal\"");
@@ -150,6 +158,7 @@ public class CatalogPagesTests : VPureLuxWebTestBase
         html.ShouldContain(localizer["Catalog:ManageImage"].Value);
         html.ShouldContain(localizer["Catalog:CurrentComponentSuggestedPrice"].Value);
         html.ShouldContain(FormatVnd(45678m));
+        html.ShouldContain(localizer["Catalog:NoComponentSuggestedPrice"].Value);
         html.ShouldNotContain("45678.000000");
         html.ShouldContain(localizer["Catalog:ConfirmDeactivateComponent"].Value);
     }
@@ -275,6 +284,17 @@ public class CatalogPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("abp.notify.success");
         scriptSource.ShouldContain("abp.ui.setBusy");
         scriptSource.ShouldContain("dataset.confirmed");
+    }
+
+    [Fact]
+    public async Task Catalog_Component_PageModel_Should_Use_Batch_Current_Price_Lookup()
+    {
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath(
+            "src/VPureLux.Web/Pages/Catalog/Components/Index.cshtml.cs"));
+
+        pageSource.ShouldContain("FindCurrentMapAsync");
+        pageSource.ShouldNotContain("GetCurrentAsync(");
+        pageSource.ShouldNotContain("TryGetCurrentComponentPriceAsync");
     }
 
     [Fact]

@@ -153,8 +153,11 @@ public class PricingPagesTests : VPureLuxWebTestBase
     [Fact]
     public async Task Pricing_Index_Component_Tab_Should_Render_Current_Suggested_Price_And_Effective_Date()
     {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
         var component = await GetRequiredService<IComponentAppService>()
             .CreateAsync(ComponentInput("PRICE-CUR", "Current Price Component"));
+        var componentWithoutPrice = await GetRequiredService<IComponentAppService>()
+            .CreateAsync(ComponentInput("PRICE-CNP", "No Batch Price Component"));
         var effectiveFrom = DateTime.Now.Date;
         await GetRequiredService<IComponentSuggestedSellingPriceAppService>()
             .CreateAsync(component.Id, new CreateComponentSuggestedSellingPriceVersionDto
@@ -168,8 +171,11 @@ public class PricingPagesTests : VPureLuxWebTestBase
 
         html.ShouldContain(component.Code);
         html.ShouldContain(component.Name);
+        html.ShouldContain(componentWithoutPrice.Code);
+        html.ShouldContain(componentWithoutPrice.Name);
         html.ShouldContain($"{123456m.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))} VND");
         html.ShouldContain(effectiveFrom.ToString("dd/MM/yyyy", CultureInfo.GetCultureInfo("vi-VN")));
+        html.ShouldContain(localizer["Pricing:NoComponentSuggestedPrice"].Value);
     }
 
     [Fact]
@@ -203,6 +209,16 @@ public class PricingPagesTests : VPureLuxWebTestBase
             pageSource.ShouldNotContain("<script>");
             pageSource.ShouldNotContain("<script src=");
         }
+    }
+
+    [Fact]
+    public async Task Pricing_Index_PageModel_Should_Use_Batch_Current_Price_Lookup()
+    {
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Pricing/Index.cshtml.cs"));
+
+        pageSource.ShouldContain("FindCurrentMapAsync");
+        pageSource.ShouldNotContain("GetCurrentAsync(");
+        pageSource.ShouldNotContain("TryGetCurrentComponentPriceAsync");
     }
 
     private static CreateComponentDto ComponentInput(string prefix, string name) => new()
