@@ -8,8 +8,75 @@
 }
 
 <div data-customer-groups-index data-status-success="@(string.IsNullOrWhiteSpace(Model.StatusMessageKey) ? string.Empty : L[Model.StatusMessageKey].Value)"></div>
-<abp-card><abp-card-header><abp-row><abp-column size-md="_6"><h2>@L["CustomerGroups:Title"]</h2></abp-column><abp-column size-md="_6" class="text-end">@if(Model.CanCreate){<a class="btn btn-primary" asp-page="/CustomerGroups/Create" data-customer-group-create>@L["CustomerGroups:Create"]</a>}</abp-column></abp-row></abp-card-header><abp-card-body>
-<form method="get" class="mb-3"><abp-row><abp-column size-md="_4"><input asp-for="SearchText" class="form-control" placeholder="@L["Search"]"/></abp-column><abp-column size-md="_3"><select asp-for="Status" asp-items="Html.GetEnumSelectList<VPureLux.Customers.CustomerGroupStatus>()" class="form-select"><option value="">@L["CustomerGroups:Status"]</option></select></abp-column><abp-column size-md="_2"><button class="btn btn-secondary" type="submit">@L["Search"]</button></abp-column></abp-row></form>
-<abp-table striped-rows="true"><thead><tr><th>@L["CustomerGroups:Code"]</th><th>@L["CustomerGroups:Name"]</th><th>@L["CustomerGroups:Status"]</th><th>@L["CustomerGroups:SortOrder"]</th><th class="text-end">@L["Actions"]</th></tr></thead><tbody>
-@foreach(var group in Model.CustomerGroups){<tr><td>@group.Code</td><td>@group.Name</td><td>@L[$"Status:{group.Status}"]</td><td>@group.SortOrder</td><td class="text-end"><div class="dropdown"><button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">@L["Actions"]</button><div class="dropdown-menu dropdown-menu-end"><a class="dropdown-item" asp-page="/CustomerGroups/Details" asp-route-id="@group.Id" data-customer-group-details data-id="@group.Id">@L["Details"]</a>@if(Model.CanEdit){<a class="dropdown-item" asp-page="/CustomerGroups/Edit" asp-route-id="@group.Id" data-customer-group-edit data-id="@group.Id">@L["Edit"]</a>} @if(Model.CanManageStatus){<form method="post" asp-page-handler="@(group.Status == VPureLux.Customers.CustomerGroupStatus.Active ? "Deactivate" : "Activate")" asp-route-id="@group.Id" data-customer-group-status-form data-confirm-message="@(group.Status == VPureLux.Customers.CustomerGroupStatus.Active ? L["CustomerGroups:ConfirmDeactivate"].Value : L["CustomerGroups:ConfirmActivate"].Value)"><button class="dropdown-item" type="submit">@(group.Status == VPureLux.Customers.CustomerGroupStatus.Active ? L["Deactivate"] : L["Activate"])</button></form>}</div></div></td></tr>}
-</tbody></abp-table></abp-card-body></abp-card>
+
+<div class="vpl-page">
+    <div class="vpl-page-header">
+        <h2 class="vpl-page-title mb-0">@L["CustomerGroups:Title"]</h2>
+        <div class="vpl-btn-toolbar">
+            @if (Model.CanCreate)
+            {
+                <a class="btn btn-primary" asp-page="/CustomerGroups/Create" data-customer-group-create>@L["CustomerGroups:Create"]</a>
+            }
+        </div>
+    </div>
+
+    <abp-card class="vpl-card-dense">
+        <abp-card-body>
+            <form method="get" class="mb-3">
+                <abp-row>
+                    <abp-column size-md="_4">
+                        <input asp-for="SearchText" class="form-control" placeholder="@L["Search"]" />
+                    </abp-column>
+                    <abp-column size-md="_3">
+                        <select asp-for="Status" asp-items="Html.GetEnumSelectList<VPureLux.Customers.CustomerGroupStatus>()" class="form-select">
+                            <option value="">@L["CustomerGroups:Status"]</option>
+                        </select>
+                    </abp-column>
+                    <abp-column size-md="_2">
+                        <button class="btn btn-secondary" type="submit">@L["Search"]</button>
+                    </abp-column>
+                </abp-row>
+            </form>
+            <abp-table striped-rows="true" class="vpl-table-dense">
+                <thead>
+                <tr>
+                    <th>@L["CustomerGroups:Code"]</th>
+                    <th>@L["CustomerGroups:Name"]</th>
+                    <th>@L["CustomerGroups:Status"]</th>
+                    <th>@L["CustomerGroups:SortOrder"]</th>
+                    <th class="text-end">@L["Actions"]</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var group in Model.CustomerGroups)
+                {
+                    <tr>
+                        <td>@group.Code</td>
+                        <td>@group.Name</td>
+                        <td>@L[$"Status:{group.Status}"]</td>
+                        <td>@group.SortOrder</td>
+                        <td class="text-end">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">@L["Actions"]</button>
+                                <div class="dropdown-menu dropdown-menu-end">
+                                    <a class="dropdown-item" asp-page="/CustomerGroups/Details" asp-route-id="@group.Id" data-customer-group-details data-id="@group.Id">@L["Details"]</a>
+                                    @if (Model.CanEdit)
+                                    {
+                                        <a class="dropdown-item" asp-page="/CustomerGroups/Edit" asp-route-id="@group.Id" data-customer-group-edit data-id="@group.Id">@L["Edit"]</a>
+                                    }
+                                    @if (Model.CanManageStatus)
+                                    {
+                                        <form method="post" asp-page-handler="@(group.Status == VPureLux.Customers.CustomerGroupStatus.Active ? "Deactivate" : "Activate")" asp-route-id="@group.Id" data-customer-group-status-form data-confirm-message="@(group.Status == VPureLux.Customers.CustomerGroupStatus.Active ? L["CustomerGroups:ConfirmDeactivate"].Value : L["CustomerGroups:ConfirmActivate"].Value)">
+                                            <button class="dropdown-item" type="submit">@(group.Status == VPureLux.Customers.CustomerGroupStatus.Active ? L["Deactivate"] : L["Activate"])</button>
+                                        </form>
+                                    }
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </abp-table>
+        </abp-card-body>
+    </abp-card>
+</div>
