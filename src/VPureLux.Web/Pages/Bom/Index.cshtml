@@ -5,16 +5,21 @@
     ViewData["Title"] = L["Bom:Title"];
 }
 
-<abp-card>
-    <abp-card-header><h2>@L["Bom:Title"]</h2></abp-card-header>
-    <abp-card-body>
-        <form method="post" asp-page-handler="OpenProduct">
-            <label asp-for="ProductId" class="form-label">@L["Bom:Product"]</label>
-            <select asp-for="ProductId" asp-items="Model.ProductOptions" class="form-select">
-                <option value="">@L["Bom:SelectProduct"]</option>
-            </select>
-            <span asp-validation-for="ProductId" class="text-danger"></span>
-            <abp-button button-type="Primary" type="submit" class="mt-3">@L["Bom:OpenHistory"]</abp-button>
-        </form>
-    </abp-card-body>
-</abp-card>
+<div class="vpl-page">
+    <div class="vpl-page-header">
+        <h2 class="vpl-page-title mb-0">@L["Bom:Title"]</h2>
+    </div>
+
+    <abp-card class="vpl-card-dense">
+        <abp-card-body>
+            <form method="post" asp-page-handler="OpenProduct">
+                <label asp-for="ProductId" class="form-label">@L["Bom:Product"]</label>
+                <select asp-for="ProductId" asp-items="Model.ProductOptions" class="form-select">
+                    <option value="">@L["Bom:SelectProduct"]</option>
+                </select>
+                <span asp-validation-for="ProductId" class="text-danger"></span>
+                <abp-button button-type="Primary" type="submit" class="mt-3">@L["Bom:OpenHistory"]</abp-button>
+            </form>
+        </abp-card-body>
+    </abp-card>
+</div>
