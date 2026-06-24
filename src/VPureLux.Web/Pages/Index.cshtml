@@ -19,15 +19,15 @@
     <abp-style src="/Pages/Index.css" />
 }
 
-<div class="vpl-home-welcome">
-    <div class="card vpl-home-hero mb-4">
+<div class="vpl-page vpl-home-welcome">
+    <div class="card vpl-home-hero vpl-card-dense mb-3">
         <div class="card-body">
             @if (!CurrentUser.IsAuthenticated)
             {
                 <p class="text-muted mb-2">@L["Welcome"]</p>
             }
             <h1 class="vpl-home-title mb-2">VPURELUX ERP</h1>
-            <p class="vpl-home-subtitle text-muted mb-0">
+            <p class="vpl-home-subtitle vpl-page-subtitle mb-0">
                 Hệ thống quản lý nội bộ — tra cứu, nhập liệu và điều phối nghiệp vụ vận hành hàng ngày.
             </p>
             @if (!CurrentUser.IsAuthenticated)
@@ -41,11 +41,11 @@
 
     @if (CurrentUser.IsAuthenticated)
     {
-        <div class="row g-3">
+        <div class="row g-2">
             <div class="col-md-6 col-lg-4">
-                <div class="card h-100 vpl-module-card">
+                <div class="card h-100 vpl-module-card vpl-card-dense">
                     <div class="card-body d-flex flex-column">
-                        <div class="vpl-module-icon mb-3"><i class="fa fa-cubes"></i></div>
+                        <div class="vpl-module-icon mb-2"><i class="fa fa-cubes"></i></div>
                         <h5 class="card-title">Danh mục</h5>
                         <p class="card-text text-muted flex-grow-1">Quản lý sản phẩm và linh kiện trong hệ thống.</p>
                         <a asp-page="/Catalog/Products/Index" class="stretched-link text-decoration-none fw-semibold">Mở danh mục sản phẩm</a>
@@ -53,9 +53,9 @@
                 </div>
             </div>
             <div class="col-md-6 col-lg-4">
-                <div class="card h-100 vpl-module-card">
+                <div class="card h-100 vpl-module-card vpl-card-dense">
                     <div class="card-body d-flex flex-column">
-                        <div class="vpl-module-icon mb-3"><i class="fa fa-money"></i></div>
+                        <div class="vpl-module-icon mb-2"><i class="fa fa-money"></i></div>
                         <h5 class="card-title">Giá</h5>
                         <p class="card-text text-muted flex-grow-1">Tra cứu và cập nhật giá gợi ý cho sản phẩm, linh kiện.</p>
                         <a asp-page="/Pricing/Index" class="stretched-link text-decoration-none fw-semibold">Mở quản lý giá</a>
@@ -63,9 +63,9 @@
                 </div>
             </div>
             <div class="col-md-6 col-lg-4">
-                <div class="card h-100 vpl-module-card">
+                <div class="card h-100 vpl-module-card vpl-card-dense">
                     <div class="card-body d-flex flex-column">
-                        <div class="vpl-module-icon mb-3"><i class="fa fa-sitemap"></i></div>
+                        <div class="vpl-module-icon mb-2"><i class="fa fa-sitemap"></i></div>
                         <h5 class="card-title">BOM</h5>
                         <p class="card-text text-muted flex-grow-1">Quản lý định mức nguyên vật liệu theo sản phẩm.</p>
                         <a asp-page="/Bom/Index" class="stretched-link text-decoration-none fw-semibold">Mở BOM</a>
@@ -73,9 +73,9 @@
                 </div>
             </div>
             <div class="col-md-6 col-lg-4">
-                <div class="card h-100 vpl-module-card">
+                <div class="card h-100 vpl-module-card vpl-card-dense">
                     <div class="card-body d-flex flex-column">
-                        <div class="vpl-module-icon mb-3"><i class="fa fa-warehouse"></i></div>
+                        <div class="vpl-module-icon mb-2"><i class="fa fa-warehouse"></i></div>
                         <h5 class="card-title">Kho hàng</h5>
                         <p class="card-text text-muted flex-grow-1">Nhập xuất, tồn kho, lô hàng và nhật ký kho.</p>
                         <a asp-page="/Inventory/Index" class="stretched-link text-decoration-none fw-semibold">Mở kho hàng</a>
@@ -83,9 +83,9 @@
                 </div>
             </div>
             <div class="col-md-6 col-lg-4">
-                <div class="card h-100 vpl-module-card">
+                <div class="card h-100 vpl-module-card vpl-card-dense">
                     <div class="card-body d-flex flex-column">
-                        <div class="vpl-module-icon mb-3"><i class="fa fa-shopping-cart"></i></div>
+                        <div class="vpl-module-icon mb-2"><i class="fa fa-shopping-cart"></i></div>
                         <h5 class="card-title">Bán hàng</h5>
                         <p class="card-text text-muted flex-grow-1">Tạo đơn, theo dõi giao dịch và lịch sử bán hàng.</p>
                         <a asp-page="/Sales/Index" class="stretched-link text-decoration-none fw-semibold">Mở bán hàng</a>
@@ -93,9 +93,9 @@
                 </div>
             </div>
             <div class="col-md-6 col-lg-4">
-                <div class="card h-100 vpl-module-card">
+                <div class="card h-100 vpl-module-card vpl-card-dense">
                     <div class="card-body d-flex flex-column">
-                        <div class="vpl-module-icon mb-3"><i class="fa fa-history"></i></div>
+                        <div class="vpl-module-icon mb-2"><i class="fa fa-history"></i></div>
                         <h5 class="card-title">Nhật ký nghiệp vụ</h5>
                         <p class="card-text text-muted flex-grow-1">Tra cứu lịch sử thay đổi và hoạt động hệ thống.</p>
                         <a asp-page="/Audit/Index" class="stretched-link text-decoration-none fw-semibold">Mở nhật ký</a>
