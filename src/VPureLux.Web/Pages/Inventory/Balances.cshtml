@@ -1,50 +1,68 @@
 @page
 @model VPureLux.Web.Pages.Inventory.BalancesModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
-<h2>@L["Inventory:Balances"]</h2>
-<form method="get" class="row g-2 mb-3">
-    <div class="col-md-4">
-        <label asp-for="WarehouseId" class="form-label">@L["Inventory:Warehouse"]</label>
-        <select asp-for="WarehouseId" asp-items="Model.WarehouseOptions" class="form-select">
-            <option value="">@L["Select"]</option>
-        </select>
+
+<div class="vpl-inquiry-page">
+    <div class="vpl-inquiry-page-header mb-3">
+        <h2 class="vpl-inquiry-page-title mb-0">@L["Inventory:Balances"]</h2>
     </div>
-    <div class="col-md-4">
-        <label asp-for="StockItemId" class="form-label">@L["Inventory:StockItem"]</label>
-        <select asp-for="StockItemId" asp-items="Model.StockItemOptions" class="form-select">
-            <option value="">@L["Select"]</option>
-        </select>
-    </div>
-    <div class="col-md-4 d-flex align-items-end gap-2">
-        <button type="submit" class="btn btn-primary">@L["Inventory:ApplyFilter"]</button>
-        <a class="btn btn-outline-secondary" asp-page="/Inventory/Balances">@L["Inventory:ClearFilter"]</a>
-    </div>
-</form>
-@if (Model.Items.Count == 0)
-{
-    <div class="alert alert-light border">@L["Inventory:NoBalances"]</div>
-}
-else
-{
-<abp-table striped-rows="true">
-    <thead>
-        <tr>
-            <th>@L["Inventory:Warehouse"]</th>
-            <th>@L["Inventory:StockItem"]</th>
-            <th>@L["Inventory:Quantity"]</th>
-            <th>@L["Inventory:Value"]</th>
-        </tr>
-    </thead>
-    <tbody>
-    @foreach (var x in Model.Items)
-    {
-        <tr>
-            <td>@Model.GetWarehouseLabel(x.WarehouseId)</td>
-            <td>@Model.GetStockItemLabel(x.StockItemId)</td>
-            <td>@x.QuantityOnHand</td>
-            <td>@x.InventoryValue</td>
-        </tr>
-    }
-    </tbody>
-</abp-table>
-}
+
+    <abp-card class="vpl-inquiry-filter-card mb-3">
+        <abp-card-header>
+            <h5 class="mb-0">@L["Search"]</h5>
+        </abp-card-header>
+        <abp-card-body>
+            <form method="get" class="row g-2 mb-0">
+                <div class="col-md-4">
+                    <label asp-for="WarehouseId" class="form-label">@L["Inventory:Warehouse"]</label>
+                    <select asp-for="WarehouseId" asp-items="Model.WarehouseOptions" class="form-select">
+                        <option value="">@L["Select"]</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="StockItemId" class="form-label">@L["Inventory:StockItem"]</label>
+                    <select asp-for="StockItemId" asp-items="Model.StockItemOptions" class="form-select">
+                        <option value="">@L["Select"]</option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary">@L["Inventory:ApplyFilter"]</button>
+                    <a class="btn btn-outline-secondary" asp-page="/Inventory/Balances">@L["Inventory:ClearFilter"]</a>
+                </div>
+            </form>
+        </abp-card-body>
+    </abp-card>
+
+    <abp-card class="vpl-inquiry-results-card">
+        <abp-card-body>
+            @if (Model.Items.Count == 0)
+            {
+                <div class="alert alert-light border mb-0">@L["Inventory:NoBalances"]</div>
+            }
+            else
+            {
+                <abp-table striped-rows="true">
+                    <thead>
+                        <tr>
+                            <th>@L["Inventory:Warehouse"]</th>
+                            <th>@L["Inventory:StockItem"]</th>
+                            <th>@L["Inventory:Quantity"]</th>
+                            <th>@L["Inventory:Value"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var x in Model.Items)
+                    {
+                        <tr>
+                            <td>@Model.GetWarehouseLabel(x.WarehouseId)</td>
+                            <td>@Model.GetStockItemLabel(x.StockItemId)</td>
+                            <td>@x.QuantityOnHand</td>
+                            <td>@x.InventoryValue</td>
+                        </tr>
+                    }
+                    </tbody>
+                </abp-table>
+            }
+        </abp-card-body>
+    </abp-card>
+</div>
