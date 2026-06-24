@@ -257,4 +257,4 @@ Apply **class-only** changes using Batch 14 helpers. Do **not** change columns, 
 
 ---
 
-**Status:** Batch 15.1 audit/plan **complete**. Batch 15.2A (Pricing, Customers, CustomerGroups list chrome) **complete**. Batch 15.3a (BOM Index, BOM Product list chrome) **complete**. Batch 15.4 (Inventory hub, Warehouses chrome) **complete** — applied `.vpl-page`, `.vpl-page-header`, `.vpl-page-title`, `.vpl-card-dense`, and `.vpl-table-dense` to Inventory hub navigation and Warehouses admin pages. Next: Batch 15.5 final validation and PR summary.
+**Status:** Batch 15 **complete** (15.1 plan through 15.5 validation and PR summary). All scoped list/index pages polished with Batch 14 helpers. Deferred items documented in plan and PR summary.
