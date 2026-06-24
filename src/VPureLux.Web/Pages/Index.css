@@ -1,13 +1,17 @@
 .vpl-home-welcome .vpl-home-title {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     font-weight: 600;
     letter-spacing: -0.02em;
+    line-height: 1.25;
 }
 
 .vpl-home-welcome .vpl-home-subtitle {
-    font-size: 1rem;
     max-width: 42rem;
-    line-height: 1.6;
+}
+
+.vpl-home-welcome .vpl-home-hero .card-body {
+    padding-top: var(--vpl-space-3, 0.75rem);
+    padding-bottom: var(--vpl-space-3, 0.75rem);
 }
 
 .vpl-home-welcome .vpl-module-card {
@@ -22,20 +26,22 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 0.5rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--vpl-radius-sm, 0.375rem);
     background-color: rgba(var(--bs-primary-rgb, 53, 93, 255), 0.1);
     color: var(--bs-primary, #355dff);
-    font-size: 1.125rem;
+    font-size: 1rem;
 }
 
 .vpl-home-welcome .vpl-module-card .card-title {
-    font-size: 1.05rem;
+    font-size: 1rem;
     font-weight: 600;
+    margin-bottom: var(--vpl-space-1, 0.25rem);
 }
 
 .vpl-home-welcome .vpl-module-card .card-text {
-    font-size: 0.925rem;
-    line-height: 1.5;
+    font-size: var(--vpl-font-size-table, 0.875rem);
+    line-height: 1.45;
+    margin-bottom: var(--vpl-space-2, 0.5rem);
 }
