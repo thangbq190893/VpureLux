@@ -4,63 +4,84 @@
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
 @{ ViewData["Title"] = L["Pricing:ComponentSuggestedSellingPriceHistory"]; }
 
-<abp-row>
-    <abp-column size-md="_8"><h2>@L["Pricing:ComponentSuggestedSellingPriceHistory"]</h2></abp-column>
-    <abp-column size-md="_4" class="text-end">
-        @if (Model.CanCreate)
-        {
-            <a class="btn btn-primary" asp-page="/Pricing/Components/Create" asp-route-componentId="@Model.ComponentId">@L["Pricing:CreateNewVersion"]</a>
-        }
-    </abp-column>
-</abp-row>
-<p class="text-muted mb-0">@L["Pricing:ComponentContext", Model.ComponentLabel]</p>
-
-<abp-row class="mt-3">
-    <abp-column size-md="_6">
-        <h5>@L["Pricing:CurrentVersion"]</h5>
-        @if (Model.CurrentVersion == null)
-        {
-            <p class="text-muted">@L["Pricing:NoVersion"]</p>
-        }
-        else
-        {
-            <dl class="row"><dt class="col-5">@L["Pricing:Price"]</dt><dd class="col-7">@Model.CurrentVersion.Price.ToString("N2") @Model.CurrentVersion.Currency</dd><dt class="col-5">@L["Pricing:Reason"]</dt><dd class="col-7">@Model.CurrentVersion.Reason</dd></dl>
-        }
-    </abp-column>
-    <abp-column size-md="_6">
-        <h5>@L["Pricing:HistoricalLookup"]</h5>
-        <form method="get">
-            <div class="input-group">
-                <input asp-for="LookupDateText" class="form-control" inputmode="numeric" placeholder="dd/MM/yyyy" aria-label="@L["Pricing:HistoricalLookup"]" />
-                <button class="btn btn-outline-primary" type="submit">@L["Search"]</button>
-            </div>
-            <span asp-validation-for="LookupDateText" class="text-danger"></span>
-        </form>
-        @if (Model.LookupDate.HasValue)
-        {
-            <p class="mt-2">@(Model.HistoricalVersion == null ? L["Pricing:NoVersion"] : $"{Model.HistoricalVersion.Price:N2} {Model.HistoricalVersion.Currency} - {Model.HistoricalVersion.Reason}")</p>
-        }
-    </abp-column>
-</abp-row>
-
-<h5 class="mt-4">@L["Pricing:VersionTimeline"]</h5>
-@if (Model.Versions.Count == 0)
-{
-    <p class="text-muted">@L["Pricing:NoVersion"]</p>
-}
-else
-{
-    <div class="border-start border-2 ps-4">
-    @foreach (var version in Model.Versions)
-    {
-        <div class="mb-4 position-relative">
-            <strong>@L["Pricing:Version"] @version.VersionNo</strong>
-            <span class="badge bg-secondary ms-2">@L[$"Pricing:Status:{version.Status}"]</span>
-            <div>@version.Price.ToString("N2") @version.Currency</div>
-            <div class="text-muted">@PricingDateUi.Format(version.EffectiveFrom) - @(version.EffectiveTo.HasValue ? PricingDateUi.Format(version.EffectiveTo.Value) : L["Pricing:OpenEnded"])</div>
-            <div>@version.Reason</div>
+<div class="vpl-page">
+    <div class="vpl-page-header">
+        <h2 class="vpl-page-title mb-0">@L["Pricing:ComponentSuggestedSellingPriceHistory"]</h2>
+        <div class="vpl-btn-toolbar">
+            @if (Model.CanCreate)
+            {
+                <a class="btn btn-primary" asp-page="/Pricing/Components/Create" asp-route-componentId="@Model.ComponentId">@L["Pricing:CreateNewVersion"]</a>
+            }
         </div>
-    }
     </div>
-}
-<a class="btn btn-secondary" asp-page="/Pricing/Index">@L["Back"]</a>
+
+    <p class="vpl-page-subtitle mb-0">@L["Pricing:ComponentContext", Model.ComponentLabel]</p>
+
+    <abp-row class="mt-3">
+        <abp-column size-md="_6">
+            <abp-card class="vpl-card-dense">
+                <abp-card-body>
+                    <h5>@L["Pricing:CurrentVersion"]</h5>
+                    @if (Model.CurrentVersion == null)
+                    {
+                        <div class="vpl-empty-state">@L["Pricing:NoVersion"]</div>
+                    }
+                    else
+                    {
+                        <dl class="row mb-0">
+                            <dt class="col-5">@L["Pricing:Price"]</dt>
+                            <dd class="col-7">@Model.CurrentVersion.Price.ToString("N2") @Model.CurrentVersion.Currency</dd>
+                            <dt class="col-5">@L["Pricing:Reason"]</dt>
+                            <dd class="col-7">@Model.CurrentVersion.Reason</dd>
+                        </dl>
+                    }
+                </abp-card-body>
+            </abp-card>
+        </abp-column>
+        <abp-column size-md="_6">
+            <abp-card class="vpl-card-dense">
+                <abp-card-body>
+                    <h5>@L["Pricing:HistoricalLookup"]</h5>
+                    <form method="get">
+                        <div class="input-group">
+                            <input asp-for="LookupDateText" class="form-control" inputmode="numeric" placeholder="dd/MM/yyyy" aria-label="@L["Pricing:HistoricalLookup"]" />
+                            <button class="btn btn-outline-primary" type="submit">@L["Search"]</button>
+                        </div>
+                        <span asp-validation-for="LookupDateText" class="text-danger"></span>
+                    </form>
+                    @if (Model.LookupDate.HasValue)
+                    {
+                        <p class="mt-2 mb-0">@(Model.HistoricalVersion == null ? L["Pricing:NoVersion"] : $"{Model.HistoricalVersion.Price:N2} {Model.HistoricalVersion.Currency} - {Model.HistoricalVersion.Reason}")</p>
+                    }
+                </abp-card-body>
+            </abp-card>
+        </abp-column>
+    </abp-row>
+
+    <abp-card class="vpl-card-dense mt-3">
+        <abp-card-body>
+            <h5>@L["Pricing:VersionTimeline"]</h5>
+            @if (Model.Versions.Count == 0)
+            {
+                <div class="vpl-empty-state">@L["Pricing:NoVersion"]</div>
+            }
+            else
+            {
+                <div class="border-start border-2 ps-4">
+                @foreach (var version in Model.Versions)
+                {
+                    <div class="mb-4 position-relative">
+                        <strong>@L["Pricing:Version"] @version.VersionNo</strong>
+                        <span class="badge bg-secondary ms-2">@L[$"Pricing:Status:{version.Status}"]</span>
+                        <div>@version.Price.ToString("N2") @version.Currency</div>
+                        <div class="text-muted">@PricingDateUi.Format(version.EffectiveFrom) - @(version.EffectiveTo.HasValue ? PricingDateUi.Format(version.EffectiveTo.Value) : L["Pricing:OpenEnded"])</div>
+                        <div>@version.Reason</div>
+                    </div>
+                }
+                </div>
+            }
+        </abp-card-body>
+    </abp-card>
+
+    <a class="btn btn-secondary mt-3" asp-page="/Pricing/Index">@L["Back"]</a>
+</div>
