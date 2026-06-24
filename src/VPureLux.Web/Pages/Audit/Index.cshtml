@@ -1,51 +1,92 @@
 @page
 @model VPureLux.Web.Pages.Audit.IndexModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
-@{ ViewData["Title"] = L["Audit:Title"]; }
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>@L["Audit:Title"]</h2>
-    <div>
-        <a class="btn btn-outline-secondary" asp-page="/Audit/Reports">@L["Audit:Reports"]</a>
-        @if(Model.CanExport){<a class="btn btn-primary" asp-page="/Audit/Export">@L["Audit:Export"]</a>}
-    </div>
-</div>
-<form method="get" class="row g-2 mb-3">
-    <div class="col-md-2"><input asp-for="Input.Module" class="form-control" placeholder="@L["Audit:Module"]" /></div>
-    <div class="col-md-2"><input asp-for="Input.EntityType" class="form-control" placeholder="@L["Audit:Entity"]" /></div>
-    <div class="col-md-3"><input asp-for="Input.CorrelationId" class="form-control" placeholder="@L["Audit:CorrelationId"]" /></div>
-    <div class="col-md-2">
-        <select asp-for="Input.Severity" class="form-select">
-            <option value="">@L["Audit:AllSeverity"]</option>
-            <option value="Informational">@L["Audit:Severity:Informational"]</option>
-            <option value="Important">@L["Audit:Severity:Important"]</option>
-            <option value="Critical">@L["Audit:Severity:Critical"]</option>
-        </select>
-    </div>
-    <div class="col-md-2"><button class="btn btn-secondary" type="submit">@L["Search"]</button></div>
-</form>
-<abp-table striped-rows="true">
-<thead><tr><th>@L["Audit:EventTime"]</th><th>@L["Audit:Module"]</th><th>@L["Audit:Action"]</th><th>@L["Audit:Entity"]</th><th>@L["Audit:Severity"]</th><th>@L["Audit:Status"]</th><th></th></tr></thead>
-<tbody>
-@foreach(var log in Model.Logs)
-{
-    <tr>
-        <td>@log.EventTime</td>
-        <td>@log.Module</td>
-        <td>
-            <span class="fw-semibold">@Model.GetActionLabel(log)</span>
-            <div class="text-muted small">@log.EventName</div>
-        </td>
-        <td>
-            <span class="fw-semibold">@Model.GetPrimaryEntityLabel(log)</span>
-            <div class="text-muted small">@log.EntityType</div>
-        </td>
-        <td><span class="badge @Model.GetSeverityBadgeClass(log)">@Model.GetSeverityLabel(log)</span></td>
-        <td>
-            <span class="badge @Model.GetGeneratedStatusBadgeClass(log)">@Model.GetGeneratedStatusLabel(log)</span>
-            <div class="text-muted small">@Model.GetActorTypeLabel(log)</div>
-        </td>
-        <td class="text-end"><a class="btn btn-sm btn-outline-secondary" asp-page="/Audit/Details" asp-route-id="@log.Id">@L["Details"]</a></td>
-    </tr>
+@{
+    ViewData["Title"] = L["Audit:Title"];
 }
-</tbody>
-</abp-table>
+
+<div class="vpl-inquiry-page">
+    <div class="vpl-inquiry-page-header vpl-inquiry-toolbar mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h2 class="vpl-inquiry-page-title mb-0">@L["Audit:Title"]</h2>
+        <div class="vpl-inquiry-toolbar-actions d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-secondary" asp-page="/Audit/Reports">@L["Audit:Reports"]</a>
+            @if (Model.CanExport)
+            {
+                <a class="btn btn-primary" asp-page="/Audit/Export">@L["Audit:Export"]</a>
+            }
+        </div>
+    </div>
+
+    <abp-card class="vpl-inquiry-filter-card mb-3">
+        <abp-card-header>
+            <h5 class="mb-0">@L["Search"]</h5>
+        </abp-card-header>
+        <abp-card-body>
+            <form method="get" class="row g-2 mb-0">
+                <div class="col-md-2">
+                    <input asp-for="Input.Module" class="form-control" placeholder="@L["Audit:Module"]" />
+                </div>
+                <div class="col-md-2">
+                    <input asp-for="Input.EntityType" class="form-control" placeholder="@L["Audit:Entity"]" />
+                </div>
+                <div class="col-md-3">
+                    <input asp-for="Input.CorrelationId" class="form-control" placeholder="@L["Audit:CorrelationId"]" />
+                </div>
+                <div class="col-md-2">
+                    <select asp-for="Input.Severity" class="form-select">
+                        <option value="">@L["Audit:AllSeverity"]</option>
+                        <option value="Informational">@L["Audit:Severity:Informational"]</option>
+                        <option value="Important">@L["Audit:Severity:Important"]</option>
+                        <option value="Critical">@L["Audit:Severity:Critical"]</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-secondary" type="submit">@L["Search"]</button>
+                </div>
+            </form>
+        </abp-card-body>
+    </abp-card>
+
+    <abp-card class="vpl-inquiry-results-card">
+        <abp-card-body>
+            <abp-table striped-rows="true">
+                <thead>
+                    <tr>
+                        <th>@L["Audit:EventTime"]</th>
+                        <th>@L["Audit:Module"]</th>
+                        <th>@L["Audit:Action"]</th>
+                        <th>@L["Audit:Entity"]</th>
+                        <th>@L["Audit:Severity"]</th>
+                        <th>@L["Audit:Status"]</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var log in Model.Logs)
+                {
+                    <tr>
+                        <td>@log.EventTime</td>
+                        <td>@log.Module</td>
+                        <td>
+                            <span class="fw-semibold">@Model.GetActionLabel(log)</span>
+                            <div class="text-muted small">@log.EventName</div>
+                        </td>
+                        <td>
+                            <span class="fw-semibold">@Model.GetPrimaryEntityLabel(log)</span>
+                            <div class="text-muted small">@log.EntityType</div>
+                        </td>
+                        <td><span class="badge @Model.GetSeverityBadgeClass(log)">@Model.GetSeverityLabel(log)</span></td>
+                        <td>
+                            <span class="badge @Model.GetGeneratedStatusBadgeClass(log)">@Model.GetGeneratedStatusLabel(log)</span>
+                            <div class="text-muted small">@Model.GetActorTypeLabel(log)</div>
+                        </td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-secondary" asp-page="/Audit/Details" asp-route-id="@log.Id">@L["Details"]</a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </abp-table>
+        </abp-card-body>
+    </abp-card>
+</div>
