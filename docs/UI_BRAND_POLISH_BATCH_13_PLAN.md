@@ -80,4 +80,22 @@ Each sub-batch is an isolated commit. Revert individual commits or restore files
 
 ---
 
-**Status:** Batch 13.1 recovery plan complete (`c7c11d3`). Batch 13.2 (logo/footer) **pending reimplementation** on this branch. **Batch 13.3a recovery complete** — VPURELUX ERP welcome home page with module shortcut cards. Sub-batches 13.3b–13.5c and wrap-up **pending reimplementation**.
+## Deferred — Batch 14: UI Visual Refinement / Design System Pass
+
+**Status:** Deferred — audit-first; implementation only after stakeholder approval.
+
+**User feedback (captured for future pass):**
+- Boxes/cards feel too large
+- Border radius too rounded
+- Spacing too loose
+- Buttons feel heavy
+- Many screens still visually rough overall
+
+**Approach:**
+1. Audit current LeptonX + VPURELUX screens (home, inquiry pages, forms, modals) and produce a short design-system proposal.
+2. Define token-level targets (card padding, radius, button size, grid gaps) before any code changes.
+3. Implement in small scoped batches after approval — no drive-by refactors during functional recovery work.
+
+---
+
+**Status:** Batch 13.1 recovery plan complete (`c7c11d3`). **Batch 13.2 recovery complete** — human-approved local VPURELUX logo assets, CSS variables, ERP footer. **Batch 13.3a recovery complete** (`905f82c`) — VPURELUX ERP welcome home page with module shortcut cards. Sub-batches 13.3b–13.5c and wrap-up **pending reimplementation**. Batch 14 UI Visual Refinement **deferred** (see above).
