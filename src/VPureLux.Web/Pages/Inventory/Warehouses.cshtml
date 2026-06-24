@@ -10,70 +10,73 @@
 <div data-warehouses-page
      data-status-success="@(string.IsNullOrWhiteSpace(Model.StatusMessageKey) ? string.Empty : L[Model.StatusMessageKey].Value)"></div>
 
-<abp-card class="mb-4">
-    <abp-card-header>
-        <h2 class="mb-0">@L["Inventory:Warehouses"]</h2>
-    </abp-card-header>
-    <abp-card-body>
-        <h5 class="mb-3">@L["Create"]</h5>
-        <form method="post" data-warehouse-create-form>
-            <div asp-validation-summary="All" class="text-danger mb-3"></div>
-            <abp-row class="align-items-end">
-                <abp-column size-md="_3">
-                    <label asp-for="NewWarehouse.Code" class="form-label">@L["Inventory:Code"]</label>
-                    <input asp-for="NewWarehouse.Code" class="form-control" autocomplete="off" />
-                    <span asp-validation-for="NewWarehouse.Code"></span>
-                </abp-column>
-                <abp-column size-md="_3">
-                    <label asp-for="NewWarehouse.Name" class="form-label">@L["Inventory:Name"]</label>
-                    <input asp-for="NewWarehouse.Name" class="form-control" autocomplete="off" />
-                    <span asp-validation-for="NewWarehouse.Name"></span>
-                </abp-column>
-                <abp-column size-md="_4">
-                    <label asp-for="NewWarehouse.Address" class="form-label">@L["Inventory:Address"]</label>
-                    <input asp-for="NewWarehouse.Address" class="form-control" autocomplete="off" />
-                    <span asp-validation-for="NewWarehouse.Address"></span>
-                </abp-column>
-                <abp-column size-md="_2">
-                    <button type="submit" class="btn btn-primary w-100">@L["Create"]</button>
-                </abp-column>
-            </abp-row>
-        </form>
-    </abp-card-body>
-</abp-card>
+<div class="vpl-page">
+    <div class="vpl-page-header">
+        <h2 class="vpl-page-title mb-0">@L["Inventory:Warehouses"]</h2>
+    </div>
 
-<abp-card>
-    <abp-card-body>
-        <abp-table striped-rows="true">
-            <thead>
+    <abp-card class="vpl-card-dense mb-4">
+        <abp-card-body>
+            <h5 class="mb-3">@L["Create"]</h5>
+            <form method="post" data-warehouse-create-form>
+                <div asp-validation-summary="All" class="text-danger mb-3"></div>
+                <abp-row class="align-items-end">
+                    <abp-column size-md="_3">
+                        <label asp-for="NewWarehouse.Code" class="form-label">@L["Inventory:Code"]</label>
+                        <input asp-for="NewWarehouse.Code" class="form-control" autocomplete="off" />
+                        <span asp-validation-for="NewWarehouse.Code"></span>
+                    </abp-column>
+                    <abp-column size-md="_3">
+                        <label asp-for="NewWarehouse.Name" class="form-label">@L["Inventory:Name"]</label>
+                        <input asp-for="NewWarehouse.Name" class="form-control" autocomplete="off" />
+                        <span asp-validation-for="NewWarehouse.Name"></span>
+                    </abp-column>
+                    <abp-column size-md="_4">
+                        <label asp-for="NewWarehouse.Address" class="form-label">@L["Inventory:Address"]</label>
+                        <input asp-for="NewWarehouse.Address" class="form-control" autocomplete="off" />
+                        <span asp-validation-for="NewWarehouse.Address"></span>
+                    </abp-column>
+                    <abp-column size-md="_2">
+                        <button type="submit" class="btn btn-primary w-100">@L["Create"]</button>
+                    </abp-column>
+                </abp-row>
+            </form>
+        </abp-card-body>
+    </abp-card>
+
+    <abp-card class="vpl-card-dense">
+        <abp-card-body>
+            <abp-table striped-rows="true" class="vpl-table-dense">
+                <thead>
                 <tr>
                     <th>@L["Inventory:Code"]</th>
                     <th>@L["Inventory:Name"]</th>
                     <th>@L["Inventory:Status"]</th>
                     <th></th>
                 </tr>
-            </thead>
-            <tbody>
-            @foreach (var x in Model.Warehouses)
-            {
-                <tr>
-                    <td>@x.Code</td>
-                    <td>@x.Name</td>
-                    <td>@L[$"Status:{x.Status}"]</td>
-                    <td>
-                        <form method="post"
-                              asp-page-handler="@(x.Status == VPureLux.Inventory.InventoryEntityStatus.Active ? "Deactivate" : "Activate")"
-                              asp-route-id="@x.Id"
-                              data-warehouse-status-form
-                              data-confirm-message="@(x.Status == VPureLux.Inventory.InventoryEntityStatus.Active ? L["Inventory:ConfirmDeactivateWarehouse"].Value : L["Inventory:ConfirmActivateWarehouse"].Value)">
-                            <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                @(x.Status == VPureLux.Inventory.InventoryEntityStatus.Active ? L["Deactivate"] : L["Activate"])
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-            }
-            </tbody>
-        </abp-table>
-    </abp-card-body>
-</abp-card>
+                </thead>
+                <tbody>
+                @foreach (var x in Model.Warehouses)
+                {
+                    <tr>
+                        <td>@x.Code</td>
+                        <td>@x.Name</td>
+                        <td>@L[$"Status:{x.Status}"]</td>
+                        <td>
+                            <form method="post"
+                                  asp-page-handler="@(x.Status == VPureLux.Inventory.InventoryEntityStatus.Active ? "Deactivate" : "Activate")"
+                                  asp-route-id="@x.Id"
+                                  data-warehouse-status-form
+                                  data-confirm-message="@(x.Status == VPureLux.Inventory.InventoryEntityStatus.Active ? L["Inventory:ConfirmDeactivateWarehouse"].Value : L["Inventory:ConfirmActivateWarehouse"].Value)">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                    @(x.Status == VPureLux.Inventory.InventoryEntityStatus.Active ? L["Deactivate"] : L["Activate"])
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </abp-table>
+        </abp-card-body>
+    </abp-card>
+</div>
