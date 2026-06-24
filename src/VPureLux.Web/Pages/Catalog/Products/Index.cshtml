@@ -34,10 +34,12 @@
                 <h2>@L["Catalog:Products"]</h2>
             </abp-column>
             <abp-column size-md="_6" class="text-end">
-                @if (Model.CanCreate)
-                {
-                    <a asp-page="/Catalog/Products/Create" class="btn btn-primary" data-catalog-create><i class="fa fa-plus"></i> @L["Catalog:NewProduct"]</a>
-                }
+                <div class="vpl-btn-toolbar justify-content-end">
+                    @if (Model.CanCreate)
+                    {
+                        <a asp-page="/Catalog/Products/Create" class="btn btn-primary" data-catalog-create><i class="fa fa-plus"></i> @L["Catalog:NewProduct"]</a>
+                    }
+                </div>
             </abp-column>
         </abp-row>
     </abp-card-header>
