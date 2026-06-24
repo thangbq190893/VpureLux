@@ -18,6 +18,7 @@ public class PricingAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
     private readonly IComponentSuggestedSellingPriceAppService _componentPriceAppService;
     private readonly IProductSuggestedPriceAppService _productPriceAppService;
     private readonly IProductPricingContextAppService _productPricingContextAppService;
+    private readonly IProductPricingContextLookupService _productPricingContextLookupService;
     private readonly IBomAppService _bomAppService;
     private readonly IComponentAppService _componentAppService;
     private readonly IProductAppService _productAppService;
@@ -27,6 +28,7 @@ public class PricingAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
         _componentPriceAppService = GetRequiredService<IComponentSuggestedSellingPriceAppService>();
         _productPriceAppService = GetRequiredService<IProductSuggestedPriceAppService>();
         _productPricingContextAppService = GetRequiredService<IProductPricingContextAppService>();
+        _productPricingContextLookupService = GetRequiredService<IProductPricingContextLookupService>();
         _bomAppService = GetRequiredService<IBomAppService>();
         _componentAppService = GetRequiredService<IComponentAppService>();
         _productAppService = GetRequiredService<IProductAppService>();
@@ -199,6 +201,28 @@ public class PricingAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
         context.ComponentBuildPrice.ShouldBe(80000m);
         context.CurrentProductSuggestedPrice.ShouldBe(100000m);
         context.Difference.ShouldBe(20000m);
+    }
+
+    [Fact]
+    public async Task Product_Pricing_Context_Map_Should_Return_Only_Requested_Product_Context()
+    {
+        var requestedProduct = await CreateProductAsync();
+        var otherProduct = await CreateProductAsync();
+        var component = await CreateComponentAsync();
+        await CreatePublishedBomAsync(requestedProduct.Id, (component.Id, 2m));
+        await CreatePublishedBomAsync(otherProduct.Id, (component.Id, 3m));
+        await _componentPriceAppService.CreateAsync(component.Id, ComponentInput(price: 10000m));
+        await _productPriceAppService.CreateAsync(requestedProduct.Id, ProductInput(price: 50000m));
+        await _productPriceAppService.CreateAsync(otherProduct.Id, ProductInput(price: 90000m));
+
+        var map = await _productPricingContextLookupService.FindMapAsync([requestedProduct.Id], DateTime.Now);
+
+        map.Count.ShouldBe(1);
+        map.ContainsKey(requestedProduct.Id).ShouldBeTrue();
+        map.ContainsKey(otherProduct.Id).ShouldBeFalse();
+        map[requestedProduct.Id].CurrentProductSuggestedPrice.ShouldBe(50000m);
+        map[requestedProduct.Id].ComponentBuildPrice.ShouldBe(20000m);
+        map[requestedProduct.Id].Difference.ShouldBe(30000m);
     }
 
     private Task<ComponentDto> CreateComponentAsync() =>

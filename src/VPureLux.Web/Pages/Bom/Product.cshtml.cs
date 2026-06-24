@@ -16,7 +16,7 @@ public class ProductModel : VPureLuxPageModel
 {
     private readonly IBomAppService _bomAppService;
     private readonly IProductAppService _productAppService;
-    private readonly IProductPricingContextAppService _productPricingContextAppService;
+    private readonly IProductPricingContextLookupService _productPricingContextLookupService;
     private readonly IAuthorizationService _authorizationService;
 
     [BindProperty(SupportsGet = true)]
@@ -33,12 +33,12 @@ public class ProductModel : VPureLuxPageModel
     public ProductModel(
         IBomAppService bomAppService,
         IProductAppService productAppService,
-        IProductPricingContextAppService productPricingContextAppService,
+        IProductPricingContextLookupService productPricingContextLookupService,
         IAuthorizationService authorizationService)
     {
         _bomAppService = bomAppService;
         _productAppService = productAppService;
-        _productPricingContextAppService = productPricingContextAppService;
+        _productPricingContextLookupService = productPricingContextLookupService;
         _authorizationService = authorizationService;
     }
 
@@ -79,7 +79,7 @@ public class ProductModel : VPureLuxPageModel
 
     private async Task LoadPricingContextAsync()
     {
-        PricingContext = (await _productPricingContextAppService.GetListAsync())
-            .FirstOrDefault(x => x.ProductId == ProductId);
+        var contexts = await _productPricingContextLookupService.FindMapAsync([ProductId], Clock.Now);
+        PricingContext = contexts.GetValueOrDefault(ProductId);
     }
 }

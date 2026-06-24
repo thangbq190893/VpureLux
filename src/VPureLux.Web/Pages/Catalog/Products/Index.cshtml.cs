@@ -13,7 +13,7 @@ namespace VPureLux.Web.Pages.Catalog.Products;
 public class IndexModel : VPureLuxPageModel
 {
     private readonly IProductAppService _productAppService;
-    private readonly IProductPricingContextAppService _productPricingContextAppService;
+    private readonly IProductPricingContextLookupService _productPricingContextLookupService;
     private readonly IAuthorizationService _authorizationService;
 
     [BindProperty(SupportsGet = true)]
@@ -28,11 +28,11 @@ public class IndexModel : VPureLuxPageModel
 
     public IndexModel(
         IProductAppService productAppService,
-        IProductPricingContextAppService productPricingContextAppService,
+        IProductPricingContextLookupService productPricingContextLookupService,
         IAuthorizationService authorizationService)
     {
         _productAppService = productAppService;
-        _productPricingContextAppService = productPricingContextAppService;
+        _productPricingContextLookupService = productPricingContextLookupService;
         _authorizationService = authorizationService;
     }
 
@@ -50,8 +50,9 @@ public class IndexModel : VPureLuxPageModel
         CanViewPricingContext = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Pricing.View)).Succeeded;
         if (CanViewPricingContext)
         {
-            ProductPricingContexts = (await _productPricingContextAppService.GetListAsync())
-                .ToDictionary(x => x.ProductId);
+            ProductPricingContexts = await _productPricingContextLookupService.FindMapAsync(
+                Products.Select(x => x.Id).ToArray(),
+                Clock.Now);
         }
     }
 

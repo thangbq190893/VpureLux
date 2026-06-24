@@ -20,6 +20,11 @@ public interface IProductSuggestedPriceVersionRepository
         DateTime date,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyDictionary<Guid, ProductSuggestedPriceVersion>> FindAtDateMapAsync(
+        IReadOnlyCollection<Guid> productIds,
+        DateTime date,
+        CancellationToken cancellationToken = default);
+
     Task<List<ProductSuggestedPriceVersion>> GetHistoryAsync(
         Guid productId,
         CancellationToken cancellationToken = default);

@@ -19,7 +19,7 @@ public class DetailsModel : VPureLuxPageModel
     private readonly ISalesOrderAppService _service;
     private readonly IAuthorizationService _authorizationService;
     private readonly IProductAppService _products;
-    private readonly IProductPricingContextAppService _productPricingContext;
+    private readonly IProductPricingContextLookupService _productPricingContext;
     [BindProperty(SupportsGet = true)] public Guid Id { get; set; }
     [BindProperty] public ConfirmSalesOrderDto Confirmation { get; set; } = new() { IdempotencyKey = Guid.NewGuid().ToString("N") };
     [TempData] public string? SuccessMessage { get; set; }
@@ -34,7 +34,7 @@ public class DetailsModel : VPureLuxPageModel
         ISalesOrderAppService service,
         IAuthorizationService authorizationService,
         IProductAppService products,
-        IProductPricingContextAppService productPricingContext)
+        IProductPricingContextLookupService productPricingContext)
     {
         _service = service;
         _authorizationService = authorizationService;
@@ -125,8 +125,8 @@ public class DetailsModel : VPureLuxPageModel
         try
         {
             var productIds = Order.Lines.Select(x => x.ProductId).ToHashSet();
-            ProductContexts = (await _productPricingContext.GetListAsync())
-                .Where(x => productIds.Contains(x.ProductId))
+            ProductContexts = (await _productPricingContext.FindMapAsync(productIds, Clock.Now))
+                .Values
                 .ToDictionary(
                     x => x.ProductId,
                     x => new SalesProductContextViewModel
