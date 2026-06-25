@@ -1,0 +1,223 @@
+
+<!DOCTYPE html>
+<html lang="vi-VN" dir="">
+
+<head>
+
+	
+
+
+	<title>&#x110;&#x103;ng nh&#x1EAD;p | VPureLux</title>
+
+	<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+	<meta charset="UTF-8" />
+	<meta name="description">
+
+		<link rel="icon" href="/favicon.svg" type="image/svg&#x2B;xml">
+
+	<link rel="stylesheet" href="/libs/abp/core/abp.css?_v=639167111535820000" />
+<link rel="stylesheet" href="/libs/@fortawesome/fontawesome-free/css/all.css?_v=639167111543850000" />
+<link rel="stylesheet" href="/libs/@fortawesome/fontawesome-free/css/v4-shims.css?_v=639167111543850000" />
+<link rel="stylesheet" href="/libs/select2/css/select2.min.css?_v=639167111544770000" />
+<link rel="stylesheet" href="/libs/malihu-custom-scrollbar-plugin/jquery.mCustomScrollbar.css?_v=639167111552870000" />
+<link rel="stylesheet" href="/libs/datatables.net-bs5/css/dataTables.bootstrap5.css?_v=639167111552690000" />
+<link rel="stylesheet" href="/libs/bootstrap-datepicker/bootstrap-datepicker.min.css?_v=639167111552810000" />
+<link rel="stylesheet" href="/libs/bootstrap-daterangepicker/daterangepicker.css?_v=639167111553310000" />
+<link rel="stylesheet" href="/libs/abp/aspnetcore-mvc-ui-theme-shared/datatables/datatables-styles.css?_v=639158976700000000" />
+<link rel="stylesheet" href="/libs/abp/aspnetcore-mvc-ui-theme-shared/date-range-picker/date-range-picker-styles.css?_v=639158976700000000" />
+<link rel="stylesheet" href="/libs/abp/aspnetcore-mvc-ui-theme-shared/toast/abp-toast.css?_v=639158976700000000" />
+<link rel="stylesheet" href="/Themes/LeptonX/Global/side-menu/libs/bootstrap-datepicker/css/bootstrap-datepicker.min.css?_v=639159213340000000" />
+<link rel="stylesheet" href="/Themes/LeptonX/Global/side-menu/libs/bootstrap-icons/font/bootstrap-icons.css?_v=639159213340000000" />
+<link rel="stylesheet" href="/Themes/LeptonX/Global/side-menu/css/js-bundle.css?_v=639159213340000000" />
+<link rel="stylesheet" href="/Themes/LeptonX/Global/side-menu/css/layout-bundle.css?_v=639159213340000000" />
+<link rel="stylesheet" href="/Themes/LeptonX/Global/side-menu/css/abp-bundle.css?_v=639159213340000000" />
+<link rel="stylesheet" href="/Themes/LeptonX/Global/side-menu/css/font-bundle.css?_v=639159213340000000" />
+<link rel="stylesheet" href="/global-styles.css?_v=639179147389962282" />
+
+
+	<link href="/Themes/LeptonX/Global/side-menu/css/bootstrap-dim.css" type="text/css" rel="stylesheet" id="lpx-theme-bootstrap-dim" />
+	<link href="/Themes/LeptonX/Global/side-menu/css/dim.css" type="text/css" rel="stylesheet" id="lpx-theme-color-dim" />
+
+	
+	
+	
+
+	<style>
+		.lpx-login-bg {
+			background-image: url('/LeptonX/images/login-pages/login-bg-img-dim.svg') !important;
+		}
+		:root {
+			
+		}
+		:root .lpx-theme-light {
+			
+		}
+		:root .lpx-theme-dark, :root .lpx-theme-dim {
+			
+		}
+	</style>
+</head>
+
+<body class="abp-account-layout lpx-theme-dim">
+
+	
+
+
+	<div class="container-fluid p-0" style="overflow-x: hidden" >
+		
+		<div class="lpx-login-area">
+			<div class="lpx-login-bg">
+				<div class="d-flex flex-column justify-content-center min-vh-100">
+
+					<div class="row">
+						<div class="col-xxl-5 col-lg-7 col-md-8 col-11 mx-auto position-relative py-4">
+
+								<div class="lpx-logo-container lpx-login-brand-text">
+									<div class="lpx-brand-logo lpx-login-logo mx-auto"></div>
+									<div class="lpx-brand-name lpx-login-name mx-auto">VPureLux</div>
+								</div>
+
+
+							<div class="card mx-auto" style="max-width: 27rem;">
+								<div class="card-body p-2 p-sm-3">
+
+
+										<div>
+											<div class="row">
+												<div class="col">
+													<span style="font-size: .8em;"
+															class="text-uppercase text-muted">Ng&#x1B0;&#x1EDD;i thu&#xEA;</span><br/>
+													<h6 class="m-0 d-inline-block">
+															<span>
+																Kh&#xF4;ng &#x111;&#x1B0;&#x1EE3;c ch&#x1ECD;n
+															</span>
+													</h6>
+												</div>
+												<div class="col-auto">
+													<a id="AbpTenantSwitchLink" href="javascript:;"
+														class="btn btn-sm btn-outline-primary">Chuy&#x1EC3;n &#x111;&#x1ED5;i</a>
+												</div>
+											</div>
+										</div>
+										<hr class="my-2"/>
+
+									
+
+
+
+
+<div class="account-module-form">
+
+        <h5 class="mb-2">Not a member yet? <a class="text-decoration-none" href="/Account/Register">Đăng ký</a></h5>
+
+        <form method="post" id="loginForm">
+            <div>
+                <input type="hidden" id="credentialJson" name="LoginInput.CredentialJson" value="">
+
+                <div class="form-floating mb-2">
+                    <input type="text" class="form-control" placeholder="name@example.com" data-val="true" data-val-length="Tr&#x1B0;&#x1EDD;ng User name or email address ph&#x1EA3;i l&#xE0; m&#x1ED9;t chu&#x1ED7;i v&#x1EDB;i &#x111;&#x1ED9; d&#xE0;i t&#x1ED1;i &#x111;a l&#xE0; 256." data-val-length-max="256" data-val-required="Tr&#x1B0;&#x1EDD;ng User name or email address l&#xE0; b&#x1EAF;t bu&#x1ED9;c." id="LoginInput_UserNameOrEmailAddress" maxlength="256" name="LoginInput.UserNameOrEmailAddress" value="">
+                    <label for="LoginInput_UserNameOrEmailAddress">User name or email address</label>
+                    <span class="field-validation-valid text-danger" data-valmsg-for="LoginInput.UserNameOrEmailAddress" data-valmsg-replace="true" />
+                </div>
+
+                <div class="form-floating mb-2">
+                    <input id="password-input" type="password" class="form-control" placeholder="Password" data-val="true" data-val-length="Tr&#x1B0;&#x1EDD;ng Password ph&#x1EA3;i l&#xE0; m&#x1ED9;t chu&#x1ED7;i v&#x1EDB;i &#x111;&#x1ED9; d&#xE0;i t&#x1ED1;i &#x111;a l&#xE0; 128." data-val-length-max="128" data-val-required="Tr&#x1B0;&#x1EDD;ng Password l&#xE0; b&#x1EAF;t bu&#x1ED9;c." maxlength="128" name="LoginInput.Password">
+                    <label for="LoginInput_Password">Password</label>
+                    <i id="PasswordVisibilityButton" class="bi bi-eye-slash show-pass-icon" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" aria-label="Show password" data-bs-original-title="Show password"></i>
+                    <i id="capslockicon" class="bi bi-capslock caps-lock-icon" style="display: none;" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" aria-label="<i class='bi bi-exclamation-circle'></i> Caps lock on!" data-bs-original-title="<i class='bi bi-exclamation-circle'></i> Caps lock on!"></i>
+                    <span class="field-validation-valid text-danger" data-valmsg-for="LoginInput.Password" data-valmsg-replace="true" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <div class="mb-2 form-switch form-check"><input class="mb-4 form-check-input " type="checkbox" data-val="true" data-val-required="The Remember me field is required." id="LoginInput_RememberMe" name="LoginInput.RememberMe" value="true" /><label class="form-check-label" for="LoginInput_RememberMe">Remember me</label></div>
+                </div>
+                <div class="text-end col">
+                    <a href="/Account/ForgotPassword">Forgot password?</a>
+                </div>
+            </div>
+
+
+            <div class="d-grid gap-2">
+                <button type="submit" class="mb-3 btn btn-primary" name="Action" value="Login" disabled="disabled" data-busy-text="&#x110;ang x&#x1EED; l&#xFD;...">
+                    <i class="bi bi-box-arrow-in-right me-1"></i>
+                    Đăng nhập
+                </button>
+            </div>
+
+        <input name="__RequestVerificationToken" type="hidden" value="CfDJ8FMkx93uhwZNnwF2kLghg8A8_GJlBxj7HqzNKKLrm3gHV7KwXQjqVHoTlFqhUgYhlHey_b9FnrhLB_ara6JDfiSmXjpCSyZbg_F33d-DxditPzoD-ul8aHovW7WzfK_mYVuVhuEqVVXVIjXetaiOKao" /><input name="LoginInput.RememberMe" type="hidden" value="false" /></form>
+
+
+
+</div>
+
+
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		
+	</div>
+
+	<script src="/libs/abp/utils/abp-utils.umd.min.js?_v=639167111537330000"></script>
+<script src="/libs/abp/core/abp.js?_v=639167111535820000"></script>
+<script src="/libs/jquery/jquery.js?_v=639167111535690000"></script>
+<script src="/libs/abp/jquery/abp.jquery.js?_v=639167111536550000"></script>
+<script src="/libs/bootstrap/js/bootstrap.bundle.js?_v=639167111548840000"></script>
+<script src="/libs/lodash/lodash.min.js?_v=639167111542750000"></script>
+<script src="/libs/jquery-validation/jquery.validate.js?_v=639167111552430000"></script>
+<script src="/libs/jquery-validation/abp.jquery.validate.js?_v=639167111554470000"></script>
+<script src="/libs/jquery-validation-unobtrusive/jquery.validate.unobtrusive.js?_v=639167111552340000"></script>
+<script src="/libs/select2/js/select2.min.js?_v=639167111544770000"></script>
+<script src="/libs/datatables.net/js/dataTables.min.js?_v=639167111553470000"></script>
+<script src="/libs/datatables.net-bs5/js/dataTables.bootstrap5.js?_v=639167111552690000"></script>
+<script src="/libs/sweetalert2/sweetalert2.all.min.js?_v=639167111544710000"></script>
+<script src="/libs/malihu-custom-scrollbar-plugin/jquery.mCustomScrollbar.concat.min.js?_v=639167111552870000"></script>
+<script src="/libs/luxon/luxon.min.js?_v=639167111542970000"></script>
+<script src="/libs/abp/luxon/abp.luxon.js?_v=639167111538720000"></script>
+<script src="/libs/timeago/jquery.timeago.js?_v=639167111546680000"></script>
+<script src="/libs/bootstrap-datepicker/bootstrap-datepicker.min.js?_v=639167111552810000"></script>
+<script src="/libs/moment/moment.min.js?_v=639167111543710000"></script>
+<script src="/libs/bootstrap-daterangepicker/daterangepicker.js?_v=639167111551990000"></script>
+<script src="/libs/abp/aspnetcore-mvc-ui-theme-shared/ui-extensions.js?_v=639158976700000000"></script>
+<script src="/libs/abp/aspnetcore-mvc-ui-theme-shared/jquery/jquery-extensions.js?_v=639158976700000000"></script>
+<script src="/libs/abp/aspnetcore-mvc-ui-theme-shared/jquery-form/jquery-form-extensions.js?_v=639158976700000000"></script>
+<script src="/libs/abp/aspnetcore-mvc-ui-theme-shared/jquery/widget-manager.js?_v=639158976700000000"></script>
+<script src="/libs/abp/aspnetcore-mvc-ui-theme-shared/bootstrap/dom-event-handlers.js?_v=639158976700000000"></script>
+<script src="/libs/abp/aspnetcore-mvc-ui-theme-shared/bootstrap/modal-manager.js?_v=639158976700000000"></script>
+<script src="/libs/abp/aspnetcore-mvc-ui-theme-shared/datatables/datatables-extensions.js?_v=639158976700000000"></script>
+<script src="/libs/abp/aspnetcore-mvc-ui-theme-shared/sweetalert2/abp-sweetalert2.js?_v=639158976700000000"></script>
+<script src="/libs/abp/aspnetcore-mvc-ui-theme-shared/toast/abp-toast.js?_v=639158976700000000"></script>
+<script src="/libs/abp/aspnetcore-mvc-ui-theme-shared/date-range-picker/date-range-picker-extensions.js?_v=639158976700000000"></script>
+<script src="/libs/abp/aspnetcore-mvc-ui-theme-shared/authentication-state/authentication-state-listener.js?_v=639158976700000000"></script>
+<script src="/Pages/Abp/MultiTenancy/tenant-switch.js?_v=639158976700000000"></script>
+<script src="/client-proxies/account-proxy.js?_v=639159181980000000"></script>
+<script src="/Pages/Account/AuthorityDelegation/account-authority-delegation-global.js?_v=639159181940000000"></script>
+<script src="/Pages/Account/LinkUsers/account-link-user-global.js?_v=639159181940000000"></script>
+<script src="/Pages/AuditLogs/audit-log-global.js?_v=639159181980000000"></script>
+<script src="/client-proxies/auditLogging-proxy.js?_v=639159181980000000"></script>
+<script src="/libs/markdown-it/markdown-it.min.js?_v=639167111794410000"></script>
+<script src="/libs/signalr/browser/signalr.js?_v=639167111822330000"></script>
+<script src="/Themes/LeptonX/Global/side-menu/js/lepton-x.bundle.min.js?_v=639159213340000000"></script>
+<script src="/Themes/LeptonX/Global/scripts/style-initializer.js?_v=639159213340000000"></script>
+<script src="/global-scripts.js?_v=639167110995224777"></script>
+<script src="/dev-login-helper.js?_v=639167110995216089"></script>
+
+	<script src="/Abp/ApplicationLocalizationScript?cultureName=vi-VN"></script>
+	<script type="text/javascript" src="/Abp/ApplicationConfigurationScript"></script>
+	<script type="text/javascript" src="/Abp/ServiceProxyScript"></script>
+	
+	
+    <script src="/Pages/Account/passkey-helpers.js?_v=639159181980000000"></script>
+<script src="/Pages/Account/Login.js?_v=639159181980000000"></script>
+
+
+
+	
+</body>
+
+</html>
