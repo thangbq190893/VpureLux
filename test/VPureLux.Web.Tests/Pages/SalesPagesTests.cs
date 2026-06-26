@@ -80,17 +80,33 @@ public class SalesPagesTests : VPureLuxWebTestBase
 
         var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Create.cshtml"));
         pageSource.ShouldContain("@section scripts");
+        pageSource.ShouldContain("<abp-script src=\"/Pages/Shared/DynamicRowSelects.js\" />");
         pageSource.ShouldContain("<abp-script src=\"/Pages/Sales/SalesProductContext.js\" />");
+        pageSource.ShouldContain("<abp-script src=\"/Pages/Sales/SalesCreateLines.js\" />");
+        pageSource.ShouldContain("data-sales-line-row");
+        pageSource.ShouldContain("id=\"add-sales-line\"");
+        pageSource.ShouldContain("remove-sales-line");
+        pageSource.ShouldContain("Input.Lines[i].ProductId");
+        pageSource.ShouldContain("@for (var i = 0; i < Model.Input.Lines.Count; i++)");
+        pageSource.ShouldNotContain("Input.Lines[0].ProductId");
         pageSource.ShouldNotContain("<script>");
         pageSource.ShouldNotContain("<script src=");
         pageSource.ShouldNotContain("<abp-button href=");
         pageSource.ShouldNotContain("href=\"/");
+
+        var linesScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/SalesCreateLines.js"));
+        linesScriptSource.ShouldContain("Input.Lines[' + index + '].ProductId");
+        linesScriptSource.ShouldContain("initializeSelects(row)");
+        linesScriptSource.ShouldContain("productContext.initializeRow");
 
         var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/SalesProductContext.js"));
         scriptSource.ShouldContain("badge bg-success");
         scriptSource.ShouldContain("Sales:PublishedBomAvailable");
         scriptSource.ShouldContain("Sales:HasProductImage");
         scriptSource.ShouldContain(".catch(function ()");
+        scriptSource.ShouldContain("closest('[data-sales-line-row]')");
+        scriptSource.ShouldContain("initializeRow");
+        scriptSource.ShouldNotContain("const productSelector = page.querySelector('[data-sales-product-selector]')");
     }
 
     [Fact]

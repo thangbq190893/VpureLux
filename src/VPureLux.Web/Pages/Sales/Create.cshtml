@@ -19,20 +19,48 @@
 
                 <abp-input asp-for="Input.OrderDate" />
 
-                <label asp-for="Input.Lines[0].ProductId">@L["Sales:ProductSku"]</label>
-                <select asp-for="Input.Lines[0].ProductId" asp-items="Model.Products" class="form-select mb-2" data-sales-product-selector></select>
+                <div id="sales-create-lines">
+                    @for (var i = 0; i < Model.Input.Lines.Count; i++)
+                    {
+                        <div class="border rounded p-3 mb-3 sales-line-row" data-sales-line-row>
+                            <label class="form-label" for="Input_Lines_@(i)__ProductId">@L["Sales:ProductSku"]</label>
+                            <select asp-for="Input.Lines[i].ProductId"
+                                    asp-items="Model.Products"
+                                    class="form-select mb-2 sales-line-product"
+                                    data-sales-product-selector></select>
 
-                <div class="alert alert-light border mb-3" data-sales-product-context>
-                    @L["Sales:SelectProductForContext"]
-                </div>
+                            <div class="alert alert-light border mb-3" data-sales-product-context>
+                                @L["Sales:SelectProductForContext"]
+                            </div>
 
-                <abp-input asp-for="Input.Lines[0].Quantity" />
-                <div class="mb-3">
-                    <label asp-for="Input.Lines[0].ActualSellingPrice" class="form-label">@L["Sales:ActualPrice"]</label>
-                    <input asp-for="Input.Lines[0].ActualSellingPrice" class="form-control" data-sales-actual-price />
-                    <span asp-validation-for="Input.Lines[0].ActualSellingPrice" class="text-danger"></span>
+                            <div class="mb-3">
+                                <label class="form-label" for="Input_Lines_@(i)__Quantity">@L["Sales:Quantity"]</label>
+                                <input asp-for="Input.Lines[i].Quantity" class="form-control sales-line-quantity" />
+                                <span asp-validation-for="Input.Lines[i].Quantity" class="text-danger"></span>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="Input_Lines_@(i)__ActualSellingPrice">@L["Sales:ActualPrice"]</label>
+                                <input asp-for="Input.Lines[i].ActualSellingPrice"
+                                       class="form-control sales-line-actual-price"
+                                       data-sales-actual-price />
+                                <span asp-validation-for="Input.Lines[i].ActualSellingPrice" class="text-danger"></span>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="Input_Lines_@(i)__OverrideReason">@L["Sales:OverrideReason"]</label>
+                                <input asp-for="Input.Lines[i].OverrideReason" class="form-control sales-line-override" />
+                                <span asp-validation-for="Input.Lines[i].OverrideReason" class="text-danger"></span>
+                            </div>
+                            <div class="text-end">
+                                <button type="button" class="btn btn-outline-danger btn-sm remove-sales-line" title="@L["Delete"]">
+                                    <i class="fa fa-trash"></i> @L["Delete"]
+                                </button>
+                            </div>
+                        </div>
+                    }
                 </div>
-                <abp-input asp-for="Input.Lines[0].OverrideReason" />
+                <button type="button" id="add-sales-line" class="btn btn-outline-secondary mb-3">
+                    <i class="fa fa-plus"></i> @L["Sales:AddLine"]
+                </button>
 
                 <button class="btn btn-primary" type="submit">@L["Save"]</button>
                 <a class="btn btn-secondary" asp-page="/Sales/Index">@L["Cancel"]</a>
@@ -42,5 +70,7 @@
 </div>
 
 @section scripts {
+    <abp-script src="/Pages/Shared/DynamicRowSelects.js" />
     <abp-script src="/Pages/Sales/SalesProductContext.js" />
+    <abp-script src="/Pages/Sales/SalesCreateLines.js" />
 }
