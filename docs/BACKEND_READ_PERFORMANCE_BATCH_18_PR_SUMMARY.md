@@ -337,4 +337,8 @@ Current Batch 18.5 test status: focused EF, focused Web, and full Web.Tests pass
 
 ## 16. Batch 18.5 commit status
 
-No Batch 18.5 commit has been created yet in this triage pass.
+Batch 18.5 PR summary was committed as:
+
+3ac7418 docs: update Batch 18 PR summary commit status
+
+No production code, tests, schema, migrations, indexes, config, UI layout/CSS/JS, API/DTO, permissions, or business semantics were changed in Batch 18.5.
