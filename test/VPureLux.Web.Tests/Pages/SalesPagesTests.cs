@@ -304,6 +304,22 @@ public class SalesPagesTests : VPureLuxWebTestBase
         }
     }
 
+    [Fact]
+    public async Task Sales_Product_Context_PageModels_Should_Use_Scoped_Product_Pricing_Context()
+    {
+        foreach (var relativePath in new[]
+        {
+            "src/VPureLux.Web/Pages/Sales/Create.cshtml.cs",
+            "src/VPureLux.Web/Pages/Sales/Edit.cshtml.cs",
+            "src/VPureLux.Web/Pages/Sales/Details.cshtml.cs"
+        })
+        {
+            var pageSource = await File.ReadAllTextAsync(GetRepoFilePath(relativePath));
+            pageSource.ShouldContain("FindMapAsync");
+            pageSource.ShouldNotContain("_productPricingContext.GetListAsync()");
+        }
+    }
+
     private async Task<(Guid CustomerId, string CustomerCode, string CustomerName, Guid WarehouseId, Guid ProductId, string ProductCode, string ProductName)> CreateSalesContextAsync(string prefix)
     {
         var groups = GetRequiredService<ICustomerGroupAppService>();

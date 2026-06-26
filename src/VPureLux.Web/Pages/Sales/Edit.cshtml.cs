@@ -20,7 +20,7 @@ public class EditModel : VPureLuxPageModel
 {
     private readonly ISalesOrderAppService _service;
     private readonly IProductAppService _products;
-    private readonly IProductPricingContextAppService _productPricingContext;
+    private readonly IProductPricingContextLookupService _productPricingContext;
     [BindProperty(SupportsGet = true)] public Guid Id { get; set; }
     [BindProperty] public CreateSalesOrderLineDto NewLine { get; set; } = new();
     [BindProperty] public UpdateSalesOrderLineDto UpdateLine { get; set; } = new();
@@ -33,7 +33,7 @@ public class EditModel : VPureLuxPageModel
     public EditModel(
         ISalesOrderAppService service,
         IProductAppService products,
-        IProductPricingContextAppService productPricingContext)
+        IProductPricingContextLookupService productPricingContext)
     {
         _service = service;
         _products = products;
@@ -88,10 +88,17 @@ public class EditModel : VPureLuxPageModel
 
     public async Task<JsonResult> OnGetProductContextAsync(Guid productId)
     {
-        await LoadProductContextsAsync();
-        if (ProductContexts.TryGetValue(productId, out var context))
+        try
         {
-            return new JsonResult(context);
+            var contexts = await _productPricingContext.FindMapAsync([productId], Clock.Now);
+            if (contexts.TryGetValue(productId, out var context))
+            {
+                var product = await _products.GetAsync(productId);
+                return new JsonResult(ToViewModel(context, product));
+            }
+        }
+        catch (AbpAuthorizationException)
+        {
         }
 
         return new JsonResult(new SalesProductContextViewModel
@@ -151,23 +158,14 @@ public class EditModel : VPureLuxPageModel
         {
             productsById ??= (await _products.GetListAsync(new GetProductListInput { MaxResultCount = 1000 })).Items
                 .ToDictionary(x => x.Id);
-            ProductContexts = (await _productPricingContext.GetListAsync())
+            ProductContexts = (await _productPricingContext.FindMapAsync(productsById.Keys.ToArray(), Clock.Now))
+                .Values
                 .ToDictionary(
                     x => x.ProductId,
                     x =>
                     {
                         productsById.TryGetValue(x.ProductId, out var product);
-                        return new SalesProductContextViewModel
-                        {
-                            ProductId = x.ProductId,
-                            ProductLabel = $"{x.ProductCode} - {x.ProductName}",
-                            HasPublishedBom = x.HasPublishedBom,
-                            HasImage = product?.HasImage ?? false,
-                            SuggestedPrice = x.CurrentProductSuggestedPrice,
-                            BomStatusText = x.HasPublishedBom
-                                ? L["Sales:PublishedBomAvailable"]
-                                : L["Sales:NoPublishedBom"]
-                        };
+                        return ToViewModel(x, product);
                     });
             ProductLabels = ProductContexts.ToDictionary(x => x.Key, x => x.Value.ProductLabel);
         }
@@ -177,4 +175,17 @@ public class EditModel : VPureLuxPageModel
             ProductLabels = new Dictionary<Guid, string>();
         }
     }
+
+    private SalesProductContextViewModel ToViewModel(ProductPricingContextDto context, ProductDto? product) =>
+        new()
+        {
+            ProductId = context.ProductId,
+            ProductLabel = $"{context.ProductCode} - {context.ProductName}",
+            HasPublishedBom = context.HasPublishedBom,
+            HasImage = product?.HasImage ?? false,
+            SuggestedPrice = context.CurrentProductSuggestedPrice,
+            BomStatusText = context.HasPublishedBom
+                ? L["Sales:PublishedBomAvailable"]
+                : L["Sales:NoPublishedBom"]
+        };
 }

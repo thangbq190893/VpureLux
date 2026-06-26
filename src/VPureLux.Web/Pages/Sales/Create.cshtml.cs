@@ -24,7 +24,7 @@ public class CreateModel : VPureLuxPageModel
     private readonly ICustomerAppService _customers;
     private readonly IWarehouseAppService _warehouses;
     private readonly IProductAppService _products;
-    private readonly IProductPricingContextAppService _productPricingContext;
+    private readonly IProductPricingContextLookupService _productPricingContext;
     [BindProperty] public CreateSalesOrderDto Input { get; set; } = new() { Lines = [new CreateSalesOrderLineDto()] };
     public List<SelectListItem> Customers { get; private set; } = new();
     public List<SelectListItem> Warehouses { get; private set; } = new();
@@ -36,7 +36,7 @@ public class CreateModel : VPureLuxPageModel
         ICustomerAppService customers,
         IWarehouseAppService warehouses,
         IProductAppService products,
-        IProductPricingContextAppService productPricingContext)
+        IProductPricingContextLookupService productPricingContext)
     {
         _service = service;
         _customers = customers;
@@ -72,10 +72,17 @@ public class CreateModel : VPureLuxPageModel
 
     public async Task<JsonResult> OnGetProductContextAsync(Guid productId)
     {
-        await LoadProductContextsAsync();
-        if (ProductContexts.TryGetValue(productId, out var context))
+        try
         {
-            return new JsonResult(context);
+            var contexts = await _productPricingContext.FindMapAsync([productId], Clock.Now);
+            if (contexts.TryGetValue(productId, out var context))
+            {
+                var product = await _products.GetAsync(productId);
+                return new JsonResult(ToViewModel(context, product));
+            }
+        }
+        catch (AbpAuthorizationException)
+        {
         }
 
         return new JsonResult(new SalesProductContextViewModel
@@ -110,23 +117,14 @@ public class CreateModel : VPureLuxPageModel
         {
             productsById ??= (await _products.GetListAsync(new GetProductListInput { MaxResultCount = 1000 })).Items
                 .ToDictionary(x => x.Id);
-            ProductContexts = (await _productPricingContext.GetListAsync())
+            ProductContexts = (await _productPricingContext.FindMapAsync(productsById.Keys.ToArray(), Clock.Now))
+                .Values
                 .ToDictionary(
                     x => x.ProductId,
                     x =>
                     {
                         productsById.TryGetValue(x.ProductId, out var product);
-                        return new SalesProductContextViewModel
-                        {
-                            ProductId = x.ProductId,
-                            ProductLabel = $"{x.ProductCode} - {x.ProductName}",
-                            HasPublishedBom = x.HasPublishedBom,
-                            HasImage = product?.HasImage ?? false,
-                            SuggestedPrice = x.CurrentProductSuggestedPrice,
-                            BomStatusText = x.HasPublishedBom
-                                ? L["Sales:PublishedBomAvailable"]
-                                : L["Sales:NoPublishedBom"]
-                        };
+                        return ToViewModel(x, product);
                     });
         }
         catch (AbpAuthorizationException)
@@ -134,4 +132,17 @@ public class CreateModel : VPureLuxPageModel
             ProductContexts = new Dictionary<Guid, SalesProductContextViewModel>();
         }
     }
+
+    private SalesProductContextViewModel ToViewModel(ProductPricingContextDto context, ProductDto? product) =>
+        new()
+        {
+            ProductId = context.ProductId,
+            ProductLabel = $"{context.ProductCode} - {context.ProductName}",
+            HasPublishedBom = context.HasPublishedBom,
+            HasImage = product?.HasImage ?? false,
+            SuggestedPrice = context.CurrentProductSuggestedPrice,
+            BomStatusText = context.HasPublishedBom
+                ? L["Sales:PublishedBomAvailable"]
+                : L["Sales:NoPublishedBom"]
+        };
 }

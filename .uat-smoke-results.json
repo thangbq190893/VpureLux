@@ -1,0 +1,212 @@
+[
+  {
+    "Module": "Home",
+    "Page": "Home",
+    "Route": "/",
+    "Http": 200,
+    "Result": "PASS",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": ""
+  },
+  {
+    "Module": "Catalog",
+    "Page": "Components list",
+    "Route": "/Catalog/Components",
+    "Http": 200,
+    "Result": "PASS",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": ""
+  },
+  {
+    "Module": "Catalog",
+    "Page": "Products list",
+    "Route": "/Catalog/Products",
+    "Http": 200,
+    "Result": "PASS",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": ""
+  },
+  {
+    "Module": "BOM",
+    "Page": "BOM Index",
+    "Route": "/Bom",
+    "Http": 200,
+    "Result": "PASS",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": ""
+  },
+  {
+    "Module": "Pricing",
+    "Page": "Pricing Index",
+    "Route": "/Pricing",
+    "Http": 200,
+    "Result": "PASS",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": ""
+  },
+  {
+    "Module": "Inventory",
+    "Page": "Inventory Index",
+    "Route": "/Inventory",
+    "Http": 200,
+    "Result": "PASS",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": ""
+  },
+  {
+    "Module": "Inventory",
+    "Page": "Warehouses",
+    "Route": "/Inventory/Warehouses",
+    "Http": 200,
+    "Result": "PASS",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": ""
+  },
+  {
+    "Module": "Inventory",
+    "Page": "Balances",
+    "Route": "/Inventory/Balances",
+    "Http": 200,
+    "Result": "PASS",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": ""
+  },
+  {
+    "Module": "Inventory",
+    "Page": "Lots",
+    "Route": "/Inventory/Lots",
+    "Http": 200,
+    "Result": "PASS",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": ""
+  },
+  {
+    "Module": "Inventory",
+    "Page": "Ledger",
+    "Route": "/Inventory/Ledger",
+    "Http": 200,
+    "Result": "PASS",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": ""
+  },
+  {
+    "Module": "Sales",
+    "Page": "Sales Index",
+    "Route": "/Sales",
+    "Http": 200,
+    "Result": "PASS",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": ""
+  },
+  {
+    "Module": "Sales",
+    "Page": "Sales History",
+    "Route": "/Sales/History",
+    "Http": 200,
+    "Result": "PASS",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": ""
+  },
+  {
+    "Module": "Sales",
+    "Page": "Customer History",
+    "Route": "/Sales/CustomerHistory",
+    "Http": 200,
+    "Result": "PASS",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": ""
+  },
+  {
+    "Module": "Customers",
+    "Page": "Customers Index",
+    "Route": "/Customers",
+    "Http": 200,
+    "Result": "PASS",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": ""
+  },
+  {
+    "Module": "CustomerGroups",
+    "Page": "CustomerGroups Index",
+    "Route": "/CustomerGroups",
+    "Http": 200,
+    "Result": "PASS",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": ""
+  },
+  {
+    "Module": "Audit",
+    "Page": "Audit Index",
+    "Route": "/Audit",
+    "Http": 200,
+    "Result": "PASS",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": ""
+  },
+  {
+    "Module": "Audit",
+    "Page": "Audit Export",
+    "Route": "/Audit/Export",
+    "Http": 200,
+    "Result": "PASS",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": ""
+  },
+  {
+    "Module": "Pricing",
+    "Page": "Component History",
+    "Route": "(none)",
+    "Http": 0,
+    "Result": "BLOCKED",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": "No component id found on list page"
+  },
+  {
+    "Module": "Pricing",
+    "Page": "Product History",
+    "Route": "(none)",
+    "Http": 0,
+    "Result": "BLOCKED",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": "No product id found on list page"
+  },
+  {
+    "Module": "BOM",
+    "Page": "BOM Product",
+    "Route": "(none)",
+    "Http": 0,
+    "Result": "BLOCKED",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": "No product id found on list page"
+  },
+  {
+    "Module": "Sales",
+    "Page": "Sales Details",
+    "Route": "/Sales/Details/0c132ca6-090a-5868-9071-3a2202e1c138",
+    "Http": 200,
+    "Result": "PASS",
+    "HasException": false,
+    "HasEmptyState": false,
+    "Excerpt": ""
+  }
+]

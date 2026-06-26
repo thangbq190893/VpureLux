@@ -221,6 +221,23 @@ public class PricingPagesTests : VPureLuxWebTestBase
         pageSource.ShouldNotContain("TryGetCurrentComponentPriceAsync");
     }
 
+    [Fact]
+    public async Task Product_Pricing_Context_Should_Use_Batch_Reads()
+    {
+        var appServiceSource = await File.ReadAllTextAsync(GetRepoFilePath(
+            "src/VPureLux.Application/Pricing/ProductPricingContextAppService.cs"));
+        var lookupSource = await File.ReadAllTextAsync(GetRepoFilePath(
+            "src/VPureLux.Application/Pricing/ProductPricingContextLookupService.cs"));
+
+        appServiceSource.ShouldNotContain("foreach (var product");
+        lookupSource.ShouldContain("FindAtDateMapAsync(productIds");
+        lookupSource.ShouldContain("GetPublishedMapByProductIdsAsync(productIds");
+        lookupSource.ShouldContain("FindCurrentMapAsync(componentIds");
+        lookupSource.ShouldNotContain("FindAtDateAsync(product.Id");
+        lookupSource.ShouldNotContain("GetListByProductIdAsync(product.Id");
+        lookupSource.ShouldNotContain("FindAtDateAsync(item.ComponentId");
+    }
+
     private static CreateComponentDto ComponentInput(string prefix, string name) => new()
     {
         Code = prefix + Guid.NewGuid().ToString("N")[..8],

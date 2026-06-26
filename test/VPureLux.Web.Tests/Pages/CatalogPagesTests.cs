@@ -298,6 +298,16 @@ public class CatalogPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Catalog_Product_PageModel_Should_Use_Scoped_Product_Pricing_Context()
+    {
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath(
+            "src/VPureLux.Web/Pages/Catalog/Products/Index.cshtml.cs"));
+
+        pageSource.ShouldContain("FindMapAsync");
+        pageSource.ShouldNotContain("_productPricingContextAppService.GetListAsync()");
+    }
+
+    [Fact]
     public async Task Catalog_Api_Should_Use_Documented_Route_And_Response_Wrapper()
     {
         var response = await GetResponseAsStringAsync("/api/catalog/components?page=1&pageSize=10");

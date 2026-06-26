@@ -156,6 +156,15 @@ public class BomPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Bom_Product_PageModel_Should_Use_Scoped_Product_Pricing_Context()
+    {
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/Product.cshtml.cs"));
+
+        pageSource.ShouldContain("FindMapAsync([ProductId]");
+        pageSource.ShouldNotContain("_productPricingContextAppService.GetListAsync()");
+    }
+
+    [Fact]
     public async Task Bom_Edit_Should_Preserve_Component_Selections_And_Quantities()
     {
         var product = await CreateProductAsync("BOM-EDIT-P", "BOM Edit Product");

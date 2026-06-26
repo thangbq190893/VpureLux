@@ -43,7 +43,7 @@ public class CatalogPageModelPermissionTests
     public async Task Product_Actions_Should_Be_Hidden_Without_Permissions()
     {
         var appService = Substitute.For<IProductAppService>();
-        var pricingContextService = Substitute.For<IProductPricingContextAppService>();
+        var pricingContextService = Substitute.For<IProductPricingContextLookupService>();
         var authorizationService = Substitute.For<IAuthorizationService>();
         appService.GetListAsync(Arg.Any<GetProductListInput>())
             .Returns(new Volo.Abp.Application.Dtos.PagedResultDto<ProductDto>());

@@ -18,4 +18,8 @@ public interface IBomVersionRepository : IRepository<BomVersion, Guid>
     Task<List<BomVersion>> GetListByProductIdAsync(
         Guid productId,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyDictionary<Guid, BomVersion>> GetPublishedMapByProductIdsAsync(
+        IReadOnlyCollection<Guid> productIds,
+        CancellationToken cancellationToken = default);
 }

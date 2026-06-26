@@ -90,6 +90,26 @@ public class EfCoreBomVersionRepository :
             .ToListAsync(GetCancellationToken(cancellationToken));
     }
 
+    public async Task<IReadOnlyDictionary<Guid, BomVersion>> GetPublishedMapByProductIdsAsync(
+        IReadOnlyCollection<Guid> productIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (productIds.Count == 0)
+        {
+            return new Dictionary<Guid, BomVersion>();
+        }
+
+        var idSet = productIds.Distinct().ToHashSet();
+        var versions = await (await WithDetailsAsync())
+            .Where(x => idSet.Contains(x.ProductId) && x.Status == BomStatus.Published)
+            .OrderByDescending(x => x.VersionNo)
+            .ToListAsync(GetCancellationToken(cancellationToken));
+
+        return versions
+            .GroupBy(x => x.ProductId)
+            .ToDictionary(x => x.Key, x => x.First());
+    }
+
     private static bool IsPublishedProductUniqueViolation(Exception exception)
     {
         for (var current = exception; current != null; current = current.InnerException)
