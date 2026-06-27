@@ -73,6 +73,40 @@
         return l('Sales:ProductNotSaleEligible');
     }
 
+    function getOverrideReasonRequiredMessage() {
+        if (createPage && createPage.dataset.salesOverrideReasonRequired) {
+            return createPage.dataset.salesOverrideReasonRequired;
+        }
+
+        return l('SALES_009');
+    }
+
+    function getCreateAlert() {
+        return createPage ? createPage.querySelector('[data-sales-create-alert]') : null;
+    }
+
+    function showCreateAlert(message) {
+        var alert = getCreateAlert();
+
+        if (!alert) {
+            return;
+        }
+
+        alert.textContent = message;
+        alert.classList.remove('d-none');
+    }
+
+    function clearCreateAlert() {
+        var alert = getCreateAlert();
+
+        if (!alert) {
+            return;
+        }
+
+        alert.textContent = '';
+        alert.classList.add('d-none');
+    }
+
     function hasPublishedBom(data) {
         return getValue(data, 'HasPublishedBom') === true || getValue(data, 'HasPublishedBom') === 'true';
     }
@@ -103,6 +137,71 @@
         warning.classList.add('d-none');
     }
 
+    function clearOverrideValidation(scope) {
+        var message = scope.querySelector('[data-sales-override-validation]');
+        var overrideInput = scope.querySelector('.sales-line-override');
+
+        if (message) {
+            message.textContent = '';
+            message.classList.add('d-none');
+        }
+
+        if (overrideInput) {
+            overrideInput.classList.remove('is-invalid');
+        }
+    }
+
+    function parseMoney(value) {
+        if (value === null || value === undefined || value === '') {
+            return null;
+        }
+
+        var parsed = Number(String(value).replace(',', '.'));
+        if (!Number.isFinite(parsed)) {
+            return null;
+        }
+
+        return Math.round(parsed * 100) / 100;
+    }
+
+    function validateOverrideReason(scope, data) {
+        clearOverrideValidation(scope);
+
+        if (!data) {
+            return true;
+        }
+
+        var suggestedPrice = parseMoney(getValue(data, 'SuggestedPrice'));
+        if (suggestedPrice === null) {
+            return true;
+        }
+
+        var actualPriceInput = scope.querySelector('[data-sales-actual-price]');
+        var actualPrice = actualPriceInput ? parseMoney(actualPriceInput.value) : null;
+        if (actualPrice === null || actualPrice === suggestedPrice) {
+            return true;
+        }
+
+        var overrideInput = scope.querySelector('.sales-line-override');
+        if (overrideInput && overrideInput.value.trim()) {
+            return true;
+        }
+
+        var messageText = getOverrideReasonRequiredMessage();
+        var message = scope.querySelector('[data-sales-override-validation]');
+
+        if (message) {
+            message.textContent = messageText;
+            message.classList.remove('d-none');
+        }
+
+        if (overrideInput) {
+            overrideInput.classList.add('is-invalid');
+        }
+
+        return false;
+    }
+
     function renderContext(scope, data) {
         var contextPanel = scope.querySelector('[data-sales-product-context]');
         var actualPriceInput = scope.querySelector('[data-sales-actual-price]');
@@ -130,6 +229,7 @@
             actualPriceInput.value = suggestedPrice;
         }
 
+        clearOverrideValidation(scope);
         updateRowEligibility(scope, data);
     }
 
@@ -140,6 +240,7 @@
             contextPanel.innerHTML = captureDefaultContextHtml();
         }
 
+        clearOverrideValidation(scope);
         updateRowEligibility(scope, null);
     }
 
@@ -251,11 +352,14 @@
         }
 
         var isValid = true;
+        var alertMessage = '';
+        clearCreateAlert();
 
         container.querySelectorAll('[data-sales-line-row]').forEach(function (row) {
             var productSelector = getProductSelector(row);
 
             if (!productSelector || !productSelector.value) {
+                clearOverrideValidation(row);
                 return;
             }
 
@@ -266,9 +370,19 @@
 
                 if (!data || !hasPublishedBom(data)) {
                     isValid = false;
+                    alertMessage = alertMessage || getNotEligibleMessage();
+                }
+
+                if (!validateOverrideReason(row, data)) {
+                    isValid = false;
+                    alertMessage = alertMessage || getOverrideReasonRequiredMessage();
                 }
             }
         });
+
+        if (!isValid && alertMessage) {
+            showCreateAlert(alertMessage);
+        }
 
         return isValid;
     }

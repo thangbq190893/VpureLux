@@ -45,10 +45,21 @@
     function resetContextPanel(row) {
         var contextPanel = row.querySelector('[data-sales-product-context]');
         var eligibilityWarning = row.querySelector('[data-sales-product-eligibility]');
+        var overrideValidation = row.querySelector('[data-sales-override-validation]');
+        var overrideInput = row.querySelector('.sales-line-override');
 
         if (eligibilityWarning) {
             eligibilityWarning.textContent = '';
             eligibilityWarning.classList.add('d-none');
+        }
+
+        if (overrideValidation) {
+            overrideValidation.textContent = '';
+            overrideValidation.classList.add('d-none');
+        }
+
+        if (overrideInput) {
+            overrideInput.classList.remove('is-invalid');
         }
 
         row.classList.remove('sales-line-invalid');

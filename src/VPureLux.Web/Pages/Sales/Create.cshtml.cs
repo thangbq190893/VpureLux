@@ -66,7 +66,10 @@ public class CreateModel : VPureLuxPageModel
     {
         await LoadSelectionsAsync();
 
-        if (!ValidateLineEligibility())
+        var isValid = ValidateLineEligibility();
+        isValid = ValidateLinePricingOverrides() && isValid;
+
+        if (!isValid)
         {
             return Page();
         }
@@ -79,6 +82,11 @@ public class CreateModel : VPureLuxPageModel
         catch (BusinessException exception) when (exception.Code == VPureLuxDomainErrorCodes.SalesBomMustBePublished)
         {
             AddBomValidationErrors();
+            return Page();
+        }
+        catch (BusinessException exception) when (exception.Code == VPureLuxDomainErrorCodes.SalesOverrideReasonRequired)
+        {
+            AddOverrideReasonValidationErrors();
             return Page();
         }
         catch (BusinessException exception)
@@ -159,6 +167,42 @@ public class CreateModel : VPureLuxPageModel
                 new BusinessException(VPureLuxDomainErrorCodes.SalesBomMustBePublished)));
     }
 
+    private bool ValidateLinePricingOverrides()
+    {
+        var isValid = true;
+
+        for (var i = 0; i < Input.Lines.Count; i++)
+        {
+            if (!TryAddLineOverrideReasonError(i))
+            {
+                continue;
+            }
+
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    private void AddOverrideReasonValidationErrors()
+    {
+        for (var i = 0; i < Input.Lines.Count; i++)
+        {
+            TryAddLineOverrideReasonError(i);
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return;
+        }
+
+        ModelState.AddModelError(
+            string.Empty,
+            SalesUiFormatter.GetFriendlyErrorMessage(
+                L,
+                new BusinessException(VPureLuxDomainErrorCodes.SalesOverrideReasonRequired)));
+    }
+
     private bool TryAddLineEligibilityError(int lineIndex)
     {
         var line = Input.Lines[lineIndex];
@@ -173,6 +217,31 @@ public class CreateModel : VPureLuxPageModel
         }
 
         ModelState.AddModelError($"Input.Lines[{lineIndex}].ProductId", L["Sales:ProductNotSaleEligible"].Value);
+        return true;
+    }
+
+    private bool TryAddLineOverrideReasonError(int lineIndex)
+    {
+        var line = Input.Lines[lineIndex];
+        if (line.ProductId == Guid.Empty ||
+            !line.ActualSellingPrice.HasValue ||
+            !ProductContexts.TryGetValue(line.ProductId, out var context) ||
+            !context.SuggestedPrice.HasValue)
+        {
+            return false;
+        }
+
+        var suggestedPrice = decimal.Round(context.SuggestedPrice.Value, SalesConsts.MoneyScale, MidpointRounding.AwayFromZero);
+        var actualPrice = decimal.Round(line.ActualSellingPrice.Value, SalesConsts.MoneyScale, MidpointRounding.AwayFromZero);
+
+        if (suggestedPrice == actualPrice || !string.IsNullOrWhiteSpace(line.OverrideReason))
+        {
+            return false;
+        }
+
+        ModelState.AddModelError(
+            $"Input.Lines[{lineIndex}].OverrideReason",
+            L[VPureLuxDomainErrorCodes.SalesOverrideReasonRequired].Value);
         return true;
     }
 

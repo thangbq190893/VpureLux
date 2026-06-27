@@ -148,9 +148,20 @@ public class SalesPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("GetProductContextsJson");
         pageSource.ShouldContain("data-sales-product-eligibility");
         pageSource.ShouldContain("data-sales-product-not-eligible");
+        pageSource.ShouldContain("data-sales-override-reason-required");
+        pageSource.ShouldContain("data-sales-create-alert");
+        pageSource.ShouldContain("data-sales-override-validation");
         pageSource.ShouldContain("asp-validation-for=\"Input.Lines[i].ProductId\"");
 
         linesScriptSource.ShouldContain("validateAllRows");
+        linesScriptSource.ShouldContain("data-sales-override-validation");
+
+        scriptSource.ShouldContain("validateOverrideReason");
+        scriptSource.ShouldContain("getOverrideReasonRequiredMessage");
+        scriptSource.ShouldContain("showCreateAlert");
+        scriptSource.ShouldContain("data-sales-create-alert");
+        scriptSource.ShouldContain("data-sales-override-validation");
+        scriptSource.ShouldContain("SuggestedPrice");
     }
 
     [Fact]
@@ -181,6 +192,93 @@ public class SalesPagesTests : VPureLuxWebTestBase
         model.ModelState[$"Input.Lines[0].ProductId"]!.Errors
             .Select(x => x.ErrorMessage)
             .ShouldContain(localizer["Sales:ProductNotSaleEligible"].Value);
+    }
+
+    [Fact]
+    public async Task Sales_Create_OnPostAsync_Should_Block_Override_Without_Reason()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-OR");
+        var model = GetRequiredService<CreateModel>();
+        await model.OnGetAsync();
+        model.Input.CustomerId = context.CustomerId;
+        model.Input.WarehouseId = context.WarehouseId;
+        model.Input.OrderDate = DateTime.UtcNow.Date;
+        model.Input.Lines =
+        [
+            new CreateSalesOrderLineDto
+            {
+                ProductId = context.ProductId,
+                Quantity = 1,
+                ActualSellingPrice = 90
+            }
+        ];
+
+        var result = await model.OnPostAsync();
+
+        result.ShouldBeOfType<PageResult>();
+        model.ModelState.IsValid.ShouldBeFalse();
+        model.ModelState[$"Input.Lines[0].OverrideReason"]!.Errors
+            .Select(x => x.ErrorMessage)
+            .ShouldContain(localizer[VPureLuxDomainErrorCodes.SalesOverrideReasonRequired].Value);
+    }
+
+    [Fact]
+    public async Task Sales_Create_OnPostAsync_Should_Save_When_Actual_Price_Equals_Suggested_Without_Reason()
+    {
+        var context = await CreateSalesContextAsync("SALES-EQ");
+        var model = GetRequiredService<CreateModel>();
+        await model.OnGetAsync();
+        model.Input.CustomerId = context.CustomerId;
+        model.Input.WarehouseId = context.WarehouseId;
+        model.Input.OrderDate = DateTime.UtcNow.Date;
+        model.Input.Lines =
+        [
+            new CreateSalesOrderLineDto
+            {
+                ProductId = context.ProductId,
+                Quantity = 1,
+                ActualSellingPrice = 100
+            }
+        ];
+
+        var result = await model.OnPostAsync();
+
+        var redirect = result.ShouldBeOfType<RedirectToPageResult>();
+        redirect.PageName.ShouldBe("/Sales/Details");
+    }
+
+    [Fact]
+    public async Task Sales_Create_OnPostAsync_Should_Save_Missing_Suggested_Price_With_Manual_Actual_Price()
+    {
+        var group = await GetRequiredService<ICustomerGroupAppService>()
+            .CreateAsync(new CreateCustomerGroupDto { Code = Unique("SNP-G"), Name = "No Suggested Price Group" });
+        var customer = await GetRequiredService<ICustomerAppService>()
+            .CreateAsync(new CreateCustomerDto { Code = Unique("SNP-C"), Name = "No Suggested Price Customer", CustomerGroupId = group.Id });
+        var warehouse = await GetRequiredService<IWarehouseAppService>()
+            .CreateAsync(new CreateWarehouseDto { Code = Unique("SNP-W"), Name = "No Suggested Price Warehouse" });
+        var product = await CreateProductAsync("SNP-P", "No Suggested Price Product");
+        await PublishBomAsync(product.Id);
+        var model = GetRequiredService<CreateModel>();
+        await model.OnGetAsync();
+        model.Input.CustomerId = customer.Id;
+        model.Input.WarehouseId = warehouse.Id;
+        model.Input.OrderDate = DateTime.UtcNow.Date;
+        model.Input.Lines =
+        [
+            new CreateSalesOrderLineDto
+            {
+                ProductId = product.Id,
+                Quantity = 1,
+                ActualSellingPrice = 123
+            }
+        ];
+
+        var result = await model.OnPostAsync();
+
+        var redirect = result.ShouldBeOfType<RedirectToPageResult>();
+        redirect.PageName.ShouldBe("/Sales/Details");
+        model.ModelState.IsValid.ShouldBeTrue();
     }
 
     [Fact]

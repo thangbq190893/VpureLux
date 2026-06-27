@@ -2,10 +2,12 @@
 @model VPureLux.Web.Pages.Sales.CreateModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
 @using System.Globalization
+@using VPureLux
 @{ ViewData["Title"] = L["Sales:Create"]; }
 <div id="SalesCreatePage"
      data-sales-context-endpoint="@Url.Page(null, "ProductContext")"
-     data-sales-product-not-eligible="@L["Sales:ProductNotSaleEligible"]">
+     data-sales-product-not-eligible="@L["Sales:ProductNotSaleEligible"]"
+     data-sales-override-reason-required="@L[VPureLuxDomainErrorCodes.SalesOverrideReasonRequired]">
     <abp-card>
         <abp-card-header>
             <h2>@L["Sales:Create"]</h2>
@@ -13,6 +15,7 @@
         <abp-card-body>
             <form method="post">
                 <abp-validation-summary />
+                <div class="alert alert-danger d-none" role="alert" data-sales-create-alert></div>
 
                 <label asp-for="Input.CustomerId">@L["Sales:Customer"]</label>
                 <select asp-for="Input.CustomerId" asp-items="Model.Customers" class="form-select mb-3"></select>
@@ -66,6 +69,7 @@
                                 <label asp-for="Input.Lines[i].OverrideReason" class="form-label">@L["Sales:OverrideReason"]</label>
                                 <input asp-for="Input.Lines[i].OverrideReason" class="form-control sales-line-override" />
                                 <span asp-validation-for="Input.Lines[i].OverrideReason" class="text-danger"></span>
+                                <span class="text-danger d-block small d-none" data-sales-override-validation></span>
                             </div>
                             <div class="text-end">
                                 <button type="button" class="btn btn-outline-danger btn-sm remove-sales-line" title="@L["Delete"]">
@@ -125,6 +129,7 @@
             <input type="text" class="form-control sales-line-override"
                    data-name="Input.Lines[__index__].OverrideReason"
                    data-id="Input_Lines___index____OverrideReason" />
+            <span class="text-danger d-block small d-none" data-sales-override-validation></span>
         </div>
         <div class="text-end">
             <button type="button" class="btn btn-outline-danger btn-sm remove-sales-line" title="@L["Delete"]">
