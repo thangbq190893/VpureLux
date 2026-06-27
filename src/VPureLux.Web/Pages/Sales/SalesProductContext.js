@@ -52,7 +52,6 @@
             return;
         }
 
-        var productLabel = getValue(data, 'ProductLabel') || l('Sales:ProductContextUnavailable');
         var hasPublishedBom = getValue(data, 'HasPublishedBom') === true || getValue(data, 'HasPublishedBom') === 'true';
         var hasImage = getValue(data, 'HasImage') === true || getValue(data, 'HasImage') === 'true';
         var suggestedPrice = getValue(data, 'SuggestedPrice');
@@ -64,7 +63,6 @@
             : suggestedPrice;
 
         contextPanel.innerHTML =
-            '<div class="fw-semibold mb-1">' + escapeHtml(productLabel) + '</div>' +
             '<div class="mb-2"><span class="' + bomBadgeClass + '">' + escapeHtml(bomText) + '</span></div>' +
             '<div class="small text-muted mb-1">' + escapeHtml(l('Sales:ProductImage')) + ': ' + escapeHtml(imageText) + '</div>' +
             '<div class="small">' + escapeHtml(l('Sales:SuggestedPrice')) + ': ' + escapeHtml(String(suggestedPriceText)) + '</div>';
@@ -102,10 +100,20 @@
             loadProductContext(scope);
         }
 
+        if (productSelector._vplSalesContextChangeHandler) {
+            productSelector.removeEventListener('change', productSelector._vplSalesContextChangeHandler);
+        }
+
+        productSelector._vplSalesContextChangeHandler = onProductChanged;
         productSelector.addEventListener('change', onProductChanged);
 
-        if (window.jQuery && window.jQuery.fn.select2 && window.jQuery(productSelector).data('select2')) {
-            window.jQuery(productSelector).on('select2:select select2:clear', onProductChanged);
+        if (window.jQuery && window.jQuery.fn.select2) {
+            var $select = window.jQuery(productSelector);
+            $select.off('select2:select.vplSalesContext select2:clear.vplSalesContext');
+
+            if ($select.data('select2')) {
+                $select.on('select2:select.vplSalesContext select2:clear.vplSalesContext', onProductChanged);
+            }
         }
     }
 
@@ -155,6 +163,9 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         captureDefaultContextHtml();
-        initializeRows();
+
+        if (!document.getElementById('SalesCreatePage')) {
+            initializeRows();
+        }
     });
 }(window));

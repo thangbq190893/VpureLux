@@ -73,10 +73,12 @@ public class SalesPagesTests : VPureLuxWebTestBase
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Sales/Create"));
 
         html.ShouldContain($"{product.Code} - {product.Name}");
-        html.ShouldContain("data-sales-product-selector");
+        html.ShouldContain("data-sales-product-select");
         html.ShouldContain("data-sales-product-context");
         html.ShouldContain("data-sales-context-endpoint");
         html.ShouldContain(localizer["Sales:SelectProductForContext"].Value);
+        html.ShouldNotContain("value=\"0,00\"");
+        html.ShouldNotContain("value='0,00'");
 
         var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Create.cshtml"));
         pageSource.ShouldContain("@section scripts");
@@ -93,6 +95,12 @@ public class SalesPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("Input.Lines[i].ProductId");
         pageSource.ShouldContain("@for (var i = 0; i < Model.Input.Lines.Count; i++)");
         pageSource.ShouldNotContain("Input.Lines[0].ProductId");
+        pageSource.ShouldContain("data-sales-line-index");
+        pageSource.ShouldContain("form-select w-100");
+        pageSource.ShouldContain("type=\"number\"");
+        pageSource.ShouldContain("Quantity == 0 ? \"1\"");
+        pageSource.ShouldContain("value=\"1\"");
+        pageSource.ShouldNotContain("select2-container");
         pageSource.ShouldNotContain("<script>");
         pageSource.ShouldNotContain("<script src=");
         pageSource.ShouldNotContain("<abp-button href=");
@@ -100,13 +108,19 @@ public class SalesPagesTests : VPureLuxWebTestBase
 
         var linesScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/SalesCreateLines.js"));
         linesScriptSource.ShouldContain("sales-line-row-template");
+        linesScriptSource.ShouldContain("prepareLineRow");
+        linesScriptSource.ShouldContain("bootExistingRows");
+        linesScriptSource.ShouldContain("whenAbpDomReady");
         linesScriptSource.ShouldContain("cloneTemplateRow");
         linesScriptSource.ShouldContain("data-sales-product-select");
         linesScriptSource.ShouldContain("indexToken");
         linesScriptSource.ShouldContain("applyTemplateAttribute");
         linesScriptSource.ShouldContain("data-name");
-        linesScriptSource.ShouldContain("initializeSelects(product)");
+        linesScriptSource.ShouldContain("ensureNativeProductSelect");
+        linesScriptSource.ShouldContain("stripSelect2Enhancements");
+        linesScriptSource.ShouldContain("defaultQuantity");
         linesScriptSource.ShouldContain("productContext.initializeRow");
+        linesScriptSource.ShouldNotContain("initializeSelects");
         linesScriptSource.ShouldNotContain("ensureTemplate");
         linesScriptSource.ShouldNotContain("sourceProduct.innerHTML");
 
@@ -118,7 +132,10 @@ public class SalesPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("getProductSelector");
         scriptSource.ShouldContain("data-sales-product-select");
         scriptSource.ShouldContain("sales-line-row-template");
+        scriptSource.ShouldContain("SalesCreatePage");
         scriptSource.ShouldContain("initializeRow");
+        scriptSource.ShouldNotContain("ProductLabel");
+        scriptSource.ShouldNotContain("fw-semibold mb-1");
         scriptSource.ShouldNotContain("const productSelector = page.querySelector('[data-sales-product-selector]')");
         scriptSource.ShouldNotContain("page.querySelector('[data-sales-product-context]')");
     }

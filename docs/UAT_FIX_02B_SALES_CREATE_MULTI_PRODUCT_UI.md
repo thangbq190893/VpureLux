@@ -152,3 +152,76 @@ dotnet test ... --filter "FullyQualifiedName~Sales" -m:1
 dotnet test ... -m:1
   → Passed: 129, Failed: 0
 ```
+
+---
+
+## 11. UAT Fix 02B.2 — Clean row UI (2026-06-27)
+
+### Duplicate rendering root cause
+
+Three issues combined to produce messy rows in the browser:
+
+1. **Select2 + ABP auto-init** — Line product selects used `form-select`, so ABP/LeptonX enhanced them with Select2 on load; dynamic rows then received a second manual Select2 pass or orphaned `.select2-container` DOM, producing stacked/duplicate dropdown UI on row 2+.
+2. **Product name in context panel** — `renderContext` wrote `ProductLabel` as a bold heading below the dropdown, visually duplicating the selected product name.
+3. **Quantity culture formatting** — `asp-for` on `decimal Quantity` (default `0`) rendered as `0,00` under vi-VN culture, looking like money formatting.
+
+### Final DOM structure (each live row)
+
+```text
+[data-sales-line-row]
+  label → Product SKU
+  select.form-select.w-100[data-sales-product-select]   ← single native full-width dropdown
+  div.alert[data-sales-product-context]                 ← BOM badge, image status, suggested price only
+  input[type=number].sales-line-quantity                ← default 1, invariant numeric
+  input[type=number].sales-line-actual-price
+  input.sales-line-override
+  button.remove-sales-line
+```
+
+Hidden `<template id="sales-line-row-template">` sits **outside** `#sales-create-lines` — never rendered, never Select2-enhanced.
+
+### Product dropdown rendering
+
+- Native Bootstrap `form-select w-100` only — **no Select2** on Sales Create line products.
+- `ensureNativeProductSelect()` strips any accidental Select2 artifacts after `abp.dom.ready`.
+- Add-row clones raw template markup; never clones a live row.
+
+### Product context (row-scoped)
+
+- `bindRow(scope)` resolves `[data-sales-product-select]` and `[data-sales-product-context]` within the row only.
+- Context shows **supporting info only**: BOM badge, image status, suggested price.
+- Product name/code appears **only** in the dropdown selection.
+- Placeholder when no product selected: localized `Sales:SelectProductForContext`.
+
+### Quantity formatting
+
+- `type="number"` with `step="any"` and `CultureInfo.InvariantCulture` value formatting.
+- Initial display: `1` when model quantity is `0`; template default `value="1"`.
+- New rows reset quantity to `1` in JS — not `0,00`.
+
+### Price formatting
+
+- Unchanged: raw numeric `type="number"` input; suggested price still pre-fills from context AJAX when empty.
+
+### Manual smoke result (02B.2)
+
+Not run in this session — verify `/Sales/Create` in browser after deploy using checklist in section 8.
+
+### Tests run (02B.2)
+
+```text
+dotnet build test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj -o .build-out-02b2 -m:1
+  → Build succeeded
+
+dotnet test ... --filter "FullyQualifiedName~Sales" -m:1
+  → Passed: 16, Failed: 0
+
+dotnet test ... -m:1
+  → Passed: 129, Failed: 0
+```
+
+### Remaining known issues
+
+- Browser/E2E automation for multi-line create submit
+- Optional Select2/searchable product picker if catalog grows (native select is intentional for stability)
+- Client-side validation message re-index after row remove (server validation unaffected)

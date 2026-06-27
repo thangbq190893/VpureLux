@@ -1,6 +1,7 @@
 @page
 @model VPureLux.Web.Pages.Sales.CreateModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using System.Globalization
 @{ ViewData["Title"] = L["Sales:Create"]; }
 <div id="SalesCreatePage" data-sales-context-endpoint="@Url.Page(null, "ProductContext")">
     <abp-card>
@@ -22,28 +23,39 @@
                 <div id="sales-create-lines">
                     @for (var i = 0; i < Model.Input.Lines.Count; i++)
                     {
-                        <div class="border rounded p-3 mb-3 sales-line-row" data-sales-line-row>
+                        <div class="border rounded p-3 mb-3 sales-line-row" data-sales-line-row data-sales-line-index="@i">
                             <label class="form-label" for="Input_Lines_@(i)__ProductId">@L["Sales:ProductSku"]</label>
                             <select asp-for="Input.Lines[i].ProductId"
                                     asp-items="Model.Products"
-                                    class="form-select mb-2 sales-line-product"
-                                    data-sales-product-selector
-                                    data-sales-product-select></select>
+                                    class="form-select w-100 mb-2 sales-line-product"
+                                    data-sales-product-select
+                                    data-sales-line-index="@i"></select>
 
-                            <div class="alert alert-light border mb-3" data-sales-product-context>
+                            <div class="alert alert-light border mb-3 py-2" data-sales-product-context>
                                 @L["Sales:SelectProductForContext"]
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label" for="Input_Lines_@(i)__Quantity">@L["Sales:Quantity"]</label>
-                                <input asp-for="Input.Lines[i].Quantity" class="form-control sales-line-quantity" />
+                                <input type="number"
+                                       step="any"
+                                       min="0.0001"
+                                       name="Input.Lines[@(i)].Quantity"
+                                       id="Input_Lines_@(i)__Quantity"
+                                       class="form-control sales-line-quantity"
+                                       value="@(Model.Input.Lines[i].Quantity == 0 ? "1" : Model.Input.Lines[i].Quantity.ToString(CultureInfo.InvariantCulture))" />
                                 <span asp-validation-for="Input.Lines[i].Quantity" class="text-danger"></span>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="Input_Lines_@(i)__ActualSellingPrice">@L["Sales:ActualPrice"]</label>
-                                <input asp-for="Input.Lines[i].ActualSellingPrice"
+                                <input type="number"
+                                       step="any"
+                                       min="0"
+                                       name="Input.Lines[@(i)].ActualSellingPrice"
+                                       id="Input_Lines_@(i)__ActualSellingPrice"
                                        class="form-control sales-line-actual-price"
-                                       data-sales-actual-price />
+                                       data-sales-actual-price
+                                       value="@(Model.Input.Lines[i].ActualSellingPrice?.ToString(CultureInfo.InvariantCulture) ?? string.Empty)" />
                                 <span asp-validation-for="Input.Lines[i].ActualSellingPrice" class="text-danger"></span>
                             </div>
                             <div class="mb-3">
@@ -73,8 +85,7 @@
 <template id="sales-line-row-template">
     <div class="border rounded p-3 mb-3 sales-line-row" data-sales-line-row>
         <label class="form-label" data-for="Input_Lines___index____ProductId">@L["Sales:ProductSku"]</label>
-        <select class="form-select mb-2 sales-line-product"
-                data-sales-product-selector
+        <select class="form-select w-100 mb-2 sales-line-product"
                 data-sales-product-select
                 data-name="Input.Lines[__index__].ProductId"
                 data-id="Input_Lines___index____ProductId">
@@ -84,19 +95,20 @@
             }
         </select>
 
-        <div class="alert alert-light border mb-3" data-sales-product-context>
+        <div class="alert alert-light border mb-3 py-2" data-sales-product-context>
             @L["Sales:SelectProductForContext"]
         </div>
 
         <div class="mb-3">
             <label class="form-label" data-for="Input_Lines___index____Quantity">@L["Sales:Quantity"]</label>
-            <input type="number" step="any" class="form-control sales-line-quantity"
+            <input type="number" step="any" min="0.0001" class="form-control sales-line-quantity"
+                   value="1"
                    data-name="Input.Lines[__index__].Quantity"
                    data-id="Input_Lines___index____Quantity" />
         </div>
         <div class="mb-3">
             <label class="form-label" data-for="Input_Lines___index____ActualSellingPrice">@L["Sales:ActualPrice"]</label>
-            <input type="number" step="any" class="form-control sales-line-actual-price"
+            <input type="number" step="any" min="0" class="form-control sales-line-actual-price"
                    data-sales-actual-price
                    data-name="Input.Lines[__index__].ActualSellingPrice"
                    data-id="Input_Lines___index____ActualSellingPrice" />

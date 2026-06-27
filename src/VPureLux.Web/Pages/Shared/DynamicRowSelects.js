@@ -12,7 +12,7 @@
 
         var selects = root.tagName === 'SELECT'
             ? [root]
-            : Array.prototype.slice.call(root.querySelectorAll('select.form-select'));
+            : Array.prototype.slice.call(root.querySelectorAll('select.form-select, select[data-sales-product-select]'));
 
         selects.forEach(function (select) {
             if (window.jQuery) {
@@ -68,6 +68,10 @@
         $selects.each(function () {
             var $select = window.jQuery(this);
 
+            if ($select.is('[data-sales-product-select]') && root.tagName !== 'SELECT') {
+                return;
+            }
+
             if ($select.hasClass('auto-complete-select')) {
                 if (window.abp &&
                     abp.dom &&
@@ -81,6 +85,10 @@
 
             if ($select.data('select2')) {
                 return;
+            }
+
+            if (!$select.hasClass('form-select')) {
+                $select.addClass('form-select');
             }
 
             $select.select2(getSelect2Options($select));

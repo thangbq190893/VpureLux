@@ -2,7 +2,9 @@
     var dynamicRows = window.vplDynamicRowSelects;
     var productContext = window.vplSalesProductContext;
     var rowSelector = '[data-sales-line-row]';
+    var productSelectSelector = '[data-sales-product-select]';
     var indexToken = '__index__';
+    var defaultQuantity = '1';
 
     function getLiveRows(container) {
         return container.querySelectorAll(rowSelector);
@@ -18,6 +20,8 @@
 
     function reindexRows(container) {
         getLiveRows(container).forEach(function (row, index) {
+            row.setAttribute('data-sales-line-index', String(index));
+
             row.querySelectorAll('[data-name]').forEach(function (element) {
                 applyTemplateAttribute(element, 'data-name', index);
             });
@@ -29,6 +33,12 @@
             row.querySelectorAll('[data-for]').forEach(function (element) {
                 applyTemplateAttribute(element, 'data-for', index);
             });
+
+            var productSelect = row.querySelector(productSelectSelector);
+
+            if (productSelect) {
+                productSelect.setAttribute('data-sales-line-index', String(index));
+            }
         });
     }
 
@@ -47,8 +57,22 @@
         contextPanel.textContent = '';
     }
 
+    function ensureNativeProductSelect(row) {
+        var product = row.querySelector(productSelectSelector);
+
+        if (!product) {
+            return;
+        }
+
+        if (dynamicRows) {
+            dynamicRows.stripSelect2Enhancements(row);
+        }
+
+        product.classList.add('form-select', 'w-100');
+    }
+
     function clearRow(row) {
-        var product = row.querySelector('[data-sales-product-select]');
+        var product = row.querySelector(productSelectSelector);
         var quantity = row.querySelector('.sales-line-quantity');
         var actualPrice = row.querySelector('.sales-line-actual-price');
         var overrideReason = row.querySelector('.sales-line-override');
@@ -58,7 +82,7 @@
         }
 
         if (quantity) {
-            quantity.value = '';
+            quantity.value = defaultQuantity;
         }
 
         if (actualPrice) {
@@ -82,14 +106,26 @@
         return template.content.firstElementChild.cloneNode(true);
     }
 
-    function initializeProductSelect(row) {
-        var product = row.querySelector('[data-sales-product-select]');
+    function prepareLineRow(row) {
+        row.removeAttribute('data-sales-context-bound');
+        ensureNativeProductSelect(row);
 
-        if (!product || !dynamicRows) {
+        if (productContext && typeof productContext.initializeRow === 'function') {
+            productContext.initializeRow(row);
+        }
+    }
+
+    function bootExistingRows(container) {
+        getLiveRows(container).forEach(prepareLineRow);
+    }
+
+    function whenAbpDomReady(callback) {
+        if (window.abp && abp.event && typeof abp.event.on === 'function') {
+            abp.event.on('abp.dom.ready', callback);
             return;
         }
 
-        dynamicRows.initializeSelects(product);
+        callback();
     }
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -100,6 +136,10 @@
             return;
         }
 
+        whenAbpDomReady(function () {
+            bootExistingRows(container);
+        });
+
         addButton.addEventListener('click', function () {
             var row = cloneTemplateRow();
 
@@ -107,15 +147,10 @@
                 return;
             }
 
-            row.removeAttribute('data-sales-context-bound');
             clearRow(row);
             container.appendChild(row);
             reindexRows(container);
-            initializeProductSelect(row);
-
-            if (productContext && typeof productContext.initializeRow === 'function') {
-                productContext.initializeRow(row);
-            }
+            prepareLineRow(row);
         });
 
         container.addEventListener('click', function (event) {
@@ -123,9 +158,8 @@
 
             if (removeButton && getLiveRows(container).length > 1) {
                 var row = removeButton.closest(rowSelector);
-                var product = row ? row.querySelector('[data-sales-product-select]') : null;
 
-                if (product && dynamicRows) {
+                if (row && dynamicRows) {
                     dynamicRows.stripSelect2Enhancements(row);
                 }
 
