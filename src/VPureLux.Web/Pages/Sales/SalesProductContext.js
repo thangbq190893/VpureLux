@@ -208,7 +208,7 @@
     }
 
     function bindRow(scope) {
-        if (!scope || scope.dataset.salesContextBound === 'true') {
+        if (!scope) {
             return;
         }
 

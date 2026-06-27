@@ -262,3 +262,63 @@ dotnet test ... -m:1
 
 - Browser/E2E automation for multi-line create submit
 - Client-side validation message re-index after row remove (server validation unaffected)
+
+---
+
+## 13. UAT Fix 02B.4 — Initial row parity and final multi-product UI (2026-06-28)
+
+### Root cause of initial-row vs dynamic-row mismatch
+
+Existing server-rendered rows and dynamically added rows already had similar row-scoped markup, but they did not reliably share the same initialization timing. Existing rows were initialized only through an `abp.dom.ready` subscription, which could be missed if ABP had already fired by the time the Sales Create script subscribed. Dynamically added rows called `prepareLineRow(row)` directly, so row 2 could render product context while row 1 stayed on the placeholder.
+
+There was also a smaller dynamic-row price issue: the product select had no blank option, so a newly added row could default to the first real product and auto-fill that product's suggested price before the operator made a selection.
+
+### Shared init path
+
+- `SalesCreateLines.js` now calls `bootExistingRows(container)` immediately on `DOMContentLoaded`.
+- It still calls `bootExistingRows(container)` again after `abp.dom.ready`, so accidental Select2 markup can still be stripped if ABP enhances the row later.
+- Both existing rows and added rows flow through `prepareLineRow(row)`.
+- `prepareLineRow(row)` calls `vplSalesProductContext.initializeRow(row)`.
+- `initializeRow(row)` remains idempotent: rebinding removes the previous row change handler before adding a new one, and rendering replaces the existing context panel content instead of appending duplicate markup.
+- `CreateModel` now prepends an empty `Select` product option, so newly added rows start with no ProductId, placeholder context, blank actual price, and quantity `1`.
+
+### Actual selling price auto-fill behavior
+
+- When a selected product has a suggested price and the row actual price is blank, the row actual price is filled from the preloaded product context map.
+- Existing postback/user-entered actual prices are not overwritten because the script fills only when `[data-sales-actual-price]` has no value.
+- New rows now remain blank until a ProductId is selected; selecting different products fills the correct row-scoped suggested price.
+
+### No-BOM validation behavior
+
+- Products without a published BOM render the localized row warning: `Sales:ProductNotSaleEligible`.
+- The row select receives invalid styling.
+- Client submit is blocked by `validateAllRows`.
+- `CreateModel.ValidateLineEligibility()` and the `SALES_010` catch remain the server-side safety net if an invalid product is submitted anyway.
+
+### Manual smoke result (02B.4)
+
+Passed against the local app at `https://localhost:44325` using the seeded admin login.
+
+- `/Sales/Create` loaded and authenticated successfully.
+- Initial row starts blank with placeholder context, blank actual price, and quantity `1`.
+- Selecting a valid product in row 1 rendered published BOM status, image status, suggested price, eligibility state, and default actual selling price immediately.
+- Adding row 2 and selecting the same ProductId as row 1 rendered identical BOM status, image status, suggested price, eligibility state, and default actual price.
+- Adding row 3 with a different valid product rendered that product's own suggested price and context; no stale previous-row price remained.
+- Removing row 2 and adding another row left the new row blank with placeholder context and quantity `1`.
+- No selected ProductId showed the stale placeholder.
+- Selecting a product without a published BOM showed the row-level warning and blocked client submit.
+- Submitting two valid product rows succeeded and redirected to Details.
+- Details rendered two order lines for the created draft order.
+
+### Tests run (02B.4)
+
+```text
+dotnet build VPureLux.slnx --no-restore -m:2
+  -> Build succeeded, 0 warnings, 0 errors
+
+dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build --filter "FullyQualifiedName~Sales" -m:1
+  -> Passed: 20, Failed: 0
+
+dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build -m:1
+  -> Passed: 133, Failed: 0
+```

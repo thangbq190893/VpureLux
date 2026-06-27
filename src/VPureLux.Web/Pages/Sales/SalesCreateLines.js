@@ -150,6 +150,7 @@
             return;
         }
 
+        bootExistingRows(container);
         whenAbpDomReady(function () {
             bootExistingRows(container);
         });

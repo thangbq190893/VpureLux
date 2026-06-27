@@ -197,6 +197,41 @@ public class SalesPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Sales_Create_Initial_And_Dynamic_Rows_Should_Share_Product_Context_Init_Path()
+    {
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Create.cshtml"));
+        var linesScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/SalesCreateLines.js"));
+        var contextScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/SalesProductContext.js"));
+
+        CountOccurrences(pageSource, "data-sales-line-row").ShouldBeGreaterThanOrEqualTo(2);
+        CountOccurrences(pageSource, "data-sales-product-select").ShouldBeGreaterThanOrEqualTo(2);
+        CountOccurrences(pageSource, "data-sales-product-context").ShouldBeGreaterThanOrEqualTo(2);
+        CountOccurrences(pageSource, "data-sales-product-eligibility").ShouldBeGreaterThanOrEqualTo(2);
+        pageSource.ShouldContain("name=\"Input.Lines[@(i)].Quantity\"");
+        pageSource.ShouldContain("name=\"Input.Lines[@(i)].ActualSellingPrice\"");
+        pageSource.ShouldContain("asp-for=\"Input.Lines[i].ProductId\"");
+        pageSource.ShouldContain("asp-for=\"Input.Lines[i].OverrideReason\"");
+        pageSource.ShouldContain("data-name=\"Input.Lines[__index__].ProductId\"");
+        pageSource.ShouldContain("data-name=\"Input.Lines[__index__].Quantity\"");
+        pageSource.ShouldContain("data-name=\"Input.Lines[__index__].ActualSellingPrice\"");
+        pageSource.ShouldContain("data-name=\"Input.Lines[__index__].OverrideReason\"");
+
+        linesScriptSource.ShouldContain("function prepareLineRow(row)");
+        linesScriptSource.ShouldContain("getLiveRows(container).forEach(prepareLineRow)");
+        linesScriptSource.ShouldContain("bootExistingRows(container);");
+        linesScriptSource.ShouldContain("productContext.initializeRow(row)");
+        linesScriptSource.ShouldContain("prepareLineRow(row);");
+
+        contextScriptSource.ShouldContain("function initializeRow(row)");
+        contextScriptSource.ShouldContain("bindRow(row);");
+        contextScriptSource.ShouldContain("loadProductContext(scope);");
+        contextScriptSource.ShouldContain("loadProductContextFromMap(scope, productSelector.value);");
+        contextScriptSource.ShouldContain("actualPriceInput && !actualPriceInput.value");
+        contextScriptSource.ShouldContain("scope.querySelector('[data-sales-product-context]')");
+        contextScriptSource.ShouldNotContain("scope.dataset.salesContextBound === 'true'");
+    }
+
+    [Fact]
     public void Sales_Create_PageModel_Should_Validate_Line_Eligibility_Before_Create()
     {
         var pageSource = File.ReadAllText(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Create.cshtml.cs"));
@@ -488,6 +523,20 @@ public class SalesPagesTests : VPureLuxWebTestBase
     }
 
     private static string Unique(string prefix) => prefix + Guid.NewGuid().ToString("N")[..8];
+
+    private static int CountOccurrences(string value, string token)
+    {
+        var count = 0;
+        var index = 0;
+
+        while ((index = value.IndexOf(token, index, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            index += token.Length;
+        }
+
+        return count;
+    }
 
     private static string GetRepoFilePath(string relativePath)
     {

@@ -183,9 +183,10 @@ public class CreateModel : VPureLuxPageModel
         Warehouses = (await _warehouses.GetListAsync(new GetInventoryListInput { MaxResultCount = 500 })).Items
             .Select(x => new SelectListItem($"{x.Code} - {x.Name}", x.Id.ToString())).ToList();
         var productItems = (await _products.GetListAsync(new GetProductListInput { MaxResultCount = 1000 })).Items;
-        Products = productItems
+        Products = [new SelectListItem(L["Select"], string.Empty)];
+        Products.AddRange(productItems
             .Where(x => x.Status == CatalogItemStatus.Active)
-            .Select(x => new SelectListItem($"{x.Code} - {x.Name}", x.Id.ToString())).ToList();
+            .Select(x => new SelectListItem($"{x.Code} - {x.Name}", x.Id.ToString())));
         await LoadProductContextsAsync(productItems.ToDictionary(x => x.Id));
     }
 
