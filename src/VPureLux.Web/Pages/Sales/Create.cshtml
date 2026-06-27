@@ -3,7 +3,9 @@
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
 @using System.Globalization
 @{ ViewData["Title"] = L["Sales:Create"]; }
-<div id="SalesCreatePage" data-sales-context-endpoint="@Url.Page(null, "ProductContext")">
+<div id="SalesCreatePage"
+     data-sales-context-endpoint="@Url.Page(null, "ProductContext")"
+     data-sales-product-not-eligible="@L["Sales:ProductNotSaleEligible"]">
     <abp-card>
         <abp-card-header>
             <h2>@L["Sales:Create"]</h2>
@@ -30,10 +32,12 @@
                                     class="form-select w-100 mb-2 sales-line-product"
                                     data-sales-product-select
                                     data-sales-line-index="@i"></select>
+                            <span asp-validation-for="Input.Lines[i].ProductId" class="text-danger d-block mb-2"></span>
 
                             <div class="alert alert-light border mb-3 py-2" data-sales-product-context>
                                 @L["Sales:SelectProductForContext"]
                             </div>
+                            <div class="small text-danger d-none mb-2" data-sales-product-eligibility></div>
 
                             <div class="mb-3">
                                 <label class="form-label" for="Input_Lines_@(i)__Quantity">@L["Sales:Quantity"]</label>
@@ -82,6 +86,8 @@
     </abp-card>
 </div>
 
+<div id="sales-product-context-data" class="d-none" hidden aria-hidden="true">@Model.GetProductContextsJson()</div>
+
 <template id="sales-line-row-template">
     <div class="border rounded p-3 mb-3 sales-line-row" data-sales-line-row>
         <label class="form-label" data-for="Input_Lines___index____ProductId">@L["Sales:ProductSku"]</label>
@@ -98,6 +104,7 @@
         <div class="alert alert-light border mb-3 py-2" data-sales-product-context>
             @L["Sales:SelectProductForContext"]
         </div>
+        <div class="small text-danger d-none mb-2" data-sales-product-eligibility></div>
 
         <div class="mb-3">
             <label class="form-label" data-for="Input_Lines___index____Quantity">@L["Sales:Quantity"]</label>

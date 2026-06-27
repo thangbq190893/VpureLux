@@ -44,6 +44,20 @@
 
     function resetContextPanel(row) {
         var contextPanel = row.querySelector('[data-sales-product-context]');
+        var eligibilityWarning = row.querySelector('[data-sales-product-eligibility]');
+
+        if (eligibilityWarning) {
+            eligibilityWarning.textContent = '';
+            eligibilityWarning.classList.add('d-none');
+        }
+
+        row.classList.remove('sales-line-invalid');
+
+        var product = row.querySelector(productSelectSelector);
+
+        if (product) {
+            product.classList.remove('is-invalid');
+        }
 
         if (!contextPanel) {
             return;
@@ -139,6 +153,18 @@
         whenAbpDomReady(function () {
             bootExistingRows(container);
         });
+
+        var form = document.querySelector('#SalesCreatePage form');
+
+        if (form) {
+            form.addEventListener('submit', function (event) {
+                if (productContext && typeof productContext.validateAllRows === 'function') {
+                    if (!productContext.validateAllRows(container)) {
+                        event.preventDefault();
+                    }
+                }
+            });
+        }
 
         addButton.addEventListener('click', function () {
             var row = cloneTemplateRow();

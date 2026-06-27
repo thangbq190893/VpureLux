@@ -225,3 +225,40 @@ dotnet test ... -m:1
 - Browser/E2E automation for multi-line create submit
 - Optional Select2/searchable product picker if catalog grows (native select is intentional for stability)
 - Client-side validation message re-index after row remove (server validation unaffected)
+
+---
+
+## 12. UAT Fix 02B.3 — Eligibility validation and context init (2026-06-27)
+
+### Why backend exception happened
+
+`SalesOrderAppService.CreateAsync` calls `EnsurePublishedBomAsync` for each line. Products without a published BOM throw `BusinessException` (`SALES_010`). The Create page previously relied on AJAX per-row context (inconsistent on row 1) and only a summary-level catch, so operators could submit ineligible products and sometimes see raw error UI.
+
+### Create page handling (no Application change)
+
+- **Preloaded map:** `GetProductContextsJson()` embeds all product BOM/image/suggested-price flags in `#sales-product-context-data` — no per-row AJAX on Create.
+- **Row context init:** `loadProductContextFromMap()` runs synchronously for every row on `abp.dom.ready`, including postback lines with selected products.
+- **Row eligibility:** Products with `hasPublishedBom: false` show localized warning (`Sales:ProductNotSaleEligible`), invalid select styling, and client submit is blocked.
+- **Server validation:** `ValidateLineEligibility()` adds `ModelState` errors per line before `CreateAsync`; `SALES_010` catch adds row errors as safety net. Page re-renders with preserved input.
+
+### Manual smoke result (02B.3)
+
+Not run in this session — verify `/Sales/Create` scenarios in task checklist before UAT sign-off.
+
+### Tests run (02B.3)
+
+```text
+dotnet build test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj -o .build-out-02b3 -m:1
+  → Build succeeded
+
+dotnet test ... --filter "FullyQualifiedName~Sales" -m:1
+  → Passed: 19, Failed: 0
+
+dotnet test ... -m:1
+  → Passed: 132, Failed: 0
+```
+
+### Remaining known issues (02B.3)
+
+- Browser/E2E automation for multi-line create submit
+- Client-side validation message re-index after row remove (server validation unaffected)

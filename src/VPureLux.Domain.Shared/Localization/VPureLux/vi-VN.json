@@ -406,6 +406,7 @@
     "Sales:SelectProductForContext": "Chọn sản phẩm để xem giá bán đề xuất và trạng thái định mức.",
     "Sales:PublishedBomAvailable": "Đã có định mức công bố",
     "Sales:NoPublishedBom": "Chưa có định mức công bố",
+    "Sales:ProductNotSaleEligible": "Sản phẩm chưa có định mức công bố, không thể bán.",
     "Sales:PublishedBomVersion": "Định mức công bố phiên bản {0}",
     "Sales:NoSuggestedPrice": "Chưa có giá bán đề xuất",
     "Sales:ProductContextUnavailable": "Chưa có thông tin sản phẩm",

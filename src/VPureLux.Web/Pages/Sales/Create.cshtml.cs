@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using VPureLux;
 using VPureLux.Catalog;
 using VPureLux.Catalog.Products;
 using VPureLux.Customers;
@@ -20,6 +22,11 @@ namespace VPureLux.Web.Pages.Sales;
 [Authorize(VPureLuxPermissions.Sales.Create)]
 public class CreateModel : VPureLuxPageModel
 {
+    private static readonly JsonSerializerOptions ProductContextJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     private readonly ISalesOrderAppService _service;
     private readonly ICustomerAppService _customers;
     private readonly IWarehouseAppService _warehouses;
@@ -57,15 +64,26 @@ public class CreateModel : VPureLuxPageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
+        await LoadSelectionsAsync();
+
+        if (!ValidateLineEligibility())
+        {
+            return Page();
+        }
+
         try
         {
             var order = await _service.CreateAsync(Input);
             return RedirectToPage("/Sales/Details", new { id = order.Id });
         }
+        catch (BusinessException exception) when (exception.Code == VPureLuxDomainErrorCodes.SalesBomMustBePublished)
+        {
+            AddBomValidationErrors();
+            return Page();
+        }
         catch (BusinessException exception)
         {
             ModelState.AddModelError(string.Empty, SalesUiFormatter.GetFriendlyErrorMessage(L, exception));
-            await LoadSelectionsAsync();
             return Page();
         }
     }
@@ -91,6 +109,71 @@ public class CreateModel : VPureLuxPageModel
             ProductLabel = L["Sales:ProductContextUnavailable"],
             BomStatusText = L["Sales:ProductContextUnavailable"]
         });
+    }
+
+    public string GetProductContextsJson() =>
+        JsonSerializer.Serialize(
+            ProductContexts.ToDictionary(
+                x => x.Key.ToString(),
+                x => new
+                {
+                    x.Value.HasPublishedBom,
+                    x.Value.HasImage,
+                    x.Value.SuggestedPrice
+                }),
+            ProductContextJsonOptions);
+
+    private bool ValidateLineEligibility()
+    {
+        var isValid = true;
+
+        for (var i = 0; i < Input.Lines.Count; i++)
+        {
+            if (!TryAddLineEligibilityError(i))
+            {
+                continue;
+            }
+
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    private void AddBomValidationErrors()
+    {
+        for (var i = 0; i < Input.Lines.Count; i++)
+        {
+            TryAddLineEligibilityError(i);
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return;
+        }
+
+        ModelState.AddModelError(
+            string.Empty,
+            SalesUiFormatter.GetFriendlyErrorMessage(
+                L,
+                new BusinessException(VPureLuxDomainErrorCodes.SalesBomMustBePublished)));
+    }
+
+    private bool TryAddLineEligibilityError(int lineIndex)
+    {
+        var line = Input.Lines[lineIndex];
+        if (line.ProductId == Guid.Empty)
+        {
+            return false;
+        }
+
+        if (ProductContexts.TryGetValue(line.ProductId, out var context) && context.HasPublishedBom)
+        {
+            return false;
+        }
+
+        ModelState.AddModelError($"Input.Lines[{lineIndex}].ProductId", L["Sales:ProductNotSaleEligible"].Value);
+        return true;
     }
 
     private async Task LoadSelectionsAsync()

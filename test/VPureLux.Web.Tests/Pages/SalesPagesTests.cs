@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -138,6 +139,71 @@ public class SalesPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldNotContain("fw-semibold mb-1");
         scriptSource.ShouldNotContain("const productSelector = page.querySelector('[data-sales-product-selector]')");
         scriptSource.ShouldNotContain("page.querySelector('[data-sales-product-context]')");
+        scriptSource.ShouldContain("getProductContextMap");
+        scriptSource.ShouldContain("validateAllRows");
+        scriptSource.ShouldContain("data-sales-product-eligibility");
+        scriptSource.ShouldContain("loadProductContextFromMap");
+
+        pageSource.ShouldContain("sales-product-context-data");
+        pageSource.ShouldContain("GetProductContextsJson");
+        pageSource.ShouldContain("data-sales-product-eligibility");
+        pageSource.ShouldContain("data-sales-product-not-eligible");
+        pageSource.ShouldContain("asp-validation-for=\"Input.Lines[i].ProductId\"");
+
+        linesScriptSource.ShouldContain("validateAllRows");
+    }
+
+    [Fact]
+    public async Task Sales_Create_OnPostAsync_Should_Return_Page_When_Product_Has_No_Published_Bom()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-NOBOM");
+        var ineligibleProduct = await CreateProductAsync("SALES-NOBOM-P", "No BOM Product");
+        var model = GetRequiredService<CreateModel>();
+        await model.OnGetAsync();
+        model.Input.CustomerId = context.CustomerId;
+        model.Input.WarehouseId = context.WarehouseId;
+        model.Input.OrderDate = DateTime.UtcNow.Date;
+        model.Input.Lines =
+        [
+            new CreateSalesOrderLineDto
+            {
+                ProductId = ineligibleProduct.Id,
+                Quantity = 1,
+                ActualSellingPrice = 100
+            }
+        ];
+
+        var result = await model.OnPostAsync();
+
+        result.ShouldBeOfType<PageResult>();
+        model.ModelState.IsValid.ShouldBeFalse();
+        model.ModelState[$"Input.Lines[0].ProductId"]!.Errors
+            .Select(x => x.ErrorMessage)
+            .ShouldContain(localizer["Sales:ProductNotSaleEligible"].Value);
+    }
+
+    [Fact]
+    public async Task Sales_Create_Should_Expose_Preloaded_Product_Context_Map()
+    {
+        var product = await CreateProductAsync("SALES-MAP", "Sales Map Product");
+        await PublishBomAsync(product.Id);
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Sales/Create"));
+
+        html.ShouldContain("sales-product-context-data");
+        html.ShouldContain(product.Id.ToString());
+        html.ShouldContain("\"hasPublishedBom\":true");
+    }
+
+    [Fact]
+    public void Sales_Create_PageModel_Should_Validate_Line_Eligibility_Before_Create()
+    {
+        var pageSource = File.ReadAllText(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Create.cshtml.cs"));
+        pageSource.ShouldContain("ValidateLineEligibility");
+        pageSource.ShouldContain("SalesBomMustBePublished");
+        pageSource.ShouldContain("Sales:ProductNotSaleEligible");
+        pageSource.ShouldContain("GetProductContextsJson");
     }
 
     [Fact]

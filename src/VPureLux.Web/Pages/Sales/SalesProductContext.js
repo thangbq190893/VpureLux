@@ -6,6 +6,8 @@
 
     var l = abp.localization.getResource('VPureLux');
     var defaultContextHtml = null;
+    var productContextMap = null;
+    var createPage = document.getElementById('SalesCreatePage');
 
     function appendProductId(url, productId) {
         return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'productId=' + encodeURIComponent(productId);
@@ -39,9 +41,66 @@
         return defaultContextHtml;
     }
 
+    function getProductContextMap() {
+        if (productContextMap !== null) {
+            return productContextMap;
+        }
+
+        productContextMap = {};
+        var dataElement = document.getElementById('sales-product-context-data');
+
+        if (dataElement && dataElement.textContent) {
+            try {
+                productContextMap = JSON.parse(dataElement.textContent);
+            } catch (error) {
+                productContextMap = {};
+            }
+        }
+
+        return productContextMap;
+    }
+
     function getProductSelector(scope) {
         return scope.querySelector('[data-sales-product-select]')
             || scope.querySelector('[data-sales-product-selector]');
+    }
+
+    function getNotEligibleMessage() {
+        if (createPage && createPage.dataset.salesProductNotEligible) {
+            return createPage.dataset.salesProductNotEligible;
+        }
+
+        return l('Sales:ProductNotSaleEligible');
+    }
+
+    function hasPublishedBom(data) {
+        return getValue(data, 'HasPublishedBom') === true || getValue(data, 'HasPublishedBom') === 'true';
+    }
+
+    function updateRowEligibility(scope, data) {
+        var warning = scope.querySelector('[data-sales-product-eligibility]');
+        var productSelector = getProductSelector(scope);
+        var isEligible = data ? hasPublishedBom(data) : true;
+        var showWarning = data && !isEligible;
+
+        scope.classList.toggle('sales-line-invalid', !!showWarning);
+
+        if (productSelector) {
+            productSelector.classList.toggle('is-invalid', !!showWarning);
+        }
+
+        if (!warning) {
+            return;
+        }
+
+        if (showWarning) {
+            warning.textContent = getNotEligibleMessage();
+            warning.classList.remove('d-none');
+            return;
+        }
+
+        warning.textContent = '';
+        warning.classList.add('d-none');
     }
 
     function renderContext(scope, data) {
@@ -52,11 +111,11 @@
             return;
         }
 
-        var hasPublishedBom = getValue(data, 'HasPublishedBom') === true || getValue(data, 'HasPublishedBom') === 'true';
+        var published = hasPublishedBom(data);
         var hasImage = getValue(data, 'HasImage') === true || getValue(data, 'HasImage') === 'true';
         var suggestedPrice = getValue(data, 'SuggestedPrice');
-        var bomBadgeClass = hasPublishedBom ? 'badge bg-success' : 'badge bg-warning text-dark';
-        var bomText = hasPublishedBom ? l('Sales:PublishedBomAvailable') : l('Sales:NoPublishedBom');
+        var bomBadgeClass = published ? 'badge bg-success' : 'badge bg-warning text-dark';
+        var bomText = published ? l('Sales:PublishedBomAvailable') : l('Sales:NoPublishedBom');
         var imageText = hasImage ? l('Sales:HasProductImage') : l('Sales:NoProductImage');
         var suggestedPriceText = suggestedPrice === null || suggestedPrice === undefined
             ? l('Sales:NoSuggestedPrice')
@@ -70,6 +129,31 @@
         if (actualPriceInput && !actualPriceInput.value && suggestedPrice !== null && suggestedPrice !== undefined) {
             actualPriceInput.value = suggestedPrice;
         }
+
+        updateRowEligibility(scope, data);
+    }
+
+    function renderPlaceholder(scope) {
+        var contextPanel = scope.querySelector('[data-sales-product-context]');
+
+        if (contextPanel) {
+            contextPanel.innerHTML = captureDefaultContextHtml();
+        }
+
+        updateRowEligibility(scope, null);
+    }
+
+    function loadProductContextFromMap(scope, productId) {
+        var map = getProductContextMap();
+        var data = map[productId];
+
+        if (data) {
+            renderContext(scope, data);
+            return true;
+        }
+
+        renderContext(scope, { HasPublishedBom: false, HasImage: false, SuggestedPrice: null });
+        return true;
     }
 
     function loadProductContext(scope) {
@@ -81,7 +165,12 @@
         }
 
         if (!productSelector.value) {
-            contextPanel.innerHTML = captureDefaultContextHtml();
+            renderPlaceholder(scope);
+            return;
+        }
+
+        if (createPage && Object.keys(getProductContextMap()).length > 0) {
+            loadProductContextFromMap(scope, productSelector.value);
             return;
         }
 
@@ -92,6 +181,7 @@
             renderContext(scope, data);
         }).catch(function () {
             contextPanel.textContent = l('Sales:ProductContextUnavailable');
+            updateRowEligibility(scope, null);
         });
     }
 
@@ -155,16 +245,47 @@
         }
     }
 
+    function validateAllRows(container) {
+        if (!container) {
+            return true;
+        }
+
+        var isValid = true;
+
+        container.querySelectorAll('[data-sales-line-row]').forEach(function (row) {
+            var productSelector = getProductSelector(row);
+
+            if (!productSelector || !productSelector.value) {
+                return;
+            }
+
+            loadProductContext(row);
+
+            if (createPage && Object.keys(getProductContextMap()).length > 0) {
+                var data = getProductContextMap()[productSelector.value];
+
+                if (!data || !hasPublishedBom(data)) {
+                    isValid = false;
+                }
+            }
+        });
+
+        return isValid;
+    }
+
     window.vplSalesProductContext = {
         initializeRow: initializeRow,
         initializeRows: initializeRows,
-        getDefaultContextHtml: captureDefaultContextHtml
+        getDefaultContextHtml: captureDefaultContextHtml,
+        validateAllRows: validateAllRows,
+        loadProductContext: loadProductContext
     };
 
     document.addEventListener('DOMContentLoaded', function () {
         captureDefaultContextHtml();
+        getProductContextMap();
 
-        if (!document.getElementById('SalesCreatePage')) {
+        if (!createPage) {
             initializeRows();
         }
     });
