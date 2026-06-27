@@ -1,55 +1,57 @@
 (function () {
     var dynamicRows = window.vplDynamicRowSelects;
     var productContext = window.vplSalesProductContext;
-    var templateAttribute = dynamicRows ? dynamicRows.templateAttribute : 'data-dynamic-row-template';
     var rowSelector = '[data-sales-line-row]';
+    var indexToken = '__index__';
 
     function getLiveRows(container) {
-        return container.querySelectorAll(rowSelector + ':not([' + templateAttribute + '])');
+        return container.querySelectorAll(rowSelector);
+    }
+
+    function applyTemplateAttribute(element, attributeName, index) {
+        var template = element.getAttribute(attributeName);
+
+        if (template) {
+            element.setAttribute(attributeName.replace('data-', ''), template.replace(new RegExp(indexToken, 'g'), index));
+        }
     }
 
     function reindexRows(container) {
         getLiveRows(container).forEach(function (row, index) {
-            var product = row.querySelector('.sales-line-product');
-            var quantity = row.querySelector('.sales-line-quantity');
-            var actualPrice = row.querySelector('.sales-line-actual-price');
-            var overrideReason = row.querySelector('.sales-line-override');
+            row.querySelectorAll('[data-name]').forEach(function (element) {
+                applyTemplateAttribute(element, 'data-name', index);
+            });
 
-            if (product) {
-                product.name = 'Input.Lines[' + index + '].ProductId';
-                product.id = 'Input_Lines_' + index + '__ProductId';
-            }
+            row.querySelectorAll('[data-id]').forEach(function (element) {
+                applyTemplateAttribute(element, 'data-id', index);
+            });
 
-            if (quantity) {
-                quantity.name = 'Input.Lines[' + index + '].Quantity';
-                quantity.id = 'Input_Lines_' + index + '__Quantity';
-            }
-
-            if (actualPrice) {
-                actualPrice.name = 'Input.Lines[' + index + '].ActualSellingPrice';
-                actualPrice.id = 'Input_Lines_' + index + '__ActualSellingPrice';
-            }
-
-            if (overrideReason) {
-                overrideReason.name = 'Input.Lines[' + index + '].OverrideReason';
-                overrideReason.id = 'Input_Lines_' + index + '__OverrideReason';
-            }
-
-            row.querySelectorAll('label[for^="Input_Lines_"]').forEach(function (label) {
-                var fieldSuffix = label.getAttribute('for').split('__').pop();
-                if (fieldSuffix) {
-                    label.setAttribute('for', 'Input_Lines_' + index + '__' + fieldSuffix);
-                }
+            row.querySelectorAll('[data-for]').forEach(function (element) {
+                applyTemplateAttribute(element, 'data-for', index);
             });
         });
     }
 
+    function resetContextPanel(row) {
+        var contextPanel = row.querySelector('[data-sales-product-context]');
+
+        if (!contextPanel) {
+            return;
+        }
+
+        if (productContext && typeof productContext.getDefaultContextHtml === 'function') {
+            contextPanel.innerHTML = productContext.getDefaultContextHtml();
+            return;
+        }
+
+        contextPanel.textContent = '';
+    }
+
     function clearRow(row) {
-        var product = row.querySelector('.sales-line-product');
+        var product = row.querySelector('[data-sales-product-select]');
         var quantity = row.querySelector('.sales-line-quantity');
         var actualPrice = row.querySelector('.sales-line-actual-price');
         var overrideReason = row.querySelector('.sales-line-override');
-        var contextPanel = row.querySelector('[data-sales-product-context]');
 
         if (product) {
             product.selectedIndex = 0;
@@ -67,47 +69,49 @@
             overrideReason.value = '';
         }
 
-        if (contextPanel && productContext && typeof productContext.getDefaultContextHtml === 'function') {
-            contextPanel.innerHTML = productContext.getDefaultContextHtml();
+        resetContextPanel(row);
+    }
+
+    function cloneTemplateRow() {
+        var template = document.getElementById('sales-line-row-template');
+
+        if (!template || !template.content || !template.content.firstElementChild) {
+            return null;
         }
+
+        return template.content.firstElementChild.cloneNode(true);
+    }
+
+    function initializeProductSelect(row) {
+        var product = row.querySelector('[data-sales-product-select]');
+
+        if (!product || !dynamicRows) {
+            return;
+        }
+
+        dynamicRows.initializeSelects(product);
     }
 
     document.addEventListener('DOMContentLoaded', function () {
         var container = document.getElementById('sales-create-lines');
         var addButton = document.getElementById('add-sales-line');
 
-        if (!container || !addButton || !dynamicRows) {
+        if (!container || !addButton) {
             return;
         }
 
-        dynamicRows.ensureTemplate(container, rowSelector);
-
         addButton.addEventListener('click', function () {
-            var template = dynamicRows.ensureTemplate(container, rowSelector);
+            var row = cloneTemplateRow();
 
-            if (!template) {
+            if (!row) {
                 return;
             }
 
-            var liveRow = container.querySelector(rowSelector + ':not([' + templateAttribute + '])');
-            var sourceProduct = liveRow ? liveRow.querySelector('.sales-line-product') : null;
-            var row = dynamicRows.createCleanClone(template);
-
-            row.classList.remove('d-none');
-            row.removeAttribute(templateAttribute);
-            row.removeAttribute('aria-hidden');
             row.removeAttribute('data-sales-context-bound');
-
-            var product = row.querySelector('.sales-line-product');
-
-            if (product && sourceProduct) {
-                product.innerHTML = sourceProduct.innerHTML;
-            }
-
             clearRow(row);
             container.appendChild(row);
             reindexRows(container);
-            dynamicRows.initializeSelects(row);
+            initializeProductSelect(row);
 
             if (productContext && typeof productContext.initializeRow === 'function') {
                 productContext.initializeRow(row);
@@ -118,7 +122,14 @@
             var removeButton = event.target.closest('.remove-sales-line');
 
             if (removeButton && getLiveRows(container).length > 1) {
-                removeButton.closest(rowSelector).remove();
+                var row = removeButton.closest(rowSelector);
+                var product = row ? row.querySelector('[data-sales-product-select]') : null;
+
+                if (product && dynamicRows) {
+                    dynamicRows.stripSelect2Enhancements(row);
+                }
+
+                row.remove();
                 reindexRows(container);
             }
         });

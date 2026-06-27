@@ -84,6 +84,10 @@ public class SalesPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("<abp-script src=\"/Pages/Sales/SalesProductContext.js\" />");
         pageSource.ShouldContain("<abp-script src=\"/Pages/Sales/SalesCreateLines.js\" />");
         pageSource.ShouldContain("data-sales-line-row");
+        pageSource.ShouldContain("data-sales-product-select");
+        pageSource.ShouldContain("id=\"sales-line-row-template\"");
+        pageSource.ShouldContain("<template id=\"sales-line-row-template\">");
+        pageSource.ShouldContain("data-name=\"Input.Lines[__index__].ProductId\"");
         pageSource.ShouldContain("id=\"add-sales-line\"");
         pageSource.ShouldContain("remove-sales-line");
         pageSource.ShouldContain("Input.Lines[i].ProductId");
@@ -95,18 +99,28 @@ public class SalesPagesTests : VPureLuxWebTestBase
         pageSource.ShouldNotContain("href=\"/");
 
         var linesScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/SalesCreateLines.js"));
-        linesScriptSource.ShouldContain("Input.Lines[' + index + '].ProductId");
-        linesScriptSource.ShouldContain("initializeSelects(row)");
+        linesScriptSource.ShouldContain("sales-line-row-template");
+        linesScriptSource.ShouldContain("cloneTemplateRow");
+        linesScriptSource.ShouldContain("data-sales-product-select");
+        linesScriptSource.ShouldContain("indexToken");
+        linesScriptSource.ShouldContain("applyTemplateAttribute");
+        linesScriptSource.ShouldContain("data-name");
+        linesScriptSource.ShouldContain("initializeSelects(product)");
         linesScriptSource.ShouldContain("productContext.initializeRow");
+        linesScriptSource.ShouldNotContain("ensureTemplate");
+        linesScriptSource.ShouldNotContain("sourceProduct.innerHTML");
 
         var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/SalesProductContext.js"));
         scriptSource.ShouldContain("badge bg-success");
         scriptSource.ShouldContain("Sales:PublishedBomAvailable");
         scriptSource.ShouldContain("Sales:HasProductImage");
         scriptSource.ShouldContain(".catch(function ()");
-        scriptSource.ShouldContain("closest('[data-sales-line-row]')");
+        scriptSource.ShouldContain("getProductSelector");
+        scriptSource.ShouldContain("data-sales-product-select");
+        scriptSource.ShouldContain("sales-line-row-template");
         scriptSource.ShouldContain("initializeRow");
         scriptSource.ShouldNotContain("const productSelector = page.querySelector('[data-sales-product-selector]')");
+        scriptSource.ShouldNotContain("page.querySelector('[data-sales-product-context]')");
     }
 
     [Fact]

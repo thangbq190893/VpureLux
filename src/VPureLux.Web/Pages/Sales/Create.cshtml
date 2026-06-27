@@ -27,7 +27,8 @@
                             <select asp-for="Input.Lines[i].ProductId"
                                     asp-items="Model.Products"
                                     class="form-select mb-2 sales-line-product"
-                                    data-sales-product-selector></select>
+                                    data-sales-product-selector
+                                    data-sales-product-select></select>
 
                             <div class="alert alert-light border mb-3" data-sales-product-context>
                                 @L["Sales:SelectProductForContext"]
@@ -46,7 +47,7 @@
                                 <span asp-validation-for="Input.Lines[i].ActualSellingPrice" class="text-danger"></span>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label" for="Input_Lines_@(i)__OverrideReason">@L["Sales:OverrideReason"]</label>
+                                <label asp-for="Input.Lines[i].OverrideReason" class="form-label">@L["Sales:OverrideReason"]</label>
                                 <input asp-for="Input.Lines[i].OverrideReason" class="form-control sales-line-override" />
                                 <span asp-validation-for="Input.Lines[i].OverrideReason" class="text-danger"></span>
                             </div>
@@ -68,6 +69,51 @@
         </abp-card-body>
     </abp-card>
 </div>
+
+<template id="sales-line-row-template">
+    <div class="border rounded p-3 mb-3 sales-line-row" data-sales-line-row>
+        <label class="form-label" data-for="Input_Lines___index____ProductId">@L["Sales:ProductSku"]</label>
+        <select class="form-select mb-2 sales-line-product"
+                data-sales-product-selector
+                data-sales-product-select
+                data-name="Input.Lines[__index__].ProductId"
+                data-id="Input_Lines___index____ProductId">
+            @foreach (var option in Model.Products)
+            {
+                <option value="@option.Value">@option.Text</option>
+            }
+        </select>
+
+        <div class="alert alert-light border mb-3" data-sales-product-context>
+            @L["Sales:SelectProductForContext"]
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label" data-for="Input_Lines___index____Quantity">@L["Sales:Quantity"]</label>
+            <input type="number" step="any" class="form-control sales-line-quantity"
+                   data-name="Input.Lines[__index__].Quantity"
+                   data-id="Input_Lines___index____Quantity" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label" data-for="Input_Lines___index____ActualSellingPrice">@L["Sales:ActualPrice"]</label>
+            <input type="number" step="any" class="form-control sales-line-actual-price"
+                   data-sales-actual-price
+                   data-name="Input.Lines[__index__].ActualSellingPrice"
+                   data-id="Input_Lines___index____ActualSellingPrice" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label" data-for="Input_Lines___index____OverrideReason">@L["Sales:OverrideReason"]</label>
+            <input type="text" class="form-control sales-line-override"
+                   data-name="Input.Lines[__index__].OverrideReason"
+                   data-id="Input_Lines___index____OverrideReason" />
+        </div>
+        <div class="text-end">
+            <button type="button" class="btn btn-outline-danger btn-sm remove-sales-line" title="@L["Delete"]">
+                <i class="fa fa-trash"></i> @L["Delete"]
+            </button>
+        </div>
+    </div>
+</template>
 
 @section scripts {
     <abp-script src="/Pages/Shared/DynamicRowSelects.js" />

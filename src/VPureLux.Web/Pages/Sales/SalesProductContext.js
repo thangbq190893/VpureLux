@@ -30,9 +30,18 @@
             return defaultContextHtml;
         }
 
-        var panel = page.querySelector('[data-sales-product-context]');
+        var templatePanel = document.getElementById('sales-line-row-template');
+        var panel = templatePanel
+            ? templatePanel.content.querySelector('[data-sales-product-context]')
+            : page.querySelector('[data-sales-line-row] [data-sales-product-context]');
+
         defaultContextHtml = panel ? panel.innerHTML : l('Sales:SelectProductForContext');
         return defaultContextHtml;
+    }
+
+    function getProductSelector(scope) {
+        return scope.querySelector('[data-sales-product-select]')
+            || scope.querySelector('[data-sales-product-selector]');
     }
 
     function renderContext(scope, data) {
@@ -66,7 +75,7 @@
     }
 
     function loadProductContext(scope) {
-        var productSelector = scope.querySelector('[data-sales-product-selector]');
+        var productSelector = getProductSelector(scope);
         var contextPanel = scope.querySelector('[data-sales-product-context]');
 
         if (!productSelector || !contextPanel) {
@@ -88,8 +97,16 @@
         });
     }
 
-    function getRowScope(selector) {
-        return selector.closest('[data-sales-line-row]') || selector.closest('form') || page;
+    function bindProductSelector(scope, productSelector) {
+        function onProductChanged() {
+            loadProductContext(scope);
+        }
+
+        productSelector.addEventListener('change', onProductChanged);
+
+        if (window.jQuery && window.jQuery.fn.select2 && window.jQuery(productSelector).data('select2')) {
+            window.jQuery(productSelector).on('select2:select select2:clear', onProductChanged);
+        }
     }
 
     function bindRow(scope) {
@@ -97,16 +114,14 @@
             return;
         }
 
-        var productSelector = scope.querySelector('[data-sales-product-selector]');
+        var productSelector = getProductSelector(scope);
 
         if (!productSelector) {
             return;
         }
 
         scope.dataset.salesContextBound = 'true';
-        productSelector.addEventListener('change', function () {
-            loadProductContext(scope);
-        });
+        bindProductSelector(scope, productSelector);
         loadProductContext(scope);
     }
 
@@ -117,15 +132,15 @@
     function initializeRows(root) {
         var searchRoot = root || page;
 
-        searchRoot.querySelectorAll('[data-sales-line-row]:not([data-dynamic-row-template])').forEach(function (row) {
+        searchRoot.querySelectorAll('[data-sales-line-row]').forEach(function (row) {
             bindRow(row);
         });
 
         if (!root) {
-            page.querySelectorAll('[data-sales-product-selector]').forEach(function (selector) {
-                var scope = getRowScope(selector);
+            page.querySelectorAll('[data-sales-product-select], [data-sales-product-selector]').forEach(function (selector) {
+                var scope = selector.closest('[data-sales-line-row]') || selector.closest('form');
 
-                if (!scope.hasAttribute('data-sales-line-row')) {
+                if (scope && !scope.dataset.salesContextBound) {
                     bindRow(scope);
                 }
             });

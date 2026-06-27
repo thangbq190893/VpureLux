@@ -10,7 +10,11 @@
             node.remove();
         });
 
-        root.querySelectorAll('select.form-select').forEach(function (select) {
+        var selects = root.tagName === 'SELECT'
+            ? [root]
+            : Array.prototype.slice.call(root.querySelectorAll('select.form-select'));
+
+        selects.forEach(function (select) {
             if (window.jQuery) {
                 var $select = window.jQuery(select);
 
@@ -37,7 +41,8 @@
             width: '100%'
         };
 
-        var $dropdownParent = $select.closest('.modal, .offcanvas');
+        var $dropdownParent = $select.closest('.modal, .offcanvas, #SalesCreatePage, form');
+
         if ($dropdownParent.length) {
             options.dropdownParent = $dropdownParent;
         }
@@ -45,12 +50,22 @@
         return options;
     }
 
-    function initializeSelects(root) {
-        if (!window.jQuery || !window.jQuery.fn.select2) {
+    function initializeSelects(root, selector) {
+        if (!window.jQuery || !window.jQuery.fn.select2 || !root) {
             return;
         }
 
-        window.jQuery(root).find('select.form-select').each(function () {
+        var $selects;
+
+        if (root.tagName === 'SELECT') {
+            $selects = window.jQuery(root);
+        } else if (selector) {
+            $selects = window.jQuery(root).find(selector);
+        } else {
+            $selects = window.jQuery(root).find('select.form-select');
+        }
+
+        $selects.each(function () {
             var $select = window.jQuery(this);
 
             if ($select.hasClass('auto-complete-select')) {

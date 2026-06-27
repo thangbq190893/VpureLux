@@ -112,3 +112,43 @@ Not run in this session (requires running app with test catalog data). Recommend
 - Backend integration test: `CreateAsync` with 2+ products in one request (separate batch)
 - Client-side validation message re-index after row remove (server validation unaffected)
 - Optional Edit UX: inline multi-line add (Edit already supports sequential `AddLine`)
+
+---
+
+## 10. UAT Fix 02B.1 — Rendering bug fix (2026-06-27)
+
+### Rendering bug root cause
+
+Dynamic rows cloned the **first live row** after global Select2 initialization. That copied `.select2-container` DOM into the hidden template and new rows, producing stacked inline product controls/context blocks instead of one dropdown overlay per row.
+
+Copying `innerHTML` from an initialized live product select also risked carrying stale option/state markup into new rows.
+
+### DOM/template fix
+
+- Added `<template id="sales-line-row-template">` **outside** `#sales-create-lines` — inert markup never enhanced by Select2.
+- `SalesCreateLines.js` clones from the template only (`cloneTemplateRow()`); removed `ensureTemplate()` live-row cloning.
+- New rows initialize Select2 on the raw `[data-sales-product-select]` element only.
+- Remove-row strips Select2 from the deleted row before DOM removal.
+
+### Row-scoped product context fix
+
+- Default context HTML captured from the `<template>` panel (placeholder text), not from a live row after product selection.
+- `getProductSelector(scope)` resolves selector within row scope only.
+- Select2 `select2:select` / `select2:clear` events wired per row after init.
+
+### Manual smoke result (02B.1)
+
+Not run in this session — verify `/Sales/Create` add/remove/add flow in browser after deploy.
+
+### Tests run (02B.1)
+
+```text
+dotnet build test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj -o .build-out-02b1-fix -m:1
+  → Build succeeded
+
+dotnet test ... --filter "FullyQualifiedName~Sales" -m:1
+  → Passed: 16, Failed: 0
+
+dotnet test ... -m:1
+  → Passed: 129, Failed: 0
+```
