@@ -322,3 +322,84 @@ dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build --filte
 dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build -m:1
   -> Passed: 133, Failed: 0
 ```
+
+---
+
+## 14. UAT Fix 02C.3 - Product change price reset (2026-06-28)
+
+### Root cause
+
+`SalesProductContext.js` treated every context refresh the same way. It only auto-filled `ActualSellingPrice` when the field was blank, so a manually entered actual price from product A could remain after the operator changed the row to product B.
+
+The row also did not track the previously selected `ProductId`, so the script could not distinguish a real product change from an initial render, postback render, or validation-time context refresh.
+
+### Product change behavior
+
+- Each Sales Create product select now stores its previous selected `ProductId`.
+- A real ProductId change resets the row pricing context.
+- For a new product with `SuggestedPrice`, `ActualSellingPrice` is replaced with the new suggested price.
+- `OverrideReason` is cleared when the product changes.
+- Row-level override validation is cleared when the product changes.
+- The actual price input is marked as auto-filled after product-change reset.
+- Existing no-BOM eligibility validation is unchanged.
+
+### Suggested price behavior
+
+When the selected product has a suggested price:
+
+- selecting the product auto-fills the actual selling price,
+- changing from another product overwrites any stale manual value,
+- changing actual price manually marks the value as manual,
+- keeping the same ProductId preserves the manual actual price.
+
+### Missing suggested price behavior
+
+When the selected product has no suggested price:
+
+- changing to that product clears `ActualSellingPrice`,
+- `OverrideReason` is cleared,
+- the context panel shows that manual actual price is required,
+- override reason is not required solely because suggested price is missing.
+
+The local smoke data did not contain a product that was both published-BOM and missing suggested price. The UI reset/manual-price behavior was smoke-tested with a no-BOM/no-suggested product, and the valid published-BOM/no-suggested save path is covered by `Sales_Create_OnPostAsync_Should_Save_Missing_Suggested_Price_With_Manual_Actual_Price`.
+
+### Override reason behavior
+
+- If suggested price exists and actual selling price differs, blank override reason is blocked before submit with a global alert and row-level message.
+- If actual selling price equals suggested price, blank override reason is allowed.
+- If suggested price is missing, blank override reason is allowed as long as the product is otherwise sale-eligible.
+
+### Manual smoke result
+
+Passed against the local app at `https://localhost:44325` using the seeded admin login.
+
+- Selecting product A (`CB-123`) auto-filled actual price `255000`.
+- Manually changing A's actual price marked it as manual.
+- Changing the row to product B reset actual price to B's suggested price `150000`.
+- Product change cleared the prior override reason.
+- Changing to a no-suggested/no-BOM product cleared actual price and showed the manual-price-required context text.
+- Manually entering actual price for the no-suggested product did not require override reason solely due to missing suggested price.
+- Same-price save succeeded and redirected to Details.
+- Override price without reason showed the global alert and row-level validation.
+- Override price with reason succeeded and redirected to Details.
+- No-BOM validation still blocked submit with the existing eligibility message.
+- Multi-line submit with two valid suggested-price products succeeded and redirected to Details.
+
+### Tests run
+
+```text
+dotnet build VPureLux.slnx --no-restore -m:2
+  -> Build succeeded, 3 warnings, 0 errors
+
+dotnet build VPureLux.slnx --no-restore -m:2
+  -> Build succeeded, 1 warning, 0 errors
+
+dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build --filter "FullyQualifiedName~Sales" -m:1
+  -> First run: Failed 1 brittle source-shape assertion after JS signature change
+
+dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build --filter "FullyQualifiedName~Sales" -m:1
+  -> Passed: 28, Failed: 0
+
+dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build -m:1
+  -> Passed: 141, Failed: 0
+```

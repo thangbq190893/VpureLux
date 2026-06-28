@@ -161,7 +161,72 @@ public class SalesPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("showCreateAlert");
         scriptSource.ShouldContain("data-sales-create-alert");
         scriptSource.ShouldContain("data-sales-override-validation");
+        scriptSource.ShouldContain("Sales:ManualPriceRequired");
+        scriptSource.ShouldContain("salesPriceAutoFilled");
+        scriptSource.ShouldContain("salesPreviousProductId");
         scriptSource.ShouldContain("SuggestedPrice");
+    }
+
+    [Fact]
+    public async Task Sales_Create_Product_Change_To_Suggested_Product_Should_Reset_Actual_Price()
+    {
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/SalesProductContext.js"));
+
+        scriptSource.ShouldContain("function hasSelectedProductChanged(productSelector)");
+        scriptSource.ShouldContain("setPreviousProductId(productSelector, selectedProductId)");
+        scriptSource.ShouldContain("loadProductContext(scope, { resetPricing: !!createPage && productChanged })");
+        scriptSource.ShouldContain("function resetLinePricingForProductChange(scope, data)");
+        scriptSource.ShouldContain("actualPriceInput.value = suggestedPrice");
+        scriptSource.ShouldContain("markActualPriceAutoFilled(actualPriceInput, true)");
+    }
+
+    [Fact]
+    public async Task Sales_Create_Product_Change_Should_Clear_Override_Reason_And_Validation()
+    {
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/SalesProductContext.js"));
+        var linesScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/SalesCreateLines.js"));
+
+        scriptSource.ShouldContain("function clearOverrideReason(scope)");
+        scriptSource.ShouldContain("clearOverrideReason(scope);");
+        scriptSource.ShouldContain("clearOverrideValidation(scope);");
+        linesScriptSource.ShouldContain("delete product.dataset.salesPreviousProductId");
+        linesScriptSource.ShouldContain("delete actualPrice.dataset.salesPriceAutoFilled");
+    }
+
+    [Fact]
+    public async Task Sales_Create_Product_Change_To_Missing_Suggested_Price_Should_Clear_Actual_Price()
+    {
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/SalesProductContext.js"));
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+
+        scriptSource.ShouldContain("if (suggestedPrice === null || suggestedPrice === undefined)");
+        scriptSource.ShouldContain("actualPriceInput.value = ''");
+        scriptSource.ShouldContain("markActualPriceAutoFilled(actualPriceInput, false)");
+        scriptSource.ShouldContain("return l('Sales:NoSuggestedPrice') + ' - ' + getManualPriceRequiredMessage();");
+        scriptSource.ShouldContain("if (suggestedPrice === null)");
+        localizer["Sales:ManualPriceRequired"].Value.ShouldNotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task Sales_Create_Manual_Actual_Price_Should_Be_Preserved_While_Product_Stays_Same()
+    {
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/SalesProductContext.js"));
+
+        scriptSource.ShouldContain("options.resetPricing");
+        scriptSource.ShouldContain("} else if (actualPriceInput && !actualPriceInput.value && suggestedPrice !== null && suggestedPrice !== undefined) {");
+        scriptSource.ShouldContain("actualPriceInput._vplSalesActualPriceInputHandler = function ()");
+        scriptSource.ShouldContain("markActualPriceAutoFilled(actualPriceInput, false)");
+    }
+
+    [Fact]
+    public async Task Sales_Create_Manual_Actual_Price_Should_Not_Be_Preserved_After_Product_Changes()
+    {
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/SalesProductContext.js"));
+
+        scriptSource.ShouldContain("var productChanged = hasSelectedProductChanged(productSelector);");
+        scriptSource.ShouldContain("loadProductContext(scope, { resetPricing: !!createPage && productChanged })");
+        scriptSource.ShouldContain("resetLinePricingForProductChange(scope, data);");
+        scriptSource.ShouldContain("resetLinePricingForProductChange(scope, null);");
     }
 
     [Fact]
@@ -323,7 +388,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
         contextScriptSource.ShouldContain("function initializeRow(row)");
         contextScriptSource.ShouldContain("bindRow(row);");
         contextScriptSource.ShouldContain("loadProductContext(scope);");
-        contextScriptSource.ShouldContain("loadProductContextFromMap(scope, productSelector.value);");
+        contextScriptSource.ShouldContain("loadProductContextFromMap(scope, productSelector.value, options);");
         contextScriptSource.ShouldContain("actualPriceInput && !actualPriceInput.value");
         contextScriptSource.ShouldContain("scope.querySelector('[data-sales-product-context]')");
         contextScriptSource.ShouldNotContain("scope.dataset.salesContextBound === 'true'");

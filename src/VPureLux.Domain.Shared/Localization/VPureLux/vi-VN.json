@@ -409,6 +409,7 @@
     "Sales:ProductNotSaleEligible": "Sản phẩm chưa có định mức công bố, không thể bán.",
     "Sales:PublishedBomVersion": "Định mức công bố phiên bản {0}",
     "Sales:NoSuggestedPrice": "Chưa có giá bán đề xuất",
+    "Sales:ManualPriceRequired": "cần nhập giá bán thực tế thủ công",
     "Sales:ProductContextUnavailable": "Chưa có thông tin sản phẩm",
     "Sales:CustomerContextUnavailable": "Chưa có thông tin khách hàng",
     "Sales:ConfirmOrderMessage": "Xác nhận đơn bán hàng này?",

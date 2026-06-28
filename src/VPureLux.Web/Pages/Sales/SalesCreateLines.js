@@ -47,6 +47,7 @@
         var eligibilityWarning = row.querySelector('[data-sales-product-eligibility]');
         var overrideValidation = row.querySelector('[data-sales-override-validation]');
         var overrideInput = row.querySelector('.sales-line-override');
+        var actualPrice = row.querySelector('.sales-line-actual-price');
 
         if (eligibilityWarning) {
             eligibilityWarning.textContent = '';
@@ -60,6 +61,10 @@
 
         if (overrideInput) {
             overrideInput.classList.remove('is-invalid');
+        }
+
+        if (actualPrice) {
+            delete actualPrice.dataset.salesPriceAutoFilled;
         }
 
         row.classList.remove('sales-line-invalid');
@@ -104,6 +109,7 @@
 
         if (product) {
             product.selectedIndex = 0;
+            delete product.dataset.salesPreviousProductId;
         }
 
         if (quantity) {
@@ -112,6 +118,7 @@
 
         if (actualPrice) {
             actualPrice.value = '';
+            delete actualPrice.dataset.salesPriceAutoFilled;
         }
 
         if (overrideReason) {

@@ -65,6 +65,24 @@
             || scope.querySelector('[data-sales-product-selector]');
     }
 
+    function getSelectedProductId(productSelector) {
+        return productSelector ? productSelector.value || '' : '';
+    }
+
+    function setPreviousProductId(productSelector, productId) {
+        if (productSelector) {
+            productSelector.dataset.salesPreviousProductId = productId || '';
+        }
+    }
+
+    function hasSelectedProductChanged(productSelector) {
+        if (!productSelector) {
+            return false;
+        }
+
+        return (productSelector.dataset.salesPreviousProductId || '') !== getSelectedProductId(productSelector);
+    }
+
     function getNotEligibleMessage() {
         if (createPage && createPage.dataset.salesProductNotEligible) {
             return createPage.dataset.salesProductNotEligible;
@@ -79,6 +97,10 @@
         }
 
         return l('SALES_009');
+    }
+
+    function getManualPriceRequiredMessage() {
+        return l('Sales:ManualPriceRequired');
     }
 
     function getCreateAlert() {
@@ -151,6 +173,23 @@
         }
     }
 
+    function markActualPriceAutoFilled(actualPriceInput, isAutoFilled) {
+        if (actualPriceInput) {
+            actualPriceInput.dataset.salesPriceAutoFilled = isAutoFilled ? 'true' : 'false';
+        }
+    }
+
+    function clearOverrideReason(scope) {
+        var overrideInput = scope.querySelector('.sales-line-override');
+
+        if (!overrideInput) {
+            return;
+        }
+
+        overrideInput.value = '';
+        overrideInput.classList.remove('is-invalid');
+    }
+
     function parseMoney(value) {
         if (value === null || value === undefined || value === '') {
             return null;
@@ -202,7 +241,34 @@
         return false;
     }
 
-    function renderContext(scope, data) {
+    function resetLinePricingForProductChange(scope, data) {
+        var actualPriceInput = scope.querySelector('[data-sales-actual-price]');
+        var suggestedPrice = data ? getValue(data, 'SuggestedPrice') : null;
+
+        if (actualPriceInput) {
+            if (suggestedPrice === null || suggestedPrice === undefined) {
+                actualPriceInput.value = '';
+                markActualPriceAutoFilled(actualPriceInput, false);
+            } else {
+                actualPriceInput.value = suggestedPrice;
+                markActualPriceAutoFilled(actualPriceInput, true);
+            }
+        }
+
+        clearOverrideReason(scope);
+        clearOverrideValidation(scope);
+    }
+
+    function getSuggestedPriceText(suggestedPrice) {
+        if (suggestedPrice === null || suggestedPrice === undefined) {
+            return l('Sales:NoSuggestedPrice') + ' - ' + getManualPriceRequiredMessage();
+        }
+
+        return suggestedPrice;
+    }
+
+    function renderContext(scope, data, options) {
+        options = options || {};
         var contextPanel = scope.querySelector('[data-sales-product-context]');
         var actualPriceInput = scope.querySelector('[data-sales-actual-price]');
 
@@ -216,48 +282,55 @@
         var bomBadgeClass = published ? 'badge bg-success' : 'badge bg-warning text-dark';
         var bomText = published ? l('Sales:PublishedBomAvailable') : l('Sales:NoPublishedBom');
         var imageText = hasImage ? l('Sales:HasProductImage') : l('Sales:NoProductImage');
-        var suggestedPriceText = suggestedPrice === null || suggestedPrice === undefined
-            ? l('Sales:NoSuggestedPrice')
-            : suggestedPrice;
+        var suggestedPriceText = getSuggestedPriceText(suggestedPrice);
 
         contextPanel.innerHTML =
             '<div class="mb-2"><span class="' + bomBadgeClass + '">' + escapeHtml(bomText) + '</span></div>' +
             '<div class="small text-muted mb-1">' + escapeHtml(l('Sales:ProductImage')) + ': ' + escapeHtml(imageText) + '</div>' +
             '<div class="small">' + escapeHtml(l('Sales:SuggestedPrice')) + ': ' + escapeHtml(String(suggestedPriceText)) + '</div>';
 
-        if (actualPriceInput && !actualPriceInput.value && suggestedPrice !== null && suggestedPrice !== undefined) {
+        if (options.resetPricing) {
+            resetLinePricingForProductChange(scope, data);
+        } else if (actualPriceInput && !actualPriceInput.value && suggestedPrice !== null && suggestedPrice !== undefined) {
             actualPriceInput.value = suggestedPrice;
+            markActualPriceAutoFilled(actualPriceInput, true);
         }
 
         clearOverrideValidation(scope);
         updateRowEligibility(scope, data);
     }
 
-    function renderPlaceholder(scope) {
+    function renderPlaceholder(scope, options) {
+        options = options || {};
         var contextPanel = scope.querySelector('[data-sales-product-context]');
 
         if (contextPanel) {
             contextPanel.innerHTML = captureDefaultContextHtml();
         }
 
+        if (options.resetPricing) {
+            resetLinePricingForProductChange(scope, null);
+        }
+
         clearOverrideValidation(scope);
         updateRowEligibility(scope, null);
     }
 
-    function loadProductContextFromMap(scope, productId) {
+    function loadProductContextFromMap(scope, productId, options) {
         var map = getProductContextMap();
         var data = map[productId];
 
         if (data) {
-            renderContext(scope, data);
+            renderContext(scope, data, options);
             return true;
         }
 
-        renderContext(scope, { HasPublishedBom: false, HasImage: false, SuggestedPrice: null });
+        renderContext(scope, { HasPublishedBom: false, HasImage: false, SuggestedPrice: null }, options);
         return true;
     }
 
-    function loadProductContext(scope) {
+    function loadProductContext(scope, options) {
+        options = options || {};
         var productSelector = getProductSelector(scope);
         var contextPanel = scope.querySelector('[data-sales-product-context]');
 
@@ -266,12 +339,12 @@
         }
 
         if (!productSelector.value) {
-            renderPlaceholder(scope);
+            renderPlaceholder(scope, options);
             return;
         }
 
         if (createPage && Object.keys(getProductContextMap()).length > 0) {
-            loadProductContextFromMap(scope, productSelector.value);
+            loadProductContextFromMap(scope, productSelector.value, options);
             return;
         }
 
@@ -279,7 +352,7 @@
             url: appendProductId(page.dataset.salesContextEndpoint, productSelector.value),
             type: 'GET'
         }).then(function (data) {
-            renderContext(scope, data);
+            renderContext(scope, data, options);
         }).catch(function () {
             contextPanel.textContent = l('Sales:ProductContextUnavailable');
             updateRowEligibility(scope, null);
@@ -288,7 +361,16 @@
 
     function bindProductSelector(scope, productSelector) {
         function onProductChanged() {
-            loadProductContext(scope);
+            var productChanged = hasSelectedProductChanged(productSelector);
+            var selectedProductId = getSelectedProductId(productSelector);
+
+            setPreviousProductId(productSelector, selectedProductId);
+
+            if (createPage && productChanged) {
+                clearCreateAlert();
+            }
+
+            loadProductContext(scope, { resetPricing: !!createPage && productChanged });
         }
 
         if (productSelector._vplSalesContextChangeHandler) {
@@ -308,6 +390,23 @@
         }
     }
 
+    function bindActualPriceInput(scope) {
+        var actualPriceInput = scope.querySelector('[data-sales-actual-price]');
+
+        if (!actualPriceInput) {
+            return;
+        }
+
+        if (actualPriceInput._vplSalesActualPriceInputHandler) {
+            actualPriceInput.removeEventListener('input', actualPriceInput._vplSalesActualPriceInputHandler);
+        }
+
+        actualPriceInput._vplSalesActualPriceInputHandler = function () {
+            markActualPriceAutoFilled(actualPriceInput, false);
+        };
+        actualPriceInput.addEventListener('input', actualPriceInput._vplSalesActualPriceInputHandler);
+    }
+
     function bindRow(scope) {
         if (!scope) {
             return;
@@ -321,6 +420,8 @@
 
         scope.dataset.salesContextBound = 'true';
         bindProductSelector(scope, productSelector);
+        bindActualPriceInput(scope);
+        setPreviousProductId(productSelector, getSelectedProductId(productSelector));
         loadProductContext(scope);
     }
 
