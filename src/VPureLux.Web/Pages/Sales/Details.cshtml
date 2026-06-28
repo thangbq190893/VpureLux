@@ -65,6 +65,15 @@
         </div>
     </div>
 
+    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+    {
+        <div class="alert alert-success" role="alert">@Model.SuccessMessage</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.ConfirmErrorMessage))
+    {
+        <div class="alert alert-danger" role="alert">@Model.ConfirmErrorMessage</div>
+    }
+
     <abp-validation-summary />
 
     <abp-card class="vpl-card-dense mb-3">
@@ -73,18 +82,28 @@
                 <dt class="col-sm-3">@L["Sales:Status"]</dt>
                 <dd class="col-sm-9">@L[$"Sales:Status:{Model.Order.Status}"]</dd>
                 <dt class="col-sm-3">@L["Sales:Customer"]</dt>
-                <dd class="col-sm-9">@Model.Order.CustomerCodeSnapshot - @Model.Order.CustomerNameSnapshot</dd>
-                <dt class="col-sm-3">@L["Sales:Revenue"]</dt>
+                <dd class="col-sm-9">@Model.CustomerDisplay</dd>
+                @if (Model.IsDraft)
+                {
+                    <dt class="col-sm-3">@L["Sales:DraftEstimatedRevenue"]</dt>
+                    <dd class="col-sm-9">@FormatMoney(Model.DraftEstimatedRevenueAmount)</dd>
+                }
+                <dt class="col-sm-3">@L["Sales:ConfirmedRevenue"]</dt>
                 <dd class="col-sm-9">@FormatMoney(Model.Order.TotalRevenueAmount)</dd>
                 @if (canViewCost)
                 {
-                    <dt class="col-sm-3">@L["Sales:Cost"]</dt>
+                    <dt class="col-sm-3">@L["Sales:ConfirmedCost"]</dt>
                     <dd class="col-sm-9">@FormatMoney(Model.Order.TotalCostAmount)</dd>
                 }
                 @if (canViewProfit)
                 {
-                    <dt class="col-sm-3">@L["Sales:Profit"]</dt>
+                    <dt class="col-sm-3">@L["Sales:ConfirmedProfit"]</dt>
                     <dd class="col-sm-9">@FormatMoney(Model.Order.TotalProfitAmount)</dd>
+                }
+                @if (Model.IsDraft)
+                {
+                    <dt class="col-sm-3">@L["Sales:FinancialTotals"]</dt>
+                    <dd class="col-sm-9 text-muted">@L["Sales:DraftFinancialTotalsNote"]</dd>
                 }
             </dl>
         </abp-card-body>

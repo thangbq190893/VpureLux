@@ -26,6 +26,7 @@ using Volo.Abp.Application.Dtos;
 using Volo.Abp.Authorization;
 using Xunit;
 using CreateModel = VPureLux.Web.Pages.Sales.CreateModel;
+using DetailsModel = VPureLux.Web.Pages.Sales.DetailsModel;
 using IndexModel = VPureLux.Web.Pages.Sales.IndexModel;
 using SalesProductContextViewModel = VPureLux.Web.Pages.Sales.SalesProductContextViewModel;
 using SalesUiFormatter = VPureLux.Web.Pages.Sales.SalesUiFormatter;
@@ -641,6 +642,136 @@ public class SalesPagesTests : VPureLuxWebTestBase
         }
     }
 
+    [Fact]
+    public async Task Sales_Details_Should_Display_Customer_For_Draft_Order()
+    {
+        var context = await CreateSalesContextAsync("SALES-DDC");
+        var order = await GetRequiredService<ISalesOrderAppService>().CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 }]
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Sales/Details/{order.Id}"));
+
+        html.ShouldContain($"{context.CustomerCode} - {context.CustomerName}");
+        html.ShouldNotContain("> - <");
+    }
+
+    [Fact]
+    public async Task Sales_Details_Draft_Should_Show_Estimated_Revenue_And_Confirmed_Total_Labels()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-DTR");
+        var order = await GetRequiredService<ISalesOrderAppService>().CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 2, ActualSellingPrice = 100 }]
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Sales/Details/{order.Id}"));
+
+        html.ShouldContain(localizer["Sales:DraftEstimatedRevenue"].Value);
+        html.ShouldContain(localizer["Sales:ConfirmedRevenue"].Value);
+        html.ShouldContain(localizer["Sales:ConfirmedCost"].Value);
+        html.ShouldContain(localizer["Sales:ConfirmedProfit"].Value);
+        html.ShouldContain(localizer["Sales:DraftFinancialTotalsNote"].Value);
+        html.ShouldContain(FormatMoneyForTest(200));
+        html.ShouldContain(FormatMoneyForTest(0));
+    }
+
+    [Fact]
+    public async Task Sales_Details_Confirm_Button_Should_Post_To_Confirm_Handler()
+    {
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Details.cshtml"));
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Details.js"));
+
+        pageSource.ShouldContain("asp-page-handler=\"Confirm\"");
+        pageSource.ShouldContain("data-sales-action-form");
+        pageSource.ShouldContain("asp-for=\"Confirmation.IdempotencyKey\"");
+        pageSource.ShouldContain("data-confirm-message");
+        scriptSource.ShouldContain("form.submit();");
+        scriptSource.ShouldContain("form.dataset.confirmMessage");
+    }
+
+    [Fact]
+    public async Task Sales_Details_OnPostConfirmAsync_Should_Redirect_And_Update_Status_When_Confirm_Succeeds()
+    {
+        var context = await CreateSalesContextAsync("SALES-COK");
+        var service = GetRequiredService<ISalesOrderAppService>();
+        var order = await service.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 }]
+        });
+        var model = GetRequiredService<DetailsModel>();
+        SetPageContext(model);
+        model.Id = order.Id;
+        model.Confirmation = new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") };
+
+        var result = await model.OnPostConfirmAsync();
+
+        var redirect = result.ShouldBeOfType<RedirectToPageResult>();
+        redirect.RouteValues!["id"].ShouldBe(order.Id);
+        model.SuccessMessage.ShouldBe(GetRequiredService<IStringLocalizer<VPureLuxResource>>()["Sales:ConfirmedSuccessfully"].Value);
+        (await service.GetAsync(order.Id)).Status.ShouldBe(SalesOrderStatus.Confirmed);
+    }
+
+    [Fact]
+    public async Task Sales_Details_OnPostConfirmAsync_Should_Show_Friendly_Error_When_Inventory_Blocks_Confirm()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-CERR");
+        var order = await GetRequiredService<ISalesOrderAppService>().CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 25, ActualSellingPrice = 100 }]
+        });
+        var model = GetRequiredService<DetailsModel>();
+        SetPageContext(model);
+        model.Id = order.Id;
+        model.Confirmation = new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") };
+
+        var result = await model.OnPostConfirmAsync();
+
+        result.ShouldBeOfType<PageResult>();
+        model.ModelState.IsValid.ShouldBeFalse();
+        model.Order.Status.ShouldBe(SalesOrderStatus.Draft);
+        model.ConfirmErrorMessage.ShouldNotBeNullOrWhiteSpace();
+        model.ConfirmErrorMessage.ShouldContain(localizer[VPureLuxDomainErrorCodes.SalesInventoryValidationFailed].Value);
+        model.ConfirmErrorMessage.ShouldContain(localizer[VPureLuxDomainErrorCodes.InsufficientInventory].Value);
+    }
+
+    [Fact]
+    public async Task Sales_Details_Should_Render_All_Multi_Line_Order_Lines()
+    {
+        var context = await CreateSalesContextAsync("SALES-DML");
+        var secondProduct = await CreateProductAsync("SALES-DML-P2", "Sales Details Second Product");
+        await PublishBomAsync(secondProduct.Id);
+        var order = await GetRequiredService<ISalesOrderAppService>().CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines =
+            [
+                new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 },
+                new CreateSalesOrderLineDto { ProductId = secondProduct.Id, Quantity = 2, ActualSellingPrice = 75 }
+            ]
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Sales/Details/{order.Id}"));
+
+        html.ShouldContain($"{context.ProductCode} - {context.ProductName}");
+        html.ShouldContain($"{secondProduct.Code} - {secondProduct.Name}");
+        html.ShouldContain(FormatMoneyForTest(100));
+        html.ShouldContain(FormatMoneyForTest(75));
+        order.Lines.Count.ShouldBe(2);
+    }
+
     private async Task<(Guid CustomerId, string CustomerCode, string CustomerName, Guid WarehouseId, Guid ProductId, string ProductCode, string ProductName)> CreateSalesContextAsync(string prefix)
     {
         var groups = GetRequiredService<ICustomerGroupAppService>();
@@ -709,6 +840,24 @@ public class SalesPagesTests : VPureLuxWebTestBase
         }
 
         return count;
+    }
+
+    private static string FormatMoneyForTest(decimal value)
+    {
+        var vi = CultureInfo.GetCultureInfo("vi-VN");
+        var amount = decimal.Round(value, 0, MidpointRounding.AwayFromZero);
+        return amount.ToString("#,0", vi) + " ₫";
+    }
+
+    private static void SetPageContext(PageModel model)
+    {
+        model.PageContext = new PageContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity())
+            }
+        };
     }
 
     private static string GetRepoFilePath(string relativePath)

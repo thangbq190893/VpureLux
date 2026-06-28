@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VPureLux.Catalog.Products;
+using VPureLux.Customers;
 using VPureLux.Permissions;
 using VPureLux.Pricing;
 using VPureLux.Sales;
@@ -18,6 +19,7 @@ public class DetailsModel : VPureLuxPageModel
 {
     private readonly ISalesOrderAppService _service;
     private readonly IAuthorizationService _authorizationService;
+    private readonly ICustomerAppService _customers;
     private readonly IProductAppService _products;
     private readonly IProductPricingContextLookupService _productPricingContext;
     [BindProperty(SupportsGet = true)] public Guid Id { get; set; }
@@ -27,17 +29,23 @@ public class DetailsModel : VPureLuxPageModel
     public bool CanEdit { get; private set; }
     public bool CanConfirm { get; private set; }
     public bool CanCancel { get; private set; }
+    public bool IsDraft => Order.Status == SalesOrderStatus.Draft;
+    public decimal DraftEstimatedRevenueAmount { get; private set; }
+    public string CustomerDisplay { get; private set; } = string.Empty;
+    public string? ConfirmErrorMessage { get; private set; }
     public Dictionary<Guid, string> ProductLabels { get; private set; } = new();
     public Dictionary<Guid, SalesProductContextViewModel> ProductContexts { get; private set; } = new();
 
     public DetailsModel(
         ISalesOrderAppService service,
         IAuthorizationService authorizationService,
+        ICustomerAppService customers,
         IProductAppService products,
         IProductPricingContextLookupService productPricingContext)
     {
         _service = service;
         _authorizationService = authorizationService;
+        _customers = customers;
         _products = products;
         _productPricingContext = productPricingContext;
     }
@@ -51,10 +59,14 @@ public class DetailsModel : VPureLuxPageModel
             SuccessMessage = L["Sales:ConfirmedSuccessfully"];
             return RedirectToPage(new { id = Id });
         }
-        catch (BusinessException exception)
+        catch (BusinessException exception) when (IsKnownConfirmException(exception))
         {
-            ModelState.AddModelError(string.Empty, SalesUiFormatter.GetFriendlyErrorMessage(L, exception));
-            await LoadAsync();
+            await AddConfirmErrorAsync(exception);
+            return Page();
+        }
+        catch (AbpAuthorizationException)
+        {
+            await AddConfirmErrorAsync(new BusinessException(VPureLuxDomainErrorCodes.AccessDenied));
             return Page();
         }
     }
@@ -67,7 +79,7 @@ public class DetailsModel : VPureLuxPageModel
             SuccessMessage = L["Sales:CancelledSuccessfully"];
             return RedirectToPage(new { id = Id });
         }
-        catch (BusinessException exception)
+        catch (BusinessException exception) when (IsKnownCancelException(exception))
         {
             ModelState.AddModelError(string.Empty, SalesUiFormatter.GetFriendlyErrorMessage(L, exception));
             await LoadAsync();
@@ -105,6 +117,11 @@ public class DetailsModel : VPureLuxPageModel
     private async Task LoadAsync()
     {
         Order = await _service.GetAsync(Id);
+        DraftEstimatedRevenueAmount = Order.Lines.Sum(x => decimal.Round(
+            x.Quantity * x.ActualSellingPrice,
+            SalesConsts.MoneyScale,
+            MidpointRounding.AwayFromZero));
+        CustomerDisplay = await GetCustomerDisplayAsync();
         ProductLabels = (await _products.GetListAsync(new GetProductListInput { MaxResultCount = 1000 })).Items
             .Where(x => Order.Lines.Any(line => line.ProductId == x.Id))
             .ToDictionary(x => x.Id, x => $"{x.Code} - {x.Name}");
@@ -144,4 +161,64 @@ public class DetailsModel : VPureLuxPageModel
             ProductContexts = new Dictionary<Guid, SalesProductContextViewModel>();
         }
     }
+
+    private async Task<string> GetCustomerDisplayAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(Order.CustomerCodeSnapshot) || !string.IsNullOrWhiteSpace(Order.CustomerNameSnapshot))
+        {
+            return $"{Order.CustomerCodeSnapshot} - {Order.CustomerNameSnapshot}".Trim(' ', '-');
+        }
+
+        try
+        {
+            var customer = await _customers.GetAsync(Order.CustomerId);
+            return $"{customer.Code} - {customer.Name}";
+        }
+        catch (AbpAuthorizationException)
+        {
+            return L["Sales:CustomerContextUnavailable"];
+        }
+        catch (BusinessException exception) when (exception.Code == VPureLuxDomainErrorCodes.CustomerNotFound)
+        {
+            return L["Sales:CustomerContextUnavailable"];
+        }
+    }
+
+    private async Task AddConfirmErrorAsync(BusinessException exception)
+    {
+        ConfirmErrorMessage = SalesUiFormatter.GetFriendlyErrorMessage(L, exception);
+        ModelState.AddModelError(string.Empty, ConfirmErrorMessage);
+        await LoadAsync();
+    }
+
+    private static bool IsKnownConfirmException(BusinessException exception) =>
+        exception.Code is
+            VPureLuxDomainErrorCodes.SalesInventoryValidationFailed or
+            VPureLuxDomainErrorCodes.SalesBomMustBePublished or
+            VPureLuxDomainErrorCodes.ComponentNotActive or
+            VPureLuxDomainErrorCodes.WarehouseInactive or
+            VPureLuxDomainErrorCodes.StockItemNotFound or
+            VPureLuxDomainErrorCodes.StockItemInactive or
+            VPureLuxDomainErrorCodes.StockItemInventoryDisabled or
+            VPureLuxDomainErrorCodes.CustomerNotFound or
+            VPureLuxDomainErrorCodes.CustomerInactive or
+            VPureLuxDomainErrorCodes.CustomerGroupNotFound or
+            VPureLuxDomainErrorCodes.CustomerGroupInactive or
+            VPureLuxDomainErrorCodes.ProductNotFound or
+            VPureLuxDomainErrorCodes.SalesOrderAlreadyConfirmed or
+            VPureLuxDomainErrorCodes.SalesOrderAlreadyCancelled or
+            VPureLuxDomainErrorCodes.SalesOrderCannotBeModified or
+            VPureLuxDomainErrorCodes.SalesConcurrentModification or
+            VPureLuxDomainErrorCodes.DuplicateConfirmationKey or
+            VPureLuxDomainErrorCodes.AccessDenied or
+            VPureLuxDomainErrorCodes.ValidationFailed;
+
+    private static bool IsKnownCancelException(BusinessException exception) =>
+        exception.Code is
+            VPureLuxDomainErrorCodes.SalesOrderAlreadyConfirmed or
+            VPureLuxDomainErrorCodes.SalesOrderAlreadyCancelled or
+            VPureLuxDomainErrorCodes.SalesOrderNotFound or
+            VPureLuxDomainErrorCodes.SalesConcurrentModification or
+            VPureLuxDomainErrorCodes.AccessDenied or
+            VPureLuxDomainErrorCodes.ValidationFailed;
 }
