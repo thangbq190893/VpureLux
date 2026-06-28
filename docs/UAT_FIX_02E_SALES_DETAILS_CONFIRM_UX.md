@@ -13,6 +13,10 @@ Draft order totals are intentionally finalized in `SalesOrder.Confirm()`. Line q
 
 Confirm already posted to `OnPostConfirmAsync`, but confirm failures were only represented through model validation. The page did not show a dedicated visible alert, and inventory failures did not include the underlying inventory reason.
 
+The follow-up raw confirm failure was an unhandled ABP database concurrency exception wrapping EF's rowversion conflict message: expected to affect 1 row, but affected 0 rows. The confirm path updates rowversion-protected inventory rows during FIFO issue (`InventoryLot` allocations and `InventoryBalance` movements) and then saves them with the sales order. If those inventory/order rows changed before save, the conflict is expected and must be shown as a friendly stale-stock/order message rather than a raw exception page.
+
+The raw exception escaped the original handler-level catch because ABP's request unit-of-work middleware was completing the pending EF changes after `OnPostConfirmAsync` returned. The fix runs confirm inside an explicit child unit of work and completes that child unit of work inside the handler, so database concurrency failures are thrown while the handler can catch and map them.
+
 ---
 
 ## 2. Customer display fix
@@ -37,7 +41,8 @@ Details now shows:
 - `Doanh thu đã xác nhận`,
 - `Giá vốn đã xác nhận`,
 - `Lợi nhuận đã xác nhận`,
-- a draft note explaining that cost and profit are calculated after confirmation.
+- a draft note explaining that cost and profit are calculated after confirmation,
+- draft line-level cost/profit cells as `Tính sau xác nhận` instead of `0 ₫`.
 
 No draft cost/profit is invented because FIFO cost is only known during confirm.
 
@@ -73,6 +78,7 @@ On failure:
 - missing stock item or unusable stock item,
 - duplicate confirmation key,
 - concurrent modification,
+- ABP database concurrency conflict from rowversion-protected sales/inventory rows,
 - access denied,
 - validation failure.
 
@@ -81,6 +87,14 @@ Inventory validation failures now append the localized underlying inventory reas
 ```text
 Kiểm tra tồn kho cho đơn bán hàng thất bại. Không đủ tồn kho.
 ```
+
+Concurrency failures now show:
+
+```text
+Không thể xác nhận đơn hàng do tồn kho hoặc đơn hàng đã thay đổi. Vui lòng kiểm tra lại tồn kho và thử lại.
+```
+
+No FIFO, inventory allocation, BOM, product-stock, or confirmation business rule was changed.
 
 ---
 
@@ -98,6 +112,7 @@ Passed against the local app at `https://localhost:44325` using the seeded admin
 - Clicking Confirm invoked the confirm flow.
 - Confirm was blocked by inventory for the selected runtime data.
 - The page showed the visible friendly error: `Kiểm tra tồn kho cho đơn bán hàng thất bại. Không đủ tồn kho.`
+- The earlier raw `DbUpdateConcurrencyException` / `AbpDbConcurrencyException` page was not shown after the explicit child unit-of-work fix.
 - Status remained `Nháp`.
 - Refresh kept the order state consistent as Draft.
 
@@ -109,19 +124,13 @@ Confirm success was covered by Web test using seeded in-memory test data with su
 
 ```text
 dotnet build VPureLux.slnx --no-restore -m:2
-  -> Build succeeded, 3 warnings, 0 errors
-
-dotnet build VPureLux.slnx --no-restore -m:2
-  -> Build succeeded, 1 warning, 0 errors
+  -> Build succeeded, 1 known Test SDK warning, 0 errors
 
 dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build --filter "FullyQualifiedName~Sales" -m:1
-  -> First run: Failed 1 brittle source assertion in the new confirm-handler test
-
-dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build --filter "FullyQualifiedName~Sales" -m:1
-  -> Passed: 34, Failed: 0
+  -> Passed: 36, Failed: 0
 
 dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build -m:1
-  -> Passed: 147, Failed: 0
+  -> Passed: 149, Failed: 0
 ```
 
 ---

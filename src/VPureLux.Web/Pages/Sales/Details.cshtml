@@ -155,12 +155,27 @@
                         <td>@line.OverrideReason</td>
                         @if (canViewCost)
                         {
-                            <td>@FormatMoney(line.CostPriceSnapshot)</td>
-                            <td>@FormatMoney(line.CostAmountSnapshot)</td>
+                            if (Model.IsDraft)
+                            {
+                                <td class="text-muted">@L["Sales:CalculatedAfterConfirmation"]</td>
+                                <td class="text-muted">@L["Sales:CalculatedAfterConfirmation"]</td>
+                            }
+                            else
+                            {
+                                <td>@FormatMoney(line.CostPriceSnapshot)</td>
+                                <td>@FormatMoney(line.CostAmountSnapshot)</td>
+                            }
                         }
                         @if (canViewProfit)
                         {
-                            <td>@FormatMoney(line.ProfitAmount)</td>
+                            if (Model.IsDraft)
+                            {
+                                <td class="text-muted">@L["Sales:CalculatedAfterConfirmation"]</td>
+                            }
+                            else
+                            {
+                                <td>@FormatMoney(line.ProfitAmount)</td>
+                            }
                         }
                     </tr>
                 }

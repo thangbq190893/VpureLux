@@ -384,6 +384,8 @@
     "Sales:DraftEstimatedRevenue": "Doanh thu dự kiến",
     "Sales:FinancialTotals": "Số liệu tài chính",
     "Sales:DraftFinancialTotalsNote": "Giá vốn và lợi nhuận chỉ được tính sau khi đơn bán hàng được xác nhận.",
+    "Sales:CalculatedAfterConfirmation": "Tính sau xác nhận",
+    "Sales:ConfirmConcurrencyError": "Không thể xác nhận đơn hàng do tồn kho hoặc đơn hàng đã thay đổi. Vui lòng kiểm tra lại tồn kho và thử lại.",
     "Sales:Profit": "Lợi nhuận",
     "Sales:ConfirmedProfit": "Lợi nhuận đã xác nhận",
     "Sales:Cost": "Giá vốn",

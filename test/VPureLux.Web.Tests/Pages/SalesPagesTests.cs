@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -24,6 +26,8 @@ using VPureLux.Sales;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Authorization;
+using Volo.Abp.Data;
+using Volo.Abp.Uow;
 using Xunit;
 using CreateModel = VPureLux.Web.Pages.Sales.CreateModel;
 using DetailsModel = VPureLux.Web.Pages.Sales.DetailsModel;
@@ -678,6 +682,8 @@ public class SalesPagesTests : VPureLuxWebTestBase
         html.ShouldContain(localizer["Sales:ConfirmedCost"].Value);
         html.ShouldContain(localizer["Sales:ConfirmedProfit"].Value);
         html.ShouldContain(localizer["Sales:DraftFinancialTotalsNote"].Value);
+        html.ShouldContain(localizer["Sales:CalculatedAfterConfirmation"].Value);
+        CountOccurrences(html, localizer["Sales:CalculatedAfterConfirmation"].Value).ShouldBeGreaterThanOrEqualTo(3);
         html.ShouldContain(FormatMoneyForTest(200));
         html.ShouldContain(FormatMoneyForTest(0));
     }
@@ -694,6 +700,17 @@ public class SalesPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("data-confirm-message");
         scriptSource.ShouldContain("form.submit();");
         scriptSource.ShouldContain("form.dataset.confirmMessage");
+    }
+
+    [Fact]
+    public void Sales_Details_Confirm_Handler_Should_Disable_Page_UnitOfWork()
+    {
+        var attribute = typeof(DetailsModel)
+            .GetMethod(nameof(DetailsModel.OnPostConfirmAsync))!
+            .GetCustomAttribute<UnitOfWorkAttribute>();
+
+        attribute.ShouldNotBeNull();
+        attribute.IsDisabled.ShouldBeTrue();
     }
 
     [Fact]
@@ -744,6 +761,49 @@ public class SalesPagesTests : VPureLuxWebTestBase
         model.ConfirmErrorMessage.ShouldNotBeNullOrWhiteSpace();
         model.ConfirmErrorMessage.ShouldContain(localizer[VPureLuxDomainErrorCodes.SalesInventoryValidationFailed].Value);
         model.ConfirmErrorMessage.ShouldContain(localizer[VPureLuxDomainErrorCodes.InsufficientInventory].Value);
+    }
+
+    [Fact]
+    public async Task Sales_Details_OnPostConfirmAsync_Should_Show_Friendly_Error_When_Db_Concurrency_Blocks_Confirm()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var orderId = Guid.NewGuid();
+        var service = Substitute.For<ISalesOrderAppService>();
+        service.ConfirmAsync(orderId, Arg.Any<ConfirmSalesOrderDto>())
+            .Returns<Task<ConfirmSalesOrderResultDto>>(_ => throw new AbpDbConcurrencyException("Expected concurrency test exception."));
+        service.GetAsync(orderId).Returns(new SalesOrderDto
+        {
+            Id = orderId,
+            OrderNo = "SO-CONCURRENCY",
+            CustomerId = Guid.NewGuid(),
+            WarehouseId = Guid.NewGuid(),
+            Status = SalesOrderStatus.Draft,
+            CustomerCodeSnapshot = "C-CON",
+            CustomerNameSnapshot = "Concurrency Customer"
+        });
+        var authorization = Substitute.For<IAuthorizationService>();
+        authorization.AuthorizeAsync(Arg.Any<ClaimsPrincipal>(), Arg.Any<object?>(), Arg.Any<string>())
+            .Returns(AuthorizationResult.Success());
+        var customers = Substitute.For<ICustomerAppService>();
+        var products = Substitute.For<IProductAppService>();
+        products.GetListAsync(Arg.Any<GetProductListInput>())
+            .Returns(new PagedResultDto<ProductDto>());
+        var pricingContext = Substitute.For<IProductPricingContextLookupService>();
+        pricingContext.FindMapAsync(Arg.Any<IReadOnlyCollection<Guid>>(), Arg.Any<DateTime>())
+            .Returns(new Dictionary<Guid, ProductPricingContextDto>());
+        var unitOfWorkManager = Substitute.For<IUnitOfWorkManager>();
+        var model = new DetailsModel(service, authorization, customers, products, pricingContext, unitOfWorkManager);
+        SetPageContext(model, GetRequiredService<IServiceProvider>());
+        model.ProductContexts[Guid.NewGuid()] = new SalesProductContextViewModel();
+        model.Id = orderId;
+        model.Confirmation = new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") };
+
+        var result = await model.OnPostConfirmAsync();
+
+        var redirect = result.ShouldBeOfType<RedirectToPageResult>();
+        redirect.RouteValues!["id"].ShouldBe(orderId);
+        model.ModelState.IsValid.ShouldBeTrue();
+        model.ConfirmErrorMessage.ShouldBe(localizer["Sales:ConfirmConcurrencyError"].Value);
     }
 
     [Fact]
@@ -849,14 +909,20 @@ public class SalesPagesTests : VPureLuxWebTestBase
         return amount.ToString("#,0", vi) + " ₫";
     }
 
-    private static void SetPageContext(PageModel model)
+    private static void SetPageContext(PageModel model, IServiceProvider? services = null)
     {
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity())
+        };
+        if (services != null)
+        {
+            httpContext.RequestServices = services;
+        }
+
         model.PageContext = new PageContext
         {
-            HttpContext = new DefaultHttpContext
-            {
-                User = new ClaimsPrincipal(new ClaimsIdentity())
-            }
+            HttpContext = httpContext
         };
     }
 

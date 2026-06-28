@@ -4,13 +4,19 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Localization;
 using VPureLux.Catalog.Products;
 using VPureLux.Customers;
+using VPureLux.Localization;
 using VPureLux.Permissions;
 using VPureLux.Pricing;
 using VPureLux.Sales;
 using Volo.Abp;
 using Volo.Abp.Authorization;
+using Volo.Abp.Data;
+using Volo.Abp.Uow;
 
 namespace VPureLux.Web.Pages.Sales;
 
@@ -22,6 +28,7 @@ public class DetailsModel : VPureLuxPageModel
     private readonly ICustomerAppService _customers;
     private readonly IProductAppService _products;
     private readonly IProductPricingContextLookupService _productPricingContext;
+    private readonly IUnitOfWorkManager _unitOfWorkManager;
     [BindProperty(SupportsGet = true)] public Guid Id { get; set; }
     [BindProperty] public ConfirmSalesOrderDto Confirmation { get; set; } = new() { IdempotencyKey = Guid.NewGuid().ToString("N") };
     [TempData] public string? SuccessMessage { get; set; }
@@ -32,7 +39,7 @@ public class DetailsModel : VPureLuxPageModel
     public bool IsDraft => Order.Status == SalesOrderStatus.Draft;
     public decimal DraftEstimatedRevenueAmount { get; private set; }
     public string CustomerDisplay { get; private set; } = string.Empty;
-    public string? ConfirmErrorMessage { get; private set; }
+    [TempData] public string? ConfirmErrorMessage { get; set; }
     public Dictionary<Guid, string> ProductLabels { get; private set; } = new();
     public Dictionary<Guid, SalesProductContextViewModel> ProductContexts { get; private set; } = new();
 
@@ -41,21 +48,26 @@ public class DetailsModel : VPureLuxPageModel
         IAuthorizationService authorizationService,
         ICustomerAppService customers,
         IProductAppService products,
-        IProductPricingContextLookupService productPricingContext)
+        IProductPricingContextLookupService productPricingContext,
+        IUnitOfWorkManager unitOfWorkManager)
     {
         _service = service;
         _authorizationService = authorizationService;
         _customers = customers;
         _products = products;
         _productPricingContext = productPricingContext;
+        _unitOfWorkManager = unitOfWorkManager;
     }
 
     public async Task OnGetAsync() => await LoadAsync();
+    [UnitOfWork(IsDisabled = true)]
     public async Task<IActionResult> OnPostConfirmAsync()
     {
         try
         {
+            using var unitOfWork = _unitOfWorkManager.Begin(requiresNew: true, isTransactional: true);
             await _service.ConfirmAsync(Id, Confirmation);
+            await unitOfWork.CompleteAsync();
             SuccessMessage = L["Sales:ConfirmedSuccessfully"];
             return RedirectToPage(new { id = Id });
         }
@@ -68,6 +80,11 @@ public class DetailsModel : VPureLuxPageModel
         {
             await AddConfirmErrorAsync(new BusinessException(VPureLuxDomainErrorCodes.AccessDenied));
             return Page();
+        }
+        catch (AbpDbConcurrencyException exception)
+        {
+            await AddConfirmConcurrencyErrorAsync(exception);
+            return RedirectToPage(new { id = Id });
         }
     }
 
@@ -186,9 +203,52 @@ public class DetailsModel : VPureLuxPageModel
 
     private async Task AddConfirmErrorAsync(BusinessException exception)
     {
-        ConfirmErrorMessage = SalesUiFormatter.GetFriendlyErrorMessage(L, exception);
+        if (exception.Code == VPureLuxDomainErrorCodes.SalesConcurrentModification)
+        {
+            ConfirmErrorMessage = GetConfirmConcurrencyErrorMessage();
+            LogConfirmConcurrency(null);
+        }
+        else
+        {
+            ConfirmErrorMessage = SalesUiFormatter.GetFriendlyErrorMessage(L, exception);
+        }
+
         ModelState.AddModelError(string.Empty, ConfirmErrorMessage);
         await LoadAsync();
+    }
+
+    private async Task AddConfirmConcurrencyErrorAsync(AbpDbConcurrencyException exception)
+    {
+        await RollbackCurrentUnitOfWorkAsync();
+        LogConfirmConcurrency(exception);
+        ConfirmErrorMessage = GetConfirmConcurrencyErrorMessage();
+    }
+
+    private async Task RollbackCurrentUnitOfWorkAsync()
+    {
+        var currentUnitOfWork = _unitOfWorkManager.Current;
+        if (currentUnitOfWork != null)
+        {
+            await currentUnitOfWork.RollbackAsync();
+        }
+    }
+
+    private string GetConfirmConcurrencyErrorMessage()
+    {
+        var localizer = HttpContext?.RequestServices?.GetService<IStringLocalizer<VPureLuxResource>>();
+        return localizer?["Sales:ConfirmConcurrencyError"] ?? L["Sales:ConfirmConcurrencyError"];
+    }
+
+    private void LogConfirmConcurrency(Exception? exception)
+    {
+        var logger = HttpContext?.RequestServices?.GetService<ILogger<DetailsModel>>();
+        if (exception == null)
+        {
+            logger?.LogWarning("Sales confirm concurrency conflict for order {SalesOrderId}.", Id);
+            return;
+        }
+
+        logger?.LogWarning(exception, "Sales confirm database concurrency conflict for order {SalesOrderId}.", Id);
     }
 
     private static bool IsKnownConfirmException(BusinessException exception) =>
