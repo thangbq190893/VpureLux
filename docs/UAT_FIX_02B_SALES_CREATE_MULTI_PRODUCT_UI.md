@@ -434,11 +434,15 @@ dotnet build test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj -o .build-out-02c
   → Build succeeded
 
 dotnet test ... --filter "FullyQualifiedName~Sales" -m:1
-  → Passed: 28, Failed: 0
+  → Passed: 36, Failed: 0
 
 dotnet test ... -m:1
-  → Passed: 141, Failed: 0
+  → Passed: 149, Failed: 0
 ```
+
+### Deferred item (02C.4)
+
+- **Stock availability preview** — not implemented in this fix; remains deferred to a later UAT item.
 
 ### Remaining known issues (02C.4)
 
