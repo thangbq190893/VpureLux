@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Localization;
+using VPureLux;
 using VPureLux.Sales;
 using Volo.Abp;
 
@@ -15,6 +16,17 @@ public static class SalesUiFormatter
             var localized = localizer[exception.Code];
             if (!localized.ResourceNotFound)
             {
+                if (exception.Code == VPureLuxDomainErrorCodes.SalesInventoryValidationFailed &&
+                    exception.Data.Contains("InventoryErrorCode") &&
+                    exception.Data["InventoryErrorCode"] is string inventoryErrorCode)
+                {
+                    var inventoryMessage = localizer[inventoryErrorCode];
+                    if (!inventoryMessage.ResourceNotFound)
+                    {
+                        return $"{localized.Value} {inventoryMessage.Value}";
+                    }
+                }
+
                 return localized.Value;
             }
         }

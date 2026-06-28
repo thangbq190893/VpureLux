@@ -125,6 +125,7 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         {
             var pageSource = await File.ReadAllTextAsync(GetRepoFilePath(relativePath));
             pageSource.ShouldContain("@section scripts");
+            pageSource.ShouldContain("<abp-script src=\"/Pages/Shared/DynamicRowSelects.js\" />");
             pageSource.ShouldContain("<abp-script src=\"/Pages/Inventory/Posting.js\" />");
             pageSource.ShouldNotContain("<script>");
             pageSource.ShouldNotContain("<script src=");
@@ -136,6 +137,8 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("abp.notify.success");
         scriptSource.ShouldContain("abp.ui.setBusy");
         scriptSource.ShouldContain("dataset.confirmed");
+        scriptSource.ShouldContain("initializeSelects(row)");
+        scriptSource.ShouldContain("vplDynamicRowSelects");
     }
 
     [Fact]

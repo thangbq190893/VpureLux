@@ -44,6 +44,7 @@ public class BomPagesTests : VPureLuxWebTestBase
 
         var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/Create.cshtml"));
         pageSource.ShouldContain("@section scripts");
+        pageSource.ShouldContain("<abp-script src=\"/Pages/Shared/DynamicRowSelects.js\" />");
         pageSource.ShouldContain("<abp-script src=\"/Pages/Bom/BomItems.js\" />");
         pageSource.ShouldNotContain("<script>");
 
@@ -53,6 +54,8 @@ public class BomPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("quantity.name = 'Items[' + index + '].Quantity'");
         scriptSource.ShouldContain("component.id = 'Items_' + index + '__ComponentId'");
         scriptSource.ShouldContain("quantity.id = 'Items_' + index + '__Quantity'");
+        scriptSource.ShouldContain("initializeSelects(row)");
+        scriptSource.ShouldContain("vplDynamicRowSelects");
     }
 
     [Fact]

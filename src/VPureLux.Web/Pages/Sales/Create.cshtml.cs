@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using VPureLux;
 using VPureLux.Catalog;
 using VPureLux.Catalog.Products;
 using VPureLux.Customers;
@@ -20,6 +22,11 @@ namespace VPureLux.Web.Pages.Sales;
 [Authorize(VPureLuxPermissions.Sales.Create)]
 public class CreateModel : VPureLuxPageModel
 {
+    private static readonly JsonSerializerOptions ProductContextJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     private readonly ISalesOrderAppService _service;
     private readonly ICustomerAppService _customers;
     private readonly IWarehouseAppService _warehouses;
@@ -57,15 +64,34 @@ public class CreateModel : VPureLuxPageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
+        await LoadSelectionsAsync();
+
+        var isValid = ValidateLineEligibility();
+        isValid = ValidateLinePricingOverrides() && isValid;
+
+        if (!isValid)
+        {
+            return Page();
+        }
+
         try
         {
             var order = await _service.CreateAsync(Input);
             return RedirectToPage("/Sales/Details", new { id = order.Id });
         }
+        catch (BusinessException exception) when (exception.Code == VPureLuxDomainErrorCodes.SalesBomMustBePublished)
+        {
+            AddBomValidationErrors();
+            return Page();
+        }
+        catch (BusinessException exception) when (exception.Code == VPureLuxDomainErrorCodes.SalesOverrideReasonRequired)
+        {
+            AddOverrideReasonValidationErrors();
+            return Page();
+        }
         catch (BusinessException exception)
         {
             ModelState.AddModelError(string.Empty, SalesUiFormatter.GetFriendlyErrorMessage(L, exception));
-            await LoadSelectionsAsync();
             return Page();
         }
     }
@@ -93,6 +119,132 @@ public class CreateModel : VPureLuxPageModel
         });
     }
 
+    public string GetProductContextsJson() =>
+        JsonSerializer.Serialize(
+            ProductContexts.ToDictionary(
+                x => x.Key.ToString(),
+                x => new
+                {
+                    x.Value.HasPublishedBom,
+                    x.Value.HasImage,
+                    x.Value.SuggestedPrice
+                }),
+            ProductContextJsonOptions);
+
+    private bool ValidateLineEligibility()
+    {
+        var isValid = true;
+
+        for (var i = 0; i < Input.Lines.Count; i++)
+        {
+            if (!TryAddLineEligibilityError(i))
+            {
+                continue;
+            }
+
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    private void AddBomValidationErrors()
+    {
+        for (var i = 0; i < Input.Lines.Count; i++)
+        {
+            TryAddLineEligibilityError(i);
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return;
+        }
+
+        ModelState.AddModelError(
+            string.Empty,
+            SalesUiFormatter.GetFriendlyErrorMessage(
+                L,
+                new BusinessException(VPureLuxDomainErrorCodes.SalesBomMustBePublished)));
+    }
+
+    private bool ValidateLinePricingOverrides()
+    {
+        var isValid = true;
+
+        for (var i = 0; i < Input.Lines.Count; i++)
+        {
+            if (!TryAddLineOverrideReasonError(i))
+            {
+                continue;
+            }
+
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    private void AddOverrideReasonValidationErrors()
+    {
+        for (var i = 0; i < Input.Lines.Count; i++)
+        {
+            TryAddLineOverrideReasonError(i);
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return;
+        }
+
+        ModelState.AddModelError(
+            string.Empty,
+            SalesUiFormatter.GetFriendlyErrorMessage(
+                L,
+                new BusinessException(VPureLuxDomainErrorCodes.SalesOverrideReasonRequired)));
+    }
+
+    private bool TryAddLineEligibilityError(int lineIndex)
+    {
+        var line = Input.Lines[lineIndex];
+        if (line.ProductId == Guid.Empty)
+        {
+            return false;
+        }
+
+        if (ProductContexts.TryGetValue(line.ProductId, out var context) && context.HasPublishedBom)
+        {
+            return false;
+        }
+
+        ModelState.AddModelError($"Input.Lines[{lineIndex}].ProductId", L["Sales:ProductNotSaleEligible"].Value);
+        return true;
+    }
+
+    private bool TryAddLineOverrideReasonError(int lineIndex)
+    {
+        var line = Input.Lines[lineIndex];
+        if (line.ProductId == Guid.Empty ||
+            !line.ActualSellingPrice.HasValue ||
+            !ProductContexts.TryGetValue(line.ProductId, out var context) ||
+            !context.SuggestedPrice.HasValue)
+        {
+            return false;
+        }
+
+        var suggestedPrice = decimal.Round(context.SuggestedPrice.Value, SalesConsts.MoneyScale, MidpointRounding.AwayFromZero);
+        var actualPrice = decimal.Round(line.ActualSellingPrice.Value, SalesConsts.MoneyScale, MidpointRounding.AwayFromZero);
+
+        if (suggestedPrice == actualPrice || !string.IsNullOrWhiteSpace(line.OverrideReason))
+        {
+            return false;
+        }
+
+        ModelState.AddModelError(
+            $"Input.Lines[{lineIndex}].OverrideReason",
+            L[VPureLuxDomainErrorCodes.SalesOverrideReasonRequired].Value);
+        return true;
+    }
+
     private async Task LoadSelectionsAsync()
     {
         Customers = (await _customers.GetListAsync(new GetCustomerListInput { MaxResultCount = 500 })).Items
@@ -100,9 +252,10 @@ public class CreateModel : VPureLuxPageModel
         Warehouses = (await _warehouses.GetListAsync(new GetInventoryListInput { MaxResultCount = 500 })).Items
             .Select(x => new SelectListItem($"{x.Code} - {x.Name}", x.Id.ToString())).ToList();
         var productItems = (await _products.GetListAsync(new GetProductListInput { MaxResultCount = 1000 })).Items;
-        Products = productItems
+        Products = [new SelectListItem(L["Select"], string.Empty)];
+        Products.AddRange(productItems
             .Where(x => x.Status == CatalogItemStatus.Active)
-            .Select(x => new SelectListItem($"{x.Code} - {x.Name}", x.Id.ToString())).ToList();
+            .Select(x => new SelectListItem($"{x.Code} - {x.Name}", x.Id.ToString())));
         await LoadProductContextsAsync(productItems.ToDictionary(x => x.Id));
     }
 

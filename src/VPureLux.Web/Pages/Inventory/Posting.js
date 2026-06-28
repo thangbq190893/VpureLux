@@ -1,5 +1,12 @@
 (function () {
     var l = abp.localization.getResource('VPureLux');
+    var dynamicRows = window.vplDynamicRowSelects;
+    var templateAttribute = dynamicRows ? dynamicRows.templateAttribute : 'data-dynamic-row-template';
+    var rowSelector = '[data-inventory-line-row]';
+
+    function getLiveRows(container) {
+        return container.querySelectorAll(rowSelector + ':not([' + templateAttribute + '])');
+    }
 
     function applyTemplate(element, attributeName, index) {
         var template = element.getAttribute(attributeName);
@@ -10,7 +17,7 @@
     }
 
     function reindexRows(container) {
-        container.querySelectorAll('[data-inventory-line-row]').forEach(function (row, index) {
+        getLiveRows(container).forEach(function (row, index) {
             row.querySelectorAll('[data-name]').forEach(function (element) {
                 applyTemplate(element, 'data-name', index);
             });
@@ -52,18 +59,42 @@
         var addButtonSelector = container.dataset.addButton;
         var addButton = addButtonSelector ? document.querySelector(addButtonSelector) : null;
 
+        if (dynamicRows) {
+            dynamicRows.ensureTemplate(container, rowSelector);
+        }
+
         if (addButton) {
             addButton.addEventListener('click', function () {
-                var source = container.querySelector('[data-inventory-line-row]');
+                var row;
 
-                if (!source) {
-                    return;
+                if (dynamicRows) {
+                    var template = dynamicRows.ensureTemplate(container, rowSelector);
+
+                    if (!template) {
+                        return;
+                    }
+
+                    row = dynamicRows.createCleanClone(template);
+                    row.classList.remove('d-none');
+                    row.removeAttribute(templateAttribute);
+                    row.removeAttribute('aria-hidden');
+                } else {
+                    var source = container.querySelector(rowSelector);
+
+                    if (!source) {
+                        return;
+                    }
+
+                    row = source.cloneNode(true);
                 }
 
-                var row = source.cloneNode(true);
                 clearRow(row);
                 container.appendChild(row);
                 reindexRows(container);
+
+                if (dynamicRows) {
+                    dynamicRows.initializeSelects(row);
+                }
             });
         }
 
@@ -74,12 +105,11 @@
                 return;
             }
 
-            var rows = container.querySelectorAll('[data-inventory-line-row]');
-            if (rows.length <= 1) {
+            if (getLiveRows(container).length <= 1) {
                 return;
             }
 
-            removeButton.closest('[data-inventory-line-row]').remove();
+            removeButton.closest(rowSelector).remove();
             reindexRows(container);
         });
 

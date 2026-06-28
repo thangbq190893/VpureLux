@@ -1,8 +1,13 @@
 @page
 @model VPureLux.Web.Pages.Sales.CreateModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using System.Globalization
+@using VPureLux
 @{ ViewData["Title"] = L["Sales:Create"]; }
-<div id="SalesCreatePage" data-sales-context-endpoint="@Url.Page(null, "ProductContext")">
+<div id="SalesCreatePage"
+     data-sales-context-endpoint="@Url.Page(null, "ProductContext")"
+     data-sales-product-not-eligible="@L["Sales:ProductNotSaleEligible"]"
+     data-sales-override-reason-required="@L[VPureLuxDomainErrorCodes.SalesOverrideReasonRequired]">
     <abp-card>
         <abp-card-header>
             <h2>@L["Sales:Create"]</h2>
@@ -10,6 +15,7 @@
         <abp-card-body>
             <form method="post">
                 <abp-validation-summary />
+                <div class="alert alert-danger d-none" role="alert" data-sales-create-alert></div>
 
                 <label asp-for="Input.CustomerId">@L["Sales:Customer"]</label>
                 <select asp-for="Input.CustomerId" asp-items="Model.Customers" class="form-select mb-3"></select>
@@ -19,20 +25,83 @@
 
                 <abp-input asp-for="Input.OrderDate" />
 
-                <label asp-for="Input.Lines[0].ProductId">@L["Sales:ProductSku"]</label>
-                <select asp-for="Input.Lines[0].ProductId" asp-items="Model.Products" class="form-select mb-2" data-sales-product-selector></select>
-
-                <div class="alert alert-light border mb-3" data-sales-product-context>
-                    @L["Sales:SelectProductForContext"]
+                <div id="sales-create-lines" class="sales-create-lines-editor table-responsive mb-3">
+                    <table class="table table-sm table-bordered align-middle mb-0 sales-create-lines-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="sales-line-col-product">@L["Sales:ProductSku"]</th>
+                                <th class="sales-line-col-status">@L["Sales:SuggestedPrice"]</th>
+                                <th class="sales-line-col-quantity">@L["Sales:Quantity"]</th>
+                                <th class="sales-line-col-price">@L["Sales:ActualPrice"]</th>
+                                <th class="sales-line-col-override">@L["Sales:OverrideReason"]</th>
+                                <th class="sales-line-col-action text-end">@L["Delete"]</th>
+                            </tr>
+                        </thead>
+                        <tbody data-sales-lines-body>
+                            @for (var i = 0; i < Model.Input.Lines.Count; i++)
+                            {
+                                <tr class="sales-line-row" data-sales-line-row data-sales-line-index="@i">
+                                    <td class="sales-line-col-product">
+                                        <select asp-for="Input.Lines[i].ProductId"
+                                                asp-items="Model.Products"
+                                                class="form-select form-select-sm w-100 sales-line-product"
+                                                data-sales-product-select
+                                                data-sales-line-index="@i"
+                                                aria-label="@L["Sales:ProductSku"]"></select>
+                                        <span asp-validation-for="Input.Lines[i].ProductId" class="text-danger d-block small"></span>
+                                    </td>
+                                    <td class="sales-line-col-status">
+                                        <div class="small text-muted" data-sales-product-context>
+                                            @L["Sales:SelectProductForContext"]
+                                        </div>
+                                        <div class="small text-danger d-none" data-sales-product-eligibility></div>
+                                    </td>
+                                    <td class="sales-line-col-quantity">
+                                        <input type="number"
+                                               step="any"
+                                               min="0.0001"
+                                               name="Input.Lines[@(i)].Quantity"
+                                               id="Input_Lines_@(i)__Quantity"
+                                               class="form-control form-control-sm sales-line-quantity"
+                                               aria-label="@L["Sales:Quantity"]"
+                                               value="@(Model.Input.Lines[i].Quantity == 0 ? "1" : Model.Input.Lines[i].Quantity.ToString(CultureInfo.InvariantCulture))" />
+                                        <span asp-validation-for="Input.Lines[i].Quantity" class="text-danger small"></span>
+                                    </td>
+                                    <td class="sales-line-col-price">
+                                        <input type="number"
+                                               step="any"
+                                               min="0"
+                                               name="Input.Lines[@(i)].ActualSellingPrice"
+                                               id="Input_Lines_@(i)__ActualSellingPrice"
+                                               class="form-control form-control-sm sales-line-actual-price"
+                                               data-sales-actual-price
+                                               aria-label="@L["Sales:ActualPrice"]"
+                                               value="@(Model.Input.Lines[i].ActualSellingPrice?.ToString(CultureInfo.InvariantCulture) ?? string.Empty)" />
+                                        <span asp-validation-for="Input.Lines[i].ActualSellingPrice" class="text-danger small"></span>
+                                    </td>
+                                    <td class="sales-line-col-override">
+                                        <input asp-for="Input.Lines[i].OverrideReason"
+                                               class="form-control form-control-sm sales-line-override"
+                                               aria-label="@L["Sales:OverrideReason"]" />
+                                        <span asp-validation-for="Input.Lines[i].OverrideReason" class="text-danger small"></span>
+                                        <span class="text-danger d-block small d-none" data-sales-override-validation></span>
+                                    </td>
+                                    <td class="sales-line-col-action text-end">
+                                        <button type="button"
+                                                class="btn btn-outline-danger btn-sm remove-sales-line"
+                                                title="@L["Delete"]"
+                                                aria-label="@L["Delete"]">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
-
-                <abp-input asp-for="Input.Lines[0].Quantity" />
-                <div class="mb-3">
-                    <label asp-for="Input.Lines[0].ActualSellingPrice" class="form-label">@L["Sales:ActualPrice"]</label>
-                    <input asp-for="Input.Lines[0].ActualSellingPrice" class="form-control" data-sales-actual-price />
-                    <span asp-validation-for="Input.Lines[0].ActualSellingPrice" class="text-danger"></span>
-                </div>
-                <abp-input asp-for="Input.Lines[0].OverrideReason" />
+                <button type="button" id="add-sales-line" class="btn btn-outline-secondary mb-3">
+                    <i class="fa fa-plus"></i> @L["Sales:AddLine"]
+                </button>
 
                 <button class="btn btn-primary" type="submit">@L["Save"]</button>
                 <a class="btn btn-secondary" asp-page="/Sales/Index">@L["Cancel"]</a>
@@ -41,6 +110,55 @@
     </abp-card>
 </div>
 
+<div id="sales-product-context-data" class="d-none" hidden aria-hidden="true">@Model.GetProductContextsJson()</div>
+
+<template id="sales-line-row-template">
+    <tr class="sales-line-row" data-sales-line-row>
+        <td class="sales-line-col-product">
+            <select class="form-select form-select-sm w-100 sales-line-product"
+                    data-sales-product-select
+                    data-name="Input.Lines[__index__].ProductId"
+                    data-id="Input_Lines___index____ProductId">
+                @foreach (var option in Model.Products)
+                {
+                    <option value="@option.Value">@option.Text</option>
+                }
+            </select>
+        </td>
+        <td class="sales-line-col-status">
+            <div class="small text-muted" data-sales-product-context>
+                @L["Sales:SelectProductForContext"]
+            </div>
+            <div class="small text-danger d-none" data-sales-product-eligibility></div>
+        </td>
+        <td class="sales-line-col-quantity">
+            <input type="number" step="any" min="0.0001" class="form-control form-control-sm sales-line-quantity"
+                   value="1"
+                   data-name="Input.Lines[__index__].Quantity"
+                   data-id="Input_Lines___index____Quantity" />
+        </td>
+        <td class="sales-line-col-price">
+            <input type="number" step="any" min="0" class="form-control form-control-sm sales-line-actual-price"
+                   data-sales-actual-price
+                   data-name="Input.Lines[__index__].ActualSellingPrice"
+                   data-id="Input_Lines___index____ActualSellingPrice" />
+        </td>
+        <td class="sales-line-col-override">
+            <input type="text" class="form-control form-control-sm sales-line-override"
+                   data-name="Input.Lines[__index__].OverrideReason"
+                   data-id="Input_Lines___index____OverrideReason" />
+            <span class="text-danger d-block small d-none" data-sales-override-validation></span>
+        </td>
+        <td class="sales-line-col-action text-end">
+            <button type="button" class="btn btn-outline-danger btn-sm remove-sales-line" title="@L["Delete"]">
+                <i class="fa fa-trash"></i>
+            </button>
+        </td>
+    </tr>
+</template>
+
 @section scripts {
+    <abp-script src="/Pages/Shared/DynamicRowSelects.js" />
     <abp-script src="/Pages/Sales/SalesProductContext.js" />
+    <abp-script src="/Pages/Sales/SalesCreateLines.js" />
 }
