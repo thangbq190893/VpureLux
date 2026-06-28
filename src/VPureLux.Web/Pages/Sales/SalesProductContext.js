@@ -277,17 +277,24 @@
         }
 
         var published = hasPublishedBom(data);
-        var hasImage = getValue(data, 'HasImage') === true || getValue(data, 'HasImage') === 'true';
         var suggestedPrice = getValue(data, 'SuggestedPrice');
         var bomBadgeClass = published ? 'badge bg-success' : 'badge bg-warning text-dark';
         var bomText = published ? l('Sales:PublishedBomAvailable') : l('Sales:NoPublishedBom');
-        var imageText = hasImage ? l('Sales:HasProductImage') : l('Sales:NoProductImage');
         var suggestedPriceText = getSuggestedPriceText(suggestedPrice);
 
-        contextPanel.innerHTML =
-            '<div class="mb-2"><span class="' + bomBadgeClass + '">' + escapeHtml(bomText) + '</span></div>' +
-            '<div class="small text-muted mb-1">' + escapeHtml(l('Sales:ProductImage')) + ': ' + escapeHtml(imageText) + '</div>' +
-            '<div class="small">' + escapeHtml(l('Sales:SuggestedPrice')) + ': ' + escapeHtml(String(suggestedPriceText)) + '</div>';
+        if (createPage) {
+            contextPanel.innerHTML =
+                '<div class="mb-1"><span class="' + bomBadgeClass + '">' + escapeHtml(bomText) + '</span></div>' +
+                '<div class="small text-muted">' + escapeHtml(l('Sales:SuggestedPrice')) + ': ' + escapeHtml(String(suggestedPriceText)) + '</div>';
+        } else {
+            var hasImage = getValue(data, 'HasImage') === true || getValue(data, 'HasImage') === 'true';
+            var imageText = hasImage ? l('Sales:HasProductImage') : l('Sales:NoProductImage');
+
+            contextPanel.innerHTML =
+                '<div class="mb-2"><span class="' + bomBadgeClass + '">' + escapeHtml(bomText) + '</span></div>' +
+                '<div class="small text-muted mb-1">' + escapeHtml(l('Sales:ProductImage')) + ': ' + escapeHtml(imageText) + '</div>' +
+                '<div class="small">' + escapeHtml(l('Sales:SuggestedPrice')) + ': ' + escapeHtml(String(suggestedPriceText)) + '</div>';
+        }
 
         if (options.resetPricing) {
             resetLinePricingForProductChange(scope, data);

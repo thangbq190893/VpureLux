@@ -97,7 +97,14 @@ public class SalesPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("@for (var i = 0; i < Model.Input.Lines.Count; i++)");
         pageSource.ShouldNotContain("Input.Lines[0].ProductId");
         pageSource.ShouldContain("data-sales-line-index");
-        pageSource.ShouldContain("form-select w-100");
+        pageSource.ShouldContain("sales-create-lines-editor");
+        pageSource.ShouldContain("sales-create-lines-table");
+        pageSource.ShouldContain("data-sales-lines-body");
+        pageSource.ShouldContain("sales-line-col-product");
+        pageSource.ShouldContain("sales-line-col-status");
+        pageSource.ShouldContain("form-select-sm");
+        pageSource.ShouldContain("form-control-sm");
+        pageSource.ShouldNotContain("alert alert-light border mb-3");
         pageSource.ShouldContain("type=\"number\"");
         pageSource.ShouldContain("Quantity == 0 ? \"1\"");
         pageSource.ShouldContain("value=\"1\"");
@@ -153,9 +160,12 @@ public class SalesPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("data-sales-override-validation");
         pageSource.ShouldContain("asp-validation-for=\"Input.Lines[i].ProductId\"");
 
+        linesScriptSource.ShouldContain("getLinesBody");
+        linesScriptSource.ShouldContain("data-sales-lines-body");
         linesScriptSource.ShouldContain("validateAllRows");
         linesScriptSource.ShouldContain("data-sales-override-validation");
 
+        scriptSource.ShouldContain("createPage");
         scriptSource.ShouldContain("validateOverrideReason");
         scriptSource.ShouldContain("getOverrideReasonRequiredMessage");
         scriptSource.ShouldContain("showCreateAlert");

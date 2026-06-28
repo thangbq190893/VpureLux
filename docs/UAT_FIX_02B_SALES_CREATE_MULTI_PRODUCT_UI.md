@@ -403,3 +403,44 @@ dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build --filte
 dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build -m:1
   -> Passed: 141, Failed: 0
 ```
+
+---
+
+## 14. UAT Fix 02C.4 — Compact Sales Create line editor (2026-06-28)
+
+### Why previous layout was hard to use
+
+Each sales line was a tall bordered card with a large context alert, per-field labels, and image status. Five or more products pushed the form far down the page and made column alignment hard to scan.
+
+### New compact layout
+
+- Line editor is a responsive Bootstrap table (`sales-create-lines-editor`) with columns: Product, Status/suggested price, Quantity, Actual price, Override reason, Action.
+- Rows are compact `<tr class="sales-line-row">` elements; inputs use `form-control-sm` / `form-select-sm`.
+- Status column shows a small BOM badge plus one-line suggested price text (no image status, no large alert panel).
+- Add line, Save, Cancel, global alert, and all row-scoped data attributes/hooks are unchanged.
+
+### Preserved validation behaviors
+
+- Preloaded product context map, row-scoped init, no-BOM block, override-reason validation, product-change price reset, add/remove reindex, and multi-line submit behavior are unchanged.
+
+### Manual smoke result (02C.4)
+
+Not run in this session — verify compact layout and preserved behaviors on `/Sales/Create` before UAT sign-off.
+
+### Tests run (02C.4)
+
+```text
+dotnet build test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj -o .build-out-02c4 -m:1
+  → Build succeeded
+
+dotnet test ... --filter "FullyQualifiedName~Sales" -m:1
+  → Passed: 28, Failed: 0
+
+dotnet test ... -m:1
+  → Passed: 141, Failed: 0
+```
+
+### Remaining known issues (02C.4)
+
+- Browser/E2E automation for multi-line create submit
+- Client-side validation message re-index after row remove (server validation unaffected)

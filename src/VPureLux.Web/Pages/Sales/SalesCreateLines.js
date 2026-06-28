@@ -98,7 +98,7 @@
             dynamicRows.stripSelect2Enhancements(row);
         }
 
-        product.classList.add('form-select', 'w-100');
+        product.classList.add('form-select', 'form-select-sm', 'w-100');
     }
 
     function clearRow(row) {
@@ -160,11 +160,16 @@
         callback();
     }
 
+    function getLinesBody(container) {
+        return container.querySelector('[data-sales-lines-body]') || container;
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         var container = document.getElementById('sales-create-lines');
+        var linesBody = container ? getLinesBody(container) : null;
         var addButton = document.getElementById('add-sales-line');
 
-        if (!container || !addButton) {
+        if (!container || !linesBody || !addButton) {
             return;
         }
 
@@ -193,7 +198,7 @@
             }
 
             clearRow(row);
-            container.appendChild(row);
+            linesBody.appendChild(row);
             reindexRows(container);
             prepareLineRow(row);
         });
