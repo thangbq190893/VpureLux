@@ -43,6 +43,11 @@
     line-height: 1.25;
 }
 
+.sales-line-stock {
+    line-height: 1.25;
+    margin-top: .125rem;
+}
+
 .sales-create-actions {
     display: flex;
     flex-wrap: wrap;

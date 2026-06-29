@@ -8,9 +8,15 @@
     var defaultContextHtml = null;
     var productContextMap = null;
     var createPage = document.getElementById('SalesCreatePage');
+    var availabilityRequestId = 0;
 
     function appendProductId(url, productId) {
         return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'productId=' + encodeURIComponent(productId);
+    }
+
+    function appendQuery(url, parameters) {
+        var separator = url.indexOf('?') >= 0 ? '&' : '?';
+        return url + separator + parameters.join('&');
     }
 
     function getValue(data, key) {
@@ -111,6 +117,35 @@
         return l('Sales:StockAvailabilityPreviewDeferred');
     }
 
+    function getStockIssueMessage() {
+        return l('Sales:StockIssueGlobal');
+    }
+
+    function getNoBomStockAvailabilityMessage() {
+        return l('Sales:NoBomStockAvailabilityUnavailable');
+    }
+
+    function getWarehouseSelector() {
+        return createPage ? createPage.querySelector('[name="Input.WarehouseId"]') : null;
+    }
+
+    function getLinesContainer() {
+        return document.getElementById('sales-create-lines');
+    }
+
+    function getLineRows(container) {
+        var searchRoot = container || getLinesContainer() || createPage;
+        return searchRoot ? searchRoot.querySelectorAll('[data-sales-line-row]') : [];
+    }
+
+    function getQuantityInput(scope) {
+        return scope.querySelector('.sales-line-quantity');
+    }
+
+    function getStockAvailabilityPanel(scope) {
+        return scope.querySelector('[data-sales-stock-availability]');
+    }
+
     function getCreateAlert() {
         return createPage ? createPage.querySelector('[data-sales-create-alert]') : null;
     }
@@ -135,6 +170,36 @@
 
         alert.textContent = '';
         alert.classList.add('d-none');
+    }
+
+    function clearStockAvailability(scope) {
+        var panel = getStockAvailabilityPanel(scope);
+        if (panel) {
+            panel.textContent = '';
+            panel.className = 'small text-muted sales-line-stock';
+        }
+
+        scope.dataset.salesStockStatus = '';
+        scope.dataset.salesStockMessage = '';
+    }
+
+    function setStockAvailability(scope, status, message) {
+        var panel = getStockAvailabilityPanel(scope);
+        if (panel) {
+            panel.textContent = message || '';
+            panel.className = 'small sales-line-stock';
+
+            if (status === 'shortage') {
+                panel.classList.add('text-danger');
+            } else if (status === 'available') {
+                panel.classList.add('text-success');
+            } else {
+                panel.classList.add('text-muted');
+            }
+        }
+
+        scope.dataset.salesStockStatus = status || '';
+        scope.dataset.salesStockMessage = message || '';
     }
 
     function hasPublishedBom(data) {
@@ -295,8 +360,7 @@
                 '<div class="small">' +
                 '<span class="' + bomBadgeClass + '">' + escapeHtml(bomText) + '</span> ' +
                 '<span class="text-muted">' + escapeHtml(l('Sales:SuggestedPrice')) + ': ' + escapeHtml(String(suggestedPriceText)) + '</span>' +
-                '</div>' +
-                '<div class="small text-muted">' + escapeHtml(getStockAvailabilityPreviewMessage()) + '</div>';
+                '</div>';
         } else {
             var hasImage = getValue(data, 'HasImage') === true || getValue(data, 'HasImage') === 'true';
             var imageText = hasImage ? l('Sales:HasProductImage') : l('Sales:NoProductImage');
@@ -316,6 +380,10 @@
 
         clearOverrideValidation(scope);
         updateRowEligibility(scope, data);
+
+        if (createPage && !published) {
+            setStockAvailability(scope, 'noBom', getNoBomStockAvailabilityMessage());
+        }
     }
 
     function renderPlaceholder(scope, options) {
@@ -332,6 +400,130 @@
 
         clearOverrideValidation(scope);
         updateRowEligibility(scope, null);
+        clearStockAvailability(scope);
+    }
+
+    function formatQuantity(value) {
+        var numberValue = Number(value);
+        if (!Number.isFinite(numberValue)) {
+            return String(value ?? '');
+        }
+
+        return String(Math.round(numberValue * 10000) / 10000);
+    }
+
+    function formatAvailabilityMessage(line) {
+        var status = getValue(line, 'Status');
+        var componentLabel = getValue(line, 'LimitingComponentLabel') || '';
+
+        if (status === 'shortage') {
+            var shortage = l('Sales:InsufficientStockForRequestedQuantity');
+            if (componentLabel) {
+                shortage += ' ' + l('Sales:MissingComponentStock', componentLabel);
+            }
+
+            return shortage;
+        }
+
+        if (status === 'available') {
+            return l('Sales:AvailableToSellAtWarehouse', formatQuantity(getValue(line, 'AvailableToSell')));
+        }
+
+        if (status === 'noBom') {
+            return getNoBomStockAvailabilityMessage();
+        }
+
+        return getStockAvailabilityPreviewMessage();
+    }
+
+    function collectAvailabilityLines(container) {
+        var lines = [];
+
+        getLineRows(container).forEach(function (row, index) {
+            var productSelector = getProductSelector(row);
+            var quantityInput = getQuantityInput(row);
+            var productId = productSelector ? productSelector.value || '' : '';
+            var quantity = quantityInput ? parseMoney(quantityInput.value) : null;
+
+            if (!productId || quantity === null || quantity <= 0) {
+                clearStockAvailability(row);
+                return;
+            }
+
+            var data = getProductContextMap()[productId];
+            if (data && !hasPublishedBom(data)) {
+                setStockAvailability(row, 'noBom', getNoBomStockAvailabilityMessage());
+                return;
+            }
+
+            lines.push({
+                lineIndex: Number(row.dataset.salesLineIndex || index),
+                productId: productId,
+                quantity: quantity
+            });
+        });
+
+        return lines;
+    }
+
+    function buildAvailabilityUrl(warehouseId, lines) {
+        return appendQuery(createPage.dataset.salesAvailabilityEndpoint, [
+            'warehouseId=' + encodeURIComponent(warehouseId),
+            'lines=' + encodeURIComponent(JSON.stringify(lines))
+        ]);
+    }
+
+    function applyAvailabilityResults(container, lines) {
+        var rowsByIndex = {};
+
+        getLineRows(container).forEach(function (row, index) {
+            rowsByIndex[String(row.dataset.salesLineIndex || index)] = row;
+        });
+
+        lines.forEach(function (line) {
+            var lineIndex = String(getValue(line, 'LineIndex'));
+            var row = rowsByIndex[lineIndex];
+            if (!row) {
+                return;
+            }
+
+            setStockAvailability(row, getValue(line, 'Status'), formatAvailabilityMessage(line));
+        });
+    }
+
+    function refreshStockAvailability(container) {
+        if (!createPage || !createPage.dataset.salesAvailabilityEndpoint) {
+            return Promise.resolve(true);
+        }
+
+        var warehouseSelector = getWarehouseSelector();
+        var warehouseId = warehouseSelector ? warehouseSelector.value || '' : '';
+        var lines = collectAvailabilityLines(container);
+
+        if (!warehouseId || lines.length === 0) {
+            return Promise.resolve(true);
+        }
+
+        var requestId = ++availabilityRequestId;
+
+        return abp.ajax({
+            url: buildAvailabilityUrl(warehouseId, lines),
+            type: 'GET'
+        }).then(function (data) {
+            if (requestId !== availabilityRequestId) {
+                return true;
+            }
+
+            applyAvailabilityResults(container, getValue(data, 'Lines') || []);
+            return true;
+        }).catch(function () {
+            getLineRows(container).forEach(function (row) {
+                if (row.dataset.salesStockStatus !== 'noBom') {
+                    setStockAvailability(row, 'unknown', getStockAvailabilityPreviewMessage());
+                }
+            });
+            return true;
+        });
     }
 
     function loadProductContextFromMap(scope, productId, options) {
@@ -386,9 +578,11 @@
 
             if (createPage && productChanged) {
                 clearCreateAlert();
+                clearStockAvailability(scope);
             }
 
             loadProductContext(scope, { resetPricing: !!createPage && productChanged });
+            refreshStockAvailability(getLinesContainer());
         }
 
         if (productSelector._vplSalesContextChangeHandler) {
@@ -425,6 +619,24 @@
         actualPriceInput.addEventListener('input', actualPriceInput._vplSalesActualPriceInputHandler);
     }
 
+    function bindQuantityInput(scope) {
+        var quantityInput = getQuantityInput(scope);
+
+        if (!quantityInput) {
+            return;
+        }
+
+        if (quantityInput._vplSalesQuantityInputHandler) {
+            quantityInput.removeEventListener('input', quantityInput._vplSalesQuantityInputHandler);
+        }
+
+        quantityInput._vplSalesQuantityInputHandler = function () {
+            clearCreateAlert();
+            refreshStockAvailability(getLinesContainer());
+        };
+        quantityInput.addEventListener('input', quantityInput._vplSalesQuantityInputHandler);
+    }
+
     function bindRow(scope) {
         if (!scope) {
             return;
@@ -439,6 +651,7 @@
         scope.dataset.salesContextBound = 'true';
         bindProductSelector(scope, productSelector);
         bindActualPriceInput(scope);
+        bindQuantityInput(scope);
         setPreviousProductId(productSelector, getSelectedProductId(productSelector));
         loadProductContext(scope);
     }
@@ -497,6 +710,11 @@
                     alertMessage = alertMessage || getOverrideReasonRequiredMessage();
                 }
             }
+
+            if (row.dataset.salesStockStatus === 'shortage') {
+                isValid = false;
+                alertMessage = alertMessage || getStockIssueMessage();
+            }
         });
 
         if (!isValid && alertMessage) {
@@ -506,12 +724,33 @@
         return isValid;
     }
 
+    function validateAllRowsAsync(container) {
+        return refreshStockAvailability(container).then(function () {
+            return validateAllRows(container);
+        });
+    }
+
+    function bindWarehouseSelector() {
+        var warehouseSelector = getWarehouseSelector();
+        if (!warehouseSelector || warehouseSelector._vplSalesWarehouseChangeHandler) {
+            return;
+        }
+
+        warehouseSelector._vplSalesWarehouseChangeHandler = function () {
+            clearCreateAlert();
+            refreshStockAvailability(getLinesContainer());
+        };
+        warehouseSelector.addEventListener('change', warehouseSelector._vplSalesWarehouseChangeHandler);
+    }
+
     window.vplSalesProductContext = {
         initializeRow: initializeRow,
         initializeRows: initializeRows,
         getDefaultContextHtml: captureDefaultContextHtml,
         validateAllRows: validateAllRows,
-        loadProductContext: loadProductContext
+        validateAllRowsAsync: validateAllRowsAsync,
+        loadProductContext: loadProductContext,
+        refreshStockAvailability: refreshStockAvailability
     };
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -520,6 +759,8 @@
 
         if (!createPage) {
             initializeRows();
+        } else {
+            bindWarehouseSelector();
         }
     });
 }(window));

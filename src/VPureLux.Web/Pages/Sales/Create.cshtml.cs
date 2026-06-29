@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using VPureLux;
 using VPureLux.Catalog;
+using VPureLux.Bom;
 using VPureLux.Catalog.Products;
 using VPureLux.Customers;
 using VPureLux.Inventory;
@@ -32,6 +33,10 @@ public class CreateModel : VPureLuxPageModel
     private readonly IWarehouseAppService _warehouses;
     private readonly IProductAppService _products;
     private readonly IProductPricingContextLookupService _productPricingContext;
+    private readonly IBomVersionRepository _bomVersions;
+    private readonly IStockItemRepository _stockItems;
+    private readonly IInventoryBalanceRepository _balances;
+    private readonly IComponentRepository _components;
     [BindProperty] public CreateSalesOrderDto Input { get; set; } = new() { Lines = [new CreateSalesOrderLineDto()] };
     public List<SelectListItem> Customers { get; private set; } = new();
     public List<SelectListItem> Warehouses { get; private set; } = new();
@@ -43,13 +48,21 @@ public class CreateModel : VPureLuxPageModel
         ICustomerAppService customers,
         IWarehouseAppService warehouses,
         IProductAppService products,
-        IProductPricingContextLookupService productPricingContext)
+        IProductPricingContextLookupService productPricingContext,
+        IBomVersionRepository bomVersions,
+        IStockItemRepository stockItems,
+        IInventoryBalanceRepository balances,
+        IComponentRepository components)
     {
         _service = service;
         _customers = customers;
         _warehouses = warehouses;
         _products = products;
         _productPricingContext = productPricingContext;
+        _bomVersions = bomVersions;
+        _stockItems = stockItems;
+        _balances = balances;
+        _components = components;
     }
 
     public async Task OnGetAsync()
@@ -68,6 +81,7 @@ public class CreateModel : VPureLuxPageModel
 
         var isValid = ValidateLineEligibility();
         isValid = ValidateLinePricingOverrides() && isValid;
+        isValid = await ValidateLineStockAvailabilityAsync() && isValid;
 
         if (!isValid)
         {
@@ -131,6 +145,13 @@ public class CreateModel : VPureLuxPageModel
                 }),
             ProductContextJsonOptions);
 
+    public async Task<JsonResult> OnGetStockAvailabilityAsync(Guid warehouseId, string? lines)
+    {
+        var requestLines = ParseStockAvailabilityLines(lines);
+        var availability = await CalculateStockAvailabilityAsync(warehouseId, requestLines);
+        return new JsonResult(availability, ProductContextJsonOptions);
+    }
+
     private bool ValidateLineEligibility()
     {
         var isValid = true;
@@ -179,6 +200,40 @@ public class CreateModel : VPureLuxPageModel
             }
 
             isValid = false;
+        }
+
+        return isValid;
+    }
+
+    private async Task<bool> ValidateLineStockAvailabilityAsync()
+    {
+        if (Input.WarehouseId == Guid.Empty)
+        {
+            return true;
+        }
+
+        var requestLines = Input.Lines
+            .Select((line, index) => new SalesStockAvailabilityLineRequest
+            {
+                LineIndex = index,
+                ProductId = line.ProductId,
+                Quantity = line.Quantity
+            })
+            .ToList();
+        var availability = await CalculateStockAvailabilityAsync(Input.WarehouseId, requestLines);
+        var isValid = true;
+
+        foreach (var line in availability.Lines.Where(x => x.IsShortage))
+        {
+            ModelState.AddModelError(
+                $"Input.Lines[{line.LineIndex}].Quantity",
+                FormatStockShortageMessage(line));
+            isValid = false;
+        }
+
+        if (!isValid)
+        {
+            ModelState.AddModelError(string.Empty, L["Sales:StockIssueGlobal"].Value);
         }
 
         return isValid;
@@ -245,6 +300,183 @@ public class CreateModel : VPureLuxPageModel
         return true;
     }
 
+    private async Task<SalesStockAvailabilityResponse> CalculateStockAvailabilityAsync(
+        Guid warehouseId,
+        IReadOnlyCollection<SalesStockAvailabilityLineRequest> requestLines)
+    {
+        var normalizedLines = requestLines
+            .Where(x => x.ProductId != Guid.Empty && x.Quantity > 0)
+            .Select(x => new SalesStockAvailabilityLineRequest
+            {
+                LineIndex = x.LineIndex,
+                ProductId = x.ProductId,
+                Quantity = decimal.Round(x.Quantity, InventoryConsts.QuantityScale, MidpointRounding.AwayFromZero)
+            })
+            .ToList();
+        var response = new SalesStockAvailabilityResponse();
+        if (warehouseId == Guid.Empty || normalizedLines.Count == 0)
+        {
+            return response;
+        }
+
+        var publishedBomMap = await _bomVersions.GetPublishedMapByProductIdsAsync(
+            normalizedLines.Select(x => x.ProductId).Distinct().ToArray());
+        var componentIds = publishedBomMap.Values
+            .SelectMany(x => x.Items.Select(item => item.ComponentId))
+            .Distinct()
+            .ToArray();
+        var componentMap = componentIds.Length == 0
+            ? new Dictionary<Guid, Component>()
+            : (await _components.GetListAsync(x => componentIds.Contains(x.Id))).ToDictionary(x => x.Id);
+        var stockItems = componentIds.Length == 0
+            ? new List<StockItem>()
+            : await _stockItems.GetListAsync(x => x.ItemType == StockItemType.Component && componentIds.Contains(x.CatalogItemId));
+        var stockItemByComponentId = stockItems
+            .GroupBy(x => x.CatalogItemId)
+            .ToDictionary(x => x.Key, x => x.First());
+        var balances = componentIds.Length == 0
+            ? new List<InventoryBalance>()
+            : await _balances.GetListAsync(warehouseId);
+        var quantityByStockItemId = balances.ToDictionary(x => x.StockItemId, x => x.QuantityOnHand);
+        var availableByComponentId = componentIds.ToDictionary(
+            x => x,
+            x => stockItemByComponentId.TryGetValue(x, out var stockItem) &&
+                 quantityByStockItemId.TryGetValue(stockItem.Id, out var quantity)
+                ? quantity
+                : 0m);
+        var aggregateDemandByComponentId = new Dictionary<Guid, decimal>();
+
+        foreach (var line in normalizedLines)
+        {
+            if (!publishedBomMap.TryGetValue(line.ProductId, out var bom))
+            {
+                continue;
+            }
+
+            foreach (var item in bom.Items)
+            {
+                aggregateDemandByComponentId[item.ComponentId] =
+                    aggregateDemandByComponentId.GetValueOrDefault(item.ComponentId) + (item.Quantity * line.Quantity);
+            }
+        }
+
+        foreach (var line in normalizedLines)
+        {
+            if (!publishedBomMap.TryGetValue(line.ProductId, out var bom))
+            {
+                response.Lines.Add(new SalesStockAvailabilityLineResult
+                {
+                    LineIndex = line.LineIndex,
+                    ProductId = line.ProductId,
+                    Status = SalesStockAvailabilityStatus.NoBom
+                });
+                continue;
+            }
+
+            var componentLimits = bom.Items
+                .Select(item =>
+                {
+                    var availableQuantity = availableByComponentId.GetValueOrDefault(item.ComponentId);
+                    var aggregateRequiredQuantity = aggregateDemandByComponentId.GetValueOrDefault(item.ComponentId);
+                    stockItemByComponentId.TryGetValue(item.ComponentId, out var stockItem);
+                    return new SalesComponentAvailabilityLimit(
+                        item.ComponentId,
+                        GetComponentLabel(item.ComponentId, componentMap, stockItem),
+                        availableQuantity,
+                        item.Quantity,
+                        aggregateRequiredQuantity,
+                        item.Quantity <= 0 ? 0 : decimal.Floor(availableQuantity / item.Quantity));
+                })
+                .ToList();
+
+            if (componentLimits.Count == 0)
+            {
+                response.Lines.Add(new SalesStockAvailabilityLineResult
+                {
+                    LineIndex = line.LineIndex,
+                    ProductId = line.ProductId,
+                    Status = SalesStockAvailabilityStatus.NoBom
+                });
+                continue;
+            }
+
+            var limitingComponent = componentLimits
+                .OrderBy(x => x.AvailableToSell)
+                .ThenBy(x => x.ComponentLabel)
+                .First();
+            var aggregateShortage = componentLimits
+                .Where(x => x.AggregateRequiredQuantity > x.AvailableQuantity)
+                .OrderByDescending(x => x.AggregateRequiredQuantity - x.AvailableQuantity)
+                .ThenBy(x => x.ComponentLabel)
+                .FirstOrDefault();
+            var selectedLimit = aggregateShortage ?? limitingComponent;
+            var availableToSell = limitingComponent.AvailableToSell;
+            var isShortage = line.Quantity > availableToSell || aggregateShortage != null;
+
+            response.Lines.Add(new SalesStockAvailabilityLineResult
+            {
+                LineIndex = line.LineIndex,
+                ProductId = line.ProductId,
+                Status = isShortage ? SalesStockAvailabilityStatus.Shortage : SalesStockAvailabilityStatus.Available,
+                AvailableToSell = availableToSell,
+                RequestedQuantity = line.Quantity,
+                IsShortage = isShortage,
+                LimitingComponentId = selectedLimit.ComponentId,
+                LimitingComponentLabel = selectedLimit.ComponentLabel,
+                LimitingComponentAvailableQuantity = selectedLimit.AvailableQuantity,
+                LimitingComponentRequiredQuantity = selectedLimit.AggregateRequiredQuantity
+            });
+        }
+
+        return response;
+    }
+
+    private static List<SalesStockAvailabilityLineRequest> ParseStockAvailabilityLines(string? lines)
+    {
+        if (string.IsNullOrWhiteSpace(lines))
+        {
+            return [];
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<SalesStockAvailabilityLineRequest>>(lines, ProductContextJsonOptions) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    private string FormatStockShortageMessage(SalesStockAvailabilityLineResult line)
+    {
+        var message = L["Sales:InsufficientStockForRequestedQuantity"].Value;
+        if (!string.IsNullOrWhiteSpace(line.LimitingComponentLabel))
+        {
+            message += " " + L["Sales:MissingComponentStock", line.LimitingComponentLabel].Value;
+        }
+
+        return message;
+    }
+
+    private static string GetComponentLabel(
+        Guid componentId,
+        IReadOnlyDictionary<Guid, Component> componentMap,
+        StockItem? stockItem)
+    {
+        if (componentMap.TryGetValue(componentId, out var component))
+        {
+            return $"{component.Code} - {component.Name}";
+        }
+
+        if (stockItem != null)
+        {
+            return $"{stockItem.CodeSnapshot} - {stockItem.NameSnapshot}";
+        }
+
+        return componentId.ToString("D");
+    }
+
     private async Task LoadSelectionsAsync()
     {
         Customers = (await _customers.GetListAsync(new GetCustomerListInput { MaxResultCount = 500 })).Items
@@ -299,3 +531,44 @@ public class CreateModel : VPureLuxPageModel
                 : L["Sales:NoPublishedBom"]
         };
 }
+
+public static class SalesStockAvailabilityStatus
+{
+    public const string Available = "available";
+    public const string Shortage = "shortage";
+    public const string NoBom = "noBom";
+}
+
+public class SalesStockAvailabilityLineRequest
+{
+    public int LineIndex { get; set; }
+    public Guid ProductId { get; set; }
+    public decimal Quantity { get; set; }
+}
+
+public class SalesStockAvailabilityResponse
+{
+    public List<SalesStockAvailabilityLineResult> Lines { get; set; } = [];
+}
+
+public class SalesStockAvailabilityLineResult
+{
+    public int LineIndex { get; set; }
+    public Guid ProductId { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public decimal AvailableToSell { get; set; }
+    public decimal RequestedQuantity { get; set; }
+    public bool IsShortage { get; set; }
+    public Guid? LimitingComponentId { get; set; }
+    public string LimitingComponentLabel { get; set; } = string.Empty;
+    public decimal LimitingComponentAvailableQuantity { get; set; }
+    public decimal LimitingComponentRequiredQuantity { get; set; }
+}
+
+public sealed record SalesComponentAvailabilityLimit(
+    Guid ComponentId,
+    string ComponentLabel,
+    decimal AvailableQuantity,
+    decimal RequiredQuantityPerProduct,
+    decimal AggregateRequiredQuantity,
+    decimal AvailableToSell);
