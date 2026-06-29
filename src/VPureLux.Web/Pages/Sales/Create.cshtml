@@ -6,6 +6,7 @@
 @{ ViewData["Title"] = L["Sales:Create"]; }
 <div id="SalesCreatePage"
      data-sales-context-endpoint="@Url.Page(null, "ProductContext")"
+     data-sales-availability-endpoint="@Url.Page(null, "StockAvailability")"
      data-sales-product-not-eligible="@L["Sales:ProductStockSaleNotSupported"]"
      data-sales-override-reason-required="@L[VPureLuxDomainErrorCodes.SalesOverrideReasonRequired]">
     <abp-card>
@@ -54,6 +55,7 @@
                                         <div class="small text-muted sales-line-context" data-sales-product-context>
                                             @L["Sales:SelectProductForContext"]
                                         </div>
+                                        <div class="small text-muted sales-line-stock" data-sales-stock-availability></div>
                                         <div class="small text-danger d-none" data-sales-product-eligibility></div>
                                     </td>
                                     <td class="sales-line-col-quantity">
@@ -131,6 +133,7 @@
             <div class="small text-muted sales-line-context" data-sales-product-context>
                 @L["Sales:SelectProductForContext"]
             </div>
+            <div class="small text-muted sales-line-stock" data-sales-stock-availability></div>
             <div class="small text-danger d-none" data-sales-product-eligibility></div>
         </td>
         <td class="sales-line-col-quantity">

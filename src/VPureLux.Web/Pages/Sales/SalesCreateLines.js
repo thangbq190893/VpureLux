@@ -44,6 +44,7 @@
 
     function resetContextPanel(row) {
         var contextPanel = row.querySelector('[data-sales-product-context]');
+        var stockAvailability = row.querySelector('[data-sales-stock-availability]');
         var eligibilityWarning = row.querySelector('[data-sales-product-eligibility]');
         var overrideValidation = row.querySelector('[data-sales-override-validation]');
         var overrideInput = row.querySelector('.sales-line-override');
@@ -68,6 +69,13 @@
         }
 
         row.classList.remove('sales-line-invalid');
+        row.dataset.salesStockStatus = '';
+        row.dataset.salesStockMessage = '';
+
+        if (stockAvailability) {
+            stockAvailability.textContent = '';
+            stockAvailability.className = 'small text-muted sales-line-stock';
+        }
 
         var product = row.querySelector(productSelectSelector);
 
@@ -182,11 +190,23 @@
 
         if (form) {
             form.addEventListener('submit', function (event) {
-                if (productContext && typeof productContext.validateAllRows === 'function') {
-                    if (!productContext.validateAllRows(container)) {
-                        event.preventDefault();
-                    }
+                if (!productContext || typeof productContext.validateAllRowsAsync !== 'function') {
+                    return;
                 }
+
+                if (form.dataset.salesValidatedSubmit === 'true') {
+                    return;
+                }
+
+                event.preventDefault();
+                productContext.validateAllRowsAsync(container).then(function (isValid) {
+                    if (!isValid) {
+                        return;
+                    }
+
+                    form.dataset.salesValidatedSubmit = 'true';
+                    form.submit();
+                });
             });
         }
 
@@ -201,6 +221,10 @@
             linesBody.appendChild(row);
             reindexRows(container);
             prepareLineRow(row);
+
+            if (productContext && typeof productContext.refreshStockAvailability === 'function') {
+                productContext.refreshStockAvailability(container);
+            }
         });
 
         container.addEventListener('click', function (event) {
@@ -215,6 +239,10 @@
 
                 row.remove();
                 reindexRows(container);
+
+                if (productContext && typeof productContext.refreshStockAvailability === 'function') {
+                    productContext.refreshStockAvailability(container);
+                }
             }
         });
     });

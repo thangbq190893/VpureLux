@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Security.Claims;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -23,6 +24,7 @@ using VPureLux.Inventory;
 using VPureLux.Localization;
 using VPureLux.Pricing;
 using VPureLux.Sales;
+using VPureLux.Web.Pages.Sales;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Authorization;
@@ -81,7 +83,9 @@ public class SalesPagesTests : VPureLuxWebTestBase
         html.ShouldContain($"{product.Code} - {product.Name}");
         html.ShouldContain("data-sales-product-select");
         html.ShouldContain("data-sales-product-context");
+        html.ShouldContain("data-sales-stock-availability");
         html.ShouldContain("data-sales-context-endpoint");
+        html.ShouldContain("data-sales-availability-endpoint");
         html.ShouldContain(localizer["Sales:SelectProductForContext"].Value);
         html.ShouldNotContain("value=\"0,00\"");
         html.ShouldNotContain("value='0,00'");
@@ -94,6 +98,8 @@ public class SalesPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("<abp-style src=\"/Pages/Sales/Create.css\" />");
         pageSource.ShouldContain("data-sales-line-row");
         pageSource.ShouldContain("data-sales-product-select");
+        pageSource.ShouldContain("data-sales-stock-availability");
+        pageSource.ShouldContain("data-sales-availability-endpoint");
         pageSource.ShouldContain("id=\"sales-line-row-template\"");
         pageSource.ShouldContain("<template id=\"sales-line-row-template\">");
         pageSource.ShouldContain("data-name=\"Input.Lines[__index__].ProductId\"");
@@ -161,7 +167,9 @@ public class SalesPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldNotContain("page.querySelector('[data-sales-product-context]')");
         scriptSource.ShouldContain("getProductContextMap");
         scriptSource.ShouldContain("validateAllRows");
+        scriptSource.ShouldContain("validateAllRowsAsync");
         scriptSource.ShouldContain("data-sales-product-eligibility");
+        scriptSource.ShouldContain("data-sales-stock-availability");
         scriptSource.ShouldContain("loadProductContextFromMap");
         scriptSource.ShouldContain("Sales:ProductStockSaleNotSupported");
 
@@ -178,6 +186,10 @@ public class SalesPagesTests : VPureLuxWebTestBase
         linesScriptSource.ShouldContain("data-sales-lines-body");
         linesScriptSource.ShouldContain("validateAllRows");
         linesScriptSource.ShouldContain("data-sales-override-validation");
+        linesScriptSource.ShouldContain("validateAllRowsAsync");
+        linesScriptSource.ShouldContain("form.dataset.salesValidatedSubmit");
+        linesScriptSource.ShouldContain("refreshStockAvailability(container)");
+        linesScriptSource.ShouldContain("data-sales-stock-availability");
 
         scriptSource.ShouldContain("createPage");
         scriptSource.ShouldContain("validateOverrideReason");
@@ -188,6 +200,16 @@ public class SalesPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("Sales:ManualPriceRequired");
         scriptSource.ShouldContain("Sales:NoSuggestedPriceManualPriceRequired");
         scriptSource.ShouldContain("Sales:StockAvailabilityPreviewDeferred");
+        scriptSource.ShouldContain("Sales:AvailableToSellAtWarehouse");
+        scriptSource.ShouldContain("Sales:InsufficientStockForRequestedQuantity");
+        scriptSource.ShouldContain("Sales:MissingComponentStock");
+        scriptSource.ShouldContain("Sales:NoBomStockAvailabilityUnavailable");
+        scriptSource.ShouldContain("Sales:StockIssueGlobal");
+        scriptSource.ShouldContain("refreshStockAvailability");
+        scriptSource.ShouldContain("collectAvailabilityLines");
+        scriptSource.ShouldContain("buildAvailabilityUrl");
+        scriptSource.ShouldContain("bindWarehouseSelector");
+        scriptSource.ShouldContain("bindQuantityInput");
         scriptSource.ShouldContain("salesPriceAutoFilled");
         scriptSource.ShouldContain("salesPreviousProductId");
         scriptSource.ShouldContain("SuggestedPrice");
@@ -202,6 +224,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
         createCss.ShouldContain("min-width: 30rem");
         createCss.ShouldContain(".sales-create-actions");
         createCss.ShouldContain(".sales-action-button");
+        createCss.ShouldContain(".sales-line-stock");
     }
 
     [Fact]
@@ -289,7 +312,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
             }
         ];
 
-        var result = await model.OnPostAsync();
+        var result = await WithSalesUnitOfWorkAsync(() => model.OnPostAsync());
 
         result.ShouldBeOfType<PageResult>();
         model.ModelState.IsValid.ShouldBeFalse();
@@ -320,7 +343,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
             }
         ];
 
-        var result = await model.OnPostAsync();
+        var result = await WithSalesUnitOfWorkAsync(() => model.OnPostAsync());
 
         result.ShouldBeOfType<PageResult>();
         model.ModelState.IsValid.ShouldBeFalse();
@@ -348,7 +371,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
             }
         ];
 
-        var result = await model.OnPostAsync();
+        var result = await WithSalesUnitOfWorkAsync(() => model.OnPostAsync());
 
         var redirect = result.ShouldBeOfType<RedirectToPageResult>();
         redirect.PageName.ShouldBe("/Sales/Details");
@@ -364,7 +387,8 @@ public class SalesPagesTests : VPureLuxWebTestBase
         var warehouse = await GetRequiredService<IWarehouseAppService>()
             .CreateAsync(new CreateWarehouseDto { Code = Unique("SNP-W"), Name = "No Suggested Price Warehouse" });
         var product = await CreateProductAsync("SNP-P", "No Suggested Price Product");
-        await PublishBomAsync(product.Id);
+        var componentId = await PublishBomAsync(product.Id);
+        await PostComponentReceiptAsync(warehouse.Id, componentId, 5);
         var model = GetRequiredService<CreateModel>();
         await model.OnGetAsync();
         model.Input.CustomerId = customer.Id;
@@ -380,7 +404,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
             }
         ];
 
-        var result = await model.OnPostAsync();
+        var result = await WithSalesUnitOfWorkAsync(() => model.OnPostAsync());
 
         var redirect = result.ShouldBeOfType<RedirectToPageResult>();
         redirect.PageName.ShouldBe("/Sales/Details");
@@ -440,8 +464,14 @@ public class SalesPagesTests : VPureLuxWebTestBase
     {
         var pageSource = File.ReadAllText(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Create.cshtml.cs"));
         pageSource.ShouldContain("ValidateLineEligibility");
+        pageSource.ShouldContain("ValidateLineStockAvailabilityAsync");
+        pageSource.ShouldContain("OnGetStockAvailabilityAsync");
+        pageSource.ShouldContain("CalculateStockAvailabilityAsync");
+        pageSource.ShouldContain("GetPublishedMapByProductIdsAsync");
+        pageSource.ShouldContain("IInventoryBalanceRepository");
         pageSource.ShouldContain("SalesBomMustBePublished");
         pageSource.ShouldContain("Sales:ProductStockSaleNotSupported");
+        pageSource.ShouldContain("Sales:StockIssueGlobal");
         pageSource.ShouldContain("GetProductContextsJson");
     }
 
@@ -459,6 +489,168 @@ public class SalesPagesTests : VPureLuxWebTestBase
         json!.ProductLabel.ShouldContain(product.Code);
         json.HasPublishedBom.ShouldBeTrue();
         json.BomStatusText.ShouldNotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task Sales_Create_StockAvailability_Handler_Should_Return_Bom_Component_Available_To_Sell()
+    {
+        var warehouse = await GetRequiredService<IWarehouseAppService>()
+            .CreateAsync(new CreateWarehouseDto { Code = Unique("SA-W1"), Name = "Availability Warehouse" });
+        var component = await GetRequiredService<IComponentAppService>()
+            .CreateAsync(new CreateComponentDto { Code = Unique("SA-C1"), Name = "Availability Component", Unit = "Piece" });
+        await PostComponentReceiptAsync(warehouse.Id, component.Id, 5);
+        var product = await CreateProductAsync("SA-P1", "Availability Product");
+        await PublishBomAsync(product.Id, component.Id, 2);
+        var model = GetRequiredService<CreateModel>();
+
+        var response = await GetStockAvailabilityAsync(model, warehouse.Id,
+            new SalesStockAvailabilityLineRequest { LineIndex = 0, ProductId = product.Id, Quantity = 2 });
+
+        var line = response.Lines.Single();
+        line.Status.ShouldBe(SalesStockAvailabilityStatus.Available);
+        line.AvailableToSell.ShouldBe(2);
+        line.IsShortage.ShouldBeFalse();
+        line.LimitingComponentLabel.ShouldContain(component.Code);
+    }
+
+    [Fact]
+    public async Task Sales_Create_StockAvailability_Handler_Should_Use_Limiting_Component()
+    {
+        var warehouse = await GetRequiredService<IWarehouseAppService>()
+            .CreateAsync(new CreateWarehouseDto { Code = Unique("SA-W2"), Name = "Limiting Warehouse" });
+        var firstComponent = await GetRequiredService<IComponentAppService>()
+            .CreateAsync(new CreateComponentDto { Code = Unique("SA-C2A"), Name = "Abundant Component", Unit = "Piece" });
+        var limitingComponent = await GetRequiredService<IComponentAppService>()
+            .CreateAsync(new CreateComponentDto { Code = Unique("SA-C2B"), Name = "Limiting Component", Unit = "Piece" });
+        await PostComponentReceiptAsync(warehouse.Id, firstComponent.Id, 10);
+        await PostComponentReceiptAsync(warehouse.Id, limitingComponent.Id, 3);
+        var product = await CreateProductAsync("SA-P2", "Limited Product");
+        var bom = await GetRequiredService<IBomAppService>().CreateAsync(product.Id, new CreateBomVersionDto
+        {
+            EffectiveFrom = DateTime.Now.Date,
+            Items =
+            [
+                new CreateBomItemDto { ComponentId = firstComponent.Id, Quantity = 2 },
+                new CreateBomItemDto { ComponentId = limitingComponent.Id, Quantity = 1 }
+            ]
+        });
+        await GetRequiredService<IBomAppService>().PublishAsync(bom.Id);
+        var model = GetRequiredService<CreateModel>();
+
+        var response = await GetStockAvailabilityAsync(model, warehouse.Id,
+            new SalesStockAvailabilityLineRequest { LineIndex = 0, ProductId = product.Id, Quantity = 3 });
+
+        var line = response.Lines.Single();
+        line.Status.ShouldBe(SalesStockAvailabilityStatus.Available);
+        line.AvailableToSell.ShouldBe(3);
+        line.LimitingComponentId.ShouldBe(limitingComponent.Id);
+        line.LimitingComponentLabel.ShouldContain(limitingComponent.Code);
+    }
+
+    [Fact]
+    public async Task Sales_Create_StockAvailability_Handler_Should_Return_Zero_When_Component_Has_No_Balance()
+    {
+        var warehouse = await GetRequiredService<IWarehouseAppService>()
+            .CreateAsync(new CreateWarehouseDto { Code = Unique("SA-W3"), Name = "No Balance Warehouse" });
+        var component = await GetRequiredService<IComponentAppService>()
+            .CreateAsync(new CreateComponentDto { Code = Unique("SA-C3"), Name = "No Balance Component", Unit = "Piece" });
+        var product = await CreateProductAsync("SA-P3", "No Balance Product");
+        await PublishBomAsync(product.Id, component.Id);
+        var model = GetRequiredService<CreateModel>();
+
+        var response = await GetStockAvailabilityAsync(model, warehouse.Id,
+            new SalesStockAvailabilityLineRequest { LineIndex = 0, ProductId = product.Id, Quantity = 1 });
+
+        var line = response.Lines.Single();
+        line.Status.ShouldBe(SalesStockAvailabilityStatus.Shortage);
+        line.AvailableToSell.ShouldBe(0);
+        line.IsShortage.ShouldBeTrue();
+        line.LimitingComponentLabel.ShouldContain(component.Code);
+    }
+
+    [Fact]
+    public async Task Sales_Create_StockAvailability_Handler_Should_Detect_Aggregate_Multi_Line_Component_Shortage()
+    {
+        var warehouse = await GetRequiredService<IWarehouseAppService>()
+            .CreateAsync(new CreateWarehouseDto { Code = Unique("SA-W4"), Name = "Aggregate Warehouse" });
+        var component = await GetRequiredService<IComponentAppService>()
+            .CreateAsync(new CreateComponentDto { Code = Unique("SA-C4"), Name = "Shared Component", Unit = "Piece" });
+        await PostComponentReceiptAsync(warehouse.Id, component.Id, 5);
+        var firstProduct = await CreateProductAsync("SA-P4A", "First Aggregate Product");
+        var secondProduct = await CreateProductAsync("SA-P4B", "Second Aggregate Product");
+        await PublishBomAsync(firstProduct.Id, component.Id, 2);
+        await PublishBomAsync(secondProduct.Id, component.Id, 3);
+        var model = GetRequiredService<CreateModel>();
+
+        var response = await GetStockAvailabilityAsync(
+            model,
+            warehouse.Id,
+            new SalesStockAvailabilityLineRequest { LineIndex = 0, ProductId = firstProduct.Id, Quantity = 2 },
+            new SalesStockAvailabilityLineRequest { LineIndex = 1, ProductId = secondProduct.Id, Quantity = 1 });
+
+        response.Lines.Count.ShouldBe(2);
+        response.Lines.ShouldAllBe(x => x.Status == SalesStockAvailabilityStatus.Shortage);
+        response.Lines.ShouldAllBe(x => x.IsShortage);
+        response.Lines.ShouldAllBe(x => x.LimitingComponentId == component.Id);
+        response.Lines.Select(x => x.LimitingComponentRequiredQuantity).Distinct().Single().ShouldBe(7);
+    }
+
+    [Fact]
+    public async Task Sales_Create_StockAvailability_Handler_Should_Return_NoBom_For_Product_Without_Published_Bom()
+    {
+        var warehouse = await GetRequiredService<IWarehouseAppService>()
+            .CreateAsync(new CreateWarehouseDto { Code = Unique("SA-W5"), Name = "No BOM Warehouse" });
+        var product = await CreateProductAsync("SA-P5", "No BOM Availability Product");
+        var model = GetRequiredService<CreateModel>();
+
+        var response = await GetStockAvailabilityAsync(model, warehouse.Id,
+            new SalesStockAvailabilityLineRequest { LineIndex = 0, ProductId = product.Id, Quantity = 1 });
+
+        var line = response.Lines.Single();
+        line.Status.ShouldBe(SalesStockAvailabilityStatus.NoBom);
+        line.IsShortage.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Sales_Create_OnPostAsync_Should_Block_When_Component_Stock_Is_Insufficient()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var group = await GetRequiredService<ICustomerGroupAppService>()
+            .CreateAsync(new CreateCustomerGroupDto { Code = Unique("SST-G"), Name = "Stock Gate Group" });
+        var customer = await GetRequiredService<ICustomerAppService>()
+            .CreateAsync(new CreateCustomerDto { Code = Unique("SST-C"), Name = "Stock Gate Customer", CustomerGroupId = group.Id });
+        var warehouse = await GetRequiredService<IWarehouseAppService>()
+            .CreateAsync(new CreateWarehouseDto { Code = Unique("SST-W"), Name = "Stock Gate Warehouse" });
+        var component = await GetRequiredService<IComponentAppService>()
+            .CreateAsync(new CreateComponentDto { Code = Unique("SST-I"), Name = "Stock Gate Component", Unit = "Piece" });
+        await PostComponentReceiptAsync(warehouse.Id, component.Id, 2);
+        var product = await CreateProductAsync("SST-P", "Stock Gate Product");
+        await PublishBomAsync(product.Id, component.Id);
+        var model = GetRequiredService<CreateModel>();
+        await model.OnGetAsync();
+        model.Input.CustomerId = customer.Id;
+        model.Input.WarehouseId = warehouse.Id;
+        model.Input.OrderDate = DateTime.UtcNow.Date;
+        model.Input.Lines =
+        [
+            new CreateSalesOrderLineDto
+            {
+                ProductId = product.Id,
+                Quantity = 3,
+                ActualSellingPrice = 123
+            }
+        ];
+
+        var result = await WithSalesUnitOfWorkAsync(() => model.OnPostAsync());
+
+        result.ShouldBeOfType<PageResult>();
+        model.ModelState.IsValid.ShouldBeFalse();
+        model.ModelState[$"Input.Lines[0].Quantity"]!.Errors
+            .Select(x => x.ErrorMessage)
+            .ShouldContain(x => x.Contains(localizer["Sales:InsufficientStockForRequestedQuantity"].Value));
+        model.ModelState[string.Empty]!.Errors
+            .Select(x => x.ErrorMessage)
+            .ShouldContain(localizer["Sales:StockIssueGlobal"].Value);
     }
 
     [Fact]
@@ -896,7 +1088,54 @@ public class SalesPagesTests : VPureLuxWebTestBase
             Name = name
         });
 
-    private async Task PublishBomAsync(Guid productId, Guid? componentId = null)
+    private async Task<SalesStockAvailabilityResponse> GetStockAvailabilityAsync(
+        CreateModel model,
+        Guid warehouseId,
+        params SalesStockAvailabilityLineRequest[] lines)
+    {
+        return await WithSalesUnitOfWorkAsync(async () =>
+        {
+            var result = await model.OnGetStockAvailabilityAsync(
+                warehouseId,
+                JsonSerializer.Serialize(lines, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+
+            return result.Value.ShouldBeOfType<SalesStockAvailabilityResponse>();
+        });
+    }
+
+    private async Task<TResult> WithSalesUnitOfWorkAsync<TResult>(Func<Task<TResult>> action)
+    {
+        var unitOfWorkManager = GetRequiredService<IUnitOfWorkManager>();
+        using var unitOfWork = unitOfWorkManager.Begin();
+        var result = await action();
+        await unitOfWork.CompleteAsync();
+        return result;
+    }
+
+    private async Task PostComponentReceiptAsync(Guid warehouseId, Guid componentId, decimal quantity)
+    {
+        var stockItem = await GetRequiredService<IStockItemRepository>()
+            .FindByCatalogItemAsync(StockItemType.Component, componentId);
+        stockItem.ShouldNotBeNull();
+        await GetRequiredService<IInventoryTransactionAppService>().PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = warehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = stockItem!.Id,
+                    Quantity = quantity,
+                    UnitCost = 50,
+                    LotNo = Unique("SA-L"),
+                    ReceivedAt = DateTime.UtcNow
+                }
+            ]
+        });
+    }
+
+    private async Task<Guid> PublishBomAsync(Guid productId, Guid? componentId = null, decimal quantity = 1)
     {
         componentId ??= (await GetRequiredService<IComponentAppService>().CreateAsync(new CreateComponentDto
         {
@@ -907,9 +1146,10 @@ public class SalesPagesTests : VPureLuxWebTestBase
         var bom = await GetRequiredService<IBomAppService>().CreateAsync(productId, new CreateBomVersionDto
         {
             EffectiveFrom = DateTime.Now.Date,
-            Items = [new CreateBomItemDto { ComponentId = componentId.Value, Quantity = 1 }]
+            Items = [new CreateBomItemDto { ComponentId = componentId.Value, Quantity = quantity }]
         });
         await GetRequiredService<IBomAppService>().PublishAsync(bom.Id);
+        return componentId.Value;
     }
 
     private static string Unique(string prefix) => prefix + Guid.NewGuid().ToString("N")[..8];
