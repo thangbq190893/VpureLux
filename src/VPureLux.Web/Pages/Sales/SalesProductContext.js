@@ -88,7 +88,7 @@
             return createPage.dataset.salesProductNotEligible;
         }
 
-        return l('Sales:ProductNotSaleEligible');
+        return l('Sales:ProductStockSaleNotSupported');
     }
 
     function getOverrideReasonRequiredMessage() {
@@ -101,6 +101,14 @@
 
     function getManualPriceRequiredMessage() {
         return l('Sales:ManualPriceRequired');
+    }
+
+    function getNoSuggestedPriceManualMessage() {
+        return l('Sales:NoSuggestedPriceManualPriceRequired');
+    }
+
+    function getStockAvailabilityPreviewMessage() {
+        return l('Sales:StockAvailabilityPreviewDeferred');
     }
 
     function getCreateAlert() {
@@ -261,7 +269,7 @@
 
     function getSuggestedPriceText(suggestedPrice) {
         if (suggestedPrice === null || suggestedPrice === undefined) {
-            return l('Sales:NoSuggestedPrice') + ' - ' + getManualPriceRequiredMessage();
+            return getNoSuggestedPriceManualMessage();
         }
 
         return suggestedPrice;
@@ -284,8 +292,11 @@
 
         if (createPage) {
             contextPanel.innerHTML =
-                '<div class="mb-1"><span class="' + bomBadgeClass + '">' + escapeHtml(bomText) + '</span></div>' +
-                '<div class="small text-muted">' + escapeHtml(l('Sales:SuggestedPrice')) + ': ' + escapeHtml(String(suggestedPriceText)) + '</div>';
+                '<div class="small">' +
+                '<span class="' + bomBadgeClass + '">' + escapeHtml(bomText) + '</span> ' +
+                '<span class="text-muted">' + escapeHtml(l('Sales:SuggestedPrice')) + ': ' + escapeHtml(String(suggestedPriceText)) + '</span>' +
+                '</div>' +
+                '<div class="small text-muted">' + escapeHtml(getStockAvailabilityPreviewMessage()) + '</div>';
         } else {
             var hasImage = getValue(data, 'HasImage') === true || getValue(data, 'HasImage') === 'true';
             var imageText = hasImage ? l('Sales:HasProductImage') : l('Sales:NoProductImage');

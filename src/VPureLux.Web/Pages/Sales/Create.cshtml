@@ -6,7 +6,7 @@
 @{ ViewData["Title"] = L["Sales:Create"]; }
 <div id="SalesCreatePage"
      data-sales-context-endpoint="@Url.Page(null, "ProductContext")"
-     data-sales-product-not-eligible="@L["Sales:ProductNotSaleEligible"]"
+     data-sales-product-not-eligible="@L["Sales:ProductStockSaleNotSupported"]"
      data-sales-override-reason-required="@L[VPureLuxDomainErrorCodes.SalesOverrideReasonRequired]">
     <abp-card>
         <abp-card-header>
@@ -51,7 +51,7 @@
                                         <span asp-validation-for="Input.Lines[i].ProductId" class="text-danger d-block small"></span>
                                     </td>
                                     <td class="sales-line-col-status">
-                                        <div class="small text-muted" data-sales-product-context>
+                                        <div class="small text-muted sales-line-context" data-sales-product-context>
                                             @L["Sales:SelectProductForContext"]
                                         </div>
                                         <div class="small text-danger d-none" data-sales-product-eligibility></div>
@@ -88,7 +88,7 @@
                                     </td>
                                     <td class="sales-line-col-action text-end">
                                         <button type="button"
-                                                class="btn btn-outline-danger btn-sm remove-sales-line"
+                                                class="btn btn-outline-danger btn-sm remove-sales-line sales-action-button"
                                                 title="@L["Delete"]"
                                                 aria-label="@L["Delete"]">
                                             <i class="fa fa-trash"></i>
@@ -99,12 +99,14 @@
                         </tbody>
                     </table>
                 </div>
-                <button type="button" id="add-sales-line" class="btn btn-outline-secondary mb-3">
-                    <i class="fa fa-plus"></i> @L["Sales:AddLine"]
-                </button>
+                <div class="sales-create-actions mb-3">
+                    <button type="button" id="add-sales-line" class="btn btn-outline-secondary btn-sm sales-action-button">
+                        <i class="fa fa-plus"></i> @L["Sales:AddLine"]
+                    </button>
 
-                <button class="btn btn-primary" type="submit">@L["Save"]</button>
-                <a class="btn btn-secondary" asp-page="/Sales/Index">@L["Cancel"]</a>
+                    <button class="btn btn-primary btn-sm sales-action-button" type="submit">@L["Save"]</button>
+                    <a class="btn btn-secondary btn-sm sales-action-button" asp-page="/Sales/Index">@L["Cancel"]</a>
+                </div>
             </form>
         </abp-card-body>
     </abp-card>
@@ -126,7 +128,7 @@
             </select>
         </td>
         <td class="sales-line-col-status">
-            <div class="small text-muted" data-sales-product-context>
+            <div class="small text-muted sales-line-context" data-sales-product-context>
                 @L["Sales:SelectProductForContext"]
             </div>
             <div class="small text-danger d-none" data-sales-product-eligibility></div>
@@ -150,12 +152,16 @@
             <span class="text-danger d-block small d-none" data-sales-override-validation></span>
         </td>
         <td class="sales-line-col-action text-end">
-            <button type="button" class="btn btn-outline-danger btn-sm remove-sales-line" title="@L["Delete"]">
+            <button type="button" class="btn btn-outline-danger btn-sm remove-sales-line sales-action-button" title="@L["Delete"]">
                 <i class="fa fa-trash"></i>
             </button>
         </td>
     </tr>
 </template>
+
+@section styles {
+    <abp-style src="/Pages/Sales/Create.css" />
+}
 
 @section scripts {
     <abp-script src="/Pages/Shared/DynamicRowSelects.js" />
