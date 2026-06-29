@@ -1,0 +1,66 @@
+.sales-create-lines-table {
+    min-width: 1400px;
+    table-layout: fixed;
+}
+
+.sales-create-lines-table th,
+.sales-create-lines-table td {
+    vertical-align: middle;
+}
+
+.sales-line-col-product {
+    width: 40%;
+    min-width: 32rem;
+}
+
+.sales-line-col-status {
+    width: 28%;
+    min-width: 18rem;
+}
+
+.sales-line-col-quantity {
+    width: 8rem;
+}
+
+.sales-line-col-price {
+    width: 9rem;
+}
+
+.sales-line-col-override {
+    width: 14rem;
+}
+
+.sales-line-col-action {
+    width: 4.75rem;
+}
+
+.sales-line-product,
+.sales-line-col-product .custom-select-wrapper {
+    min-width: 30rem;
+}
+
+.sales-line-context {
+    line-height: 1.25;
+}
+
+.sales-create-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+}
+
+.sales-create-actions .btn,
+.sales-action-button {
+    display: inline-flex;
+    min-height: 32px;
+    align-items: center;
+    justify-content: center;
+    gap: .25rem;
+}
+
+.remove-sales-line.sales-action-button {
+    width: 32px;
+    padding-right: .375rem;
+    padding-left: .375rem;
+}

@@ -448,3 +448,84 @@ dotnet test ... -m:1
 
 - Browser/E2E automation for multi-line create submit
 - Client-side validation message re-index after row remove (server validation unaffected)
+
+---
+
+## 15. UAT Fix 02F - Sales Create usability and stock-aware eligibility clarification (2026-06-29)
+
+### Product select/layout fix
+
+- Added scoped `/Pages/Sales/Create.css` for the Sales Create line table.
+- Product column is now the widest column (`40%`, minimum `32rem`) and product selects have a `30rem` minimum width so product code/name text is easier to read.
+- Status/suggested-price remains the second-largest column; quantity, actual price, override reason, and delete action stay compact.
+- The layout remains a responsive compact table and does not reintroduce card-style rows or Select2 duplication.
+
+### Button alignment fix
+
+- `Thêm dòng hàng`, `Lưu`, `Hủy`, and row `Xóa` actions now share small Bootstrap button sizing plus the `sales-action-button` alignment class.
+- Action buttons are grouped in `sales-create-actions` with consistent height, icon/text alignment, and compact spacing.
+
+### Pricing message correction
+
+- Missing suggested selling price now shows the neutral manual-price message:
+
+```text
+Chưa có giá bán đề xuất, cần nhập giá bán thực tế.
+```
+
+- Missing suggested price is not described as unsellable and does not require an override reason by itself.
+- Existing override behavior is unchanged: if a suggested price exists and actual selling price differs, override reason is required.
+
+### BOM/no-BOM message correction
+
+- Sales Create still blocks no-BOM products because current backend create/confirm flow requires a published BOM:
+  - `SalesOrderAppService.AddInputLineAsync()` calls `EnsurePublishedBomAsync()` before draft creation.
+  - confirm still issues inventory by published BOM component requirements.
+- The no-BOM warning now states the precise current limitation:
+
+```text
+Sản phẩm chưa có định mức công bố. Chưa hỗ trợ xác nhận bán theo tồn kho thành phẩm trong phiên bản này.
+```
+
+- This avoids implying the product is blocked because of missing suggested price.
+
+### Stock availability
+
+- Stock availability preview was not implemented in this fix.
+- The Create row context now says stock preview is not shown in this version rather than faking an availability number.
+- No stock is reserved at Create, and Confirm/FIFO/inventory posting semantics are unchanged.
+
+### Manual smoke result (02F)
+
+Browser smoke was run against `https://localhost:44325/Sales/Create`:
+
+- Opened `/Sales/Create` as `admin`.
+- Added 5 rows and confirmed the compact table remained usable.
+- Verified product select wrappers rendered at 480px with a 1400px table minimum width.
+- Verified Add/Save/Cancel/Delete buttons shared a 32px height and aligned consistently.
+- Selected a published-BOM product with suggested price and confirmed the context showed suggested price plus the deferred stock-preview message.
+- Verified override price without reason stayed on Create and showed friendly global and row-level validation.
+- Verified same-price save with blank reason redirected to Sales Details and displayed the saved line without a raw exception.
+- Runtime data in this smoke run did not include a published-BOM product with missing suggested price; that path remains covered by focused Web tests.
+- No-BOM/product-stock selling remains intentionally unsupported in this task and is covered by focused Web/PageModel tests.
+
+### Tests run (02F)
+
+Final validation for this task run:
+
+```text
+dotnet build VPureLux.slnx --no-restore -m:2
+Result: passed, 1 existing Test SDK warning.
+
+dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build --filter "FullyQualifiedName~Sales" -m:1 --logger "console;verbosity=detailed"
+Result: passed, 36/36.
+
+dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build -m:1 --logger "console;verbosity=detailed"
+Result: passed, 149/149.
+```
+
+### Deferred items (02F)
+
+- Stock availability preview.
+- No-BOM product-stock selling.
+- Product stock enablement and policy changes.

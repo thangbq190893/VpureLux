@@ -91,6 +91,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("<abp-script src=\"/Pages/Shared/DynamicRowSelects.js\" />");
         pageSource.ShouldContain("<abp-script src=\"/Pages/Sales/SalesProductContext.js\" />");
         pageSource.ShouldContain("<abp-script src=\"/Pages/Sales/SalesCreateLines.js\" />");
+        pageSource.ShouldContain("<abp-style src=\"/Pages/Sales/Create.css\" />");
         pageSource.ShouldContain("data-sales-line-row");
         pageSource.ShouldContain("data-sales-product-select");
         pageSource.ShouldContain("id=\"sales-line-row-template\"");
@@ -104,6 +105,13 @@ public class SalesPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("data-sales-line-index");
         pageSource.ShouldContain("sales-create-lines-editor");
         pageSource.ShouldContain("sales-create-lines-table");
+        pageSource.ShouldContain("sales-line-context");
+        pageSource.ShouldContain("sales-create-actions");
+        pageSource.ShouldContain("sales-action-button");
+        pageSource.ShouldContain("btn btn-outline-secondary btn-sm sales-action-button");
+        pageSource.ShouldContain("btn btn-primary btn-sm sales-action-button");
+        pageSource.ShouldContain("btn btn-secondary btn-sm sales-action-button");
+        pageSource.ShouldContain("remove-sales-line sales-action-button");
         pageSource.ShouldContain("data-sales-lines-body");
         pageSource.ShouldContain("sales-line-col-product");
         pageSource.ShouldContain("sales-line-col-status");
@@ -155,6 +163,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("validateAllRows");
         scriptSource.ShouldContain("data-sales-product-eligibility");
         scriptSource.ShouldContain("loadProductContextFromMap");
+        scriptSource.ShouldContain("Sales:ProductStockSaleNotSupported");
 
         pageSource.ShouldContain("sales-product-context-data");
         pageSource.ShouldContain("GetProductContextsJson");
@@ -177,9 +186,22 @@ public class SalesPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("data-sales-create-alert");
         scriptSource.ShouldContain("data-sales-override-validation");
         scriptSource.ShouldContain("Sales:ManualPriceRequired");
+        scriptSource.ShouldContain("Sales:NoSuggestedPriceManualPriceRequired");
+        scriptSource.ShouldContain("Sales:StockAvailabilityPreviewDeferred");
         scriptSource.ShouldContain("salesPriceAutoFilled");
         scriptSource.ShouldContain("salesPreviousProductId");
         scriptSource.ShouldContain("SuggestedPrice");
+
+        var createCss = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Create.css"));
+        createCss.ShouldContain(".sales-create-lines-table");
+        createCss.ShouldContain("min-width: 1400px");
+        createCss.ShouldContain(".sales-line-col-product");
+        createCss.ShouldContain("min-width: 32rem");
+        createCss.ShouldContain(".sales-line-product");
+        createCss.ShouldContain(".sales-line-col-product .custom-select-wrapper");
+        createCss.ShouldContain("min-width: 30rem");
+        createCss.ShouldContain(".sales-create-actions");
+        createCss.ShouldContain(".sales-action-button");
     }
 
     [Fact]
@@ -217,9 +239,11 @@ public class SalesPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("if (suggestedPrice === null || suggestedPrice === undefined)");
         scriptSource.ShouldContain("actualPriceInput.value = ''");
         scriptSource.ShouldContain("markActualPriceAutoFilled(actualPriceInput, false)");
-        scriptSource.ShouldContain("return l('Sales:NoSuggestedPrice') + ' - ' + getManualPriceRequiredMessage();");
+        scriptSource.ShouldContain("return getNoSuggestedPriceManualMessage();");
         scriptSource.ShouldContain("if (suggestedPrice === null)");
-        localizer["Sales:ManualPriceRequired"].Value.ShouldNotBeNullOrWhiteSpace();
+        localizer["Sales:NoSuggestedPriceManualPriceRequired"].Value
+            .ShouldBe("Chưa có giá bán đề xuất, cần nhập giá bán thực tế.");
+        localizer["Sales:NoSuggestedPriceManualPriceRequired"].Value.ShouldNotContain("không thể bán");
     }
 
     [Fact]
@@ -271,7 +295,9 @@ public class SalesPagesTests : VPureLuxWebTestBase
         model.ModelState.IsValid.ShouldBeFalse();
         model.ModelState[$"Input.Lines[0].ProductId"]!.Errors
             .Select(x => x.ErrorMessage)
-            .ShouldContain(localizer["Sales:ProductNotSaleEligible"].Value);
+            .ShouldContain(localizer["Sales:ProductStockSaleNotSupported"].Value);
+        localizer["Sales:ProductStockSaleNotSupported"].Value.ShouldContain("tồn kho thành phẩm");
+        localizer["Sales:ProductStockSaleNotSupported"].Value.ShouldNotContain("giá bán");
     }
 
     [Fact]
@@ -415,7 +441,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
         var pageSource = File.ReadAllText(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Create.cshtml.cs"));
         pageSource.ShouldContain("ValidateLineEligibility");
         pageSource.ShouldContain("SalesBomMustBePublished");
-        pageSource.ShouldContain("Sales:ProductNotSaleEligible");
+        pageSource.ShouldContain("Sales:ProductStockSaleNotSupported");
         pageSource.ShouldContain("GetProductContextsJson");
     }
 

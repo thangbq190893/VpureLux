@@ -216,7 +216,7 @@ public class CreateModel : VPureLuxPageModel
             return false;
         }
 
-        ModelState.AddModelError($"Input.Lines[{lineIndex}].ProductId", L["Sales:ProductNotSaleEligible"].Value);
+        ModelState.AddModelError($"Input.Lines[{lineIndex}].ProductId", L["Sales:ProductStockSaleNotSupported"].Value);
         return true;
     }
 
