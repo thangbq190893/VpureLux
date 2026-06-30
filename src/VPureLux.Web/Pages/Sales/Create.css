@@ -69,3 +69,15 @@
     padding-right: .375rem;
     padding-left: .375rem;
 }
+
+.sales-edit-lines-table .sales-line-col-action {
+    width: 8.5rem;
+}
+
+.sales-edit-lines-table .sales-line-col-action .sales-action-button {
+    margin-left: .25rem;
+}
+
+.sales-edit-add-line-row {
+    background: var(--bs-light, #f8f9fa);
+}

@@ -33,6 +33,7 @@ using Volo.Abp.Uow;
 using Xunit;
 using CreateModel = VPureLux.Web.Pages.Sales.CreateModel;
 using DetailsModel = VPureLux.Web.Pages.Sales.DetailsModel;
+using EditModel = VPureLux.Web.Pages.Sales.EditModel;
 using IndexModel = VPureLux.Web.Pages.Sales.IndexModel;
 using SalesProductContextViewModel = VPureLux.Web.Pages.Sales.SalesProductContextViewModel;
 using SalesUiFormatter = VPureLux.Web.Pages.Sales.SalesUiFormatter;
@@ -925,16 +926,186 @@ public class SalesPagesTests : VPureLuxWebTestBase
 
         html.ShouldContain($"{context.ProductCode} - {context.ProductName}");
         html.ShouldContain($"{secondProduct.Code} - {secondProduct.Name}");
+        html.ShouldContain("sales-edit-lines-editor");
+        html.ShouldContain("sales-edit-lines-table");
+        html.ShouldContain("data-sales-line-row");
+        html.ShouldContain("data-sales-stock-availability");
+        html.ShouldContain("data-sales-actual-price");
+        html.ShouldContain("data-sales-override-validation");
+        html.ShouldContain("data-sales-availability-endpoint");
+        html.ShouldContain("data-sales-warehouse-id");
         html.ShouldContain("name=\"LineId\"");
         html.ShouldContain("name=\"lineId\"");
+        html.ShouldContain("name=\"UpdateLine.Quantity\"");
+        html.ShouldContain("name=\"UpdateLine.ActualSellingPrice\"");
+        html.ShouldContain("name=\"UpdateLine.OverrideReason\"");
+        html.ShouldContain("name=\"NewLine.ProductId\"");
+        html.ShouldContain("name=\"NewLine.Quantity\"");
+        html.ShouldContain("name=\"NewLine.ActualSellingPrice\"");
+        html.ShouldContain("name=\"NewLine.OverrideReason\"");
         pageSource.ShouldContain("asp-page-handler=\"Add\"");
         pageSource.ShouldContain("asp-page-handler=\"Remove\"");
         pageSource.ShouldContain("asp-page-handler=\"Update\"");
-        pageSource.ShouldContain("data-sales-product-selector");
+        pageSource.ShouldContain("form=\"@updateFormId\"");
+        pageSource.ShouldContain("form=\"@addFormId\"");
+        pageSource.ShouldContain("data-sales-product-select");
         pageSource.ShouldContain("data-sales-product-context");
+        pageSource.ShouldContain("sales-product-context-data");
+        pageSource.ShouldContain("GetProductContextsJson");
+        pageSource.ShouldContain("<abp-style src=\"/Pages/Sales/Create.css\" />");
         pageModelSource.ShouldContain("OnPostAddAsync");
         pageModelSource.ShouldContain("OnPostRemoveAsync");
         pageModelSource.ShouldContain("OnPostUpdateAsync");
+        pageModelSource.ShouldContain("OnGetStockAvailabilityAsync");
+        pageModelSource.ShouldContain("ValidateNewLineStockAvailabilityAsync");
+        pageModelSource.ShouldContain("ValidateUpdateLineStockAvailabilityAsync");
+    }
+
+    [Fact]
+    public async Task Sales_Edit_Should_ReUse_Product_Context_And_Stock_Availability_Client_Hooks()
+    {
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Edit.cshtml"));
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/SalesProductContext.js"));
+        var createCss = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Create.css"));
+
+        pageSource.ShouldContain("id=\"SalesEditPage\"");
+        pageSource.ShouldContain("data-sales-context-endpoint");
+        pageSource.ShouldContain("data-sales-availability-endpoint");
+        pageSource.ShouldContain("data-sales-product-not-eligible");
+        pageSource.ShouldContain("data-sales-override-reason-required");
+        pageSource.ShouldContain("data-sales-stock-availability");
+        pageSource.ShouldContain("data-sales-product-eligibility");
+        pageSource.ShouldContain("data-sales-edit-alert");
+
+        scriptSource.ShouldContain("var editPage = document.getElementById('SalesEditPage')");
+        scriptSource.ShouldContain("var availabilityPage = createPage || editPage");
+        scriptSource.ShouldContain("document.getElementById('sales-create-lines') || document.getElementById('sales-edit-lines')");
+        scriptSource.ShouldContain("availabilityPage.dataset.salesWarehouseId");
+        scriptSource.ShouldContain("availabilityPage.dataset.salesAvailabilityEndpoint");
+        scriptSource.ShouldContain("refreshStockAvailability(getLinesContainer());");
+        scriptSource.ShouldContain("setStockAvailability(scope, 'noBom', getNoBomStockAvailabilityMessage())");
+        createCss.ShouldContain(".sales-edit-lines-table");
+        createCss.ShouldContain(".sales-edit-add-line-row");
+    }
+
+    [Fact]
+    public async Task Sales_Edit_AddLine_Should_Block_NoBom_Product_With_Field_Error()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-ENB");
+        var ineligibleProduct = await CreateProductAsync("SALES-ENB-P", "Edit No BOM Product");
+        var order = await GetRequiredService<ISalesOrderAppService>().CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 }]
+        });
+        var model = GetRequiredService<EditModel>();
+        SetPageContext(model);
+        model.Id = order.Id;
+        model.NewLine = new CreateSalesOrderLineDto
+        {
+            ProductId = ineligibleProduct.Id,
+            Quantity = 1,
+            ActualSellingPrice = 100
+        };
+
+        var result = await WithSalesUnitOfWorkAsync(() => model.OnPostAddAsync());
+
+        result.ShouldBeOfType<PageResult>();
+        model.ModelState.IsValid.ShouldBeFalse();
+        model.ModelState[$"NewLine.ProductId"]!.Errors
+            .Select(x => x.ErrorMessage)
+            .ShouldContain(localizer["Sales:ProductStockSaleNotSupported"].Value);
+        localizer["Sales:ProductStockSaleNotSupported"].Value.ShouldContain("tồn kho thành phẩm");
+    }
+
+    [Fact]
+    public async Task Sales_Edit_AddLine_Should_Save_Missing_Suggested_Price_With_Manual_Actual_Price()
+    {
+        var context = await CreateSalesContextAsync("SALES-ENS");
+        var secondComponent = await GetRequiredService<IComponentAppService>()
+            .CreateAsync(new CreateComponentDto { Code = Unique("ENS-C"), Name = "Edit No Suggested Component", Unit = "Piece" });
+        await PostComponentReceiptAsync(context.WarehouseId, secondComponent.Id, 5);
+        var noSuggestedProduct = await CreateProductAsync("ENS-P", "Edit No Suggested Product");
+        await PublishBomAsync(noSuggestedProduct.Id, secondComponent.Id);
+        var service = GetRequiredService<ISalesOrderAppService>();
+        var order = await service.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 }]
+        });
+        var model = GetRequiredService<EditModel>();
+        SetPageContext(model);
+        model.Id = order.Id;
+        model.NewLine = new CreateSalesOrderLineDto
+        {
+            ProductId = noSuggestedProduct.Id,
+            Quantity = 1,
+            ActualSellingPrice = 123
+        };
+
+        var result = await WithSalesUnitOfWorkAsync(() => model.OnPostAddAsync());
+
+        var redirect = result.ShouldBeOfType<RedirectToPageResult>();
+        redirect.RouteValues!["id"].ShouldBe(order.Id);
+        var updated = await service.GetAsync(order.Id);
+        updated.Lines.Count.ShouldBe(2);
+        updated.Lines.ShouldContain(x => x.ProductId == noSuggestedProduct.Id && x.ActualSellingPrice == 123);
+    }
+
+    [Fact]
+    public async Task Sales_Edit_UpdateLine_Should_Require_Override_Reason_When_Suggested_Price_Differs()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-EOR");
+        var order = await GetRequiredService<ISalesOrderAppService>().CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 }]
+        });
+        var line = order.Lines.Single();
+        var model = GetRequiredService<EditModel>();
+        SetPageContext(model);
+        model.Id = order.Id;
+        model.LineId = line.Id;
+        model.UpdateLine = new UpdateSalesOrderLineDto
+        {
+            Quantity = 1,
+            ActualSellingPrice = 90
+        };
+
+        var result = await WithSalesUnitOfWorkAsync(() => model.OnPostUpdateAsync());
+
+        result.ShouldBeOfType<PageResult>();
+        model.ModelState.IsValid.ShouldBeFalse();
+        model.ModelState[$"UpdateLine.OverrideReason"]!.Errors
+            .Select(x => x.ErrorMessage)
+            .ShouldContain(localizer[VPureLuxDomainErrorCodes.SalesOverrideReasonRequired].Value);
+    }
+
+    [Fact]
+    public async Task Sales_Edit_StockAvailability_Handler_Should_Return_Bom_Component_Available_To_Sell()
+    {
+        var context = await CreateSalesContextAsync("SALES-ESA");
+        var order = await GetRequiredService<ISalesOrderAppService>().CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 }]
+        });
+        var model = GetRequiredService<EditModel>();
+        model.Id = order.Id;
+
+        var response = await GetEditStockAvailabilityAsync(model,
+            new SalesStockAvailabilityLineRequest { LineIndex = 0, ProductId = context.ProductId, Quantity = 2 });
+
+        var line = response.Lines.Single();
+        line.Status.ShouldBe(SalesStockAvailabilityStatus.Available);
+        line.AvailableToSell.ShouldBeGreaterThanOrEqualTo(2);
+        line.IsShortage.ShouldBeFalse();
     }
 
     [Fact]
@@ -1377,6 +1548,19 @@ public class SalesPagesTests : VPureLuxWebTestBase
         {
             var result = await model.OnGetStockAvailabilityAsync(
                 warehouseId,
+                JsonSerializer.Serialize(lines, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+
+            return result.Value.ShouldBeOfType<SalesStockAvailabilityResponse>();
+        });
+    }
+
+    private async Task<SalesStockAvailabilityResponse> GetEditStockAvailabilityAsync(
+        EditModel model,
+        params SalesStockAvailabilityLineRequest[] lines)
+    {
+        return await WithSalesUnitOfWorkAsync(async () =>
+        {
+            var result = await model.OnGetStockAvailabilityAsync(
                 JsonSerializer.Serialize(lines, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
 
             return result.Value.ShouldBeOfType<SalesStockAvailabilityResponse>();

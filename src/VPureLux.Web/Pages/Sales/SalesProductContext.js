@@ -8,6 +8,8 @@
     var defaultContextHtml = null;
     var productContextMap = null;
     var createPage = document.getElementById('SalesCreatePage');
+    var editPage = document.getElementById('SalesEditPage');
+    var availabilityPage = createPage || editPage;
     var availabilityRequestId = 0;
 
     function appendProductId(url, productId) {
@@ -90,16 +92,16 @@
     }
 
     function getNotEligibleMessage() {
-        if (createPage && createPage.dataset.salesProductNotEligible) {
-            return createPage.dataset.salesProductNotEligible;
+        if (page && page.dataset.salesProductNotEligible) {
+            return page.dataset.salesProductNotEligible;
         }
 
         return l('Sales:ProductStockSaleNotSupported');
     }
 
     function getOverrideReasonRequiredMessage() {
-        if (createPage && createPage.dataset.salesOverrideReasonRequired) {
-            return createPage.dataset.salesOverrideReasonRequired;
+        if (page && page.dataset.salesOverrideReasonRequired) {
+            return page.dataset.salesOverrideReasonRequired;
         }
 
         return l('SALES_009');
@@ -126,15 +128,26 @@
     }
 
     function getWarehouseSelector() {
-        return createPage ? createPage.querySelector('[name="Input.WarehouseId"]') : null;
+        return availabilityPage ? availabilityPage.querySelector('[name="Input.WarehouseId"]') : null;
+    }
+
+    function getWarehouseId() {
+        var warehouseSelector = getWarehouseSelector();
+        if (warehouseSelector) {
+            return warehouseSelector.value || '';
+        }
+
+        return availabilityPage && availabilityPage.dataset.salesWarehouseId
+            ? availabilityPage.dataset.salesWarehouseId
+            : '';
     }
 
     function getLinesContainer() {
-        return document.getElementById('sales-create-lines');
+        return document.getElementById('sales-create-lines') || document.getElementById('sales-edit-lines');
     }
 
     function getLineRows(container) {
-        var searchRoot = container || getLinesContainer() || createPage;
+        var searchRoot = container || getLinesContainer() || page;
         return searchRoot ? searchRoot.querySelectorAll('[data-sales-line-row]') : [];
     }
 
@@ -147,7 +160,7 @@
     }
 
     function getCreateAlert() {
-        return createPage ? createPage.querySelector('[data-sales-create-alert]') : null;
+        return page ? page.querySelector('[data-sales-create-alert], [data-sales-edit-alert]') : null;
     }
 
     function showCreateAlert(message) {
@@ -355,7 +368,7 @@
         var bomText = published ? l('Sales:PublishedBomAvailable') : l('Sales:NoPublishedBom');
         var suggestedPriceText = getSuggestedPriceText(suggestedPrice);
 
-        if (createPage) {
+        if (createPage || editPage) {
             contextPanel.innerHTML =
                 '<div class="small">' +
                 '<span class="' + bomBadgeClass + '">' + escapeHtml(bomText) + '</span> ' +
@@ -381,7 +394,7 @@
         clearOverrideValidation(scope);
         updateRowEligibility(scope, data);
 
-        if (createPage && !published) {
+        if (availabilityPage && !published) {
             setStockAvailability(scope, 'noBom', getNoBomStockAvailabilityMessage());
         }
     }
@@ -467,7 +480,7 @@
     }
 
     function buildAvailabilityUrl(warehouseId, lines) {
-        return appendQuery(createPage.dataset.salesAvailabilityEndpoint, [
+        return appendQuery(availabilityPage.dataset.salesAvailabilityEndpoint, [
             'warehouseId=' + encodeURIComponent(warehouseId),
             'lines=' + encodeURIComponent(JSON.stringify(lines))
         ]);
@@ -492,12 +505,11 @@
     }
 
     function refreshStockAvailability(container) {
-        if (!createPage || !createPage.dataset.salesAvailabilityEndpoint) {
+        if (!availabilityPage || !availabilityPage.dataset.salesAvailabilityEndpoint) {
             return Promise.resolve(true);
         }
 
-        var warehouseSelector = getWarehouseSelector();
-        var warehouseId = warehouseSelector ? warehouseSelector.value || '' : '';
+        var warehouseId = getWarehouseId();
         var lines = collectAvailabilityLines(container);
 
         if (!warehouseId || lines.length === 0) {
@@ -553,7 +565,7 @@
             return;
         }
 
-        if (createPage && Object.keys(getProductContextMap()).length > 0) {
+        if (Object.keys(getProductContextMap()).length > 0) {
             loadProductContextFromMap(scope, productSelector.value, options);
             return;
         }
@@ -576,7 +588,7 @@
 
             setPreviousProductId(productSelector, selectedProductId);
 
-            if (createPage && productChanged) {
+            if (availabilityPage && productChanged) {
                 clearCreateAlert();
                 clearStockAvailability(scope);
             }
@@ -697,7 +709,7 @@
 
             loadProductContext(row);
 
-            if (createPage && Object.keys(getProductContextMap()).length > 0) {
+            if (Object.keys(getProductContextMap()).length > 0) {
                 var data = getProductContextMap()[productSelector.value];
 
                 if (!data || !hasPublishedBom(data)) {
@@ -759,8 +771,10 @@
 
         if (!createPage) {
             initializeRows();
+            refreshStockAvailability(getLinesContainer());
         } else {
             bindWarehouseSelector();
+            refreshStockAvailability(getLinesContainer());
         }
     });
 }(window));
