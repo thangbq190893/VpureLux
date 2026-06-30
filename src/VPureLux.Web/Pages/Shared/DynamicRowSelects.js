@@ -82,6 +82,10 @@
                 return;
             }
 
+            if ($select.is('[data-dynamic-select2="disabled"]')) {
+                return;
+            }
+
             if ($select.hasClass('auto-complete-select')) {
                 if (window.abp &&
                     abp.dom &&

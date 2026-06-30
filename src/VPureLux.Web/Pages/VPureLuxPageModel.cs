@@ -1,4 +1,6 @@
-﻿using VPureLux.Localization;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
+using VPureLux.Localization;
 using Volo.Abp;
 using Volo.Abp.AspNetCore.Mvc.UI.RazorPages;
 
@@ -15,7 +17,20 @@ public abstract class VPureLuxPageModel : AbpPageModel
     {
         var message = string.IsNullOrWhiteSpace(exception.Code)
             ? exception.Message
-            : L[exception.Code].Value;
+            : LocalizeErrorCode(exception.Code);
         ModelState.AddModelError(string.Empty, message);
+    }
+
+    private string LocalizeErrorCode(string code)
+    {
+        var localizer = HttpContext?.RequestServices.GetService<IStringLocalizer<VPureLuxResource>>();
+        var localized = localizer?[code];
+
+        if (localized is { ResourceNotFound: false })
+        {
+            return localized.Value;
+        }
+
+        return L[code].Value;
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -15,6 +16,7 @@ using VPureLux.Localization;
 using VPureLux.Pricing;
 using VPureLux.Web.Pages.Bom;
 using Volo.Abp.Data;
+using Volo.Abp.DependencyInjection;
 using Xunit;
 
 namespace VPureLux.Pages;
@@ -220,6 +222,7 @@ public class BomPagesTests : VPureLuxWebTestBase
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom/Edit/{bom.Id}"));
         var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/Edit.cshtml"));
         var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/BomItems.js"));
+        var sharedScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Shared/DynamicRowSelects.js"));
 
         html.ShouldContain("vpl-line-editor-table bom-items-table");
         html.ShouldContain("form-select form-select-sm component-id");
@@ -227,10 +230,15 @@ public class BomPagesTests : VPureLuxWebTestBase
         html.ShouldContain("vpl-line-editor-icon-button");
         CountOccurrences(html, "name=\"Items[0].ComponentId\"").ShouldBe(1);
         CountOccurrences(html, "name=\"Items[1].ComponentId\"").ShouldBe(1);
+        CountOccurrences(html, "<select class=\"form-select form-select-sm component-id\"").ShouldBe(2);
+        CountLiveRowsWithExactlyOneSelect(html, "<tr class=\"bom-item\" data-line-editor-row>").ShouldBe(2);
         CountOccurrences(html, localizer["Bom:SelectComponent"].Value).ShouldBe(2);
+        html.ShouldContain("data-dynamic-select2=\"disabled\"");
+        html.ShouldNotContain("select2-container");
 
         pageSource.ShouldContain("<abp-style src=\"/Pages/Shared/LineEditors.css\" />");
         pageSource.ShouldContain("data-line-editor-row");
+        pageSource.ShouldContain("data-dynamic-select2=\"disabled\"");
         pageSource.ShouldContain("vpl-line-editor-col-main");
         pageSource.ShouldContain("vpl-line-editor-col-number");
         pageSource.ShouldContain("vpl-line-editor-col-action");
@@ -239,6 +247,9 @@ public class BomPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("quantity.name = 'Items[' + index + '].Quantity'");
         scriptSource.ShouldContain("dynamicRows.stripSelect2Enhancements(row)");
         scriptSource.ShouldContain("initializeSelects(row)");
+        sharedScriptSource.ShouldContain("data-dynamic-select2=\"disabled\"");
+        sharedScriptSource.ShouldContain("setControlsDisabled(template, true)");
+        sharedScriptSource.ShouldContain("template.classList.add('d-none')");
         localizer["Bom:Component"].Value.ShouldBe("Vật tư");
     }
 
@@ -298,6 +309,37 @@ public class BomPagesTests : VPureLuxWebTestBase
         model.ModelState.IsValid.ShouldBeFalse();
         model.ModelState[string.Empty]!.Errors
             .ShouldContain(x => x.ErrorMessage == localizer["Bom:ConcurrencyError"].Value);
+    }
+
+    [Fact]
+    public async Task Bom_Product_OnPostPublishAsync_Should_Show_Friendly_Error_When_Business_Rule_Blocks_Publish()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var product = await CreateProductAsync("BOM-PUBLISH-P", "BOM Publish Product");
+        var firstComponent = await CreateComponentAsync("BOM-PUBLISH-C1", "BOM Publish Component 1");
+        var secondComponent = await CreateComponentAsync("BOM-PUBLISH-C2", "BOM Publish Component 2");
+        var bomService = GetRequiredService<IBomAppService>();
+        var first = await bomService.CreateAsync(product.Id, BomInput(firstComponent.Id, DateTime.Today));
+        await bomService.PublishAsync(first.Id);
+        var draft = await bomService.CreateAsync(product.Id, BomInput(secondComponent.Id, DateTime.Today.AddDays(1)));
+        var model = new ProductModel(
+            bomService,
+            GetRequiredService<IProductAppService>(),
+            GetRequiredService<IProductPricingContextLookupService>(),
+            GetRequiredService<IAuthorizationService>())
+        {
+            ProductId = product.Id
+        };
+        SetPageContext(model);
+
+        var result = await model.OnPostPublishAsync(draft.Id);
+
+        result.ShouldBeOfType<PageResult>();
+        model.ModelState.IsValid.ShouldBeFalse();
+        model.ModelState[string.Empty]!.Errors
+            .ShouldContain(x => x.ErrorMessage == localizer[VPureLuxDomainErrorCodes.OnlyOneActiveBomAllowed].Value);
+        model.Versions.Count.ShouldBeGreaterThanOrEqualTo(2);
+        (await bomService.GetAsync(draft.Id)).Status.ShouldBe(BomStatus.Draft);
     }
 
     [Fact]
@@ -383,6 +425,26 @@ public class BomPagesTests : VPureLuxWebTestBase
         return count;
     }
 
+    private static int CountLiveRowsWithExactlyOneSelect(string html, string rowMarker)
+    {
+        var rowCount = 0;
+        var index = 0;
+
+        while ((index = html.IndexOf(rowMarker, index, StringComparison.Ordinal)) >= 0)
+        {
+            var end = html.IndexOf("</tr>", index, StringComparison.Ordinal);
+            end.ShouldBeGreaterThan(index);
+
+            var rowHtml = html[index..end];
+            CountOccurrences(rowHtml, "<select ").ShouldBe(1);
+            CountOccurrences(rowHtml, "data-dynamic-row-template").ShouldBe(0);
+            rowCount++;
+            index = end + "</tr>".Length;
+        }
+
+        return rowCount;
+    }
+
     private void SetPageContext(PageModel model)
     {
         model.PageContext = new PageContext
@@ -392,6 +454,11 @@ public class BomPagesTests : VPureLuxWebTestBase
                 RequestServices = GetRequiredService<IServiceProvider>()
             }
         };
+
+        if (model is global::VPureLux.Web.Pages.VPureLuxPageModel vplModel)
+        {
+            vplModel.LazyServiceProvider = GetRequiredService<IAbpLazyServiceProvider>();
+        }
     }
 
     private static string GetRepoFilePath(string relativePath)

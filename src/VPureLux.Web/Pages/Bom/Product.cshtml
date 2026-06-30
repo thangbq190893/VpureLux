@@ -23,6 +23,11 @@
         </div>
     </div>
 
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger" asp-validation-summary="All"></div>
+    }
+
     <abp-card class="vpl-card-dense">
         <abp-card-body>
             <div class="mb-3">

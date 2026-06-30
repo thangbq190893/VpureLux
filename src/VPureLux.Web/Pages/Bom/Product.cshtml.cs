@@ -8,6 +8,7 @@ using VPureLux.Bom;
 using VPureLux.Catalog.Products;
 using VPureLux.Permissions;
 using VPureLux.Pricing;
+using Volo.Abp;
 
 namespace VPureLux.Web.Pages.Bom;
 
@@ -44,24 +45,47 @@ public class ProductModel : VPureLuxPageModel
 
     public async Task OnGetAsync()
     {
-        await LoadProductLabelAsync();
-        await LoadPricingContextAsync();
-        Versions = await _bomAppService.GetListAsync(ProductId);
-        await SetPermissionsAsync();
+        await LoadPageAsync();
     }
 
     public async Task<IActionResult> OnPostPublishAsync(Guid id)
     {
-        await _bomAppService.PublishAsync(id);
-        StatusMessageKey = "Bom:PublishedSuccessfully";
-        return RedirectToPage(new { productId = ProductId });
+        try
+        {
+            await _bomAppService.PublishAsync(id);
+            StatusMessageKey = "Bom:PublishedSuccessfully";
+            return RedirectToPage(new { productId = ProductId });
+        }
+        catch (BusinessException exception)
+        {
+            AddBusinessError(exception);
+            await LoadPageAsync();
+            return Page();
+        }
     }
 
     public async Task<IActionResult> OnPostArchiveAsync(Guid id)
     {
-        await _bomAppService.ArchiveAsync(id);
-        StatusMessageKey = "Bom:ArchivedSuccessfully";
-        return RedirectToPage(new { productId = ProductId });
+        try
+        {
+            await _bomAppService.ArchiveAsync(id);
+            StatusMessageKey = "Bom:ArchivedSuccessfully";
+            return RedirectToPage(new { productId = ProductId });
+        }
+        catch (BusinessException exception)
+        {
+            AddBusinessError(exception);
+            await LoadPageAsync();
+            return Page();
+        }
+    }
+
+    private async Task LoadPageAsync()
+    {
+        await LoadProductLabelAsync();
+        await LoadPricingContextAsync();
+        Versions = await _bomAppService.GetListAsync(ProductId);
+        await SetPermissionsAsync();
     }
 
     private async Task SetPermissionsAsync()
