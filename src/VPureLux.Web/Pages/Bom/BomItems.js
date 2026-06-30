@@ -21,6 +21,27 @@
                 quantity.name = 'Items[' + index + '].Quantity';
                 quantity.id = 'Items_' + index + '__Quantity';
             }
+
+            row.querySelectorAll('[data-for]').forEach(function (label) {
+                var template = label.getAttribute('data-for');
+                if (template) {
+                    label.setAttribute('for', template.replace(/__index__/g, index));
+                }
+            });
+
+            row.querySelectorAll('[data-name]').forEach(function (element) {
+                var template = element.getAttribute('data-name');
+                if (template) {
+                    element.setAttribute('name', template.replace(/__index__/g, index));
+                }
+            });
+
+            row.querySelectorAll('[data-id]').forEach(function (element) {
+                var template = element.getAttribute('data-id');
+                if (template) {
+                    element.setAttribute('id', template.replace(/__index__/g, index));
+                }
+            });
         });
     }
 
@@ -74,7 +95,13 @@
             var removeButton = event.target.closest('.remove-item');
 
             if (removeButton && getLiveRows(container).length > 1) {
-                removeButton.closest(rowSelector).remove();
+                var row = removeButton.closest(rowSelector);
+
+                if (row && dynamicRows) {
+                    dynamicRows.stripSelect2Enhancements(row);
+                }
+
+                row.remove();
                 reindexItems(container);
             }
         });

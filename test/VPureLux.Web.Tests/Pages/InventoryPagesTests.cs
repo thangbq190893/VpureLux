@@ -76,6 +76,51 @@ public class InventoryPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Receipt_Page_Should_Render_Compact_Multi_Line_Layout_Without_Duplicate_Selects()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        await GetRequiredService<IWarehouseAppService>().CreateAsync(new CreateWarehouseDto
+        {
+            Code = Unique("WH-RC"),
+            Name = "Receipt Compact Warehouse"
+        });
+        await GetRequiredService<IComponentAppService>().CreateAsync(new CreateComponentDto
+        {
+            Code = Unique("CMP-RC"),
+            Name = "Receipt Compact Component",
+            Unit = "pcs"
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Inventory/Receipt"));
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Receipt.cshtml"));
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Posting.js"));
+        var sharedScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Shared/DynamicRowSelects.js"));
+
+        html.ShouldContain("vpl-line-editor-table inventory-receipt-lines-table");
+        html.ShouldContain("form-select form-select-sm");
+        html.ShouldContain("form-control form-control-sm");
+        html.ShouldContain("vpl-line-editor-icon-button");
+        CountOccurrences(html, "name=\"Input.Lines[0].StockItemId\"").ShouldBe(1);
+        CountOccurrences(html, localizer["Select"].Value).ShouldBeGreaterThanOrEqualTo(2);
+
+        pageSource.ShouldContain("<abp-style src=\"/Pages/Shared/LineEditors.css\" />");
+        pageSource.ShouldContain("data-inventory-line-container");
+        pageSource.ShouldContain("data-inventory-line-row");
+        pageSource.ShouldContain("data-add-button=\"#add-receipt-line\"");
+        pageSource.ShouldContain("data-name=\"Input.Lines[__index__].StockItemId\"");
+        pageSource.ShouldContain("data-name=\"Input.Lines[__index__].Quantity\"");
+        pageSource.ShouldContain("data-name=\"Input.Lines[__index__].LotNo\"");
+        pageSource.ShouldContain("data-name=\"ReceivedAtTexts[__index__]\"");
+        pageSource.ShouldContain("data-name=\"Input.Lines[__index__].UnitCost\"");
+
+        scriptSource.ShouldContain("reindexRows(container)");
+        scriptSource.ShouldContain("initializeSelects(row)");
+        scriptSource.ShouldContain("data-remove-line");
+        sharedScriptSource.ShouldContain("setControlsDisabled(template, true)");
+        sharedScriptSource.ShouldContain("setControlsDisabled(clone, false)");
+    }
+
+    [Fact]
     public async Task Posting_Pages_Should_Render_Multi_Line_Ui_Hidden_Idempotency_And_Vietnamese_Dates()
     {
         var warehouse = await GetRequiredService<IWarehouseAppService>().CreateAsync(new CreateWarehouseDto
@@ -614,6 +659,20 @@ public class InventoryPagesTests : VPureLuxWebTestBase
     }
 
     private static string Unique(string prefix) => prefix + Guid.NewGuid().ToString("N")[..8];
+
+    private static int CountOccurrences(string value, string token)
+    {
+        var count = 0;
+        var index = 0;
+
+        while ((index = value.IndexOf(token, index, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            index += token.Length;
+        }
+
+        return count;
+    }
 
     private static string GetRepoFilePath(string relativePath)
     {

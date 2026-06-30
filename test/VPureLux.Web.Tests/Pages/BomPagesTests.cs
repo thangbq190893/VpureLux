@@ -2,14 +2,19 @@ using System;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Localization;
+using NSubstitute;
 using Shouldly;
 using VPureLux.Bom;
 using VPureLux.Catalog.Components;
 using VPureLux.Catalog.Products;
 using VPureLux.Localization;
 using VPureLux.Pricing;
+using VPureLux.Web.Pages.Bom;
+using Volo.Abp.Data;
 using Xunit;
 
 namespace VPureLux.Pages;
@@ -196,6 +201,106 @@ public class BomPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Bom_Edit_Should_Render_Compact_Multi_Line_Layout_Without_Duplicate_Selects()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var product = await CreateProductAsync("BOM-EDIT-CMP-P", "BOM Edit Compact Product");
+        var firstComponent = await CreateComponentAsync("BOM-EDIT-CMP-C1", "BOM Edit Compact Component 1");
+        var secondComponent = await CreateComponentAsync("BOM-EDIT-CMP-C2", "BOM Edit Compact Component 2");
+        var bom = await GetRequiredService<IBomAppService>().CreateAsync(product.Id, new CreateBomVersionDto
+        {
+            EffectiveFrom = DateTime.Today,
+            Items =
+            [
+                new CreateBomItemDto { ComponentId = firstComponent.Id, Quantity = 2 },
+                new CreateBomItemDto { ComponentId = secondComponent.Id, Quantity = 3 }
+            ]
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom/Edit/{bom.Id}"));
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/Edit.cshtml"));
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/BomItems.js"));
+
+        html.ShouldContain("vpl-line-editor-table bom-items-table");
+        html.ShouldContain("form-select form-select-sm component-id");
+        html.ShouldContain("form-control form-control-sm quantity");
+        html.ShouldContain("vpl-line-editor-icon-button");
+        CountOccurrences(html, "name=\"Items[0].ComponentId\"").ShouldBe(1);
+        CountOccurrences(html, "name=\"Items[1].ComponentId\"").ShouldBe(1);
+        CountOccurrences(html, localizer["Bom:SelectComponent"].Value).ShouldBe(2);
+
+        pageSource.ShouldContain("<abp-style src=\"/Pages/Shared/LineEditors.css\" />");
+        pageSource.ShouldContain("data-line-editor-row");
+        pageSource.ShouldContain("vpl-line-editor-col-main");
+        pageSource.ShouldContain("vpl-line-editor-col-number");
+        pageSource.ShouldContain("vpl-line-editor-col-action");
+
+        scriptSource.ShouldContain("component.name = 'Items[' + index + '].ComponentId'");
+        scriptSource.ShouldContain("quantity.name = 'Items[' + index + '].Quantity'");
+        scriptSource.ShouldContain("dynamicRows.stripSelect2Enhancements(row)");
+        scriptSource.ShouldContain("initializeSelects(row)");
+        localizer["Bom:Component"].Value.ShouldBe("Vật tư");
+    }
+
+    [Fact]
+    public async Task Bom_Edit_OnPostAsync_Should_Save_Normal_Path_Without_Concurrency_Error()
+    {
+        var product = await CreateProductAsync("BOM-EDIT-SAVE-P", "BOM Edit Save Product");
+        var firstComponent = await CreateComponentAsync("BOM-EDIT-SAVE-C1", "BOM Edit Save Component 1");
+        var secondComponent = await CreateComponentAsync("BOM-EDIT-SAVE-C2", "BOM Edit Save Component 2");
+        var bomService = GetRequiredService<IBomAppService>();
+        var bom = await bomService.CreateAsync(product.Id, new CreateBomVersionDto
+        {
+            EffectiveFrom = DateTime.Today,
+            Items = [new CreateBomItemDto { ComponentId = firstComponent.Id, Quantity = 1 }]
+        });
+        var model = new global::VPureLux.Web.Pages.Bom.EditModel(bomService, GetRequiredService<IComponentAppService>())
+        {
+            Id = bom.Id,
+            Items =
+            [
+                new BomItemSelectionModel { ComponentId = firstComponent.Id, Quantity = 2 },
+                new BomItemSelectionModel { ComponentId = secondComponent.Id, Quantity = 3 }
+            ]
+        };
+        SetPageContext(model);
+
+        var result = await model.OnPostAsync();
+
+        var redirect = result.ShouldBeOfType<RedirectToPageResult>();
+        redirect.PageName.ShouldBe("/Bom/Details");
+        var updated = await bomService.GetAsync(bom.Id);
+        updated.Items.Count.ShouldBe(2);
+        updated.Items.ShouldContain(x => x.ComponentId == firstComponent.Id && x.Quantity == 2);
+        updated.Items.ShouldContain(x => x.ComponentId == secondComponent.Id && x.Quantity == 3);
+    }
+
+    [Fact]
+    public async Task Bom_Edit_OnPostAsync_Should_Show_Friendly_Error_When_Concurrency_Blocks_Save()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var bomService = Substitute.For<IBomAppService>();
+        bomService.UpdateAsync(Arg.Any<Guid>(), Arg.Any<UpdateBomVersionDto>())
+            .Returns<BomVersionDto>(_ => throw new AbpDbConcurrencyException("Expected test concurrency."));
+        var components = Substitute.For<IComponentAppService>();
+        components.GetListAsync(Arg.Any<GetComponentListInput>())
+            .Returns(new Volo.Abp.Application.Dtos.PagedResultDto<ComponentDto>());
+        var model = new global::VPureLux.Web.Pages.Bom.EditModel(bomService, components)
+        {
+            Id = Guid.NewGuid(),
+            Items = [new BomItemSelectionModel { ComponentId = Guid.NewGuid(), Quantity = 1 }]
+        };
+        SetPageContext(model);
+
+        var result = await model.OnPostAsync();
+
+        result.ShouldBeOfType<PageResult>();
+        model.ModelState.IsValid.ShouldBeFalse();
+        model.ModelState[string.Empty]!.Errors
+            .ShouldContain(x => x.ErrorMessage == localizer["Bom:ConcurrencyError"].Value);
+    }
+
+    [Fact]
     public async Task Bom_Create_And_Clone_Should_Use_Vietnamese_Date_Text()
     {
         var product = await CreateProductAsync("BOM-DATE-P", "BOM Date Product");
@@ -263,6 +368,31 @@ public class BomPagesTests : VPureLuxWebTestBase
             }
         ]
     };
+
+    private static int CountOccurrences(string value, string token)
+    {
+        var count = 0;
+        var index = 0;
+
+        while ((index = value.IndexOf(token, index, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            index += token.Length;
+        }
+
+        return count;
+    }
+
+    private void SetPageContext(PageModel model)
+    {
+        model.PageContext = new PageContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                RequestServices = GetRequiredService<IServiceProvider>()
+            }
+        };
+    }
 
     private static string GetRepoFilePath(string relativePath)
     {

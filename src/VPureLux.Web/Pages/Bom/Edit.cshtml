@@ -9,28 +9,80 @@
     <abp-card-header><h2>@L["Bom:Edit"]</h2></abp-card-header>
     <abp-card-body>
         <form method="post">
-            <div id="bom-items">
-                @for (var i = 0; i < Model.Items.Count; i++)
-                {
-                    <div class="row mb-2 bom-item">
-                        <div class="col-md-7">
-                            <label class="form-label">@L["Bom:Component"]</label>
-                            <select asp-for="Items[i].ComponentId" asp-items="Model.ComponentOptions" class="form-select component-id">
-                                <option value="">@L["Bom:SelectComponent"]</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4"><label class="form-label">@L["Bom:Quantity"]</label><input type="number" min="1" step="1" name="Items[@i].Quantity" id="Items_@(i)__Quantity" class="form-control quantity" value="@VPureLux.Web.Pages.Bom.BomUi.FormatQuantity(Model.Items[i].Quantity)" /></div>
-                        <div class="col-md-1 d-flex align-items-end"><button type="button" class="btn btn-outline-danger remove-item" title="@L["Bom:RemoveItem"]"><i class="fa fa-trash"></i></button></div>
-                    </div>
-                }
+            <div class="vpl-line-editor table-responsive">
+                <table class="table table-sm table-bordered align-middle mb-0 vpl-line-editor-table bom-items-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="vpl-line-editor-col-main">@L["Bom:Component"]</th>
+                            <th class="vpl-line-editor-col-number">@L["Bom:Quantity"]</th>
+                            <th class="vpl-line-editor-col-action text-end">@L["Actions"]</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bom-items">
+                    @for (var i = 0; i < Model.Items.Count; i++)
+                    {
+                        <tr class="bom-item" data-line-editor-row>
+                            <td class="vpl-line-editor-col-main">
+                                <label class="visually-hidden"
+                                       for="Items_@(i)__ComponentId"
+                                       data-for="Items___index____ComponentId">@L["Bom:Component"]</label>
+                                <select class="form-select form-select-sm component-id"
+                                        name="Items[@i].ComponentId"
+                                        id="Items_@(i)__ComponentId"
+                                        data-name="Items[__index__].ComponentId"
+                                        data-id="Items___index____ComponentId">
+                                    <option value="">@L["Bom:SelectComponent"]</option>
+                                    @foreach (var option in Model.ComponentOptions)
+                                    {
+                                        if (option.Value == Model.Items[i].ComponentId?.ToString())
+                                        {
+                                            <option value="@option.Value" selected="selected">@option.Text</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@option.Value">@option.Text</option>
+                                        }
+                                    }
+                                </select>
+                            </td>
+                            <td class="vpl-line-editor-col-number">
+                                <label class="visually-hidden"
+                                       for="Items_@(i)__Quantity"
+                                       data-for="Items___index____Quantity">@L["Bom:Quantity"]</label>
+                                <input type="number"
+                                       min="1"
+                                       step="1"
+                                       name="Items[@i].Quantity"
+                                       id="Items_@(i)__Quantity"
+                                       class="form-control form-control-sm quantity"
+                                       data-name="Items[__index__].Quantity"
+                                       data-id="Items___index____Quantity"
+                                       value="@VPureLux.Web.Pages.Bom.BomUi.FormatQuantity(Model.Items[i].Quantity)" />
+                            </td>
+                            <td class="vpl-line-editor-col-action text-end">
+                                <button type="button"
+                                        class="btn btn-outline-danger btn-sm remove-item vpl-line-editor-icon-button"
+                                        title="@L["Bom:RemoveItem"]"
+                                        aria-label="@L["Bom:RemoveItem"]">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
             </div>
-            <button type="button" id="add-item" class="btn btn-outline-secondary mb-3"><i class="fa fa-plus"></i> @L["Bom:AddItem"]</button>
+            <button type="button" id="add-item" class="btn btn-outline-secondary btn-sm my-3 vpl-line-editor-action"><i class="fa fa-plus"></i> @L["Bom:AddItem"]</button>
             <div asp-validation-summary="All" class="text-danger"></div>
-            <abp-button button-type="Primary" type="submit">@L["Save"]</abp-button>
-            <a class="btn btn-secondary" asp-page="/Bom/Details" asp-route-id="@Model.Id">@L["Cancel"]</a>
+            <abp-button button-type="Primary" size="Small" type="submit">@L["Save"]</abp-button>
+            <a class="btn btn-secondary btn-sm" asp-page="/Bom/Details" asp-route-id="@Model.Id">@L["Cancel"]</a>
         </form>
     </abp-card-body>
 </abp-card>
+
+@section styles {
+    <abp-style src="/Pages/Shared/LineEditors.css" />
+}
 
 @section scripts {
     <abp-script src="/Pages/Shared/DynamicRowSelects.js" />

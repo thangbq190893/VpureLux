@@ -35,6 +35,16 @@
         });
     }
 
+    function setControlsDisabled(root, disabled) {
+        if (!root) {
+            return;
+        }
+
+        root.querySelectorAll('input, select, textarea, button').forEach(function (element) {
+            element.disabled = disabled;
+        });
+    }
+
     function getSelect2Options($select) {
         var options = {
             theme: 'bootstrap-5',
@@ -98,6 +108,7 @@
     function createCleanClone(source) {
         var clone = source.cloneNode(true);
         stripSelect2Enhancements(clone);
+        setControlsDisabled(clone, false);
         return clone;
     }
 
@@ -118,6 +129,7 @@
         template.setAttribute(templateAttribute, '');
         template.classList.add('d-none');
         template.setAttribute('aria-hidden', 'true');
+        setControlsDisabled(template, true);
         container.appendChild(template);
 
         return template;
@@ -128,6 +140,7 @@
         stripSelect2Enhancements: stripSelect2Enhancements,
         initializeSelects: initializeSelects,
         createCleanClone: createCleanClone,
-        ensureTemplate: ensureTemplate
+        ensureTemplate: ensureTemplate,
+        setControlsDisabled: setControlsDisabled
     };
 }(window));

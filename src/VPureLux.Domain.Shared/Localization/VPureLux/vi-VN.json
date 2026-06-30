@@ -169,6 +169,7 @@
     "Bom:AddItem": "Thêm vật tư",
     "Bom:RemoveItem": "Xóa vật tư",
     "Bom:AtLeastOneItem": "Định mức vật tư phải có ít nhất một vật tư.",
+    "Bom:ConcurrencyError": "Định mức vật tư đã thay đổi. Vui lòng tải lại trang và thử lưu lại.",
     "Bom:Status:Draft": "Nháp",
     "Bom:Status:Published": "Đã công bố",
     "Bom:Status:Archived": "Đã lưu trữ",

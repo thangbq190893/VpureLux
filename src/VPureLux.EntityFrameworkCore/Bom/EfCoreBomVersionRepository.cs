@@ -33,17 +33,30 @@ public class EfCoreBomVersionRepository :
         try
         {
             var dbContext = await GetDbContextAsync();
-            if (dbContext.Entry(entity).State != EntityState.Detached)
+            if (dbContext.Entry(entity).State == EntityState.Detached)
             {
-                if (autoSave)
-                {
-                    await dbContext.SaveChangesAsync(GetCancellationToken(cancellationToken));
-                }
-
-                return entity;
+                dbContext.BomVersions.Update(entity);
             }
 
-            return await base.UpdateAsync(entity, autoSave, cancellationToken);
+            dbContext.ChangeTracker.DetectChanges();
+            var persistedItemIds = await dbContext.BomVersions
+                .Where(x => x.Id == entity.Id)
+                .SelectMany(x => x.Items)
+                .Select(x => x.Id)
+                .ToListAsync(GetCancellationToken(cancellationToken));
+
+            foreach (var item in dbContext.ChangeTracker.Entries<BomItem>()
+                         .Where(x => x.State == EntityState.Modified && !persistedItemIds.Contains(x.Entity.Id)))
+            {
+                item.State = EntityState.Added;
+            }
+
+            if (autoSave)
+            {
+                await dbContext.SaveChangesAsync(GetCancellationToken(cancellationToken));
+            }
+
+            return entity;
         }
         catch (DbUpdateException exception) when (IsPublishedProductUniqueViolation(exception))
         {

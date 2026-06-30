@@ -1,0 +1,56 @@
+.vpl-line-editor-table {
+    min-width: 900px;
+    table-layout: fixed;
+}
+
+.vpl-line-editor-table th,
+.vpl-line-editor-table td {
+    vertical-align: middle;
+}
+
+.vpl-line-editor-table .form-select,
+.vpl-line-editor-table .form-control {
+    min-height: 32px;
+}
+
+.vpl-line-editor-col-main {
+    width: 42%;
+    min-width: 24rem;
+}
+
+.vpl-line-editor-col-number {
+    width: 8.5rem;
+}
+
+.vpl-line-editor-col-text {
+    width: 10rem;
+}
+
+.vpl-line-editor-col-date {
+    width: 9.5rem;
+}
+
+.vpl-line-editor-col-action {
+    width: 4.75rem;
+}
+
+.vpl-line-editor-icon-button {
+    display: inline-flex;
+    width: 32px;
+    min-height: 32px;
+    align-items: center;
+    justify-content: center;
+    padding-right: .375rem;
+    padding-left: .375rem;
+}
+
+.vpl-line-editor-action {
+    display: inline-flex;
+    min-height: 32px;
+    align-items: center;
+    gap: .25rem;
+}
+
+.inventory-receipt-lines-table {
+    min-width: 1120px;
+}
