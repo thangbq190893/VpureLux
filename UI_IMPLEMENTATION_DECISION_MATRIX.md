@@ -161,7 +161,7 @@ Sales UI must not calculate profit or FIFO cost in JavaScript.
 | `WarehouseId` | Kho | selector/dropdown |
 | `StockItemId` | Mặt hàng tồn kho | selector/dropdown; phase 1 Component stock items only |
 | `ProductId` | Sản phẩm | selector/dropdown/search |
-| `ComponentId` | Linh kiện | selector/dropdown/search |
+| `ComponentId` | Vật tư | selector/dropdown/search |
 | `CustomerId` | Khách hàng | selector/dropdown/search |
 | `CustomerGroupId` | Nhóm khách hàng | selector/dropdown/search |
 | `BomId` / `BomVersionId` | Phiên bản định mức | selector/display |

@@ -45,20 +45,20 @@ Selectors submit IDs internally but display business labels:
 | Field | UI |
 |---|---|
 | ProductId | `Mã sản phẩm - Tên sản phẩm` |
-| ComponentId | `Mã linh kiện - Tên linh kiện` |
+| ComponentId | `Mã vật tư - Tên vật tư` |
 | WarehouseId | `Mã kho - Tên kho` |
-| StockItemId | `Mã linh kiện - Tên linh kiện` |
+| StockItemId | `Mã vật tư - Tên vật tư` |
 | CustomerId | `Mã khách hàng - Tên khách hàng` |
 
 If selector data is not available from existing app services, report missing contract and stop.
 
 ## Catalog UI
 
-Product list columns: image, mã sản phẩm, tên sản phẩm, trạng thái, giá bán đề xuất hiện tại, định mức linh kiện status, actions.
+Product list columns: image, mã sản phẩm, tên sản phẩm, trạng thái, giá bán đề xuất hiện tại, định mức vật tư status, actions.
 
-Product actions: Details, Edit, Định mức linh kiện, Kích hoạt/Ngừng sử dụng.
+Product actions: Details, Edit, Định mức vật tư, Kích hoạt/Ngừng sử dụng.
 
-Component list columns: image, mã linh kiện, tên linh kiện, đơn vị, trạng thái, giá bán đề xuất hiện tại, actions.
+Component list columns: image, mã vật tư, tên vật tư, đơn vị, trạng thái, giá bán đề xuất hiện tại, actions.
 
 Component actions: Details, Edit, Kích hoạt/Ngừng sử dụng.
 
@@ -66,7 +66,7 @@ Component actions: Details, Edit, Kích hoạt/Ngừng sử dụng.
 
 BOM index must not expose ProductId textbox. Use Product selector/search.
 
-BOM Product page shows Product image/code/name, BOM versions, current Product Suggested Price, Giá cấu thành linh kiện, and missing component price warnings.
+BOM Product page shows Product image/code/name, BOM versions, current Product Suggested Price, Giá cấu thành vật tư, and missing component price warnings.
 
 BOM Create/Edit remains full page with Component selector rows, quantity, optional usage label/note, add/remove row, external JS.
 
@@ -76,18 +76,18 @@ Main label: `Quản lý giá bán`.
 
 Tabs:
 
-1. `Giá bán đề xuất linh kiện`.
+1. `Giá bán đề xuất vật tư`.
 2. `Giá bán đề xuất sản phẩm`.
 
-Do not show old `Giá mua linh kiện` in V2.
+Do not show old `Giá mua vật tư` in V2.
 
-Product price tab columns: mã sản phẩm, tên sản phẩm, định mức, Giá cấu thành linh kiện, giá bán đề xuất hiện tại, chênh lệch, actions.
+Product price tab columns: mã sản phẩm, tên sản phẩm, định mức, Giá cấu thành vật tư, giá bán đề xuất hiện tại, chênh lệch, actions.
 
 ## Inventory UI
 
 Receipt header: Kho, Ngày nhập, IdempotencyKey hidden.
 
-Receipt lines: Linh kiện nhập kho, Số lô, Số lượng, Đơn giá nhập thực tế, remove line.
+Receipt lines: Vật tư nhập kho, Số lô, Số lượng, Đơn giá nhập thực tế, remove line.
 
 Issue and Adjustment follow the same selector principles.
 

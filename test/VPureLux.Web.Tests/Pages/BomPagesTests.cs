@@ -132,7 +132,7 @@ public class BomPagesTests : VPureLuxWebTestBase
             .CreateAsync(component.Id, new CreateComponentSuggestedSellingPriceVersionDto
             {
                 Price = 50000m,
-                Reason = "Giá linh kiện cho ngữ cảnh BOM",
+                Reason = "Giá vật tư cho ngữ cảnh BOM",
                 EffectiveFrom = DateTime.Today
             });
         await GetRequiredService<IProductSuggestedPriceAppService>()
@@ -152,7 +152,7 @@ public class BomPagesTests : VPureLuxWebTestBase
 
         html.ShouldContain($"Sản phẩm: {product.Code} - {product.Name}");
         html.ShouldContain("Giá bán đề xuất hiện tại");
-        html.ShouldContain("Giá cấu thành linh kiện");
+        html.ShouldContain("Giá cấu thành vật tư");
         html.ShouldContain("120.000 VND");
         html.ShouldContain("100.000 VND");
         html.ShouldContain("Đã có định mức công bố");

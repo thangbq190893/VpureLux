@@ -75,7 +75,7 @@ Examples:
 | Technical value | Visible label |
 |---|---|
 | `WarehouseId` | `Kho` with display `WH-HN - Kho Hà Nội` |
-| `StockItemId` | `Mặt hàng tồn kho` or `Linh kiện`, display `COMP-PP1M - Lõi PP 1 Micron` |
+| `StockItemId` | `Mặt hàng tồn kho` or `Vật tư`, display `COMP-PP1M - Lõi PP 1 Micron` |
 | `ProductId` | `Sản phẩm`, display `PROD-RO-001 - Máy lọc nước RO tiêu chuẩn` |
 | `CustomerId` | `Khách hàng`, display `CUS-DL001 - Đại lý Minh Anh` |
 | `CustomerGroupId` | `Nhóm khách hàng`, display `CG-DL1 - Đại lý cấp 1` |

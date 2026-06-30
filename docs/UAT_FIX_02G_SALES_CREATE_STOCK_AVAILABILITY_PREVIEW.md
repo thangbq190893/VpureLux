@@ -47,7 +47,7 @@ Supported states:
 
 - `Có thể bán tại kho này: X`
 - `Không đủ tồn kho cho số lượng đã nhập. Thiếu: <component code/name>`
-- `Chưa có định mức công bố, chưa thể kiểm tra tồn kho theo linh kiện.`
+- `Chưa có định mức công bố, chưa thể kiểm tra tồn kho theo vật tư.`
 
 The product column remains wide/readable, row layout remains a compact table, and the existing small aligned buttons are preserved.
 
@@ -75,7 +75,7 @@ Results:
 - Page loaded with the availability endpoint and one availability target per row.
 - BOM product `CB-123 - Combo 123` in warehouse `UAT_E2E_WH_20260620023951 - UAT WH 20260620023951` showed shortage: `Không đủ tồn kho cho số lượng đã nhập. Thiếu: V3 - Lõi 3`.
 - Saving the shortage row stayed on Create, showed the global stock alert, and showed no raw exception.
-- No-BOM product `CB-1234 - CB-1234` showed the existing no-BOM limitation and the stock preview message `Chưa có định mức công bố, chưa thể kiểm tra tồn kho theo linh kiện.`
+- No-BOM product `CB-1234 - CB-1234` showed the existing no-BOM limitation and the stock preview message `Chưa có định mức công bố, chưa thể kiểm tra tồn kho theo vật tư.`
 - Changing warehouse refreshed the row stock preview.
 - Adding two rows with high quantities produced aggregate stock warnings on both rows.
 - Sufficient-stock candidate `UAT_UI_20260622_1809_P - UAT UI Test Product 20260622` showed `Có thể bán tại kho này: 7`.

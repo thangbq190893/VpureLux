@@ -48,7 +48,7 @@ Re-indexing `name`/`id` attributes was already implemented, but Select2 cleanup 
 
 Not run in this session (IIS Express held `VPureLux.Web` output DLLs, blocking a full solution rebuild). Re-test in browser after stopping IIS Express / Visual Studio debug:
 
-1. BOM create/version: add 3+ component rows, open each "Linh kiện" dropdown, select values, remove row 2, add another row, open/select again.
+1. BOM create/version: add 3+ component rows, open each "Vật tư" dropdown, select values, remove row 2, add another row, open/select again.
 2. Inventory receipt/issue/adjustment: same add/remove/add pattern on stock-item line dropdowns.
 
 ## 6. Tests run

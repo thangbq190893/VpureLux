@@ -43,7 +43,7 @@ public class PricingPagesTests : VPureLuxWebTestBase
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Pricing/Components/{component.Id}"));
 
         html.ShouldContain(localizer["Pricing:NoVersion"].Value);
-        html.ShouldContain($"Linh kiện: {component.Code} - {component.Name}");
+        html.ShouldContain($"Vật tư: {component.Code} - {component.Name}");
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public class PricingPagesTests : VPureLuxWebTestBase
         html.ShouldContain(localizer["Pricing:SuggestedSellingPrice"].Value);
         html.ShouldContain(localizer["Pricing:Reason"].Value);
         html.ShouldContain(localizer["Pricing:EffectiveFrom"].Value);
-        html.ShouldContain($"Linh kiện: {component.Code} - {component.Name}");
+        html.ShouldContain($"Vật tư: {component.Code} - {component.Name}");
         html.ShouldContain($"value=\"{today}\"");
         html.ShouldNotContain("type=\"date\"");
     }
@@ -112,7 +112,7 @@ public class PricingPagesTests : VPureLuxWebTestBase
             Input = new CreateComponentSuggestedSellingPriceVersionDto
             {
                 Price = 30000m,
-                Reason = "Điều chỉnh giá bán đề xuất linh kiện"
+                Reason = "Điều chỉnh giá bán đề xuất vật tư"
             }
         };
         var productModel = new ProductCreateModel(

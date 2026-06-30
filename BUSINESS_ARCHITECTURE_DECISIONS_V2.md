@@ -11,13 +11,13 @@ The project may be refactored or rebuilt to align with this V2 architecture.
 | Term | Meaning | Vietnamese UI Term |
 |---|---|---|
 | Product / SKU | Anything that can be sold to a customer | Sản phẩm bán / Sản phẩm |
-| Component | Physical part/material kept in inventory and used by BOM | Linh kiện |
-| BOM | Component composition of a Product/SKU | Định mức linh kiện |
+| Component | Physical part/material kept in inventory and used by BOM | Vật tư |
+| BOM | Component composition of a Product/SKU | Định mức vật tư |
 | Warehouse | Physical storage location | Kho |
 | Inventory Lot | Received stock lot with actual unit cost | Lô hàng |
-| Component Suggested Selling Price | Suggested customer selling price for a component | Giá bán đề xuất linh kiện |
+| Component Suggested Selling Price | Suggested customer selling price for a component | Giá bán đề xuất vật tư |
 | Product Suggested Selling Price | Suggested customer selling price for a Product/SKU | Giá bán đề xuất sản phẩm |
-| Component Build Price | Sum of component suggested prices in the BOM | Giá cấu thành linh kiện |
+| Component Build Price | Sum of component suggested prices in the BOM | Giá cấu thành vật tư |
 | Actual Receipt Unit Cost | Actual input cost of a receipt lot | Đơn giá nhập thực tế |
 | FIFO Cost | Actual cost consumed from inventory lots | Giá vốn FIFO |
 | Actual Selling Price | Final selling price entered on a sales order | Giá bán thực tế |
@@ -122,7 +122,7 @@ V2 should replace it with:
 
 `ComponentSuggestedSellingPriceVersion`
 
-Vietnamese UI: `Giá bán đề xuất linh kiện`.
+Vietnamese UI: `Giá bán đề xuất vật tư`.
 
 If old source code currently has `ComponentPurchasePriceVersion`, it must be treated as a model conflict and refactored in an approved backend migration step.
 
@@ -132,11 +132,11 @@ Do not merely relabel `ComponentPurchasePriceVersion` in UI while keeping incorr
 
 The Product Suggested Selling Price is entered manually by the user.
 
-The system may show `Giá cấu thành linh kiện` for reference, but it must not automatically calculate or overwrite the Product Suggested Selling Price unless a future approved pricing formula exists.
+The system may show `Giá cấu thành vật tư` for reference, but it must not automatically calculate or overwrite the Product Suggested Selling Price unless a future approved pricing formula exists.
 
 ## ADR-009: Component Build Price
 
-`Giá cấu thành linh kiện` is a read-side/reference value:
+`Giá cấu thành vật tư` is a read-side/reference value:
 
 `SUM(BOMLine.Quantity * CurrentComponentSuggestedSellingPrice)`
 
@@ -150,7 +150,7 @@ It is not:
 - Profit.
 - An inventory valuation.
 
-If any component in the published BOM has no current Component Suggested Selling Price, the Product screen should show a clear warning such as `Thiếu giá linh kiện`.
+If any component in the published BOM has no current Component Suggested Selling Price, the Product screen should show a clear warning such as `Thiếu giá vật tư`.
 
 ## ADR-010: Inventory Receipt stores actual input cost
 
