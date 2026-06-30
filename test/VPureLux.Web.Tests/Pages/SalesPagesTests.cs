@@ -228,6 +228,51 @@ public class SalesPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Sales_Create_Should_Render_First_Row_Bindings_And_Template_Hooks()
+    {
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Sales/Create"));
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Create.cshtml"));
+
+        html.ShouldContain("name=\"Input.Lines[0].ProductId\"");
+        html.ShouldContain("name=\"Input.Lines[0].Quantity\"");
+        html.ShouldContain("name=\"Input.Lines[0].ActualSellingPrice\"");
+        html.ShouldContain("name=\"Input.Lines[0].OverrideReason\"");
+        html.ShouldContain("data-sales-line-row");
+        html.ShouldContain("data-sales-lines-body");
+        html.ShouldContain("data-sales-product-select");
+        html.ShouldContain("data-sales-product-context");
+        html.ShouldContain("data-sales-stock-availability");
+        html.ShouldContain("data-sales-actual-price");
+        html.ShouldContain("data-sales-override-validation");
+        html.ShouldContain("remove-sales-line");
+
+        pageSource.ShouldContain("<template id=\"sales-line-row-template\">");
+        pageSource.ShouldContain("data-name=\"Input.Lines[__index__].ProductId\"");
+        pageSource.ShouldContain("data-name=\"Input.Lines[__index__].Quantity\"");
+        pageSource.ShouldContain("data-name=\"Input.Lines[__index__].ActualSellingPrice\"");
+        pageSource.ShouldContain("data-name=\"Input.Lines[__index__].OverrideReason\"");
+    }
+
+    [Fact]
+    public async Task Sales_Create_Lines_Script_Should_Guard_Add_Remove_And_Reindex_Behavior()
+    {
+        var linesScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/SalesCreateLines.js"));
+
+        linesScriptSource.ShouldContain("function reindexRows(container)");
+        linesScriptSource.ShouldContain("row.setAttribute('data-sales-line-index', String(index))");
+        linesScriptSource.ShouldContain("applyTemplateAttribute(element, 'data-name', index)");
+        linesScriptSource.ShouldContain("applyTemplateAttribute(element, 'data-id', index)");
+        linesScriptSource.ShouldContain("addButton.addEventListener('click'");
+        linesScriptSource.ShouldContain("linesBody.appendChild(row)");
+        linesScriptSource.ShouldContain("reindexRows(container);");
+        linesScriptSource.ShouldContain("container.addEventListener('click'");
+        linesScriptSource.ShouldContain("event.target.closest('.remove-sales-line')");
+        linesScriptSource.ShouldContain("getLiveRows(container).length > 1");
+        linesScriptSource.ShouldContain("row.remove();");
+        CountOccurrences(linesScriptSource, "refreshStockAvailability(container)").ShouldBeGreaterThanOrEqualTo(2);
+    }
+
+    [Fact]
     public async Task Sales_Create_Product_Change_To_Suggested_Product_Should_Reset_Actual_Price()
     {
         var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/SalesProductContext.js"));
@@ -409,6 +454,83 @@ public class SalesPagesTests : VPureLuxWebTestBase
         var redirect = result.ShouldBeOfType<RedirectToPageResult>();
         redirect.PageName.ShouldBe("/Sales/Details");
         model.ModelState.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Sales_Create_OnPostAsync_Should_Save_Multiple_Valid_Lines()
+    {
+        var context = await CreateSalesContextAsync("SALES-MLP");
+        var secondComponent = await GetRequiredService<IComponentAppService>()
+            .CreateAsync(new CreateComponentDto { Code = Unique("SML-C"), Name = "Second Sales Component", Unit = "Piece" });
+        await PostComponentReceiptAsync(context.WarehouseId, secondComponent.Id, 10);
+        var secondProduct = await CreateProductAsync("SML-P", "Second Sales Product");
+        await PublishBomAsync(secondProduct.Id, secondComponent.Id);
+        var model = GetRequiredService<CreateModel>();
+        await model.OnGetAsync();
+        model.Input.CustomerId = context.CustomerId;
+        model.Input.WarehouseId = context.WarehouseId;
+        model.Input.OrderDate = DateTime.UtcNow.Date;
+        model.Input.Lines =
+        [
+            new CreateSalesOrderLineDto
+            {
+                ProductId = context.ProductId,
+                Quantity = 2,
+                ActualSellingPrice = 100
+            },
+            new CreateSalesOrderLineDto
+            {
+                ProductId = secondProduct.Id,
+                Quantity = 3,
+                ActualSellingPrice = 75
+            }
+        ];
+
+        var result = await WithSalesUnitOfWorkAsync(() => model.OnPostAsync());
+
+        var redirect = result.ShouldBeOfType<RedirectToPageResult>();
+        redirect.PageName.ShouldBe("/Sales/Details");
+        var orderId = redirect.RouteValues!["id"].ShouldBeOfType<Guid>();
+        var order = await GetRequiredService<ISalesOrderAppService>().GetAsync(orderId);
+        order.Lines.Count.ShouldBe(2);
+        order.Lines.Select(x => x.ProductId).ShouldBe([context.ProductId, secondProduct.Id], ignoreOrder: true);
+        order.Lines.Sum(x => x.Quantity).ShouldBe(5);
+    }
+
+    [Fact]
+    public async Task Sales_Create_OnPostAsync_Should_Bind_Override_Error_To_Correct_Line_Index()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-ORI");
+        var model = GetRequiredService<CreateModel>();
+        await model.OnGetAsync();
+        model.Input.CustomerId = context.CustomerId;
+        model.Input.WarehouseId = context.WarehouseId;
+        model.Input.OrderDate = DateTime.UtcNow.Date;
+        model.Input.Lines =
+        [
+            new CreateSalesOrderLineDto
+            {
+                ProductId = context.ProductId,
+                Quantity = 1,
+                ActualSellingPrice = 100
+            },
+            new CreateSalesOrderLineDto
+            {
+                ProductId = context.ProductId,
+                Quantity = 1,
+                ActualSellingPrice = 90
+            }
+        ];
+
+        var result = await WithSalesUnitOfWorkAsync(() => model.OnPostAsync());
+
+        result.ShouldBeOfType<PageResult>();
+        model.ModelState.IsValid.ShouldBeFalse();
+        model.ModelState.ContainsKey("Input.Lines[0].OverrideReason").ShouldBeFalse();
+        model.ModelState[$"Input.Lines[1].OverrideReason"]!.Errors
+            .Select(x => x.ErrorMessage)
+            .ShouldContain(localizer[VPureLuxDomainErrorCodes.SalesOverrideReasonRequired].Value);
     }
 
     [Fact]
@@ -609,6 +731,8 @@ public class SalesPagesTests : VPureLuxWebTestBase
         var line = response.Lines.Single();
         line.Status.ShouldBe(SalesStockAvailabilityStatus.NoBom);
         line.IsShortage.ShouldBeFalse();
+        line.AvailableToSell.ShouldBe(0);
+        line.LimitingComponentId.ShouldBeNull();
     }
 
     [Fact]
@@ -654,6 +778,100 @@ public class SalesPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Sales_Create_OnPostAsync_Should_Block_Aggregate_Multi_Line_Component_Shortage()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var group = await GetRequiredService<ICustomerGroupAppService>()
+            .CreateAsync(new CreateCustomerGroupDto { Code = Unique("SAG-G"), Name = "Aggregate Save Group" });
+        var customer = await GetRequiredService<ICustomerAppService>()
+            .CreateAsync(new CreateCustomerDto { Code = Unique("SAG-C"), Name = "Aggregate Save Customer", CustomerGroupId = group.Id });
+        var warehouse = await GetRequiredService<IWarehouseAppService>()
+            .CreateAsync(new CreateWarehouseDto { Code = Unique("SAG-W"), Name = "Aggregate Save Warehouse" });
+        var component = await GetRequiredService<IComponentAppService>()
+            .CreateAsync(new CreateComponentDto { Code = Unique("SAG-I"), Name = "Aggregate Save Component", Unit = "Piece" });
+        await PostComponentReceiptAsync(warehouse.Id, component.Id, 5);
+        var firstProduct = await CreateProductAsync("SAG-P1", "Aggregate Save First Product");
+        var secondProduct = await CreateProductAsync("SAG-P2", "Aggregate Save Second Product");
+        await PublishBomAsync(firstProduct.Id, component.Id, 2);
+        await PublishBomAsync(secondProduct.Id, component.Id, 3);
+        var model = GetRequiredService<CreateModel>();
+        await model.OnGetAsync();
+        model.Input.CustomerId = customer.Id;
+        model.Input.WarehouseId = warehouse.Id;
+        model.Input.OrderDate = DateTime.UtcNow.Date;
+        model.Input.Lines =
+        [
+            new CreateSalesOrderLineDto
+            {
+                ProductId = firstProduct.Id,
+                Quantity = 2,
+                ActualSellingPrice = 100
+            },
+            new CreateSalesOrderLineDto
+            {
+                ProductId = secondProduct.Id,
+                Quantity = 1,
+                ActualSellingPrice = 75
+            }
+        ];
+
+        var result = await WithSalesUnitOfWorkAsync(() => model.OnPostAsync());
+
+        result.ShouldBeOfType<PageResult>();
+        model.ModelState.IsValid.ShouldBeFalse();
+        model.ModelState[$"Input.Lines[0].Quantity"]!.Errors
+            .Select(x => x.ErrorMessage)
+            .ShouldContain(x => x.Contains(localizer["Sales:InsufficientStockForRequestedQuantity"].Value));
+        model.ModelState[$"Input.Lines[1].Quantity"]!.Errors
+            .Select(x => x.ErrorMessage)
+            .ShouldContain(x => x.Contains(localizer["Sales:InsufficientStockForRequestedQuantity"].Value));
+        model.ModelState[string.Empty]!.Errors
+            .Select(x => x.ErrorMessage)
+            .ShouldContain(localizer["Sales:StockIssueGlobal"].Value);
+    }
+
+    [Fact]
+    public async Task Sales_Create_StockAvailability_Client_Should_Refresh_On_Page_And_Row_Changes()
+    {
+        var contextScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/SalesProductContext.js"));
+        var linesScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/SalesCreateLines.js"));
+
+        contextScriptSource.ShouldContain("document.addEventListener('DOMContentLoaded'");
+        contextScriptSource.ShouldContain("bindWarehouseSelector();");
+        contextScriptSource.ShouldContain("warehouseSelector.addEventListener('change'");
+        contextScriptSource.ShouldContain("productSelector.addEventListener('change', onProductChanged)");
+        contextScriptSource.ShouldContain("quantityInput.addEventListener('input'");
+        contextScriptSource.ShouldContain("refreshStockAvailability(getLinesContainer())");
+        contextScriptSource.ShouldContain("row.dataset.salesStockStatus === 'shortage'");
+        contextScriptSource.ShouldContain("setStockAvailability(row, 'noBom', getNoBomStockAvailabilityMessage())");
+        contextScriptSource.ShouldContain("buildAvailabilityUrl(warehouseId, lines)");
+        contextScriptSource.ShouldContain("getValue(data, 'Lines') || []");
+
+        linesScriptSource.ShouldContain("bootExistingRows(container);");
+        linesScriptSource.ShouldContain("linesBody.appendChild(row)");
+        linesScriptSource.ShouldContain("row.remove();");
+        CountOccurrences(linesScriptSource, "productContext.refreshStockAvailability").ShouldBeGreaterThanOrEqualTo(2);
+    }
+
+    [Fact]
+    public void Sales_Stock_Display_Text_Should_Use_Current_Vietnamese_Component_Terminology()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var stockMessages = new[]
+        {
+            localizer["Sales:ProductStockSaleNotSupported"].Value,
+            localizer["Sales:AvailableToSellAtWarehouse", "1"].Value,
+            localizer["Sales:InsufficientStockForRequestedQuantity"].Value,
+            localizer["Sales:MissingComponentStock", "Vật tư A"].Value,
+            localizer["Sales:NoBomStockAvailabilityUnavailable"].Value,
+            localizer["Sales:StockIssueGlobal"].Value
+        };
+        var legacyComponentTerm = "Linh" + " kiện";
+
+        stockMessages.ShouldAllBe(x => !x.Contains(legacyComponentTerm, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void SalesUiFormatter_Should_Return_Localized_Business_Error()
     {
         var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
@@ -682,6 +900,41 @@ public class SalesPagesTests : VPureLuxWebTestBase
         html.ShouldContain("badge");
         html.ShouldContain(localizer["Sales:PublishedBomAvailable"].Value);
         html.ShouldContain("data-sales-product-context");
+    }
+
+    [Fact]
+    public async Task Sales_Edit_Should_Render_Multiple_Existing_Lines_And_Baseline_Line_Handlers()
+    {
+        var context = await CreateSalesContextAsync("SALES-EML");
+        var secondProduct = await CreateProductAsync("SALES-EML-P2", "Sales Edit Second Product");
+        await PublishBomAsync(secondProduct.Id);
+        var order = await GetRequiredService<ISalesOrderAppService>().CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines =
+            [
+                new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 },
+                new CreateSalesOrderLineDto { ProductId = secondProduct.Id, Quantity = 2, ActualSellingPrice = 75 }
+            ]
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Sales/Edit/{order.Id}"));
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Edit.cshtml"));
+        var pageModelSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Edit.cshtml.cs"));
+
+        html.ShouldContain($"{context.ProductCode} - {context.ProductName}");
+        html.ShouldContain($"{secondProduct.Code} - {secondProduct.Name}");
+        html.ShouldContain("name=\"LineId\"");
+        html.ShouldContain("name=\"lineId\"");
+        pageSource.ShouldContain("asp-page-handler=\"Add\"");
+        pageSource.ShouldContain("asp-page-handler=\"Remove\"");
+        pageSource.ShouldContain("asp-page-handler=\"Update\"");
+        pageSource.ShouldContain("data-sales-product-selector");
+        pageSource.ShouldContain("data-sales-product-context");
+        pageModelSource.ShouldContain("OnPostAddAsync");
+        pageModelSource.ShouldContain("OnPostRemoveAsync");
+        pageModelSource.ShouldContain("OnPostUpdateAsync");
     }
 
     [Fact]
@@ -904,6 +1157,33 @@ public class SalesPagesTests : VPureLuxWebTestBase
         CountOccurrences(html, localizer["Sales:CalculatedAfterConfirmation"].Value).ShouldBeGreaterThanOrEqualTo(3);
         html.ShouldContain(FormatMoneyForTest(200));
         html.ShouldContain(FormatMoneyForTest(0));
+    }
+
+    [Fact]
+    public async Task Sales_Details_Draft_Should_Sum_Estimated_Revenue_For_Multiple_Lines()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-DTRM");
+        var secondProduct = await CreateProductAsync("SALES-DTRM-P2", "Sales Draft Revenue Second Product");
+        await PublishBomAsync(secondProduct.Id);
+        var order = await GetRequiredService<ISalesOrderAppService>().CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines =
+            [
+                new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 2, ActualSellingPrice = 100 },
+                new CreateSalesOrderLineDto { ProductId = secondProduct.Id, Quantity = 3, ActualSellingPrice = 75 }
+            ]
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Sales/Details/{order.Id}"));
+
+        html.ShouldContain(localizer["Sales:DraftEstimatedRevenue"].Value);
+        html.ShouldContain(FormatMoneyForTest(425));
+        html.ShouldContain(localizer["Sales:CalculatedAfterConfirmation"].Value);
+        html.ShouldContain($"{context.ProductCode} - {context.ProductName}");
+        html.ShouldContain($"{secondProduct.Code} - {secondProduct.Name}");
     }
 
     [Fact]
