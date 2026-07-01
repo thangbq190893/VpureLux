@@ -121,6 +121,140 @@ public class InventoryPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Issue_Page_Should_Render_Compact_Multi_Line_Layout_Without_Duplicate_Selects()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        await GetRequiredService<IWarehouseAppService>().CreateAsync(new CreateWarehouseDto
+        {
+            Code = Unique("WH-IC"),
+            Name = "Issue Compact Warehouse"
+        });
+        await GetRequiredService<IComponentAppService>().CreateAsync(new CreateComponentDto
+        {
+            Code = Unique("CMP-IC"),
+            Name = "Issue Compact Component",
+            Unit = "pcs"
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Inventory/Issue"));
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Issue.cshtml"));
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Posting.js"));
+        var sharedScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Shared/DynamicRowSelects.js"));
+
+        html.ShouldContain("vpl-line-editor-table inventory-issue-lines-table");
+        html.ShouldContain("form-select form-select-sm");
+        html.ShouldContain("form-control form-control-sm");
+        html.ShouldContain("vpl-line-editor-icon-button");
+        CountOccurrences(html, "name=\"Input.Lines[0].StockItemId\"").ShouldBe(1);
+        CountLiveRowsWithExactlyOneSelect(html, "<tr data-inventory-line-row data-line-editor-row>").ShouldBe(1);
+        CountOccurrences(html, localizer["Select"].Value).ShouldBeGreaterThanOrEqualTo(2);
+        html.ShouldNotContain("data-dynamic-row-template");
+        html.ShouldNotContain("select2-container");
+
+        pageSource.ShouldContain("<abp-style src=\"/Pages/Shared/LineEditors.css\" />");
+        pageSource.ShouldContain("data-inventory-line-container");
+        pageSource.ShouldContain("data-inventory-line-row");
+        pageSource.ShouldContain("data-line-editor-row");
+        pageSource.ShouldContain("data-add-button=\"#add-issue-line\"");
+        pageSource.ShouldContain("data-name=\"Input.Lines[__index__].StockItemId\"");
+        pageSource.ShouldContain("data-name=\"Input.Lines[__index__].Quantity\"");
+        pageSource.ShouldContain("vpl-line-editor-col-main");
+        pageSource.ShouldContain("vpl-line-editor-col-number");
+        pageSource.ShouldContain("vpl-line-editor-col-action");
+
+        scriptSource.ShouldContain("reindexRows(container)");
+        scriptSource.ShouldContain("dynamicRows.ensureTemplate(container, rowSelector)");
+        scriptSource.ShouldContain("initializeSelects(row)");
+        scriptSource.ShouldContain("data-remove-line");
+        sharedScriptSource.ShouldContain("setControlsDisabled(template, true)");
+        sharedScriptSource.ShouldContain("setControlsDisabled(clone, false)");
+    }
+
+    [Fact]
+    public async Task Adjustment_Page_Should_Render_Compact_Multi_Line_Layouts_Without_Duplicate_Selects()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        await GetRequiredService<IWarehouseAppService>().CreateAsync(new CreateWarehouseDto
+        {
+            Code = Unique("WH-AC"),
+            Name = "Adjustment Compact Warehouse"
+        });
+        await GetRequiredService<IComponentAppService>().CreateAsync(new CreateComponentDto
+        {
+            Code = Unique("CMP-AC"),
+            Name = "Adjustment Compact Component",
+            Unit = "pcs"
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Inventory/Adjustment"));
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Adjustment.cshtml"));
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Posting.js"));
+        var sharedScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Shared/DynamicRowSelects.js"));
+
+        html.ShouldContain("vpl-line-editor-table inventory-adjustment-decrease-lines-table");
+        html.ShouldContain("vpl-line-editor-table inventory-adjustment-increase-lines-table");
+        html.ShouldContain("form-select form-select-sm");
+        html.ShouldContain("form-control form-control-sm");
+        html.ShouldContain("vpl-line-editor-icon-button");
+        CountOccurrences(html, "name=\"DecreaseLines[0].StockItemId\"").ShouldBe(1);
+        CountOccurrences(html, "name=\"IncreaseLines[0].StockItemId\"").ShouldBe(1);
+        CountLiveRowsWithExactlyOneSelect(html, "<tr data-inventory-line-row data-line-editor-row>").ShouldBe(2);
+        CountOccurrences(html, localizer["Select"].Value).ShouldBeGreaterThanOrEqualTo(3);
+        html.ShouldContain("name=\"IncreaseReceivedAtTexts[0]\"");
+        html.ShouldContain("placeholder=\"dd/MM/yyyy\"");
+        html.ShouldNotContain("data-dynamic-row-template");
+        html.ShouldNotContain("select2-container");
+
+        pageSource.ShouldContain("<abp-style src=\"/Pages/Shared/LineEditors.css\" />");
+        pageSource.ShouldContain("data-adjustment-decrease-section");
+        pageSource.ShouldContain("data-adjustment-increase-section");
+        pageSource.ShouldContain("data-inventory-line-container");
+        pageSource.ShouldContain("data-inventory-line-row");
+        pageSource.ShouldContain("data-line-editor-row");
+        pageSource.ShouldContain("data-add-button=\"#add-adjustment-decrease-line\"");
+        pageSource.ShouldContain("data-add-button=\"#add-adjustment-increase-line\"");
+        pageSource.ShouldContain("data-name=\"DecreaseLines[__index__].StockItemId\"");
+        pageSource.ShouldContain("data-name=\"DecreaseLines[__index__].Quantity\"");
+        pageSource.ShouldContain("data-name=\"IncreaseLines[__index__].StockItemId\"");
+        pageSource.ShouldContain("data-name=\"IncreaseLines[__index__].Quantity\"");
+        pageSource.ShouldContain("data-name=\"IncreaseLines[__index__].LotNo\"");
+        pageSource.ShouldContain("data-name=\"IncreaseReceivedAtTexts[__index__]\"");
+        pageSource.ShouldContain("data-name=\"IncreaseLines[__index__].UnitCost\"");
+
+        scriptSource.ShouldContain("reindexRows(container)");
+        scriptSource.ShouldContain("dynamicRows.ensureTemplate(container, rowSelector)");
+        scriptSource.ShouldContain("initializeSelects(row)");
+        scriptSource.ShouldContain("data-remove-line");
+        scriptSource.ShouldContain("element.disabled = !isIncrease");
+        scriptSource.ShouldContain("element.disabled = isIncrease");
+        sharedScriptSource.ShouldContain("setControlsDisabled(template, true)");
+        sharedScriptSource.ShouldContain("setControlsDisabled(clone, false)");
+    }
+
+    [Fact]
+    public async Task Inventory_Line_Editor_Terminology_Should_Not_Reintroduce_Linh_Kien()
+    {
+        var legacyComponentText = "Linh " + "kiện";
+        var legacyComponentTextLower = "linh " + "kiện";
+        var sourceFiles = new[]
+        {
+            "src/VPureLux.Web/Pages/Inventory/Issue.cshtml",
+            "src/VPureLux.Web/Pages/Inventory/Adjustment.cshtml",
+            "src/VPureLux.Domain.Shared/Localization/VPureLux/vi-VN.json"
+        };
+
+        foreach (var sourceFile in sourceFiles)
+        {
+            var source = await File.ReadAllTextAsync(GetRepoFilePath(sourceFile));
+            source.ShouldNotContain(legacyComponentText);
+            source.ShouldNotContain(legacyComponentTextLower);
+        }
+
+        var localizationSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Domain.Shared/Localization/VPureLux/vi-VN.json"));
+        localizationSource.ShouldContain("\"Bom:Component\": \"Vật tư\"");
+    }
+
+    [Fact]
     public async Task Posting_Pages_Should_Render_Multi_Line_Ui_Hidden_Idempotency_And_Vietnamese_Dates()
     {
         var warehouse = await GetRequiredService<IWarehouseAppService>().CreateAsync(new CreateWarehouseDto
@@ -672,6 +806,26 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         }
 
         return count;
+    }
+
+    private static int CountLiveRowsWithExactlyOneSelect(string html, string rowMarker)
+    {
+        var rowCount = 0;
+        var index = 0;
+
+        while ((index = html.IndexOf(rowMarker, index, StringComparison.Ordinal)) >= 0)
+        {
+            var end = html.IndexOf("</tr>", index, StringComparison.Ordinal);
+            end.ShouldBeGreaterThan(index);
+
+            var rowHtml = html[index..end];
+            CountOccurrences(rowHtml, "<select ").ShouldBe(1);
+            CountOccurrences(rowHtml, "data-dynamic-row-template").ShouldBe(0);
+            rowCount++;
+            index = end + "</tr>".Length;
+        }
+
+        return rowCount;
     }
 
     private static string GetRepoFilePath(string relativePath)

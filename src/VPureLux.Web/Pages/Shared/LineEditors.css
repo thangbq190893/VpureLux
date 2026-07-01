@@ -54,3 +54,12 @@
 .inventory-receipt-lines-table {
     min-width: 1120px;
 }
+
+.inventory-issue-lines-table,
+.inventory-adjustment-decrease-lines-table {
+    min-width: 760px;
+}
+
+.inventory-adjustment-increase-lines-table {
+    min-width: 1120px;
+}
