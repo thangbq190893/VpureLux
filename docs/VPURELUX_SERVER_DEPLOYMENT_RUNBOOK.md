@@ -378,6 +378,9 @@ ASPNETCORE_URLS=http://127.0.0.1:5000
 DOTNET_PRINT_TELEMETRY_MESSAGE=false
 ConnectionStrings__Default=Server=127.0.0.1,1433;Database=${VPURELUX_DB};User Id=${VPURELUX_APP_LOGIN};Password=${VPURELUX_APP_PASSWORD};TrustServerCertificate=True;
 Redis__Configuration=127.0.0.1:6379,password=${REDIS_PASSWORD}
+App__SelfUrl=http://${VPS_HOST:-180.93.99.150}
+AuthServer__Authority=http://${VPS_HOST:-180.93.99.150}
+AuthServer__RequireHttpsMetadata=false
 EOF
 
 chown root:vpurelux /etc/vpurelux/vpurelux.env

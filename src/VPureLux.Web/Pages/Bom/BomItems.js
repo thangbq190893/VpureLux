@@ -7,6 +7,46 @@
         return container.querySelectorAll(rowSelector + ':not([' + templateAttribute + '])');
     }
 
+    function usesHtmlRowTemplate(container) {
+        var templateId = container.dataset.rowTemplate;
+
+        return !!templateId && !!document.getElementById(templateId);
+    }
+
+    function removeLegacyTemplateRows(container) {
+        container.querySelectorAll('[' + templateAttribute + ']').forEach(function (row) {
+            row.remove();
+        });
+    }
+
+    function prepareComponentSelects(container, row) {
+        dynamicRows.stripSelect2Enhancements(row);
+
+        if (!usesHtmlRowTemplate(container)) {
+            dynamicRows.initializeSelects(row);
+        }
+    }
+
+    function cloneBomRow(container) {
+        if (usesHtmlRowTemplate(container)) {
+            var templateElement = document.getElementById(container.dataset.rowTemplate);
+
+            return dynamicRows.createCleanClone(templateElement.content.firstElementChild.cloneNode(true));
+        }
+
+        var template = dynamicRows.ensureTemplate(container, rowSelector);
+
+        if (!template) {
+            return null;
+        }
+
+        var row = dynamicRows.createCleanClone(template);
+        row.classList.remove('d-none');
+        row.removeAttribute(templateAttribute);
+        row.removeAttribute('aria-hidden');
+        return row;
+    }
+
     function reindexItems(container) {
         getLiveRows(container).forEach(function (row, index) {
             var component = row.querySelector('.component-id');
@@ -45,7 +85,7 @@
         });
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
+    function bootBomItems() {
         var container = document.getElementById('bom-items');
         var addButton = document.getElementById('add-item');
 
@@ -53,26 +93,24 @@
             return;
         }
 
-        dynamicRows.ensureTemplate(container, rowSelector);
+        if (usesHtmlRowTemplate(container)) {
+            removeLegacyTemplateRows(container);
+        } else {
+            dynamicRows.ensureTemplate(container, rowSelector);
+        }
+
         getLiveRows(container).forEach(function (row) {
-            dynamicRows.stripSelect2Enhancements(row);
-            dynamicRows.initializeSelects(row);
+            prepareComponentSelects(container, row);
         });
 
         addButton.addEventListener('click', function () {
-            var template = dynamicRows.ensureTemplate(container, rowSelector);
-
-            if (!template) {
-                return;
-            }
-
             var liveRow = container.querySelector(rowSelector + ':not([' + templateAttribute + '])');
             var sourceComponent = liveRow ? liveRow.querySelector('.component-id') : null;
-            var row = dynamicRows.createCleanClone(template);
+            var row = cloneBomRow(container);
 
-            row.classList.remove('d-none');
-            row.removeAttribute(templateAttribute);
-            row.removeAttribute('aria-hidden');
+            if (!row) {
+                return;
+            }
 
             var component = row.querySelector('.component-id');
             var quantity = row.querySelector('.quantity');
@@ -92,7 +130,7 @@
 
             container.appendChild(row);
             reindexItems(container);
-            dynamicRows.initializeSelects(row);
+            prepareComponentSelects(container, row);
         });
 
         container.addEventListener('click', function (event) {
@@ -109,5 +147,25 @@
                 reindexItems(container);
             }
         });
-    });
+    }
+
+    document.addEventListener('DOMContentLoaded', bootBomItems);
+
+    if (window.abp && abp.dom && typeof abp.dom.ready === 'function') {
+        abp.dom.ready(function () {
+            var container = document.getElementById('bom-items');
+
+            if (!container || !dynamicRows) {
+                return;
+            }
+
+            if (usesHtmlRowTemplate(container)) {
+                removeLegacyTemplateRows(container);
+            }
+
+            getLiveRows(container).forEach(function (row) {
+                prepareComponentSelects(container, row);
+            });
+        });
+    }
 }());

@@ -198,3 +198,29 @@
 .vpl-catalog-thumbnail-placeholder {
     font-size: var(--vpl-font-size-meta);
 }
+
+/* ERP entry form surfaces: fill viewport without fixed height or dropdown clipping */
+:root {
+    --vpl-entry-surface-offset: 11.5rem;
+}
+
+.card.vpl-entry-surface {
+    min-height: max(68vh, calc(100vh - var(--vpl-entry-surface-offset)));
+    overflow: visible !important;
+    margin-bottom: 1.5rem;
+}
+
+.card.vpl-entry-surface > .card-body {
+    overflow: visible !important;
+    padding-bottom: 2.5rem;
+}
+
+.card.vpl-entry-surface form {
+    overflow: visible;
+}
+
+.card.vpl-entry-surface .vpl-line-editor,
+.card.vpl-entry-surface .vpl-line-editor-scroll,
+.card.vpl-entry-surface .table-responsive {
+    overflow: visible !important;
+}
