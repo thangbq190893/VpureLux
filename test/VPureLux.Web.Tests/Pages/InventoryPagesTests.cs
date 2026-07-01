@@ -137,6 +137,9 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("data-inventory-line-container");
         pageSource.ShouldContain("data-inventory-line-row");
         pageSource.ShouldContain("data-add-button=\"#add-receipt-line\"");
+        pageSource.ShouldContain("data-row-template=\"receipt-line-row-template\"");
+        pageSource.ShouldContain("<template id=\"receipt-line-row-template\">");
+        pageSource.ShouldContain("data-dynamic-select2=\"disabled\"");
         pageSource.ShouldContain("data-name=\"Input.Lines[__index__].StockItemId\"");
         pageSource.ShouldContain("data-name=\"Input.Lines[__index__].Quantity\"");
         pageSource.ShouldContain("data-name=\"Input.Lines[__index__].LotNo\"");
@@ -156,9 +159,9 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         cssSource.ShouldNotContain("overflow-y: scroll");
         cssSource.ShouldNotContain("max-height:");
         scriptSource.ShouldContain("reindexRows(container)");
-        scriptSource.ShouldContain("getLiveRows(container).forEach(function (row)");
-        scriptSource.ShouldContain("dynamicRows.stripSelect2Enhancements(row)");
-        scriptSource.ShouldContain("initializeSelects(row)");
+        scriptSource.ShouldContain("usesHtmlRowTemplate(container)");
+        scriptSource.ShouldContain("prepareLineSelects(container, row)");
+        scriptSource.ShouldContain("cloneInventoryRow(container)");
         scriptSource.ShouldContain("data-remove-line");
         sharedScriptSource.ShouldContain("setControlsDisabled(template, true)");
         sharedScriptSource.ShouldContain("setControlsDisabled(clone, false)");

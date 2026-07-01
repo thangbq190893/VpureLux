@@ -8,6 +8,46 @@
         return container.querySelectorAll(rowSelector + ':not([' + templateAttribute + '])');
     }
 
+    function usesHtmlRowTemplate(container) {
+        var templateId = container.dataset.rowTemplate;
+
+        return !!templateId && !!document.getElementById(templateId);
+    }
+
+    function removeLegacyTemplateRows(container) {
+        container.querySelectorAll('[' + templateAttribute + ']').forEach(function (row) {
+            row.remove();
+        });
+    }
+
+    function prepareLineSelects(container, row) {
+        dynamicRows.stripSelect2Enhancements(row);
+
+        if (!usesHtmlRowTemplate(container)) {
+            dynamicRows.initializeSelects(row);
+        }
+    }
+
+    function cloneInventoryRow(container) {
+        if (usesHtmlRowTemplate(container)) {
+            var templateElement = document.getElementById(container.dataset.rowTemplate);
+
+            return dynamicRows.createCleanClone(templateElement.content.firstElementChild.cloneNode(true));
+        }
+
+        var template = dynamicRows.ensureTemplate(container, rowSelector);
+
+        if (!template) {
+            return null;
+        }
+
+        var row = dynamicRows.createCleanClone(template);
+        row.classList.remove('d-none');
+        row.removeAttribute(templateAttribute);
+        row.removeAttribute('aria-hidden');
+        return row;
+    }
+
     function applyTemplate(element, attributeName, index) {
         var template = element.getAttribute(attributeName);
 
@@ -60,10 +100,14 @@
         var addButton = addButtonSelector ? document.querySelector(addButtonSelector) : null;
 
         if (dynamicRows) {
-            dynamicRows.ensureTemplate(container, rowSelector);
+            if (usesHtmlRowTemplate(container)) {
+                removeLegacyTemplateRows(container);
+            } else {
+                dynamicRows.ensureTemplate(container, rowSelector);
+            }
+
             getLiveRows(container).forEach(function (row) {
-                dynamicRows.stripSelect2Enhancements(row);
-                dynamicRows.initializeSelects(row);
+                prepareLineSelects(container, row);
             });
         }
 
@@ -72,16 +116,11 @@
                 var row;
 
                 if (dynamicRows) {
-                    var template = dynamicRows.ensureTemplate(container, rowSelector);
+                    row = cloneInventoryRow(container);
 
-                    if (!template) {
+                    if (!row) {
                         return;
                     }
-
-                    row = dynamicRows.createCleanClone(template);
-                    row.classList.remove('d-none');
-                    row.removeAttribute(templateAttribute);
-                    row.removeAttribute('aria-hidden');
                 } else {
                     var source = container.querySelector(rowSelector);
 
@@ -97,7 +136,7 @@
                 reindexRows(container);
 
                 if (dynamicRows) {
-                    dynamicRows.initializeSelects(row);
+                    prepareLineSelects(container, row);
                 }
             });
         }
@@ -113,7 +152,13 @@
                 return;
             }
 
-            removeButton.closest(rowSelector).remove();
+            var row = removeButton.closest(rowSelector);
+
+            if (row && dynamicRows) {
+                dynamicRows.stripSelect2Enhancements(row);
+            }
+
+            row.remove();
             reindexRows(container);
         });
 
@@ -178,4 +223,24 @@
             });
         });
     });
+
+    if (window.abp && abp.dom && typeof abp.dom.ready === 'function') {
+        abp.dom.ready(function () {
+            if (!dynamicRows) {
+                return;
+            }
+
+            document.querySelectorAll('[data-inventory-line-container]').forEach(function (container) {
+                if (!usesHtmlRowTemplate(container)) {
+                    return;
+                }
+
+                removeLegacyTemplateRows(container);
+
+                getLiveRows(container).forEach(function (row) {
+                    prepareLineSelects(container, row);
+                });
+            });
+        });
+    }
 }());
