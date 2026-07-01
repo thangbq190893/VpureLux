@@ -1,3 +1,8 @@
+.vpl-line-editor {
+    overflow-x: auto;
+    overflow-y: visible;
+}
+
 .vpl-line-editor-table {
     min-width: 900px;
     table-layout: fixed;

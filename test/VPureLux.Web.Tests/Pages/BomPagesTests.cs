@@ -25,15 +25,48 @@ namespace VPureLux.Pages;
 public class BomPagesTests : VPureLuxWebTestBase
 {
     [Fact]
-    public async Task Bom_Index_Should_Render_Product_Selector()
+    public void Bom_Terminology_Should_Use_Product_Title_And_Keep_Line_Label_As_Vat_Tu()
     {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var localizationSource = File.ReadAllText(GetRepoFilePath("src/VPureLux.Domain.Shared/Localization/VPureLux/vi-VN.json"));
+
+        localizer["Menu:Bom"].Value.ShouldBe("Định mức sản phẩm (BOM)");
+        localizer["Bom:Title"].Value.ShouldBe("Định mức sản phẩm (BOM)");
+        localizer["Bom:Component"].Value.ShouldBe("Vật tư");
+        localizationSource.ShouldNotContain("Định mức vật" + " tư (BOM)");
+        localizationSource.ShouldNotContain("Linh " + "kiện");
+        localizationSource.ShouldNotContain("linh " + "kiện");
+    }
+
+    [Fact]
+    public async Task Bom_Index_Should_Render_Searchable_Product_Table_With_Row_Actions()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
         var product = await CreateProductAsync("BOM-IDX", "BOM Product Selector");
+        var component = await CreateComponentAsync("BOM-IDX-C", "BOM Index Component");
+        var bom = await GetRequiredService<IBomAppService>().CreateAsync(product.Id, BomInput(component.Id, DateTime.Today));
+        await GetRequiredService<IBomAppService>().PublishAsync(bom.Id);
 
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Bom"));
+        var filteredHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom?SearchTerm={product.Code}"));
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/Index.cshtml"));
 
-        html.ShouldContain($"{product.Code} - {product.Name}");
-        html.ShouldContain("name=\"ProductId\"");
-        html.ShouldContain("<select");
+        html.ShouldContain(localizer["Bom:Title"].Value);
+        html.ShouldContain("data-bom-search-form");
+        html.ShouldContain("data-bom-summary-table");
+        html.ShouldContain("name=\"SearchTerm\"");
+        html.ShouldContain(localizer["Bom:VersionCount"].Value);
+        filteredHtml.ShouldContain(product.Code);
+        filteredHtml.ShouldContain(product.Name);
+        filteredHtml.ShouldContain("data-bom-summary-row");
+        html.ShouldContain(localizer["Bom:OpenHistory"].Value);
+        filteredHtml.ShouldContain(localizer["Bom:CreateVersionForProduct"].Value);
+        filteredHtml.ShouldContain(localizer["Bom:ViewCurrentVersion"].Value);
+        filteredHtml.ShouldContain($"href=\"/Bom/Product/{product.Id}");
+        filteredHtml.ShouldContain($"href=\"/Bom/Create/{product.Id}");
+        filteredHtml.ShouldContain($"/Bom/Details/{bom.Id}");
+        pageSource.ShouldNotContain("asp-for=\"ProductId\" asp-items=");
+        pageSource.ShouldNotContain("Bom:SelectProduct");
         html.ShouldNotContain("type=\"text\" id=\"ProductId\"");
     }
 
@@ -47,9 +80,18 @@ public class BomPagesTests : VPureLuxWebTestBase
 
         html.ShouldContain($"{component.Code} - {component.Name}");
         html.ShouldContain("name=\"Items[0].ComponentId\"");
-        html.ShouldContain("<select");
+        html.ShouldContain("data-bom-create-product-context");
+        html.ShouldContain($"{product.Code} - {product.Name}");
+        html.ShouldContain("vpl-line-editor-table bom-items-table");
+        html.ShouldContain("form-select form-select-sm component-id");
+        html.ShouldContain("vpl-line-editor-icon-button");
 
         var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/Create.cshtml"));
+        pageSource.ShouldContain("@section styles");
+        pageSource.ShouldContain("<abp-style src=\"/Pages/Shared/LineEditors.css\" />");
+        pageSource.ShouldContain("data-bom-create-product-context");
+        pageSource.ShouldContain("data-line-editor-row");
+        pageSource.ShouldContain("data-dynamic-select2=\"disabled\"");
         pageSource.ShouldContain("@section scripts");
         pageSource.ShouldContain("<abp-script src=\"/Pages/Shared/DynamicRowSelects.js\" />");
         pageSource.ShouldContain("<abp-script src=\"/Pages/Bom/BomItems.js\" />");

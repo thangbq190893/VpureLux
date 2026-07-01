@@ -8,7 +8,9 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using VPureLux.Bom;
 using VPureLux.Catalog;
 using VPureLux.Catalog.Components;
+using VPureLux.Catalog.Products;
 using VPureLux.Permissions;
+using VPureLux.Pricing;
 
 namespace VPureLux.Web.Pages.Bom;
 
@@ -17,6 +19,8 @@ public class CreateModel : VPureLuxPageModel
 {
     private readonly IBomAppService _bomAppService;
     private readonly IComponentAppService _componentAppService;
+    private readonly IProductAppService _productAppService;
+    private readonly IProductPricingContextLookupService _productPricingContextLookupService;
 
     [BindProperty(SupportsGet = true)]
     public Guid ProductId { get; set; }
@@ -28,22 +32,30 @@ public class CreateModel : VPureLuxPageModel
     public List<BomItemSelectionModel> Items { get; set; } = new() { new() };
 
     public List<SelectListItem> ComponentOptions { get; private set; } = new();
+    public ProductDto? Product { get; private set; }
+    public ProductPricingContextDto? PricingContext { get; private set; }
 
-    public CreateModel(IBomAppService bomAppService, IComponentAppService componentAppService)
+    public CreateModel(
+        IBomAppService bomAppService,
+        IComponentAppService componentAppService,
+        IProductAppService productAppService,
+        IProductPricingContextLookupService productPricingContextLookupService)
     {
         _bomAppService = bomAppService;
         _componentAppService = componentAppService;
+        _productAppService = productAppService;
+        _productPricingContextLookupService = productPricingContextLookupService;
     }
 
     public async Task OnGetAsync()
     {
         EffectiveFromText = BomUi.FormatDate(DateTime.Today);
-        await LoadComponentOptionsAsync();
+        await LoadPageAsync();
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
-        await LoadComponentOptionsAsync();
+        await LoadPageAsync();
 
         if (!BomUi.TryParseDate(EffectiveFromText, out var effectiveFrom))
         {
@@ -69,6 +81,19 @@ public class CreateModel : VPureLuxPageModel
         });
 
         return RedirectToPage("/Bom/Details", new { id = result.Id });
+    }
+
+    private async Task LoadPageAsync()
+    {
+        await LoadProductContextAsync();
+        await LoadComponentOptionsAsync();
+    }
+
+    private async Task LoadProductContextAsync()
+    {
+        Product = await _productAppService.GetAsync(ProductId);
+        var contexts = await _productPricingContextLookupService.FindMapAsync([ProductId], Clock.Now);
+        PricingContext = contexts.GetValueOrDefault(ProductId);
     }
 
     private async Task LoadComponentOptionsAsync()

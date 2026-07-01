@@ -118,13 +118,56 @@ public class VPureLuxMenuContributor : IMenuContributor
             order: 7
         ).RequirePermissions(VPureLuxPermissions.Pricing.View));
 
-        context.Menu.AddItem(new ApplicationMenuItem(
+        var inventory = new ApplicationMenuItem(
             VPureLuxMenus.Inventory,
             l["Menu:Inventory"],
-            "~/Inventory",
             icon: "fa fa-warehouse",
             order: 8
+        ).RequirePermissions(VPureLuxPermissions.Inventory.View);
+
+        inventory.AddItem(new ApplicationMenuItem(
+            VPureLuxMenus.InventoryLedger,
+            l["Inventory:Ledger"],
+            "~/Inventory/Ledger",
+            icon: "fa fa-book"
+        ).RequirePermissions(VPureLuxPermissions.Inventory.ViewLedger));
+
+        inventory.AddItem(new ApplicationMenuItem(
+            VPureLuxMenus.InventoryReceipt,
+            l["Inventory:Receipt"],
+            "~/Inventory/Receipt",
+            icon: "fa fa-arrow-down"
+        ).RequirePermissions(VPureLuxPermissions.Inventory.Receive));
+
+        inventory.AddItem(new ApplicationMenuItem(
+            VPureLuxMenus.InventoryIssue,
+            l["Inventory:Issue"],
+            "~/Inventory/Issue",
+            icon: "fa fa-arrow-up"
+        ).RequirePermissions(VPureLuxPermissions.Inventory.Issue));
+
+        inventory.AddItem(new ApplicationMenuItem(
+            VPureLuxMenus.InventoryAdjustment,
+            l["Inventory:Adjustment"],
+            "~/Inventory/Adjustment",
+            icon: "fa fa-sliders"
+        ).RequirePermissions(VPureLuxPermissions.Inventory.Adjust));
+
+        inventory.AddItem(new ApplicationMenuItem(
+            VPureLuxMenus.InventoryBalances,
+            l["Inventory:Balances"],
+            "~/Inventory/Balances",
+            icon: "fa fa-list"
         ).RequirePermissions(VPureLuxPermissions.Inventory.View));
+
+        inventory.AddItem(new ApplicationMenuItem(
+            VPureLuxMenus.InventoryLots,
+            l["Inventory:Lots"],
+            "~/Inventory/Lots",
+            icon: "fa fa-tags"
+        ).RequirePermissions(VPureLuxPermissions.Inventory.View));
+
+        context.Menu.AddItem(inventory);
 
         context.Menu.AddItem(new ApplicationMenuItem(
             VPureLuxMenus.Sales,

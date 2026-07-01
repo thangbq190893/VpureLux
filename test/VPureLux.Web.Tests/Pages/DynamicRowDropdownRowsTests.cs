@@ -28,9 +28,12 @@ public class DynamicRowDropdownRowsTests
         var pageSource = ReadRepoFile("src/VPureLux.Web/Pages/Bom/Create.cshtml");
         var scriptSource = ReadRepoFile("src/VPureLux.Web/Pages/Bom/BomItems.js");
 
+        pageSource.ShouldContain("<abp-style src=\"/Pages/Shared/LineEditors.css\" />");
         pageSource.ShouldContain("<abp-script src=\"/Pages/Shared/DynamicRowSelects.js\" />");
-        pageSource.ShouldContain("class=\"form-select component-id\"");
-        pageSource.ShouldNotContain("id=\"Items_0__ComponentId\"");
+        pageSource.ShouldContain("class=\"form-select form-select-sm component-id\"");
+        pageSource.ShouldContain("data-line-editor-row");
+        pageSource.ShouldContain("data-name=\"Items[__index__].ComponentId\"");
+        pageSource.ShouldContain("data-id=\"Items___index____ComponentId\"");
 
         scriptSource.ShouldContain("window.vplDynamicRowSelects");
         scriptSource.ShouldContain("ensureTemplate(container, rowSelector)");
@@ -57,6 +60,26 @@ public class DynamicRowDropdownRowsTests
         scriptSource.ShouldContain("createCleanClone(template)");
         scriptSource.ShouldContain("initializeSelects(row)");
         scriptSource.ShouldContain("rowSelector + ':not([' + templateAttribute + '])'");
+    }
+
+    [Fact]
+    public void LineEditor_Css_Should_Allow_Vertical_Dropdowns_And_Keep_Only_Horizontal_Scroll()
+    {
+        var cssSource = ReadRepoFile("src/VPureLux.Web/Pages/Shared/LineEditors.css");
+        var dynamicSelectSource = ReadRepoFile("src/VPureLux.Web/Pages/Shared/DynamicRowSelects.js");
+        var normalizedCssSource = cssSource.Replace("\r\n", "\n");
+
+        cssSource.ShouldContain(".vpl-line-editor");
+        cssSource.ShouldContain("overflow-x: auto");
+        cssSource.ShouldContain("overflow-y: visible");
+        cssSource.ShouldNotContain("overflow-y: auto");
+        cssSource.ShouldNotContain("overflow-y: scroll");
+        cssSource.ShouldNotContain("overflow-y: hidden");
+        normalizedCssSource.ShouldNotContain("\nheight:");
+        normalizedCssSource.ShouldNotContain("\n    height:");
+        normalizedCssSource.ShouldNotContain("max-height:");
+        dynamicSelectSource.ShouldContain("closest('.modal, .offcanvas, #SalesCreatePage')");
+        dynamicSelectSource.ShouldNotContain("#SalesCreatePage, form");
     }
 
     private static string ReadRepoFile(string relativePath)

@@ -51,7 +51,7 @@
             width: '100%'
         };
 
-        var $dropdownParent = $select.closest('.modal, .offcanvas, #SalesCreatePage, form');
+        var $dropdownParent = $select.closest('.modal, .offcanvas, #SalesCreatePage');
 
         if ($dropdownParent.length) {
             options.dropdownParent = $dropdownParent;

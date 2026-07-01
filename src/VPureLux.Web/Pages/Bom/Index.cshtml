@@ -12,14 +12,69 @@
 
     <abp-card class="vpl-card-dense">
         <abp-card-body>
-            <form method="post" asp-page-handler="OpenProduct">
-                <label asp-for="ProductId" class="form-label">@L["Bom:Product"]</label>
-                <select asp-for="ProductId" asp-items="Model.ProductOptions" class="form-select">
-                    <option value="">@L["Bom:SelectProduct"]</option>
-                </select>
-                <span asp-validation-for="ProductId" class="text-danger"></span>
-                <abp-button button-type="Primary" type="submit" class="mt-3">@L["Bom:OpenHistory"]</abp-button>
+            <form method="get" class="row g-2 align-items-end mb-3" data-bom-search-form>
+                <div class="col-md-6 col-lg-5">
+                    <label asp-for="SearchTerm" class="form-label">@L["Bom:SearchProducts"]</label>
+                    <input asp-for="SearchTerm" class="form-control" placeholder="@L["Bom:SearchPlaceholder"]" />
+                </div>
+                <div class="col-md-auto">
+                    <button class="btn btn-primary" type="submit">@L["Bom:ApplySearch"]</button>
+                    <a class="btn btn-secondary" asp-page="/Bom/Index">@L["Bom:ClearSearch"]</a>
+                </div>
             </form>
+
+            <abp-table striped-rows="true" class="vpl-table-dense" data-bom-summary-table>
+                <thead>
+                <tr>
+                    <th>@L["Bom:Product"]</th>
+                    <th>@L["Bom:Status"]</th>
+                    <th>@L["Bom:VersionCount"]</th>
+                    <th>@L["Bom:CurrentVersion"]</th>
+                    <th class="text-end">@L["Actions"]</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in Model.Rows)
+                {
+                    <tr data-bom-summary-row>
+                        <td>
+                            <strong>@row.ProductCode</strong>
+                            <div class="text-muted">@row.ProductName</div>
+                        </td>
+                        <td>@L[$"Status:{row.ProductStatus}"]</td>
+                        <td>@row.VersionCount</td>
+                        <td>
+                            @if (row.CurrentVersion != null)
+                            {
+                                <a asp-page="/Bom/Details" asp-route-id="@row.CurrentVersion.Id">
+                                    @L["Bom:VersionNo"] @row.CurrentVersion.VersionNo
+                                </a>
+                            }
+                            else
+                            {
+                                <span class="text-muted">@L["Bom:NoCurrentVersion"]</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-secondary" asp-page="/Bom/Product" asp-route-productId="@row.ProductId">@L["Bom:OpenHistory"]</a>
+                            @if (Model.CanCreate)
+                            {
+                                <a class="btn btn-sm btn-outline-primary" asp-page="/Bom/Create" asp-route-productId="@row.ProductId">@L["Bom:CreateVersionForProduct"]</a>
+                            }
+                            @if (row.CurrentVersion != null)
+                            {
+                                <a class="btn btn-sm btn-outline-secondary" asp-page="/Bom/Details" asp-route-id="@row.CurrentVersion.Id">@L["Bom:ViewCurrentVersion"]</a>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </abp-table>
+
+            @if (Model.Rows.Count == 0)
+            {
+                <div class="vpl-empty-state" data-bom-empty-state>@L["Bom:NoProducts"]</div>
+            }
         </abp-card-body>
     </abp-card>
 </div>

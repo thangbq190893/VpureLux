@@ -34,6 +34,35 @@ public class InventoryPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Inventory_Menu_Should_Expose_Direct_Submenu_Items()
+    {
+        var menuSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Menus/VPureLuxMenuContributor.cs"));
+        var menuConstantsSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Menus/VPureLuxMenus.cs"));
+
+        menuConstantsSource.ShouldContain("InventoryLedger");
+        menuConstantsSource.ShouldContain("InventoryReceipt");
+        menuConstantsSource.ShouldContain("InventoryIssue");
+        menuConstantsSource.ShouldContain("InventoryAdjustment");
+        menuConstantsSource.ShouldContain("InventoryBalances");
+        menuConstantsSource.ShouldContain("InventoryLots");
+        menuSource.ShouldContain("var inventory = new ApplicationMenuItem");
+        menuSource.ShouldContain("inventory.AddItem(new ApplicationMenuItem(");
+        menuSource.ShouldContain("VPureLuxMenus.InventoryLedger");
+        menuSource.ShouldContain("\"~/Inventory/Ledger\"");
+        menuSource.ShouldContain("VPureLuxMenus.InventoryReceipt");
+        menuSource.ShouldContain("\"~/Inventory/Receipt\"");
+        menuSource.ShouldContain("VPureLuxMenus.InventoryIssue");
+        menuSource.ShouldContain("\"~/Inventory/Issue\"");
+        menuSource.ShouldContain("VPureLuxMenus.InventoryAdjustment");
+        menuSource.ShouldContain("\"~/Inventory/Adjustment\"");
+        menuSource.ShouldContain("VPureLuxMenus.InventoryBalances");
+        menuSource.ShouldContain("\"~/Inventory/Balances\"");
+        menuSource.ShouldContain("VPureLuxMenus.InventoryLots");
+        menuSource.ShouldContain("\"~/Inventory/Lots\"");
+        menuSource.ShouldNotContain("VPureLuxMenus.Inventory,\r\n            l[\"Menu:Inventory\"],\r\n            \"~/Inventory\"");
+    }
+
+    [Fact]
     public async Task Inventory_Actions_Should_Be_Hidden_Without_Permissions()
     {
         var authorization = Substitute.For<IAuthorizationService>();
