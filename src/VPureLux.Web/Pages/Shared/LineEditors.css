@@ -1,6 +1,9 @@
 .vpl-line-editor {
-    overflow-x: auto;
-    overflow-y: visible;
+    overflow: visible;
+}
+
+.vpl-line-editor.table-responsive {
+    overflow: visible;
 }
 
 .vpl-line-editor-table {
@@ -36,7 +39,10 @@
 }
 
 .vpl-line-editor-col-action {
-    width: 4.75rem;
+    width: 5.5rem;
+    min-width: 5.5rem;
+    white-space: nowrap;
+    overflow: visible;
 }
 
 .vpl-line-editor-icon-button {

@@ -57,3 +57,35 @@ Deferred/not run:
 
 - Issue: add 3 rows, verify compact layout, no duplicate select, submit valid issue if stock exists.
 - Adjustment: add increase/decrease rows, verify compact layout, no duplicate select, submit valid adjustment if data exists.
+
+## 03H.1 Receipt Dropdown Clipping Follow-up
+
+### Bug
+
+Real browser UAT still showed `/Inventory/Receipt` clipping the first-row stock item dropdown inside the compact table area. The action column also looked too narrow and created an internal scroll/overflow feel.
+
+### CSS/root cause
+
+The line editor wrapper still behaved like a Bootstrap `table-responsive` scroll container. Combining horizontal overflow with visible vertical overflow can still create a clipping scroll area for custom dropdown popups. Existing live row selects also needed to be reinitialized through the shared dynamic-row helper so their Select2 dropdowns use the safe body-level placement instead of inheriting a table/card clipping boundary.
+
+### Fix summary
+
+- `LineEditors.css` now makes `.vpl-line-editor` and `.vpl-line-editor.table-responsive` non-clipping with `overflow: visible`.
+- The shared action column is slightly wider, nowrap, and explicitly visible to avoid internal vertical scroll effects.
+- `Posting.js` reinitializes only live inventory line rows after creating the disabled hidden template, preserving add/remove/reindex behavior and excluding template controls from post.
+- Receipt, Issue, and Adjustment continue to use the same line editor hooks.
+
+### Manual smoke checklist
+
+- Receipt: open `/Inventory/Receipt`, select warehouse, open the first stock item dropdown, verify it is not clipped - passed.
+- Receipt: add 3 rows and verify each stock item dropdown opens cleanly - passed.
+- Receipt: verify action buttons align with row inputs and no internal vertical scrollbar appears in the action column/table - passed.
+- Issue: quick check for no obvious compact layout regression - passed.
+- Adjustment: quick check for no obvious compact layout regression - passed.
+
+### 03H.1 validation
+
+- `dotnet build VPureLux.slnx --no-restore -m:2` - passed.
+- `dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build --filter "FullyQualifiedName~Inventory" -m:1` - passed, 38/38.
+- Repository grep for the legacy Vietnamese component wording - passed, no matches.
+- Browser smoke against `https://localhost:44325` as seeded admin - passed; Receipt first-row dropdown escaped the editor bounds, all 4 live row dropdowns opened, action cells had visible overflow with matching `clientHeight`/`scrollHeight`, and Issue/Adjustment editor overflow stayed visible.

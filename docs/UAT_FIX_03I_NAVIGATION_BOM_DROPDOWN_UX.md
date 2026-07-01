@@ -50,7 +50,7 @@ UAT found three web UX gaps: compact line editors could clip dropdown menus, BOM
 - `dotnet build VPureLux.slnx --no-restore -m:2` - passed.
 - `dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build --filter "FullyQualifiedName~Bom|FullyQualifiedName~Inventory|FullyQualifiedName~Menu" -m:1` - passed, 65/65.
 - `dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build -m:1` - passed, 180/180.
-- `git grep -n -i "linh kiện" -- src test docs BUSINESS_ARCHITECTURE_DECISIONS_V2.md UI_IMPLEMENTATION_DECISION_MATRIX.md UI_REFACTOR_SOURCE_OF_TRUTH.md UI_UX_ABP_GUIDE_V2.md` - passed, no matches after final cleanup.
+- Repository grep for the legacy Vietnamese component wording - passed, no matches after final cleanup.
 
 ## Manual Smoke Checklist Deferred
 

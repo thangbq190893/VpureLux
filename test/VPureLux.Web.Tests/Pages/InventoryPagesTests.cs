@@ -122,6 +122,7 @@ public class InventoryPagesTests : VPureLuxWebTestBase
 
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Inventory/Receipt"));
         var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Receipt.cshtml"));
+        var cssSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Shared/LineEditors.css"));
         var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Posting.js"));
         var sharedScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Shared/DynamicRowSelects.js"));
 
@@ -141,8 +142,22 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("data-name=\"Input.Lines[__index__].LotNo\"");
         pageSource.ShouldContain("data-name=\"ReceivedAtTexts[__index__]\"");
         pageSource.ShouldContain("data-name=\"Input.Lines[__index__].UnitCost\"");
+        pageSource.ShouldNotContain("overflow-y");
+        pageSource.ShouldNotContain("max-height");
+        pageSource.ShouldNotContain("height:");
 
+        cssSource.ShouldContain(".vpl-line-editor.table-responsive");
+        cssSource.ShouldContain("overflow: visible");
+        cssSource.ShouldContain(".vpl-line-editor-col-action");
+        cssSource.ShouldContain("min-width: 5.5rem");
+        cssSource.ShouldContain("white-space: nowrap");
+        cssSource.ShouldNotContain("overflow-y: auto");
+        cssSource.ShouldNotContain("overflow-y: hidden");
+        cssSource.ShouldNotContain("overflow-y: scroll");
+        cssSource.ShouldNotContain("max-height:");
         scriptSource.ShouldContain("reindexRows(container)");
+        scriptSource.ShouldContain("getLiveRows(container).forEach(function (row)");
+        scriptSource.ShouldContain("dynamicRows.stripSelect2Enhancements(row)");
         scriptSource.ShouldContain("initializeSelects(row)");
         scriptSource.ShouldContain("data-remove-line");
         sharedScriptSource.ShouldContain("setControlsDisabled(template, true)");

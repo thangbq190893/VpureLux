@@ -61,6 +61,10 @@
 
         if (dynamicRows) {
             dynamicRows.ensureTemplate(container, rowSelector);
+            getLiveRows(container).forEach(function (row) {
+                dynamicRows.stripSelect2Enhancements(row);
+                dynamicRows.initializeSelects(row);
+            });
         }
 
         if (addButton) {

@@ -70,11 +70,13 @@ public class DynamicRowDropdownRowsTests
         var normalizedCssSource = cssSource.Replace("\r\n", "\n");
 
         cssSource.ShouldContain(".vpl-line-editor");
-        cssSource.ShouldContain("overflow-x: auto");
-        cssSource.ShouldContain("overflow-y: visible");
+        cssSource.ShouldContain("overflow: visible");
+        cssSource.ShouldContain(".vpl-line-editor.table-responsive");
         cssSource.ShouldNotContain("overflow-y: auto");
         cssSource.ShouldNotContain("overflow-y: scroll");
         cssSource.ShouldNotContain("overflow-y: hidden");
+        cssSource.ShouldContain("min-width: 5.5rem");
+        cssSource.ShouldContain("white-space: nowrap");
         normalizedCssSource.ShouldNotContain("\nheight:");
         normalizedCssSource.ShouldNotContain("\n    height:");
         normalizedCssSource.ShouldNotContain("max-height:");
