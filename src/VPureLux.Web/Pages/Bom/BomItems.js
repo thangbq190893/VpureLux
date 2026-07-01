@@ -54,6 +54,10 @@
         }
 
         dynamicRows.ensureTemplate(container, rowSelector);
+        getLiveRows(container).forEach(function (row) {
+            dynamicRows.stripSelect2Enhancements(row);
+            dynamicRows.initializeSelects(row);
+        });
 
         addButton.addEventListener('click', function () {
             var template = dynamicRows.ensureTemplate(container, rowSelector);

@@ -34,9 +34,12 @@ public class DynamicRowDropdownRowsTests
         pageSource.ShouldContain("data-line-editor-row");
         pageSource.ShouldContain("data-name=\"Items[__index__].ComponentId\"");
         pageSource.ShouldContain("data-id=\"Items___index____ComponentId\"");
+        pageSource.ShouldNotContain("data-dynamic-select2=\"disabled\"");
 
         scriptSource.ShouldContain("window.vplDynamicRowSelects");
         scriptSource.ShouldContain("ensureTemplate(container, rowSelector)");
+        scriptSource.ShouldContain("getLiveRows(container).forEach(function (row)");
+        scriptSource.ShouldContain("stripSelect2Enhancements(row)");
         scriptSource.ShouldContain("createCleanClone(template)");
         scriptSource.ShouldContain("initializeSelects(row)");
         scriptSource.ShouldContain(".component-id");
@@ -70,7 +73,7 @@ public class DynamicRowDropdownRowsTests
         var normalizedCssSource = cssSource.Replace("\r\n", "\n");
 
         cssSource.ShouldContain(".vpl-line-editor");
-        cssSource.ShouldContain("overflow: visible");
+        cssSource.ShouldContain("overflow: visible !important");
         cssSource.ShouldContain(".vpl-line-editor.table-responsive");
         cssSource.ShouldNotContain("overflow-y: auto");
         cssSource.ShouldNotContain("overflow-y: scroll");

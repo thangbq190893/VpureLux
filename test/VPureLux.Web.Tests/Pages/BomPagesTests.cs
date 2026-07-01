@@ -85,13 +85,24 @@ public class BomPagesTests : VPureLuxWebTestBase
         html.ShouldContain("vpl-line-editor-table bom-items-table");
         html.ShouldContain("form-select form-select-sm component-id");
         html.ShouldContain("vpl-line-editor-icon-button");
+        CountOccurrences(html, "name=\"Items[0].ComponentId\"").ShouldBe(1);
+        CountLiveRowsWithExactlyOneSelect(html, "<tr class=\"bom-item\" data-line-editor-row>").ShouldBe(1);
+        html.ShouldNotContain("select2-container");
 
         var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/Create.cshtml"));
+        var cssSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Shared/LineEditors.css"));
         pageSource.ShouldContain("@section styles");
         pageSource.ShouldContain("<abp-style src=\"/Pages/Shared/LineEditors.css\" />");
         pageSource.ShouldContain("data-bom-create-product-context");
         pageSource.ShouldContain("data-line-editor-row");
-        pageSource.ShouldContain("data-dynamic-select2=\"disabled\"");
+        pageSource.ShouldNotContain("data-dynamic-select2=\"disabled\"");
+        pageSource.ShouldNotContain("overflow-y");
+        pageSource.ShouldNotContain("max-height");
+        cssSource.ShouldContain(".vpl-line-editor.table-responsive");
+        cssSource.ShouldContain("overflow: visible !important");
+        cssSource.ShouldNotContain("overflow-y: auto");
+        cssSource.ShouldNotContain("overflow-y: hidden");
+        cssSource.ShouldNotContain("overflow-y: scroll");
         pageSource.ShouldContain("@section scripts");
         pageSource.ShouldContain("<abp-script src=\"/Pages/Shared/DynamicRowSelects.js\" />");
         pageSource.ShouldContain("<abp-script src=\"/Pages/Bom/BomItems.js\" />");
@@ -103,6 +114,8 @@ public class BomPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("quantity.name = 'Items[' + index + '].Quantity'");
         scriptSource.ShouldContain("component.id = 'Items_' + index + '__ComponentId'");
         scriptSource.ShouldContain("quantity.id = 'Items_' + index + '__Quantity'");
+        scriptSource.ShouldContain("getLiveRows(container).forEach(function (row)");
+        scriptSource.ShouldContain("dynamicRows.stripSelect2Enhancements(row)");
         scriptSource.ShouldContain("initializeSelects(row)");
         scriptSource.ShouldContain("vplDynamicRowSelects");
     }
@@ -263,6 +276,7 @@ public class BomPagesTests : VPureLuxWebTestBase
 
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom/Edit/{bom.Id}"));
         var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/Edit.cshtml"));
+        var cssSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Shared/LineEditors.css"));
         var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/BomItems.js"));
         var sharedScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Shared/DynamicRowSelects.js"));
 
@@ -275,18 +289,27 @@ public class BomPagesTests : VPureLuxWebTestBase
         CountOccurrences(html, "<select class=\"form-select form-select-sm component-id\"").ShouldBe(2);
         CountLiveRowsWithExactlyOneSelect(html, "<tr class=\"bom-item\" data-line-editor-row>").ShouldBe(2);
         CountOccurrences(html, localizer["Bom:SelectComponent"].Value).ShouldBe(2);
-        html.ShouldContain("data-dynamic-select2=\"disabled\"");
+        html.ShouldNotContain("data-dynamic-select2=\"disabled\"");
         html.ShouldNotContain("select2-container");
 
         pageSource.ShouldContain("<abp-style src=\"/Pages/Shared/LineEditors.css\" />");
         pageSource.ShouldContain("data-line-editor-row");
-        pageSource.ShouldContain("data-dynamic-select2=\"disabled\"");
+        pageSource.ShouldNotContain("data-dynamic-select2=\"disabled\"");
+        pageSource.ShouldNotContain("overflow-y");
+        pageSource.ShouldNotContain("max-height");
         pageSource.ShouldContain("vpl-line-editor-col-main");
         pageSource.ShouldContain("vpl-line-editor-col-number");
         pageSource.ShouldContain("vpl-line-editor-col-action");
+        cssSource.ShouldContain(".vpl-line-editor.table-responsive");
+        cssSource.ShouldContain("overflow: visible !important");
+        cssSource.ShouldContain("min-width: 5.5rem");
+        cssSource.ShouldNotContain("overflow-y: auto");
+        cssSource.ShouldNotContain("overflow-y: hidden");
+        cssSource.ShouldNotContain("overflow-y: scroll");
 
         scriptSource.ShouldContain("component.name = 'Items[' + index + '].ComponentId'");
         scriptSource.ShouldContain("quantity.name = 'Items[' + index + '].Quantity'");
+        scriptSource.ShouldContain("getLiveRows(container).forEach(function (row)");
         scriptSource.ShouldContain("dynamicRows.stripSelect2Enhancements(row)");
         scriptSource.ShouldContain("initializeSelects(row)");
         sharedScriptSource.ShouldContain("data-dynamic-select2=\"disabled\"");
