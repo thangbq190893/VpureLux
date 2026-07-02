@@ -35,7 +35,7 @@
                             <th class="vpl-line-editor-col-action text-end">@L["Actions"]</th>
                         </tr>
                     </thead>
-                    <tbody id="issue-lines" data-inventory-line-container data-add-button="#add-issue-line">
+                    <tbody id="issue-lines" data-inventory-line-container data-add-button="#add-issue-line" data-row-template="issue-line-row-template">
                     @for (var i = 0; i < Model.Input.Lines.Count; i++)
                     {
                         <tr data-inventory-line-row data-line-editor-row>
@@ -45,6 +45,7 @@
                                 <select class="form-select form-select-sm"
                                         name="Input.Lines[@i].StockItemId"
                                         id="Input_Lines_@i.ToString()__StockItemId"
+                                        data-dynamic-select2="disabled"
                                         data-name="Input.Lines[__index__].StockItemId"
                                         data-id="Input_Lines___index____StockItemId">
                                     <option value="">@L["Select"]</option>
@@ -92,6 +93,39 @@
         </form>
     </abp-card-body>
 </abp-card>
+
+<template id="issue-line-row-template">
+    <tr data-inventory-line-row data-line-editor-row>
+        <td class="vpl-line-editor-col-main">
+            <label class="visually-hidden" data-for="Input_Lines___index____StockItemId">@L["Inventory:StockItem"]</label>
+            <select class="form-select form-select-sm"
+                    data-dynamic-select2="disabled"
+                    data-name="Input.Lines[__index__].StockItemId"
+                    data-id="Input_Lines___index____StockItemId">
+                <option value="">@L["Select"]</option>
+                @foreach (var option in Model.StockItemOptions)
+                {
+                    <option value="@option.Value">@option.Text</option>
+                }
+            </select>
+            <span class="text-danger small" data-valmsg-for-template="Input.Lines[__index__].StockItemId" data-valmsg-replace="true"></span>
+        </td>
+        <td class="vpl-line-editor-col-number">
+            <label class="visually-hidden" data-for="Input_Lines___index____Quantity">@L["Inventory:Quantity"]</label>
+            <input class="form-control form-control-sm" value="" data-name="Input.Lines[__index__].Quantity" data-id="Input_Lines___index____Quantity" />
+            <span class="text-danger small" data-valmsg-for-template="Input.Lines[__index__].Quantity" data-valmsg-replace="true"></span>
+        </td>
+        <td class="vpl-line-editor-col-action text-end">
+            <button class="btn btn-outline-danger btn-sm vpl-line-editor-icon-button"
+                    type="button"
+                    data-remove-line
+                    title="@L["Inventory:RemoveLine"]"
+                    aria-label="@L["Inventory:RemoveLine"]">
+                <i class="fa fa-trash"></i>
+            </button>
+        </td>
+    </tr>
+</template>
 
 @section styles {
     <abp-style src="/Pages/Shared/LineEditors.css" />

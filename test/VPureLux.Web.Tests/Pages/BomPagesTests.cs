@@ -288,13 +288,15 @@ public class BomPagesTests : VPureLuxWebTestBase
         CountOccurrences(html, "name=\"Items[1].ComponentId\"").ShouldBe(1);
         CountOccurrences(html, "<select class=\"form-select form-select-sm component-id\"").ShouldBe(2);
         CountLiveRowsWithExactlyOneSelect(html, "<tr class=\"bom-item\" data-line-editor-row>").ShouldBe(2);
-        CountOccurrences(html, localizer["Bom:SelectComponent"].Value).ShouldBe(2);
-        html.ShouldNotContain("data-dynamic-select2=\"disabled\"");
+        CountOccurrences(html, localizer["Bom:SelectComponent"].Value).ShouldBeGreaterThanOrEqualTo(2);
+        html.ShouldNotContain("data-dynamic-row-template");
         html.ShouldNotContain("select2-container");
 
         pageSource.ShouldContain("<abp-style src=\"/Pages/Shared/LineEditors.css\" />");
         pageSource.ShouldContain("data-line-editor-row");
-        pageSource.ShouldNotContain("data-dynamic-select2=\"disabled\"");
+        pageSource.ShouldContain("data-row-template=\"bom-item-row-template\"");
+        pageSource.ShouldContain("<template id=\"bom-item-row-template\">");
+        pageSource.ShouldContain("data-dynamic-select2=\"disabled\"");
         pageSource.ShouldNotContain("overflow-y");
         pageSource.ShouldNotContain("max-height");
         pageSource.ShouldContain("vpl-line-editor-col-main");
@@ -309,9 +311,9 @@ public class BomPagesTests : VPureLuxWebTestBase
 
         scriptSource.ShouldContain("component.name = 'Items[' + index + '].ComponentId'");
         scriptSource.ShouldContain("quantity.name = 'Items[' + index + '].Quantity'");
-        scriptSource.ShouldContain("getLiveRows(container).forEach(function (row)");
-        scriptSource.ShouldContain("dynamicRows.stripSelect2Enhancements(row)");
-        scriptSource.ShouldContain("initializeSelects(row)");
+        scriptSource.ShouldContain("usesHtmlRowTemplate(container)");
+        scriptSource.ShouldContain("prepareComponentSelects(container, row)");
+        scriptSource.ShouldContain("cloneBomRow(container)");
         sharedScriptSource.ShouldContain("data-dynamic-select2=\"disabled\"");
         sharedScriptSource.ShouldContain("setControlsDisabled(template, true)");
         sharedScriptSource.ShouldContain("template.classList.add('d-none')");

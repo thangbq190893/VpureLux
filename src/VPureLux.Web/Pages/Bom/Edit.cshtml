@@ -18,7 +18,7 @@
                             <th class="vpl-line-editor-col-action text-end">@L["Actions"]</th>
                         </tr>
                     </thead>
-                    <tbody id="bom-items">
+                    <tbody id="bom-items" data-row-template="bom-item-row-template">
                     @for (var i = 0; i < Model.Items.Count; i++)
                     {
                         <tr class="bom-item" data-line-editor-row>
@@ -29,6 +29,7 @@
                                 <select class="form-select form-select-sm component-id"
                                         name="Items[@i].ComponentId"
                                         id="Items_@(i)__ComponentId"
+                                        data-dynamic-select2="disabled"
                                         data-name="Items[__index__].ComponentId"
                                         data-id="Items___index____ComponentId">
                                     <option value="">@L["Bom:SelectComponent"]</option>
@@ -79,6 +80,42 @@
         </form>
     </abp-card-body>
 </abp-card>
+
+<template id="bom-item-row-template">
+    <tr class="bom-item" data-line-editor-row>
+        <td class="vpl-line-editor-col-main">
+            <label class="visually-hidden" data-for="Items___index____ComponentId">@L["Bom:Component"]</label>
+            <select class="form-select form-select-sm component-id"
+                    data-dynamic-select2="disabled"
+                    data-name="Items[__index__].ComponentId"
+                    data-id="Items___index____ComponentId">
+                <option value="">@L["Bom:SelectComponent"]</option>
+                @foreach (var option in Model.ComponentOptions)
+                {
+                    <option value="@option.Value">@option.Text</option>
+                }
+            </select>
+        </td>
+        <td class="vpl-line-editor-col-number">
+            <label class="visually-hidden" data-for="Items___index____Quantity">@L["Bom:Quantity"]</label>
+            <input type="number"
+                   min="1"
+                   step="1"
+                   class="form-control form-control-sm quantity"
+                   value="1"
+                   data-name="Items[__index__].Quantity"
+                   data-id="Items___index____Quantity" />
+        </td>
+        <td class="vpl-line-editor-col-action text-end">
+            <button type="button"
+                    class="btn btn-outline-danger btn-sm remove-item vpl-line-editor-icon-button"
+                    title="@L["Bom:RemoveItem"]"
+                    aria-label="@L["Bom:RemoveItem"]">
+                <i class="fa fa-trash"></i>
+            </button>
+        </td>
+    </tr>
+</template>
 
 @section styles {
     <abp-style src="/Pages/Shared/LineEditors.css" />

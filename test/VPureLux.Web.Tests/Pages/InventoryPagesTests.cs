@@ -203,6 +203,9 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("data-inventory-line-row");
         pageSource.ShouldContain("data-line-editor-row");
         pageSource.ShouldContain("data-add-button=\"#add-issue-line\"");
+        pageSource.ShouldContain("data-row-template=\"issue-line-row-template\"");
+        pageSource.ShouldContain("<template id=\"issue-line-row-template\">");
+        pageSource.ShouldContain("data-dynamic-select2=\"disabled\"");
         pageSource.ShouldContain("data-name=\"Input.Lines[__index__].StockItemId\"");
         pageSource.ShouldContain("data-name=\"Input.Lines[__index__].Quantity\"");
         pageSource.ShouldContain("vpl-line-editor-col-main");
@@ -210,8 +213,9 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("vpl-line-editor-col-action");
 
         scriptSource.ShouldContain("reindexRows(container)");
-        scriptSource.ShouldContain("dynamicRows.ensureTemplate(container, rowSelector)");
-        scriptSource.ShouldContain("initializeSelects(row)");
+        scriptSource.ShouldContain("usesHtmlRowTemplate(container)");
+        scriptSource.ShouldContain("prepareLineSelects(container, row)");
+        scriptSource.ShouldContain("cloneInventoryRow(container)");
         scriptSource.ShouldContain("data-remove-line");
         sharedScriptSource.ShouldContain("setControlsDisabled(template, true)");
         sharedScriptSource.ShouldContain("setControlsDisabled(clone, false)");
@@ -260,6 +264,11 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("data-line-editor-row");
         pageSource.ShouldContain("data-add-button=\"#add-adjustment-decrease-line\"");
         pageSource.ShouldContain("data-add-button=\"#add-adjustment-increase-line\"");
+        pageSource.ShouldContain("data-row-template=\"adjustment-decrease-line-row-template\"");
+        pageSource.ShouldContain("data-row-template=\"adjustment-increase-line-row-template\"");
+        pageSource.ShouldContain("<template id=\"adjustment-decrease-line-row-template\">");
+        pageSource.ShouldContain("<template id=\"adjustment-increase-line-row-template\">");
+        pageSource.ShouldContain("data-dynamic-select2=\"disabled\"");
         pageSource.ShouldContain("data-name=\"DecreaseLines[__index__].StockItemId\"");
         pageSource.ShouldContain("data-name=\"DecreaseLines[__index__].Quantity\"");
         pageSource.ShouldContain("data-name=\"IncreaseLines[__index__].StockItemId\"");
@@ -269,8 +278,9 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("data-name=\"IncreaseLines[__index__].UnitCost\"");
 
         scriptSource.ShouldContain("reindexRows(container)");
-        scriptSource.ShouldContain("dynamicRows.ensureTemplate(container, rowSelector)");
-        scriptSource.ShouldContain("initializeSelects(row)");
+        scriptSource.ShouldContain("usesHtmlRowTemplate(container)");
+        scriptSource.ShouldContain("prepareLineSelects(container, row)");
+        scriptSource.ShouldContain("cloneInventoryRow(container)");
         scriptSource.ShouldContain("data-remove-line");
         scriptSource.ShouldContain("element.disabled = !isIncrease");
         scriptSource.ShouldContain("element.disabled = isIncrease");
