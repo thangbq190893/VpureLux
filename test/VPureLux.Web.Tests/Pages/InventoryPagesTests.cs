@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -16,6 +17,7 @@ using VPureLux.Catalog.Components;
 using VPureLux.Inventory;
 using VPureLux.Localization;
 using VPureLux.Web.Pages.Inventory;
+using Volo.Abp.DependencyInjection;
 using Volo.Abp.Application.Dtos;
 using Xunit;
 
@@ -222,7 +224,7 @@ public class InventoryPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
-    public async Task Adjustment_Page_Should_Render_Compact_Multi_Line_Layouts_Without_Duplicate_Selects()
+    public async Task Adjustment_Page_Should_Render_Count_First_Multi_Line_Layout()
     {
         var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
         await GetRequiredService<IWarehouseAppService>().CreateAsync(new CreateWarehouseDto
@@ -242,50 +244,218 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Posting.js"));
         var sharedScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Shared/DynamicRowSelects.js"));
 
-        html.ShouldContain("vpl-line-editor-table inventory-adjustment-decrease-lines-table");
-        html.ShouldContain("vpl-line-editor-table inventory-adjustment-increase-lines-table");
+        html.ShouldContain("vpl-line-editor-table inventory-adjustment-count-lines-table");
         html.ShouldContain("form-select form-select-sm");
         html.ShouldContain("form-control form-control-sm");
         html.ShouldContain("vpl-line-editor-icon-button");
-        CountOccurrences(html, "name=\"DecreaseLines[0].StockItemId\"").ShouldBe(1);
-        CountOccurrences(html, "name=\"IncreaseLines[0].StockItemId\"").ShouldBe(1);
-        CountLiveRowsWithExactlyOneSelect(html, "<tr data-inventory-line-row data-line-editor-row>").ShouldBe(2);
-        CountOccurrences(html, localizer["Select"].Value).ShouldBeGreaterThanOrEqualTo(3);
-        html.ShouldContain("name=\"IncreaseReceivedAtTexts[0]\"");
+        CountOccurrences(html, "name=\"CountLines[0].StockItemId\"").ShouldBe(1);
+        CountOccurrences(html, "name=\"CountLines[0].CurrentQuantity\"").ShouldBe(1);
+        CountOccurrences(html, "name=\"CountLines[0].CountedQuantity\"").ShouldBe(1);
+        CountOccurrences(html, "name=\"CountLines[0].Delta\"").ShouldBe(1);
+        CountLiveRowsWithExactlyOneSelect(html, "<tr data-inventory-line-row data-line-editor-row data-count-adjustment-row>").ShouldBe(1);
+        CountOccurrences(html, localizer["Select"].Value).ShouldBeGreaterThanOrEqualTo(2);
+        html.ShouldContain(localizer["Inventory:CurrentQuantity"].Value);
+        html.ShouldContain(localizer["Inventory:CountedQuantity"].Value);
+        html.ShouldContain(localizer["Inventory:Delta"].Value);
+        html.ShouldContain(localizer["Inventory:Direction"].Value);
+        html.ShouldContain(localizer["Inventory:NoChange"].Value);
+        html.ShouldContain("name=\"CountLines[0].ReceivedAtText\"");
         html.ShouldContain("placeholder=\"dd/MM/yyyy\"");
         html.ShouldNotContain("data-dynamic-row-template");
         html.ShouldNotContain("select2-container");
 
         pageSource.ShouldContain("<abp-style src=\"/Pages/Shared/LineEditors.css\" />");
-        pageSource.ShouldContain("data-adjustment-decrease-section");
-        pageSource.ShouldContain("data-adjustment-increase-section");
+        pageSource.ShouldContain("data-count-adjustment-page");
+        pageSource.ShouldContain("adjustment-balance-data");
         pageSource.ShouldContain("data-inventory-line-container");
         pageSource.ShouldContain("data-inventory-line-row");
         pageSource.ShouldContain("data-line-editor-row");
-        pageSource.ShouldContain("data-add-button=\"#add-adjustment-decrease-line\"");
-        pageSource.ShouldContain("data-add-button=\"#add-adjustment-increase-line\"");
-        pageSource.ShouldContain("data-row-template=\"adjustment-decrease-line-row-template\"");
-        pageSource.ShouldContain("data-row-template=\"adjustment-increase-line-row-template\"");
-        pageSource.ShouldContain("<template id=\"adjustment-decrease-line-row-template\">");
-        pageSource.ShouldContain("<template id=\"adjustment-increase-line-row-template\">");
+        pageSource.ShouldContain("data-add-button=\"#add-adjustment-count-line\"");
+        pageSource.ShouldContain("data-row-template=\"adjustment-count-line-row-template\"");
+        pageSource.ShouldContain("<template id=\"adjustment-count-line-row-template\">");
         pageSource.ShouldContain("data-dynamic-select2=\"disabled\"");
-        pageSource.ShouldContain("data-name=\"DecreaseLines[__index__].StockItemId\"");
-        pageSource.ShouldContain("data-name=\"DecreaseLines[__index__].Quantity\"");
-        pageSource.ShouldContain("data-name=\"IncreaseLines[__index__].StockItemId\"");
-        pageSource.ShouldContain("data-name=\"IncreaseLines[__index__].Quantity\"");
-        pageSource.ShouldContain("data-name=\"IncreaseLines[__index__].LotNo\"");
-        pageSource.ShouldContain("data-name=\"IncreaseReceivedAtTexts[__index__]\"");
-        pageSource.ShouldContain("data-name=\"IncreaseLines[__index__].UnitCost\"");
+        pageSource.ShouldContain("data-name=\"CountLines[__index__].StockItemId\"");
+        pageSource.ShouldContain("data-name=\"CountLines[__index__].CurrentQuantity\"");
+        pageSource.ShouldContain("data-name=\"CountLines[__index__].CountedQuantity\"");
+        pageSource.ShouldContain("data-name=\"CountLines[__index__].Delta\"");
+        pageSource.ShouldContain("data-name=\"CountLines[__index__].LotNo\"");
+        pageSource.ShouldContain("data-name=\"CountLines[__index__].ReceivedAtText\"");
+        pageSource.ShouldContain("data-name=\"CountLines[__index__].UnitCost\"");
 
         scriptSource.ShouldContain("reindexRows(container)");
         scriptSource.ShouldContain("usesHtmlRowTemplate(container)");
         scriptSource.ShouldContain("prepareLineSelects(container, row)");
         scriptSource.ShouldContain("cloneInventoryRow(container)");
         scriptSource.ShouldContain("data-remove-line");
-        scriptSource.ShouldContain("element.disabled = !isIncrease");
-        scriptSource.ShouldContain("element.disabled = isIncrease");
+        scriptSource.ShouldContain("initializeCountAdjustment(page)");
+        scriptSource.ShouldContain("data-current-quantity");
+        scriptSource.ShouldContain("data-delta");
+        scriptSource.ShouldContain("data-positive-delta-field");
         sharedScriptSource.ShouldContain("setControlsDisabled(template, true)");
         sharedScriptSource.ShouldContain("setControlsDisabled(clone, false)");
+    }
+
+    [Fact]
+    public async Task Adjustment_Count_First_Positive_Delta_Should_Post_Increase()
+    {
+        var context = await CreateInquiryFilterContextAsync("ADJ-POS");
+        var model = CreateAdjustmentModel();
+        model.WarehouseId = context.WarehouseId;
+        model.Reason = "Count increase";
+        model.CountLines =
+        [
+            new AdjustmentModel.CountAdjustmentLineInput
+            {
+                StockItemId = context.StockItemId,
+                CountedQuantity = 3,
+                LotNo = Unique("LOT-ADJ-POS"),
+                ReceivedAtText = "18/06/2026",
+                UnitCost = 12000
+            }
+        ];
+
+        var result = await model.OnPostAsync();
+
+        result.ShouldBeOfType<RedirectToPageResult>();
+        var transaction = (await GetRequiredService<IInventoryQueryAppService>()
+                .GetLedgerAsync(context.WarehouseId, context.StockItemId))
+            .Single(x => x.Type == InventoryTransactionType.AdjustmentIncrease);
+        transaction.Reason.ShouldBe("Count increase");
+        transaction.Lines.Single().Quantity.ShouldBe(3);
+        transaction.Lines.Single().Direction.ShouldBe(InventoryMovementDirection.Increase);
+        transaction.Lines.Single().UnitCost.ShouldBe(12000);
+    }
+
+    [Fact]
+    public async Task Adjustment_Count_First_Negative_Delta_Should_Post_Decrease()
+    {
+        var context = await CreateInquiryFilterContextAsync("ADJ-NEG");
+        await GetRequiredService<IInventoryTransactionAppService>().PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 5,
+                    LotNo = Unique("LOT-ADJ-NEG"),
+                    UnitCost = 10000,
+                    ReceivedAt = DateTime.UtcNow
+                }
+            ]
+        });
+        var model = CreateAdjustmentModel();
+        model.WarehouseId = context.WarehouseId;
+        model.Reason = "Count decrease";
+        model.CountLines =
+        [
+            new AdjustmentModel.CountAdjustmentLineInput
+            {
+                StockItemId = context.StockItemId,
+                CountedQuantity = 2
+            }
+        ];
+
+        var result = await model.OnPostAsync();
+
+        result.ShouldBeOfType<RedirectToPageResult>();
+        var transaction = (await GetRequiredService<IInventoryQueryAppService>()
+                .GetLedgerAsync(context.WarehouseId, context.StockItemId))
+            .Single(x => x.Type == InventoryTransactionType.AdjustmentDecrease);
+        transaction.Reason.ShouldBe("Count decrease");
+        transaction.Lines.Single().Quantity.ShouldBe(3);
+        transaction.Lines.Single().Direction.ShouldBe(InventoryMovementDirection.Decrease);
+    }
+
+    [Fact]
+    public async Task Adjustment_Count_First_All_Zero_Delta_Should_Be_Blocked()
+    {
+        var context = await CreateInquiryFilterContextAsync("ADJ-ZERO");
+        await GetRequiredService<IInventoryTransactionAppService>().PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 4,
+                    LotNo = Unique("LOT-ADJ-ZERO"),
+                    UnitCost = 10000,
+                    ReceivedAt = DateTime.UtcNow
+                }
+            ]
+        });
+        var model = CreateAdjustmentModel();
+        model.WarehouseId = context.WarehouseId;
+        model.Reason = "No count change";
+        model.CountLines =
+        [
+            new AdjustmentModel.CountAdjustmentLineInput
+            {
+                StockItemId = context.StockItemId,
+                CountedQuantity = 4
+            }
+        ];
+
+        var result = await model.OnPostAsync();
+
+        result.ShouldBeOfType<PageResult>();
+        model.ModelState.IsValid.ShouldBeFalse();
+        model.ModelState[string.Empty]!.Errors.Single().ErrorMessage
+            .ShouldContain(GetRequiredService<IStringLocalizer<VPureLuxResource>>()["Inventory:AdjustmentAllRowsZeroDelta"].Value);
+    }
+
+    [Fact]
+    public async Task Adjustment_Count_First_Should_Require_Reason()
+    {
+        var context = await CreateInquiryFilterContextAsync("ADJ-RSN");
+        var model = CreateAdjustmentModel();
+        model.WarehouseId = context.WarehouseId;
+        model.Reason = string.Empty;
+        model.CountLines =
+        [
+            new AdjustmentModel.CountAdjustmentLineInput
+            {
+                StockItemId = context.StockItemId,
+                CountedQuantity = 1,
+                LotNo = Unique("LOT-ADJ-RSN"),
+                ReceivedAtText = "18/06/2026",
+                UnitCost = 10000
+            }
+        ];
+
+        var result = await model.OnPostAsync();
+
+        result.ShouldBeOfType<PageResult>();
+        model.ModelState[nameof(AdjustmentModel.Reason)]!.Errors.Single().ErrorMessage
+            .ShouldContain(GetRequiredService<IStringLocalizer<VPureLuxResource>>()["Inventory:AdjustmentReasonRequired"].Value);
+    }
+
+    [Fact]
+    public async Task Adjustment_Count_First_Positive_Delta_Should_Require_Valuation_Inputs()
+    {
+        var context = await CreateInquiryFilterContextAsync("ADJ-VAL");
+        var model = CreateAdjustmentModel();
+        model.WarehouseId = context.WarehouseId;
+        model.Reason = "Missing valuation";
+        model.CountLines =
+        [
+            new AdjustmentModel.CountAdjustmentLineInput
+            {
+                StockItemId = context.StockItemId,
+                CountedQuantity = 1
+            }
+        ];
+
+        var result = await model.OnPostAsync();
+
+        result.ShouldBeOfType<PageResult>();
+        model.ModelState["CountLines[0].LotNo"]!.Errors.ShouldNotBeEmpty();
+        model.ModelState["CountLines[0].UnitCost"]!.Errors.ShouldNotBeEmpty();
     }
 
     [Fact]
@@ -346,7 +516,7 @@ public class InventoryPagesTests : VPureLuxWebTestBase
 
         receiptHtml.ShouldContain("name=\"ReceivedAtTexts[0]\"");
         receiptHtml.ShouldContain("placeholder=\"dd/MM/yyyy\"");
-        adjustmentHtml.ShouldContain("name=\"IncreaseReceivedAtTexts[0]\"");
+        adjustmentHtml.ShouldContain("name=\"CountLines[0].ReceivedAtText\"");
         adjustmentHtml.ShouldContain("placeholder=\"dd/MM/yyyy\"");
     }
 
@@ -929,6 +1099,29 @@ public class InventoryPagesTests : VPureLuxWebTestBase
             stockItem.Id,
             stockItem.CodeSnapshot,
             stockItem.NameSnapshot);
+    }
+
+    private AdjustmentModel CreateAdjustmentModel()
+    {
+        var model = GetRequiredService<AdjustmentModel>();
+        SetPageContext(model);
+        return model;
+    }
+
+    private void SetPageContext(PageModel model)
+    {
+        model.PageContext = new PageContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                RequestServices = GetRequiredService<IServiceProvider>()
+            }
+        };
+
+        if (model is global::VPureLux.Web.Pages.VPureLuxPageModel vplModel)
+        {
+            vplModel.LazyServiceProvider = GetRequiredService<IAbpLazyServiceProvider>();
+        }
     }
 
     private static void AssertSelectHasSelectedValue(string html, string selectName, Guid id)

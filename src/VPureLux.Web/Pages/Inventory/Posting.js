@@ -192,6 +192,147 @@
         sync();
     }
 
+    function initializeCountAdjustment(page) {
+        var warehouseSelector = document.querySelector('[data-adjustment-warehouse]');
+        var balanceDataElement = document.getElementById('adjustment-balance-data');
+        var balances = [];
+
+        if (!warehouseSelector || !balanceDataElement) {
+            return;
+        }
+
+        try {
+            balances = JSON.parse(balanceDataElement.textContent || '[]');
+        } catch (error) {
+            balances = [];
+        }
+
+        function parseDecimal(value) {
+            if (value === undefined || value === null || value === '') {
+                return null;
+            }
+
+            var parsed = Number(String(value).replace(',', '.'));
+            return Number.isFinite(parsed) ? parsed : null;
+        }
+
+        function formatDecimal(value) {
+            if (value === null || value === undefined || !Number.isFinite(value)) {
+                return '';
+            }
+
+            if (Math.abs(value) < 0.00005) {
+                value = 0;
+            }
+
+            return String(Math.round(value * 10000) / 10000);
+        }
+
+        function getCurrentQuantity(stockItemId) {
+            var warehouseId = warehouseSelector.value;
+
+            if (!warehouseId || !stockItemId) {
+                return null;
+            }
+
+            var match = balances.find(function (balance) {
+                return balance.WarehouseId === warehouseId && balance.StockItemId === stockItemId;
+            });
+
+            return match ? parseDecimal(match.Quantity) || 0 : 0;
+        }
+
+        function setPositiveFields(row, isPositive) {
+            row.querySelectorAll('[data-positive-delta-field]').forEach(function (field) {
+                field.classList.toggle('d-none', !isPositive);
+                field.querySelectorAll('input, select').forEach(function (element) {
+                    element.disabled = !isPositive;
+                });
+            });
+        }
+
+        function setDirection(row, delta) {
+            var direction = row.querySelector('[data-direction-label]');
+
+            if (!direction) {
+                return;
+            }
+
+            direction.classList.remove('text-bg-success', 'text-bg-danger', 'text-bg-secondary');
+
+            if (delta > 0) {
+                direction.textContent = page.dataset.increaseLabel;
+                direction.classList.add('text-bg-success');
+                return;
+            }
+
+            if (delta < 0) {
+                direction.textContent = page.dataset.decreaseLabel;
+                direction.classList.add('text-bg-danger');
+                return;
+            }
+
+            direction.textContent = page.dataset.noChangeLabel;
+            direction.classList.add('text-bg-secondary');
+        }
+
+        function updateRow(row) {
+            var stockItem = row.querySelector('[data-count-stock-item]');
+            var currentInput = row.querySelector('[data-current-quantity]');
+            var countedInput = row.querySelector('[data-counted-quantity]');
+            var deltaInput = row.querySelector('[data-delta]');
+            var currentQuantity = stockItem ? getCurrentQuantity(stockItem.value) : null;
+            var countedQuantity = countedInput ? parseDecimal(countedInput.value) : null;
+            var delta = currentQuantity !== null && countedQuantity !== null
+                ? countedQuantity - currentQuantity
+                : 0;
+
+            if (currentInput) {
+                currentInput.value = currentQuantity === null ? '' : formatDecimal(currentQuantity);
+            }
+
+            if (deltaInput) {
+                deltaInput.value = countedQuantity === null || currentQuantity === null ? '' : formatDecimal(delta);
+            }
+
+            setDirection(row, countedQuantity === null || currentQuantity === null ? 0 : delta);
+            setPositiveFields(row, countedQuantity !== null && currentQuantity !== null && delta > 0);
+        }
+
+        function updateAllRows() {
+            document.querySelectorAll('[data-count-adjustment-row]').forEach(updateRow);
+        }
+
+        document.addEventListener('input', function (event) {
+            var row = event.target.closest('[data-count-adjustment-row]');
+
+            if (row) {
+                updateRow(row);
+            }
+        });
+
+        document.addEventListener('change', function (event) {
+            var row = event.target.closest('[data-count-adjustment-row]');
+
+            if (event.target === warehouseSelector) {
+                updateAllRows();
+                return;
+            }
+
+            if (row) {
+                updateRow(row);
+            }
+        });
+
+        document.addEventListener('click', function (event) {
+            if (event.target.closest('[data-remove-line], .vpl-line-editor-action')) {
+                window.setTimeout(updateAllRows, 0);
+            }
+        });
+
+        updateAllRows();
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('[data-inventory-line-container]').forEach(initializeLineCollection);
 
@@ -201,6 +342,7 @@
             }
 
             initializeAdjustmentType(page);
+            initializeCountAdjustment(page);
         });
 
         document.querySelectorAll('[data-inventory-posting-form]').forEach(function (form) {

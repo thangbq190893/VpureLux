@@ -1,16 +1,41 @@
 @page
 @model VPureLux.Web.Pages.Inventory.AdjustmentModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using System.Globalization
 @{
     ViewData["Title"] = L["Inventory:Adjustment"];
     var postSuccessMessageKey = TempData["InventoryPostSuccessMessage"] as string;
 }
 
+@functions {
+    private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
+
+    private static string FormatQuantity(decimal value)
+    {
+        if (value == decimal.Truncate(value))
+        {
+            return decimal.Truncate(value).ToString("0", Invariant);
+        }
+
+        return value.ToString("0.####", Invariant);
+    }
+
+    private static string FormatNullableQuantity(decimal? value)
+    {
+        return value.HasValue ? FormatQuantity(value.Value) : string.Empty;
+    }
+}
+
 <div data-inventory-posting-page
+     data-count-adjustment-page
      data-post-success="@(postSuccessMessageKey == null ? null : L[postSuccessMessageKey].Value)"
-     data-adjustment-increase-value="@((byte)VPureLux.Inventory.InventoryTransactionType.AdjustmentIncrease)">
+     data-increase-label="@L["Inventory:TransactionType:AdjustmentIncrease"]"
+     data-decrease-label="@L["Inventory:TransactionType:AdjustmentDecrease"]"
+     data-no-change-label="@L["Inventory:NoChange"]">
     <h2>@L["Inventory:Adjustment"]</h2>
 </div>
+
+<script type="application/json" id="adjustment-balance-data">@Html.Raw(Model.BalanceQuantitiesJson)</script>
 
 <abp-card class="vpl-entry-surface">
     <abp-card-body>
@@ -20,260 +45,187 @@
 
             <div class="mb-3">
                 <label asp-for="WarehouseId" class="form-label">@L["Inventory:Warehouse"]</label>
-                <select asp-for="WarehouseId" asp-items="Model.WarehouseOptions" class="form-select">
+                <select asp-for="WarehouseId" asp-items="Model.WarehouseOptions" class="form-select" data-adjustment-warehouse>
                     <option value="">@L["Select"]</option>
                 </select>
                 <span asp-validation-for="WarehouseId" class="text-danger"></span>
             </div>
 
-            <div class="mb-3">
-                <label asp-for="Type" class="form-label">@L["Inventory:Type"]</label>
-                <select asp-for="Type" class="form-select" data-adjustment-type>
-                    <option value="@((byte)VPureLux.Inventory.InventoryTransactionType.AdjustmentDecrease)">@L["Inventory:TransactionType:AdjustmentDecrease"]</option>
-                    <option value="@((byte)VPureLux.Inventory.InventoryTransactionType.AdjustmentIncrease)">@L["Inventory:TransactionType:AdjustmentIncrease"]</option>
-                </select>
-                <span asp-validation-for="Type" class="text-danger"></span>
-            </div>
             <abp-input asp-for="Reason" />
 
-            <div data-adjustment-decrease-section>
-                <h5 class="mt-4">@L["Inventory:DecreaseLines"]</h5>
-                <div class="vpl-line-editor table-responsive">
-                    <table class="table table-sm table-bordered align-middle mb-0 vpl-line-editor-table inventory-adjustment-decrease-lines-table">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="vpl-line-editor-col-main">@L["Inventory:StockItem"]</th>
-                                <th class="vpl-line-editor-col-number">@L["Inventory:Quantity"]</th>
-                                <th class="vpl-line-editor-col-action text-end">@L["Actions"]</th>
-                            </tr>
-                        </thead>
-                        <tbody id="adjustment-decrease-lines" data-inventory-line-container data-add-button="#add-adjustment-decrease-line" data-row-template="adjustment-decrease-line-row-template">
-                        @for (var i = 0; i < Model.DecreaseLines.Count; i++)
-                        {
-                            <tr data-inventory-line-row data-line-editor-row>
-                                <td class="vpl-line-editor-col-main">
-                                    <label class="visually-hidden" for="DecreaseLines_@i.ToString()__StockItemId"
-                                           data-for="DecreaseLines___index____StockItemId">@L["Inventory:StockItem"]</label>
-                                    <select class="form-select form-select-sm"
-                                            name="DecreaseLines[@i].StockItemId"
-                                            id="DecreaseLines_@i.ToString()__StockItemId"
-                                            data-dynamic-select2="disabled"
-                                            data-name="DecreaseLines[__index__].StockItemId"
-                                            data-id="DecreaseLines___index____StockItemId">
-                                        <option value="">@L["Select"]</option>
-                                        @foreach (var option in Model.StockItemOptions)
+            <h5 class="mt-4">@L["Inventory:CountAdjustmentLines"]</h5>
+            <div class="vpl-line-editor table-responsive">
+                <table class="table table-sm table-bordered align-middle mb-0 vpl-line-editor-table inventory-adjustment-count-lines-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="vpl-line-editor-col-main">@L["Inventory:Material"]</th>
+                            <th class="vpl-line-editor-col-number">@L["Inventory:CurrentQuantity"]</th>
+                            <th class="vpl-line-editor-col-number">@L["Inventory:CountedQuantity"]</th>
+                            <th class="vpl-line-editor-col-number">@L["Inventory:Delta"]</th>
+                            <th class="vpl-line-editor-col-text">@L["Inventory:Direction"]</th>
+                            <th class="vpl-line-editor-col-text">@L["Inventory:LotNo"]</th>
+                            <th class="vpl-line-editor-col-date">@L["Inventory:ReceivedAt"]</th>
+                            <th class="vpl-line-editor-col-number">@L["Inventory:UnitCost"]</th>
+                            <th class="vpl-line-editor-col-action text-end">@L["Actions"]</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adjustment-count-lines" data-inventory-line-container data-add-button="#add-adjustment-count-line" data-row-template="adjustment-count-line-row-template">
+                    @for (var i = 0; i < Model.CountLines.Count; i++)
+                    {
+                        <tr data-inventory-line-row data-line-editor-row data-count-adjustment-row>
+                            <td class="vpl-line-editor-col-main">
+                                <label class="visually-hidden" for="CountLines_@i.ToString()__StockItemId"
+                                       data-for="CountLines___index____StockItemId">@L["Inventory:Material"]</label>
+                                <select class="form-select form-select-sm"
+                                        name="CountLines[@i].StockItemId"
+                                        id="CountLines_@i.ToString()__StockItemId"
+                                        data-dynamic-select2="disabled"
+                                        data-count-stock-item
+                                        data-name="CountLines[__index__].StockItemId"
+                                        data-id="CountLines___index____StockItemId">
+                                    <option value="">@L["Select"]</option>
+                                    @foreach (var option in Model.StockItemOptions)
+                                    {
+                                        if (InventoryPostingUi.IsOptionSelected(option.Value!, Model.CountLines[i].StockItemId))
                                         {
-                                            if (InventoryPostingUi.IsOptionSelected(option.Value!, Model.DecreaseLines[i].StockItemId))
-                                            {
-                                                <option value="@option.Value" selected="selected">@option.Text</option>
-                                            }
-                                            else
-                                            {
-                                                <option value="@option.Value">@option.Text</option>
-                                            }
+                                            <option value="@option.Value" selected="selected">@option.Text</option>
                                         }
-                                    </select>
-                                    <span class="text-danger small" data-valmsg-for="DecreaseLines[@i].StockItemId"
-                                          data-valmsg-for-template="DecreaseLines[__index__].StockItemId" data-valmsg-replace="true"></span>
-                                </td>
-                                <td class="vpl-line-editor-col-number">
-                                    <label class="visually-hidden" for="DecreaseLines_@i.ToString()__Quantity"
-                                           data-for="DecreaseLines___index____Quantity">@L["Inventory:Quantity"]</label>
-                                    <input class="form-control form-control-sm" name="DecreaseLines[@i].Quantity" id="DecreaseLines_@i.ToString()__Quantity"
-                                           value="@Model.DecreaseLines[i].Quantity" data-name="DecreaseLines[__index__].Quantity"
-                                           data-id="DecreaseLines___index____Quantity" />
-                                    <span class="text-danger small" data-valmsg-for="DecreaseLines[@i].Quantity"
-                                          data-valmsg-for-template="DecreaseLines[__index__].Quantity" data-valmsg-replace="true"></span>
-                                </td>
-                                <td class="vpl-line-editor-col-action text-end">
-                                    <button class="btn btn-outline-danger btn-sm vpl-line-editor-icon-button"
-                                            type="button"
-                                            data-remove-line
-                                            title="@L["Inventory:RemoveLine"]"
-                                            aria-label="@L["Inventory:RemoveLine"]">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        }
-                        </tbody>
-                    </table>
-                </div>
-                <button class="btn btn-outline-secondary btn-sm mt-3 vpl-line-editor-action" type="button" id="add-adjustment-decrease-line"><i class="fa fa-plus"></i> @L["Inventory:AddLine"]</button>
+                                        else
+                                        {
+                                            <option value="@option.Value">@option.Text</option>
+                                        }
+                                    }
+                                </select>
+                                <span class="text-danger small" data-valmsg-for="CountLines[@i].StockItemId"
+                                      data-valmsg-for-template="CountLines[__index__].StockItemId" data-valmsg-replace="true"></span>
+                            </td>
+                            <td class="vpl-line-editor-col-number">
+                                <label class="visually-hidden" for="CountLines_@i.ToString()__CurrentQuantity"
+                                       data-for="CountLines___index____CurrentQuantity">@L["Inventory:CurrentQuantity"]</label>
+                                <input class="form-control form-control-sm" name="CountLines[@i].CurrentQuantity" id="CountLines_@i.ToString()__CurrentQuantity"
+                                       value="@FormatQuantity(Model.CountLines[i].CurrentQuantity)" readonly data-current-quantity
+                                       data-name="CountLines[__index__].CurrentQuantity" data-id="CountLines___index____CurrentQuantity" />
+                            </td>
+                            <td class="vpl-line-editor-col-number">
+                                <label class="visually-hidden" for="CountLines_@i.ToString()__CountedQuantity"
+                                       data-for="CountLines___index____CountedQuantity">@L["Inventory:CountedQuantity"]</label>
+                                <input class="form-control form-control-sm" name="CountLines[@i].CountedQuantity" id="CountLines_@i.ToString()__CountedQuantity"
+                                       value="@FormatNullableQuantity(Model.CountLines[i].CountedQuantity)" data-counted-quantity
+                                       data-name="CountLines[__index__].CountedQuantity" data-id="CountLines___index____CountedQuantity" />
+                                <span class="text-danger small" data-valmsg-for="CountLines[@i].CountedQuantity"
+                                      data-valmsg-for-template="CountLines[__index__].CountedQuantity" data-valmsg-replace="true"></span>
+                            </td>
+                            <td class="vpl-line-editor-col-number">
+                                <label class="visually-hidden" for="CountLines_@i.ToString()__Delta"
+                                       data-for="CountLines___index____Delta">@L["Inventory:Delta"]</label>
+                                <input class="form-control form-control-sm" name="CountLines[@i].Delta" id="CountLines_@i.ToString()__Delta"
+                                       value="@FormatQuantity(Model.CountLines[i].Delta)" readonly data-delta
+                                       data-name="CountLines[__index__].Delta" data-id="CountLines___index____Delta" />
+                            </td>
+                            <td class="vpl-line-editor-col-text">
+                                <span class="badge text-bg-secondary" data-direction-label>@L["Inventory:NoChange"]</span>
+                            </td>
+                            <td class="vpl-line-editor-col-text" data-positive-delta-field>
+                                <label class="visually-hidden" for="CountLines_@i.ToString()__LotNo"
+                                       data-for="CountLines___index____LotNo">@L["Inventory:LotNo"]</label>
+                                <input class="form-control form-control-sm" name="CountLines[@i].LotNo" id="CountLines_@i.ToString()__LotNo"
+                                       value="@Model.CountLines[i].LotNo" data-name="CountLines[__index__].LotNo"
+                                       data-id="CountLines___index____LotNo" />
+                                <span class="text-danger small" data-valmsg-for="CountLines[@i].LotNo"
+                                      data-valmsg-for-template="CountLines[__index__].LotNo" data-valmsg-replace="true"></span>
+                            </td>
+                            <td class="vpl-line-editor-col-date" data-positive-delta-field>
+                                <label class="visually-hidden" for="CountLines_@i.ToString()__ReceivedAtText"
+                                       data-for="CountLines___index____ReceivedAtText">@L["Inventory:ReceivedAt"]</label>
+                                <input class="form-control form-control-sm" name="CountLines[@i].ReceivedAtText" id="CountLines_@i.ToString()__ReceivedAtText"
+                                       value="@Model.CountLines[i].ReceivedAtText" inputmode="numeric" placeholder="dd/MM/yyyy"
+                                       data-default-value="@Model.DefaultDateText"
+                                       data-name="CountLines[__index__].ReceivedAtText" data-id="CountLines___index____ReceivedAtText" />
+                                <span class="text-danger small" data-valmsg-for="CountLines[@i].ReceivedAtText"
+                                      data-valmsg-for-template="CountLines[__index__].ReceivedAtText" data-valmsg-replace="true"></span>
+                            </td>
+                            <td class="vpl-line-editor-col-number" data-positive-delta-field>
+                                <label class="visually-hidden" for="CountLines_@i.ToString()__UnitCost"
+                                       data-for="CountLines___index____UnitCost">@L["Inventory:UnitCost"]</label>
+                                <input class="form-control form-control-sm" name="CountLines[@i].UnitCost" id="CountLines_@i.ToString()__UnitCost"
+                                       value="@FormatNullableQuantity(Model.CountLines[i].UnitCost)" data-name="CountLines[__index__].UnitCost"
+                                       data-id="CountLines___index____UnitCost" />
+                                <span class="text-danger small" data-valmsg-for="CountLines[@i].UnitCost"
+                                      data-valmsg-for-template="CountLines[__index__].UnitCost" data-valmsg-replace="true"></span>
+                            </td>
+                            <td class="vpl-line-editor-col-action text-end">
+                                <button class="btn btn-outline-danger btn-sm vpl-line-editor-icon-button"
+                                        type="button"
+                                        data-remove-line
+                                        title="@L["Inventory:RemoveLine"]"
+                                        aria-label="@L["Inventory:RemoveLine"]">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
             </div>
 
-            <div data-adjustment-increase-section>
-                <h5 class="mt-4">@L["Inventory:IncreaseLines"]</h5>
-                <div class="vpl-line-editor table-responsive">
-                    <table class="table table-sm table-bordered align-middle mb-0 vpl-line-editor-table inventory-adjustment-increase-lines-table">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="vpl-line-editor-col-main">@L["Inventory:StockItem"]</th>
-                                <th class="vpl-line-editor-col-number">@L["Inventory:Quantity"]</th>
-                                <th class="vpl-line-editor-col-text">@L["Inventory:LotNo"]</th>
-                                <th class="vpl-line-editor-col-date">@L["Inventory:ReceivedAt"]</th>
-                                <th class="vpl-line-editor-col-number">@L["Inventory:UnitCost"]</th>
-                                <th class="vpl-line-editor-col-action text-end">@L["Actions"]</th>
-                            </tr>
-                        </thead>
-                        <tbody id="adjustment-increase-lines" data-inventory-line-container data-add-button="#add-adjustment-increase-line" data-row-template="adjustment-increase-line-row-template">
-                        @for (var i = 0; i < Model.IncreaseLines.Count; i++)
-                        {
-                            <tr data-inventory-line-row data-line-editor-row>
-                                <td class="vpl-line-editor-col-main">
-                                    <label class="visually-hidden" for="IncreaseLines_@i.ToString()__StockItemId"
-                                           data-for="IncreaseLines___index____StockItemId">@L["Inventory:StockItem"]</label>
-                                    <select class="form-select form-select-sm"
-                                            name="IncreaseLines[@i].StockItemId"
-                                            id="IncreaseLines_@i.ToString()__StockItemId"
-                                            data-dynamic-select2="disabled"
-                                            data-name="IncreaseLines[__index__].StockItemId"
-                                            data-id="IncreaseLines___index____StockItemId">
-                                        <option value="">@L["Select"]</option>
-                                        @foreach (var option in Model.StockItemOptions)
-                                        {
-                                            if (InventoryPostingUi.IsOptionSelected(option.Value!, Model.IncreaseLines[i].StockItemId))
-                                            {
-                                                <option value="@option.Value" selected="selected">@option.Text</option>
-                                            }
-                                            else
-                                            {
-                                                <option value="@option.Value">@option.Text</option>
-                                            }
-                                        }
-                                    </select>
-                                    <span class="text-danger small" data-valmsg-for="IncreaseLines[@i].StockItemId"
-                                          data-valmsg-for-template="IncreaseLines[__index__].StockItemId" data-valmsg-replace="true"></span>
-                                </td>
-                                <td class="vpl-line-editor-col-number">
-                                    <label class="visually-hidden" for="IncreaseLines_@i.ToString()__Quantity"
-                                           data-for="IncreaseLines___index____Quantity">@L["Inventory:Quantity"]</label>
-                                    <input class="form-control form-control-sm" name="IncreaseLines[@i].Quantity" id="IncreaseLines_@i.ToString()__Quantity"
-                                           value="@Model.IncreaseLines[i].Quantity" data-name="IncreaseLines[__index__].Quantity"
-                                           data-id="IncreaseLines___index____Quantity" />
-                                    <span class="text-danger small" data-valmsg-for="IncreaseLines[@i].Quantity"
-                                          data-valmsg-for-template="IncreaseLines[__index__].Quantity" data-valmsg-replace="true"></span>
-                                </td>
-                                <td class="vpl-line-editor-col-text">
-                                    <label class="visually-hidden" for="IncreaseLines_@i.ToString()__LotNo"
-                                           data-for="IncreaseLines___index____LotNo">@L["Inventory:LotNo"]</label>
-                                    <input class="form-control form-control-sm" name="IncreaseLines[@i].LotNo" id="IncreaseLines_@i.ToString()__LotNo"
-                                           value="@Model.IncreaseLines[i].LotNo" data-name="IncreaseLines[__index__].LotNo"
-                                           data-id="IncreaseLines___index____LotNo" />
-                                    <span class="text-danger small" data-valmsg-for="IncreaseLines[@i].LotNo"
-                                          data-valmsg-for-template="IncreaseLines[__index__].LotNo" data-valmsg-replace="true"></span>
-                                </td>
-                                <td class="vpl-line-editor-col-date">
-                                    <label class="visually-hidden" for="IncreaseReceivedAtTexts_@i.ToString()_"
-                                           data-for="IncreaseReceivedAtTexts___index___">@L["Inventory:ReceivedAt"]</label>
-                                    <input class="form-control form-control-sm" name="IncreaseReceivedAtTexts[@i]" id="IncreaseReceivedAtTexts_@i.ToString()_"
-                                           value="@Model.IncreaseReceivedAtTexts[i]" inputmode="numeric" placeholder="dd/MM/yyyy"
-                                           data-default-value="@Model.DefaultDateText"
-                                           data-name="IncreaseReceivedAtTexts[__index__]" data-id="IncreaseReceivedAtTexts___index___" />
-                                    <span class="text-danger small" data-valmsg-for="IncreaseReceivedAtTexts[@i]"
-                                          data-valmsg-for-template="IncreaseReceivedAtTexts[__index__]" data-valmsg-replace="true"></span>
-                                </td>
-                                <td class="vpl-line-editor-col-number">
-                                    <label class="visually-hidden" for="IncreaseLines_@i.ToString()__UnitCost"
-                                           data-for="IncreaseLines___index____UnitCost">@L["Inventory:UnitCost"]</label>
-                                    <input class="form-control form-control-sm" name="IncreaseLines[@i].UnitCost" id="IncreaseLines_@i.ToString()__UnitCost"
-                                           value="@Model.IncreaseLines[i].UnitCost" data-name="IncreaseLines[__index__].UnitCost"
-                                           data-id="IncreaseLines___index____UnitCost" />
-                                    <span class="text-danger small" data-valmsg-for="IncreaseLines[@i].UnitCost"
-                                          data-valmsg-for-template="IncreaseLines[__index__].UnitCost" data-valmsg-replace="true"></span>
-                                </td>
-                                <td class="vpl-line-editor-col-action text-end">
-                                    <button class="btn btn-outline-danger btn-sm vpl-line-editor-icon-button"
-                                            type="button"
-                                            data-remove-line
-                                            title="@L["Inventory:RemoveLine"]"
-                                            aria-label="@L["Inventory:RemoveLine"]">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        }
-                        </tbody>
-                    </table>
-                </div>
-                <button class="btn btn-outline-secondary btn-sm mt-3 vpl-line-editor-action" type="button" id="add-adjustment-increase-line"><i class="fa fa-plus"></i> @L["Inventory:AddLine"]</button>
-            </div>
-
+            <button class="btn btn-outline-secondary btn-sm mt-3 vpl-line-editor-action" type="button" id="add-adjustment-count-line"><i class="fa fa-plus"></i> @L["Inventory:AddLine"]</button>
             <button class="btn btn-primary btn-sm mt-3" type="submit">@L["Inventory:Post"]</button>
         </form>
     </abp-card-body>
 </abp-card>
 
-<template id="adjustment-decrease-line-row-template">
-    <tr data-inventory-line-row data-line-editor-row>
+<template id="adjustment-count-line-row-template">
+    <tr data-inventory-line-row data-line-editor-row data-count-adjustment-row>
         <td class="vpl-line-editor-col-main">
-            <label class="visually-hidden" data-for="DecreaseLines___index____StockItemId">@L["Inventory:StockItem"]</label>
+            <label class="visually-hidden" data-for="CountLines___index____StockItemId">@L["Inventory:Material"]</label>
             <select class="form-select form-select-sm"
                     data-dynamic-select2="disabled"
-                    data-name="DecreaseLines[__index__].StockItemId"
-                    data-id="DecreaseLines___index____StockItemId">
+                    data-count-stock-item
+                    data-name="CountLines[__index__].StockItemId"
+                    data-id="CountLines___index____StockItemId">
                 <option value="">@L["Select"]</option>
                 @foreach (var option in Model.StockItemOptions)
                 {
                     <option value="@option.Value">@option.Text</option>
                 }
             </select>
-            <span class="text-danger small" data-valmsg-for-template="DecreaseLines[__index__].StockItemId" data-valmsg-replace="true"></span>
+            <span class="text-danger small" data-valmsg-for-template="CountLines[__index__].StockItemId" data-valmsg-replace="true"></span>
         </td>
         <td class="vpl-line-editor-col-number">
-            <label class="visually-hidden" data-for="DecreaseLines___index____Quantity">@L["Inventory:Quantity"]</label>
-            <input class="form-control form-control-sm" value="" data-name="DecreaseLines[__index__].Quantity" data-id="DecreaseLines___index____Quantity" />
-            <span class="text-danger small" data-valmsg-for-template="DecreaseLines[__index__].Quantity" data-valmsg-replace="true"></span>
-        </td>
-        <td class="vpl-line-editor-col-action text-end">
-            <button class="btn btn-outline-danger btn-sm vpl-line-editor-icon-button"
-                    type="button"
-                    data-remove-line
-                    title="@L["Inventory:RemoveLine"]"
-                    aria-label="@L["Inventory:RemoveLine"]">
-                <i class="fa fa-trash"></i>
-            </button>
-        </td>
-    </tr>
-</template>
-
-<template id="adjustment-increase-line-row-template">
-    <tr data-inventory-line-row data-line-editor-row>
-        <td class="vpl-line-editor-col-main">
-            <label class="visually-hidden" data-for="IncreaseLines___index____StockItemId">@L["Inventory:StockItem"]</label>
-            <select class="form-select form-select-sm"
-                    data-dynamic-select2="disabled"
-                    data-name="IncreaseLines[__index__].StockItemId"
-                    data-id="IncreaseLines___index____StockItemId">
-                <option value="">@L["Select"]</option>
-                @foreach (var option in Model.StockItemOptions)
-                {
-                    <option value="@option.Value">@option.Text</option>
-                }
-            </select>
-            <span class="text-danger small" data-valmsg-for-template="IncreaseLines[__index__].StockItemId" data-valmsg-replace="true"></span>
+            <label class="visually-hidden" data-for="CountLines___index____CurrentQuantity">@L["Inventory:CurrentQuantity"]</label>
+            <input class="form-control form-control-sm" value="" readonly data-current-quantity
+                   data-name="CountLines[__index__].CurrentQuantity" data-id="CountLines___index____CurrentQuantity" />
         </td>
         <td class="vpl-line-editor-col-number">
-            <label class="visually-hidden" data-for="IncreaseLines___index____Quantity">@L["Inventory:Quantity"]</label>
-            <input class="form-control form-control-sm" value="" data-name="IncreaseLines[__index__].Quantity" data-id="IncreaseLines___index____Quantity" />
-            <span class="text-danger small" data-valmsg-for-template="IncreaseLines[__index__].Quantity" data-valmsg-replace="true"></span>
+            <label class="visually-hidden" data-for="CountLines___index____CountedQuantity">@L["Inventory:CountedQuantity"]</label>
+            <input class="form-control form-control-sm" value="" data-counted-quantity
+                   data-name="CountLines[__index__].CountedQuantity" data-id="CountLines___index____CountedQuantity" />
+            <span class="text-danger small" data-valmsg-for-template="CountLines[__index__].CountedQuantity" data-valmsg-replace="true"></span>
+        </td>
+        <td class="vpl-line-editor-col-number">
+            <label class="visually-hidden" data-for="CountLines___index____Delta">@L["Inventory:Delta"]</label>
+            <input class="form-control form-control-sm" value="" readonly data-delta
+                   data-name="CountLines[__index__].Delta" data-id="CountLines___index____Delta" />
         </td>
         <td class="vpl-line-editor-col-text">
-            <label class="visually-hidden" data-for="IncreaseLines___index____LotNo">@L["Inventory:LotNo"]</label>
-            <input class="form-control form-control-sm" value="" data-name="IncreaseLines[__index__].LotNo" data-id="IncreaseLines___index____LotNo" />
-            <span class="text-danger small" data-valmsg-for-template="IncreaseLines[__index__].LotNo" data-valmsg-replace="true"></span>
+            <span class="badge text-bg-secondary" data-direction-label>@L["Inventory:NoChange"]</span>
         </td>
-        <td class="vpl-line-editor-col-date">
-            <label class="visually-hidden" data-for="IncreaseReceivedAtTexts___index___">@L["Inventory:ReceivedAt"]</label>
+        <td class="vpl-line-editor-col-text" data-positive-delta-field>
+            <label class="visually-hidden" data-for="CountLines___index____LotNo">@L["Inventory:LotNo"]</label>
+            <input class="form-control form-control-sm" value="" data-name="CountLines[__index__].LotNo" data-id="CountLines___index____LotNo" />
+            <span class="text-danger small" data-valmsg-for-template="CountLines[__index__].LotNo" data-valmsg-replace="true"></span>
+        </td>
+        <td class="vpl-line-editor-col-date" data-positive-delta-field>
+            <label class="visually-hidden" data-for="CountLines___index____ReceivedAtText">@L["Inventory:ReceivedAt"]</label>
             <input class="form-control form-control-sm" inputmode="numeric" placeholder="dd/MM/yyyy"
                    data-default-value="@Model.DefaultDateText"
-                   data-name="IncreaseReceivedAtTexts[__index__]" data-id="IncreaseReceivedAtTexts___index___" />
-            <span class="text-danger small" data-valmsg-for-template="IncreaseReceivedAtTexts[__index__]" data-valmsg-replace="true"></span>
+                   data-name="CountLines[__index__].ReceivedAtText" data-id="CountLines___index____ReceivedAtText" />
+            <span class="text-danger small" data-valmsg-for-template="CountLines[__index__].ReceivedAtText" data-valmsg-replace="true"></span>
         </td>
-        <td class="vpl-line-editor-col-number">
-            <label class="visually-hidden" data-for="IncreaseLines___index____UnitCost">@L["Inventory:UnitCost"]</label>
-            <input class="form-control form-control-sm" value="" data-name="IncreaseLines[__index__].UnitCost" data-id="IncreaseLines___index____UnitCost" />
-            <span class="text-danger small" data-valmsg-for-template="IncreaseLines[__index__].UnitCost" data-valmsg-replace="true"></span>
+        <td class="vpl-line-editor-col-number" data-positive-delta-field>
+            <label class="visually-hidden" data-for="CountLines___index____UnitCost">@L["Inventory:UnitCost"]</label>
+            <input class="form-control form-control-sm" value="" data-name="CountLines[__index__].UnitCost" data-id="CountLines___index____UnitCost" />
+            <span class="text-danger small" data-valmsg-for-template="CountLines[__index__].UnitCost" data-valmsg-replace="true"></span>
         </td>
         <td class="vpl-line-editor-col-action text-end">
             <button class="btn btn-outline-danger btn-sm vpl-line-editor-icon-button"
