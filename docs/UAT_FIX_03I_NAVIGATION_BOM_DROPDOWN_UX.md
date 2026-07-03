@@ -34,6 +34,14 @@ UAT found three web UX gaps: compact line editors could clip dropdown menus, BOM
 - `/Bom/Create/{productId}` now shows product code, product name, product status, published-BOM context, and links back to BOM history/list.
 - Existing create/save rules and line editor behavior are unchanged.
 
+## 03I.1 Entry Surface Dropdown Visibility Polish
+
+- Shared `.vpl-entry-surface` styling is used by the main entry form cards.
+- Entry surfaces use viewport-aware `min-height`, not a fixed height, so the card can grow with line rows and validation messages.
+- Card, body, form, line editor, and responsive table overflow remain visible so Select2 dropdown lists are not clipped by the entry surface.
+- Updated pages: BOM Create, BOM Edit, Inventory Receipt, Inventory Issue, Inventory Adjustment, and Sales Create.
+- Manual browser smoke for dropdown clipping is deferred; this pass is limited to Web CSS/Razor/JS polish plus repository validation.
+
 ## Inventory Submenu Behavior
 
 - The left menu now exposes `Kho hàng` as a parent submenu with direct links to:
