@@ -297,6 +297,7 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         {
             "src/VPureLux.Web/Pages/Inventory/Issue.cshtml",
             "src/VPureLux.Web/Pages/Inventory/Adjustment.cshtml",
+            "src/VPureLux.Web/Pages/Inventory/Ledger.cshtml",
             "src/VPureLux.Domain.Shared/Localization/VPureLux/vi-VN.json"
         };
 
@@ -542,6 +543,117 @@ public class InventoryPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Ledger_Page_Should_Render_Trace_Columns_And_Line_Level_Quantities()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateInquiryFilterContextAsync("LEDGER-TRACE");
+        var transactions = GetRequiredService<IInventoryTransactionAppService>();
+        var vi = CultureInfo.GetCultureInfo("vi-VN");
+        var receiptSource = Unique("TRACE-REF");
+
+        await transactions.PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            ReferenceType = receiptSource,
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 5,
+                    LotNo = Unique("LOT-TRACE"),
+                    UnitCost = 12000,
+                    ReceivedAt = DateTime.UtcNow
+                }
+            ]
+        });
+        await transactions.PostIssueAsync(new PostIssueDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines = [new IssueLineInput { StockItemId = context.StockItemId, Quantity = 2 }]
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync(
+            $"/Inventory/Ledger?WarehouseId={context.WarehouseId}&StockItemId={context.StockItemId}"));
+
+        html.ShouldContain(localizer["Inventory:Material"].Value);
+        html.ShouldContain(localizer["Inventory:SourceReference"].Value);
+        html.ShouldContain(localizer["Inventory:QuantityIn"].Value);
+        html.ShouldContain(localizer["Inventory:QuantityOut"].Value);
+        html.ShouldContain(localizer["Inventory:UnitCost"].Value);
+        html.ShouldContain(localizer["Inventory:Amount"].Value);
+        html.ShouldContain($"{context.WarehouseCode} - {context.WarehouseName}");
+        html.ShouldContain($"{context.StockItemCode} - {context.StockItemName}");
+        html.ShouldContain(receiptSource);
+        html.ShouldContain(12000m.ToString("#,0", vi) + " ₫");
+        html.ShouldContain(60000m.ToString("#,0", vi) + " ₫");
+        html.ShouldContain(24000m.ToString("#,0", vi) + " ₫");
+        html.ShouldContain(">5</td>");
+        html.ShouldContain(">2</td>");
+        html.ShouldNotContain(localizer["Inventory:IssueCost"].Value);
+    }
+
+    [Fact]
+    public async Task Ledger_Page_Should_Filter_By_Type_Date_Range_And_SourceReference()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateInquiryFilterContextAsync("LEDGER-FLT");
+        var transactions = GetRequiredService<IInventoryTransactionAppService>();
+        var receiptSource = Unique("SRC-FLT");
+
+        await transactions.PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            ReferenceType = receiptSource,
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 4,
+                    LotNo = Unique("LOT-FLT"),
+                    UnitCost = 15000,
+                    ReceivedAt = DateTime.UtcNow
+                }
+            ]
+        });
+        await transactions.PostIssueAsync(new PostIssueDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines = [new IssueLineInput { StockItemId = context.StockItemId, Quantity = 1 }]
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync(
+            $"/Inventory/Ledger?WarehouseId={context.WarehouseId}&StockItemId={context.StockItemId}&Type={InventoryTransactionType.PurchaseReceipt}&FromDate=2000-01-01&ToDate=2999-12-31&SourceReference={receiptSource}"));
+
+        html.ShouldContain("name=\"Type\"");
+        html.ShouldContain("name=\"FromDate\"");
+        html.ShouldContain("name=\"ToDate\"");
+        html.ShouldContain("name=\"SourceReference\"");
+        html.ShouldContain(receiptSource);
+        html.ShouldContain(localizer["Inventory:TransactionType:PurchaseReceipt"].Value);
+        CountOccurrences(html, localizer["Inventory:TransactionType:PurchaseReceipt"].Value).ShouldBe(2);
+        CountOccurrences(html, localizer["Inventory:TransactionType:SalesIssue"].Value).ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Ledger_Page_Should_Not_Fake_Deferred_BalanceAfter_Or_User_Fields()
+    {
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Ledger.cshtml"));
+        var modelSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Ledger.cshtml.cs"));
+
+        pageSource.ShouldNotContain("BalanceAfter");
+        pageSource.ShouldNotContain("Inventory:User");
+        pageSource.ShouldNotContain("Audit:User");
+        modelSource.ShouldNotContain("BalanceAfter");
+        modelSource.ShouldNotContain("UserLabel");
+    }
+
+    [Fact]
     public async Task Lots_Page_Should_Format_ReceivedAt_As_Vietnamese_Date()
     {
         var context = await CreateInquiryFilterContextAsync("LOT-DT");
@@ -624,7 +736,7 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         ledgerHtml.ShouldNotContain("T00:00:00");
 
         var ledgerSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Ledger.cshtml"));
-        ledgerSource.ShouldContain("InventoryPostingUi.FormatDate(postedAt)");
+        ledgerSource.ShouldContain("FormatDateTime(postedAt)");
     }
 
     [Theory]
@@ -867,6 +979,7 @@ public class InventoryPagesTests : VPureLuxWebTestBase
 
     private static int CountLiveRowsWithExactlyOneSelect(string html, string rowMarker)
     {
+        html = RemoveTemplateBlocks(html);
         var rowCount = 0;
         var index = 0;
 
@@ -883,6 +996,26 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         }
 
         return rowCount;
+    }
+
+    private static string RemoveTemplateBlocks(string html)
+    {
+        while (true)
+        {
+            var templateStart = html.IndexOf("<template", StringComparison.OrdinalIgnoreCase);
+            if (templateStart < 0)
+            {
+                return html;
+            }
+
+            var templateEnd = html.IndexOf("</template>", templateStart, StringComparison.OrdinalIgnoreCase);
+            if (templateEnd < 0)
+            {
+                return html[..templateStart];
+            }
+
+            html = html.Remove(templateStart, templateEnd + "</template>".Length - templateStart);
+        }
     }
 
     private static string GetRepoFilePath(string relativePath)

@@ -11,6 +11,31 @@
         var amount = decimal.Round(value, 0, MidpointRounding.AwayFromZero);
         return amount.ToString("#,0", Vi) + " ₫";
     }
+
+    private static string FormatNullableMoney(decimal? value)
+    {
+        return value.HasValue ? FormatMoney(value.Value) : string.Empty;
+    }
+
+    private static string FormatQuantity(decimal value)
+    {
+        if (value == 0)
+        {
+            return string.Empty;
+        }
+
+        if (value == decimal.Truncate(value))
+        {
+            return decimal.Truncate(value).ToString("0", Vi);
+        }
+
+        return value.ToString("0.####", Vi);
+    }
+
+    private static string FormatDateTime(DateTime value)
+    {
+        return value.ToString("dd/MM/yyyy HH:mm", Vi);
+    }
 }
 
 <div class="vpl-page vpl-inquiry-page">
@@ -24,19 +49,48 @@
         </abp-card-header>
         <abp-card-body>
             <form method="get" class="row g-2 mb-0">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label asp-for="WarehouseId" class="form-label">@L["Inventory:Warehouse"]</label>
                     <select asp-for="WarehouseId" asp-items="Model.WarehouseOptions" class="form-select">
                         <option value="">@L["Select"]</option>
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label asp-for="StockItemId" class="form-label">@L["Inventory:StockItem"]</label>
                     <select asp-for="StockItemId" asp-items="Model.StockItemOptions" class="form-select">
                         <option value="">@L["Select"]</option>
                     </select>
                 </div>
-                <div class="col-md-4 d-flex align-items-end gap-2">
+                <div class="col-md-3">
+                    <label asp-for="Type" class="form-label">@L["Inventory:Type"]</label>
+                    <select asp-for="Type" class="form-select">
+                        <option value="">@L["Inventory:AllTransactionTypes"]</option>
+                        @foreach (var type in Model.TransactionTypes)
+                        {
+                            if (Model.Type == type)
+                            {
+                                <option value="@type" selected="selected">@L[$"Inventory:TransactionType:{type}"]</option>
+                            }
+                            else
+                            {
+                                <option value="@type">@L[$"Inventory:TransactionType:{type}"]</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="SourceReference" class="form-label">@L["Inventory:SourceReference"]</label>
+                    <input asp-for="SourceReference" class="form-control" />
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="FromDate" class="form-label">@L["Inventory:FromDate"]</label>
+                    <input asp-for="FromDate" type="date" class="form-control" />
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="ToDate" class="form-label">@L["Inventory:ToDate"]</label>
+                    <input asp-for="ToDate" type="date" class="form-control" />
+                </div>
+                <div class="col-md-6 d-flex align-items-end gap-2">
                     <button type="submit" class="btn btn-primary">@L["Inventory:ApplyFilter"]</button>
                     <a class="btn btn-outline-secondary" asp-page="/Inventory/Ledger">@L["Inventory:ClearFilter"]</a>
                 </div>
@@ -46,7 +100,7 @@
 
     <abp-card class="vpl-inquiry-results-card vpl-card-dense">
         <abp-card-body>
-            @if (Model.Items.Count == 0)
+            @if (Model.Rows.Count == 0)
             {
                 <div class="vpl-empty-state">@L["Inventory:NoLedgerEntries"]</div>
             }
@@ -57,20 +111,30 @@
                         <tr>
                             <th>@L["Inventory:PostedAt"]</th>
                             <th>@L["Inventory:Warehouse"]</th>
+                            <th>@L["Inventory:Material"]</th>
                             <th>@L["Inventory:Type"]</th>
+                            <th>@L["Inventory:SourceReference"]</th>
+                            <th>@L["Inventory:QuantityIn"]</th>
+                            <th>@L["Inventory:QuantityOut"]</th>
+                            <th>@L["Inventory:UnitCost"]</th>
+                            <th>@L["Inventory:Amount"]</th>
                             <th>@L["Inventory:Reason"]</th>
-                            <th>@L["Inventory:IssueCost"]</th>
                         </tr>
                     </thead>
                     <tbody>
-                    @foreach (var x in Model.Items)
+                    @foreach (var x in Model.Rows)
                     {
                         <tr>
-                            <td>@(x.PostedAt is { } postedAt ? InventoryPostingUi.FormatDate(postedAt) : string.Empty)</td>
+                            <td>@(x.PostedAt is { } postedAt ? FormatDateTime(postedAt) : string.Empty)</td>
                             <td>@Model.GetWarehouseLabel(x.WarehouseId)</td>
+                            <td>@Model.GetStockItemLabel(x.StockItemId)</td>
                             <td>@L[$"Inventory:TransactionType:{x.Type}"]</td>
+                            <td>@x.SourceReference</td>
+                            <td>@FormatQuantity(x.QuantityIn)</td>
+                            <td>@FormatQuantity(x.QuantityOut)</td>
+                            <td>@FormatNullableMoney(x.UnitCost)</td>
+                            <td>@FormatNullableMoney(x.Amount)</td>
                             <td>@x.Reason</td>
-                            <td>@FormatMoney(x.TotalIssueCost)</td>
                         </tr>
                     }
                     </tbody>
