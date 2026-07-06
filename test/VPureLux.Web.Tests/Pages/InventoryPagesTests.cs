@@ -13,7 +13,9 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Localization;
 using NSubstitute;
 using Shouldly;
+using VPureLux.Bom;
 using VPureLux.Catalog.Components;
+using VPureLux.Catalog.Products;
 using VPureLux.Inventory;
 using VPureLux.Localization;
 using VPureLux.Web.Pages.Inventory;
@@ -949,6 +951,8 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         html.ShouldContain(localizer["Inventory:Amount"].Value);
         html.ShouldContain($"{context.WarehouseCode} - {context.WarehouseName}");
         html.ShouldContain($"{context.StockItemCode} - {context.StockItemName}");
+        html.ShouldContain(localizer["Inventory:SourceUnknown"].Value);
+        html.ShouldContain(localizer["Inventory:SourceManualIssue"].Value);
         html.ShouldContain(receiptSource);
         html.ShouldContain(12000m.ToString("#,0", vi) + " ₫");
         html.ShouldContain(60000m.ToString("#,0", vi) + " ₫");
@@ -956,6 +960,106 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         html.ShouldContain(">5</td>");
         html.ShouldContain(">2</td>");
         html.ShouldNotContain(localizer["Inventory:IssueCost"].Value);
+    }
+
+    [Fact]
+    public async Task Ledger_Page_Should_Render_Friendly_Source_Labels_And_Bom_Link()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateInquiryFilterContextAsync("LEDGER-SRC");
+        var transactions = GetRequiredService<IInventoryTransactionAppService>();
+        var bom = await CreateBomVersionForLedgerSourceAsync("LEDGER-SRC-BOM");
+        var salesLineId = Guid.NewGuid();
+
+        await transactions.PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 3,
+                    LotNo = Unique("LOT-SRC"),
+                    UnitCost = 10000,
+                    ReceivedAt = DateTime.UtcNow
+                }
+            ]
+        });
+        await transactions.PostIssueAsync(new PostIssueDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            ReferenceType = "SalesOrderLine",
+            ReferenceId = salesLineId,
+            BomVersionId = bom.Id,
+            Lines = [new IssueLineInput { StockItemId = context.StockItemId, Quantity = 1 }]
+        });
+        await transactions.PostAdjustmentAsync(new PostAdjustmentDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Type = InventoryTransactionType.AdjustmentIncrease,
+            Reason = "Kiểm kê lệch tồn",
+            IncreaseLines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 1,
+                    LotNo = Unique("LOT-SRC-ADJ"),
+                    UnitCost = 12000,
+                    ReceivedAt = DateTime.UtcNow
+                }
+            ]
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync(
+            $"/Inventory/Ledger?WarehouseId={context.WarehouseId}&StockItemId={context.StockItemId}"));
+
+        html.ShouldContain(localizer["Inventory:SourceManualReceipt"].Value);
+        html.ShouldContain(localizer["Inventory:SourceSalesOrder"].Value);
+        html.ShouldContain(localizer["Inventory:SourceAdjustment"].Value);
+        html.ShouldContain(localizer["Inventory:SourceSalesOrderLineId"].Value);
+        html.ShouldContain(salesLineId.ToString("D"));
+        html.ShouldContain(localizer["Inventory:SourceOpenBom"].Value);
+        html.ShouldContain($"/Bom/Details/{bom.Id}");
+    }
+
+    [Fact]
+    public async Task Ledger_Page_Should_Render_Unknown_Source_Fallback_Without_Broken_Link()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateInquiryFilterContextAsync("LEDGER-UNK");
+        var unknownReferenceId = Guid.NewGuid();
+
+        await GetRequiredService<IInventoryTransactionAppService>().PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            ReferenceType = "MysteryDocument",
+            ReferenceId = unknownReferenceId,
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 2,
+                    LotNo = Unique("LOT-UNK"),
+                    UnitCost = 11000,
+                    ReceivedAt = DateTime.UtcNow
+                }
+            ]
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync(
+            $"/Inventory/Ledger?WarehouseId={context.WarehouseId}&StockItemId={context.StockItemId}"));
+
+        html.ShouldContain(localizer["Inventory:SourceUnknown"].Value);
+        html.ShouldContain("MysteryDocument");
+        html.ShouldContain(unknownReferenceId.ToString("D"));
+        html.ShouldNotContain($"/Bom/Details/{unknownReferenceId}");
     }
 
     [Fact]
@@ -1001,6 +1105,47 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         html.ShouldContain(localizer["Inventory:TransactionType:PurchaseReceipt"].Value);
         CountOccurrences(html, localizer["Inventory:TransactionType:PurchaseReceipt"].Value).ShouldBe(2);
         CountOccurrences(html, localizer["Inventory:TransactionType:SalesIssue"].Value).ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Ledger_Page_Should_Filter_By_Friendly_Source_Label()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateInquiryFilterContextAsync("LEDGER-SRC-FLT");
+        var transactions = GetRequiredService<IInventoryTransactionAppService>();
+
+        await transactions.PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 4,
+                    LotNo = Unique("LOT-SRC-FLT"),
+                    UnitCost = 15000,
+                    ReceivedAt = DateTime.UtcNow
+                }
+            ]
+        });
+        await transactions.PostIssueAsync(new PostIssueDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines = [new IssueLineInput { StockItemId = context.StockItemId, Quantity = 1 }]
+        });
+
+        var source = Uri.EscapeDataString(localizer["Inventory:SourceManualReceipt"].Value);
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync(
+            $"/Inventory/Ledger?WarehouseId={context.WarehouseId}&StockItemId={context.StockItemId}&SourceReference={source}"));
+
+        html.ShouldContain("name=\"WarehouseId\"");
+        html.ShouldContain("name=\"StockItemId\"");
+        html.ShouldContain("name=\"SourceReference\"");
+        html.ShouldContain(localizer["Inventory:SourceManualReceipt"].Value);
+        html.ShouldNotContain(localizer["Inventory:SourceManualIssue"].Value);
     }
 
     [Fact]
@@ -1292,6 +1437,34 @@ public class InventoryPagesTests : VPureLuxWebTestBase
             stockItem.Id,
             stockItem.CodeSnapshot,
             stockItem.NameSnapshot);
+    }
+
+    private async Task<BomVersionDto> CreateBomVersionForLedgerSourceAsync(string prefix)
+    {
+        var product = await GetRequiredService<IProductAppService>().CreateAsync(new CreateProductDto
+        {
+            Code = Unique($"{prefix}-P"),
+            Name = "Ledger Source Product"
+        });
+        var component = await GetRequiredService<IComponentAppService>().CreateAsync(new CreateComponentDto
+        {
+            Code = Unique($"{prefix}-C"),
+            Name = "Ledger Source Component",
+            Unit = "pcs"
+        });
+
+        return await GetRequiredService<IBomAppService>().CreateAsync(product.Id, new CreateBomVersionDto
+        {
+            EffectiveFrom = DateTime.Today,
+            Items =
+            [
+                new CreateBomItemDto
+                {
+                    ComponentId = component.Id,
+                    Quantity = 1
+                }
+            ]
+        });
     }
 
     private AdjustmentModel CreateAdjustmentModel()

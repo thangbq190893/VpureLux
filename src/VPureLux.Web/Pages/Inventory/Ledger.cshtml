@@ -129,7 +129,17 @@
                             <td>@Model.GetWarehouseLabel(x.WarehouseId)</td>
                             <td>@Model.GetStockItemLabel(x.StockItemId)</td>
                             <td>@L[$"Inventory:TransactionType:{x.Type}"]</td>
-                            <td>@x.SourceReference</td>
+                            <td class="inventory-source-reference">
+                                <div class="fw-semibold">@x.Source.Label</div>
+                                @if (!string.IsNullOrWhiteSpace(x.Source.Detail))
+                                {
+                                    <div class="text-muted small">@x.Source.Detail</div>
+                                }
+                                @if (x.Source.BomVersionId.HasValue)
+                                {
+                                    <a class="small" asp-page="/Bom/Details" asp-route-id="@x.Source.BomVersionId.Value">@L["Inventory:SourceOpenBom"]</a>
+                                }
+                            </td>
                             <td>@FormatQuantity(x.QuantityIn)</td>
                             <td>@FormatQuantity(x.QuantityOut)</td>
                             <td>@FormatNullableMoney(x.UnitCost)</td>

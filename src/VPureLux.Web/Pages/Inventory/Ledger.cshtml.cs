@@ -125,7 +125,7 @@ public class LedgerModel : VPureLuxPageModel
         if (!string.IsNullOrWhiteSpace(SourceReference))
         {
             var source = SourceReference.Trim();
-            query = query.Where(x => BuildSourceReference(x).Contains(source, StringComparison.OrdinalIgnoreCase));
+            query = query.Where(x => BuildSourceReferenceSearchText(x).Contains(source, StringComparison.OrdinalIgnoreCase));
         }
 
         return query;
@@ -135,7 +135,7 @@ public class LedgerModel : VPureLuxPageModel
     {
         foreach (var transaction in transactions)
         {
-            var source = BuildSourceReference(transaction);
+            var source = BuildSourceReferenceView(transaction);
 
             foreach (var line in transaction.Lines.Where(line => !StockItemId.HasValue || line.StockItemId == StockItemId))
             {
@@ -155,9 +155,91 @@ public class LedgerModel : VPureLuxPageModel
         }
     }
 
-    private static string BuildSourceReference(InventoryTransactionDto transaction)
+    private SourceReferenceView BuildSourceReferenceView(InventoryTransactionDto transaction)
     {
-        var parts = new List<string>();
+        var referenceType = transaction.ReferenceType?.Trim();
+        var details = new List<string>();
+        var label = GetSourceLabel(transaction, referenceType);
+
+        if (!string.IsNullOrWhiteSpace(referenceType))
+        {
+            if (referenceType.Equals("SalesOrderLine", StringComparison.OrdinalIgnoreCase))
+            {
+                if (transaction.ReferenceId.HasValue)
+                {
+                    details.Add($"{L["Inventory:SourceSalesOrderLineId"].Value}: {transaction.ReferenceId.Value:D}");
+                }
+            }
+            else
+            {
+                details.Add($"{L["Inventory:SourceReferenceType"].Value}: {referenceType}");
+
+                if (transaction.ReferenceId.HasValue)
+                {
+                    details.Add($"{L["Inventory:SourceReferenceId"].Value}: {transaction.ReferenceId.Value:D}");
+                }
+            }
+        }
+
+        if (transaction.BomVersionId.HasValue)
+        {
+            details.Add($"{L["Inventory:SourceBomVersion"].Value}: {transaction.BomVersionId.Value:D}");
+        }
+
+        return new SourceReferenceView(
+            label,
+            details.Count == 0 ? null : string.Join(" / ", details),
+            transaction.BomVersionId);
+    }
+
+    private string GetSourceLabel(InventoryTransactionDto transaction, string? referenceType)
+    {
+        if (!string.IsNullOrWhiteSpace(referenceType))
+        {
+            if (referenceType.Equals("SalesOrderLine", StringComparison.OrdinalIgnoreCase))
+            {
+                return L["Inventory:SourceSalesOrder"].Value;
+            }
+
+            return L["Inventory:SourceUnknown"].Value;
+        }
+
+        if (transaction.BomVersionId.HasValue || transaction.Type == InventoryTransactionType.AssemblyIssue)
+        {
+            return L["Inventory:SourceBomManufacturing"].Value;
+        }
+
+        if (transaction.Type == InventoryTransactionType.PurchaseReceipt)
+        {
+            return L["Inventory:SourceManualReceipt"].Value;
+        }
+
+        if (transaction.Type == InventoryTransactionType.SalesIssue)
+        {
+            return L["Inventory:SourceManualIssue"].Value;
+        }
+
+        if (transaction.Type is InventoryTransactionType.AdjustmentIncrease or InventoryTransactionType.AdjustmentDecrease)
+        {
+            return L["Inventory:SourceAdjustment"].Value;
+        }
+
+        return L["Inventory:SourceUnknown"].Value;
+    }
+
+    private string BuildSourceReferenceSearchText(InventoryTransactionDto transaction)
+    {
+        var source = BuildSourceReferenceView(transaction);
+        var parts = new List<string>
+        {
+            source.Label,
+            transaction.Id.ToString("D")
+        };
+
+        if (!string.IsNullOrWhiteSpace(source.Detail))
+        {
+            parts.Add(source.Detail);
+        }
 
         if (!string.IsNullOrWhiteSpace(transaction.ReferenceType))
         {
@@ -174,7 +256,7 @@ public class LedgerModel : VPureLuxPageModel
             parts.Add($"BOM {transaction.BomVersionId.Value:D}");
         }
 
-        return parts.Count == 0 ? "-" : string.Join(" / ", parts);
+        return string.Join(" / ", parts);
     }
 
     private static decimal? GetLineUnitCost(InventoryTransactionLineDto line)
@@ -213,10 +295,15 @@ public class LedgerModel : VPureLuxPageModel
         Guid WarehouseId,
         Guid StockItemId,
         InventoryTransactionType Type,
-        string SourceReference,
+        SourceReferenceView Source,
         decimal QuantityIn,
         decimal QuantityOut,
         decimal? UnitCost,
         decimal? Amount,
         string? Reason);
+
+    public sealed record SourceReferenceView(
+        string Label,
+        string? Detail,
+        Guid? BomVersionId);
 }
