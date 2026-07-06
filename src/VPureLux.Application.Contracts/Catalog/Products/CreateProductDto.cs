@@ -4,9 +4,8 @@ namespace VPureLux.Catalog.Products;
 
 public class CreateProductDto
 {
-    [Required]
     [StringLength(CatalogConsts.MaxCodeLength)]
-    public string Code { get; set; } = string.Empty;
+    public string? Code { get; set; }
 
     [Required]
     [StringLength(CatalogConsts.MaxNameLength)]

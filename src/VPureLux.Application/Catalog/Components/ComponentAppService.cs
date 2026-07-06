@@ -1,7 +1,9 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using VPureLux.BusinessCodes;
 using VPureLux.Catalog.Components;
 using VPureLux.Permissions;
 using Volo.Abp;
@@ -9,27 +11,37 @@ using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Auditing;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Timing;
 
 namespace VPureLux.Catalog.Components;
 
 [Authorize(VPureLuxPermissions.Catalog.Components.Default)]
 public class ComponentAppService : ApplicationService, IComponentAppService
 {
+    private const string MaterialSequenceName = "Material";
+    private const string MaterialPrefix = "MAT";
+
     private readonly IComponentRepository _componentRepository;
     private readonly CatalogManager _catalogManager;
     private readonly CatalogApplicationMapper _mapper;
     private readonly ICatalogImageProcessor _imageProcessor;
+    private readonly IBusinessCodeGenerator _businessCodeGenerator;
+    private readonly IClock _clock;
 
     public ComponentAppService(
         IComponentRepository componentRepository,
         CatalogManager catalogManager,
         CatalogApplicationMapper mapper,
-        ICatalogImageProcessor imageProcessor)
+        ICatalogImageProcessor imageProcessor,
+        IBusinessCodeGenerator businessCodeGenerator,
+        IClock clock)
     {
         _componentRepository = componentRepository;
         _catalogManager = catalogManager;
         _mapper = mapper;
         _imageProcessor = imageProcessor;
+        _businessCodeGenerator = businessCodeGenerator;
+        _clock = clock;
     }
 
     [Authorize(VPureLuxPermissions.Catalog.Components.View)]
@@ -75,8 +87,9 @@ public class ComponentAppService : ApplicationService, IComponentAppService
     [Authorize(VPureLuxPermissions.Catalog.Components.Create)]
     public async Task<ComponentDto> CreateAsync(CreateComponentDto input)
     {
+        var code = await ResolveCodeAsync(input.Code);
         var component = await _catalogManager.CreateComponentAsync(
-            input.Code,
+            code,
             input.Name,
             input.Description,
             input.Unit);
@@ -176,6 +189,29 @@ public class ComponentAppService : ApplicationService, IComponentAppService
 
     private static BusinessException ImageNotFound(Guid id) =>
         new BusinessException(VPureLuxDomainErrorCodes.CatalogImageNotFound).WithData("Id", id);
+
+    private async Task<string> ResolveCodeAsync(string? code)
+    {
+        if (!code.IsNullOrWhiteSpace())
+        {
+            return code;
+        }
+
+        var businessDate = _clock.Now.Date;
+        var datePart = businessDate.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+        var codePrefix = $"{MaterialPrefix}-{datePart}";
+
+        return await _businessCodeGenerator.GenerateAsync(new BusinessCodeGenerationContext
+        {
+            SequenceName = MaterialSequenceName,
+            Prefix = MaterialPrefix,
+            Date = businessDate,
+            ExistsAsync = (candidate, cancellationToken) =>
+                _componentRepository.CodeExistsAsync(candidate, cancellationToken: cancellationToken),
+            SeedMaxAsync = async cancellationToken =>
+                (int?)await _componentRepository.GetMaxCodeSequenceAsync(codePrefix, cancellationToken)
+        });
+    }
 
     private static CatalogImageDto ToImageDto(
         ImageData image,

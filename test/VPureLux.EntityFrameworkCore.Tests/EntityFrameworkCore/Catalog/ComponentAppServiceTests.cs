@@ -1,8 +1,12 @@
+using System;
+using System.Globalization;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Distributed;
 using Shouldly;
 using VPureLux.Catalog;
 using VPureLux.Catalog.Components;
 using Volo.Abp;
+using Volo.Abp.Timing;
 using Xunit;
 
 namespace VPureLux.EntityFrameworkCore.Catalog;
@@ -11,10 +15,14 @@ namespace VPureLux.EntityFrameworkCore.Catalog;
 public class ComponentAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
 {
     private readonly IComponentAppService _componentAppService;
+    private readonly IDistributedCache _cache;
+    private readonly IClock _clock;
 
     public ComponentAppServiceTests()
     {
         _componentAppService = GetRequiredService<IComponentAppService>();
+        _cache = GetRequiredService<IDistributedCache>();
+        _clock = GetRequiredService<IClock>();
     }
 
     [Fact]
@@ -53,6 +61,48 @@ public class ComponentAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     [Fact]
+    public async Task Should_Generate_Component_Code_When_Blank()
+    {
+        await ResetMaterialSequenceAsync();
+
+        var component = await _componentAppService.CreateAsync(new CreateComponentDto
+        {
+            Code = " ",
+            Name = "Auto Component Code",
+            Unit = "Piece"
+        });
+
+        component.Code.ShouldBe($"MAT-{DatePart()}0001");
+    }
+
+    [Fact]
+    public async Task Should_Seed_Component_Code_From_Existing_Max_Suffix()
+    {
+        await ResetMaterialSequenceAsync();
+        var datePart = DatePart();
+        await _componentAppService.CreateAsync(new CreateComponentDto
+        {
+            Code = $"MAT-{datePart}0003",
+            Name = "Seed Component 3",
+            Unit = "Piece"
+        });
+        await _componentAppService.CreateAsync(new CreateComponentDto
+        {
+            Code = $"MAT-{datePart}0009",
+            Name = "Seed Component 9",
+            Unit = "Piece"
+        });
+
+        var component = await _componentAppService.CreateAsync(new CreateComponentDto
+        {
+            Name = "Seeded Auto Component",
+            Unit = "Piece"
+        });
+
+        component.Code.ShouldBe($"MAT-{datePart}0010");
+    }
+
+    [Fact]
     public async Task Should_Update_And_Deactivate_Component()
     {
         var component = await _componentAppService.CreateAsync(new CreateComponentDto
@@ -76,4 +126,9 @@ public class ComponentAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
 
         deactivated.Status.ShouldBe(CatalogItemStatus.Inactive);
     }
+
+    private string DatePart() => _clock.Now.Date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+
+    private Task ResetMaterialSequenceAsync() =>
+        _cache.RemoveAsync($"Sequence:Material:{DatePart()}");
 }

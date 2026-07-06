@@ -16,6 +16,12 @@ public class CatalogValidationTests
         var input = new CreateComponentDto();
 
         Validate(input).ShouldNotBeEmpty();
+
+        Validate(new CreateComponentDto
+        {
+            Name = "Auto code component",
+            Unit = "Piece"
+        }).ShouldBeEmpty();
     }
 
     [Fact]
@@ -24,6 +30,11 @@ public class CatalogValidationTests
         var input = new CreateProductDto();
 
         Validate(input).ShouldNotBeEmpty();
+
+        Validate(new CreateProductDto
+        {
+            Name = "Auto code product"
+        }).ShouldBeEmpty();
     }
 
     [Fact]

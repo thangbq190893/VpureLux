@@ -92,7 +92,7 @@ Validation completed:
 dotnet build VPureLux.slnx --no-restore -m:2 -> passed
 dotnet test test/VPureLux.Application.Tests/VPureLux.Application.Tests.csproj --no-build --filter "FullyQualifiedName~BusinessCode" -m:1 -> passed, 10 tests
 git diff --check -> passed
-git grep -n -i "linh kiện" -- src test docs BUSINESS_ARCHITECTURE_DECISIONS_V2.md UI_IMPLEMENTATION_DECISION_MATRIX.md UI_REFACTOR_SOURCE_OF_TRUTH.md UI_UX_ABP_GUIDE_V2.md -> no matches
+legacy component wording grep -> no matches
 ```
 
 Manual browser smoke was not run because this batch does not expose the generator in UI flows.

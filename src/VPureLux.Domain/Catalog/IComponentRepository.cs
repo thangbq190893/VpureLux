@@ -10,4 +10,6 @@ public interface IComponentRepository : IRepository<Component, Guid>
     Task<Component?> FindByCodeAsync(string code, CancellationToken cancellationToken = default);
 
     Task<bool> CodeExistsAsync(string code, Guid? excludedId = null, CancellationToken cancellationToken = default);
+
+    Task<int> GetMaxCodeSequenceAsync(string codePrefix, CancellationToken cancellationToken = default);
 }

@@ -1,34 +1,46 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using VPureLux.BusinessCodes;
 using VPureLux.Catalog.Products;
 using VPureLux.Permissions;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Auditing;
+using Volo.Abp.Timing;
 
 namespace VPureLux.Catalog.Products;
 
 [Authorize(VPureLuxPermissions.Catalog.Products.Default)]
 public class ProductAppService : ApplicationService, IProductAppService
 {
+    private const string ProductSequenceName = "Product";
+    private const string ProductPrefix = "PROD";
+
     private readonly IProductRepository _productRepository;
     private readonly CatalogManager _catalogManager;
     private readonly CatalogApplicationMapper _mapper;
     private readonly ICatalogImageProcessor _imageProcessor;
+    private readonly IBusinessCodeGenerator _businessCodeGenerator;
+    private readonly IClock _clock;
 
     public ProductAppService(
         IProductRepository productRepository,
         CatalogManager catalogManager,
         CatalogApplicationMapper mapper,
-        ICatalogImageProcessor imageProcessor)
+        ICatalogImageProcessor imageProcessor,
+        IBusinessCodeGenerator businessCodeGenerator,
+        IClock clock)
     {
         _productRepository = productRepository;
         _catalogManager = catalogManager;
         _mapper = mapper;
         _imageProcessor = imageProcessor;
+        _businessCodeGenerator = businessCodeGenerator;
+        _clock = clock;
     }
 
     [Authorize(VPureLuxPermissions.Catalog.Products.View)]
@@ -72,8 +84,9 @@ public class ProductAppService : ApplicationService, IProductAppService
     [Authorize(VPureLuxPermissions.Catalog.Products.Create)]
     public async Task<ProductDto> CreateAsync(CreateProductDto input)
     {
+        var code = await ResolveCodeAsync(input.Code);
         var product = await _catalogManager.CreateProductAsync(
-            input.Code,
+            code,
             input.Name,
             input.Description);
 
@@ -172,6 +185,29 @@ public class ProductAppService : ApplicationService, IProductAppService
 
     private static BusinessException ImageNotFound(Guid id) =>
         new BusinessException(VPureLuxDomainErrorCodes.CatalogImageNotFound).WithData("Id", id);
+
+    private async Task<string> ResolveCodeAsync(string? code)
+    {
+        if (!code.IsNullOrWhiteSpace())
+        {
+            return code;
+        }
+
+        var businessDate = _clock.Now.Date;
+        var datePart = businessDate.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+        var codePrefix = $"{ProductPrefix}-{datePart}";
+
+        return await _businessCodeGenerator.GenerateAsync(new BusinessCodeGenerationContext
+        {
+            SequenceName = ProductSequenceName,
+            Prefix = ProductPrefix,
+            Date = businessDate,
+            ExistsAsync = (candidate, cancellationToken) =>
+                _productRepository.CodeExistsAsync(candidate, cancellationToken: cancellationToken),
+            SeedMaxAsync = async cancellationToken =>
+                (int?)await _productRepository.GetMaxCodeSequenceAsync(codePrefix, cancellationToken)
+        });
+    }
 
     private static CatalogImageDto ToImageDto(
         ImageData image,

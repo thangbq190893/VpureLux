@@ -4,9 +4,8 @@ namespace VPureLux.Catalog.Components;
 
 public class CreateComponentDto
 {
-    [Required]
     [StringLength(CatalogConsts.MaxCodeLength)]
-    public string Code { get; set; } = string.Empty;
+    public string? Code { get; set; }
 
     [Required]
     [StringLength(CatalogConsts.MaxNameLength)]

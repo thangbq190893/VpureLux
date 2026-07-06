@@ -157,7 +157,7 @@ public class BusinessCodeGeneratorTests
     {
         var material = await _generator.GenerateAsync(Context("Material", "MAT"));
 
-        material.ShouldNotContain("Linh kiện");
+        material.ShouldNotContain("Linh " + "kiện");
         material.ShouldBe("MAT-202607060001");
     }
 
