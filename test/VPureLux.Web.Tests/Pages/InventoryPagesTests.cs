@@ -370,6 +370,69 @@ public class InventoryPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Adjustment_Count_First_Mixed_Directions_Should_Be_Blocked_Before_Posting()
+    {
+        var context = await CreateInquiryFilterContextAsync("ADJ-MIX");
+        var secondComponent = await GetRequiredService<IComponentAppService>().CreateAsync(new CreateComponentDto
+        {
+            Code = Unique("ADJ-MIX-C2"),
+            Name = "Second Adjustment Component",
+            Unit = "pcs"
+        });
+        var secondStockItem = (await GetRequiredService<IStockItemRepository>()
+            .FindByCatalogItemAsync(StockItemType.Component, secondComponent.Id))!;
+        await GetRequiredService<IInventoryTransactionAppService>().PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 5,
+                    LotNo = Unique("LOT-ADJ-MIX"),
+                    UnitCost = 10000,
+                    ReceivedAt = DateTime.UtcNow
+                }
+            ]
+        });
+        var model = CreateAdjustmentModel();
+        model.WarehouseId = context.WarehouseId;
+        model.Reason = "Mixed blocked";
+        model.CountLines =
+        [
+            new AdjustmentModel.CountAdjustmentLineInput
+            {
+                StockItemId = context.StockItemId,
+                CountedQuantity = 2
+            },
+            new AdjustmentModel.CountAdjustmentLineInput
+            {
+                StockItemId = secondStockItem.Id,
+                CountedQuantity = 3,
+                LotNo = Unique("LOT-ADJ-MIX-INC"),
+                ReceivedAtText = "18/06/2026",
+                UnitCost = 12000
+            }
+        ];
+
+        var result = await model.OnPostAsync();
+
+        result.ShouldBeOfType<PageResult>();
+        model.ModelState.IsValid.ShouldBeFalse();
+        model.ModelState[string.Empty]!.Errors.Single().ErrorMessage
+            .ShouldContain(GetRequiredService<IStringLocalizer<VPureLuxResource>>()["Inventory:AdjustmentMixedDirectionsNotAtomic"].Value);
+        var ledger = await GetRequiredService<IInventoryQueryAppService>().GetLedgerAsync(context.WarehouseId);
+        ledger.Any(x =>
+                x.Reason == "Mixed blocked" &&
+                x.Type is InventoryTransactionType.AdjustmentIncrease or InventoryTransactionType.AdjustmentDecrease)
+            .ShouldBeFalse();
+        ledger.Count.ShouldBe(1);
+        ledger.Single().Type.ShouldBe(InventoryTransactionType.PurchaseReceipt);
+    }
+
+    [Fact]
     public async Task Adjustment_Count_First_All_Zero_Delta_Should_Be_Blocked()
     {
         var context = await CreateInquiryFilterContextAsync("ADJ-ZERO");

@@ -219,6 +219,12 @@ public class AdjustmentModel : VPureLuxPageModel
             return result;
         }
 
+        if (increaseLines.Any() && decreaseLines.Any() && ModelState.IsValid)
+        {
+            ModelState.AddModelError(string.Empty, L["Inventory:AdjustmentMixedDirectionsNotAtomic"]);
+            return result;
+        }
+
         if (!ModelState.IsValid)
         {
             return result;
@@ -229,7 +235,7 @@ public class AdjustmentModel : VPureLuxPageModel
             result.Add(new PostAdjustmentDto
             {
                 WarehouseId = WarehouseId,
-                IdempotencyKey = BuildDirectionalIdempotencyKey("INC", decreaseLines.Any()),
+                IdempotencyKey = IdempotencyKey,
                 Type = InventoryTransactionType.AdjustmentIncrease,
                 Reason = Reason,
                 IncreaseLines = increaseLines
@@ -241,7 +247,7 @@ public class AdjustmentModel : VPureLuxPageModel
             result.Add(new PostAdjustmentDto
             {
                 WarehouseId = WarehouseId,
-                IdempotencyKey = BuildDirectionalIdempotencyKey("DEC", increaseLines.Any()),
+                IdempotencyKey = IdempotencyKey,
                 Type = InventoryTransactionType.AdjustmentDecrease,
                 Reason = Reason,
                 DecreaseLines = decreaseLines
@@ -249,19 +255,6 @@ public class AdjustmentModel : VPureLuxPageModel
         }
 
         return result;
-    }
-
-    private string BuildDirectionalIdempotencyKey(string suffix, bool needsSuffix)
-    {
-        if (!needsSuffix)
-        {
-            return IdempotencyKey;
-        }
-
-        var key = $"{IdempotencyKey}:{suffix}";
-        return key.Length <= InventoryConsts.MaxIdempotencyKeyLength
-            ? key
-            : Guid.NewGuid().ToString("N");
     }
 
     public class CountAdjustmentLineInput

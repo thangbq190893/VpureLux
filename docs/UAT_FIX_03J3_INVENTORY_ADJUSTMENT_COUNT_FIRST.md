@@ -26,7 +26,17 @@
 - Negative delta maps to the existing `AdjustmentDecrease` posting path.
 - Zero delta rows are ignored.
 - If all rows are zero delta, submission is blocked with a friendly validation message.
-- Mixed positive and negative count rows are split by the Web PageModel into the existing increase/decrease posting calls with distinct idempotency keys.
+- Mixed positive and negative count rows are blocked by the Web PageModel until atomic count document support is designed.
+
+## 03J.3.1 Mixed-Direction Atomicity Decision
+
+The current count-first page can safely transform a positive-only count correction into one existing adjustment-increase post, or a negative-only count correction into one existing adjustment-decrease post.
+
+Mixed positive and negative rows are not clearly atomic in the current Razor Page/AppService flow. They would require two existing posting paths: one increase and one decrease. Because those paths have separate idempotency and persistence behavior, the page now blocks mixed submissions before any posting call is made.
+
+Users should split mixed count corrections into separate increase and decrease postings until a first-class count document/session can post the full count atomically.
+
+This guard is Web/PageModel validation only. It does not change Domain rules, Application posting behavior, FIFO allocation, costing, or database schema.
 
 ## Unchanged FIFO, cost, and posting behavior
 
@@ -47,6 +57,7 @@ Friendly Web/PageModel validation now covers:
 - Negative counted quantity.
 - Missing reason.
 - All rows with zero delta.
+- Mixed positive and negative rows in the same count submission.
 - Positive delta missing lot number.
 - Positive delta missing received date or invalid date format.
 - Positive delta missing unit cost or unit cost not greater than zero.
@@ -57,6 +68,7 @@ Existing backend `BusinessException` handling remains in place, including insuff
 
 - Whether to keep a separate advanced manual increase/decrease mode. This batch replaces the visible normal flow with count-first UX.
 - Whether count adjustment should become a first-class count document/session with approvals.
+- Whether a future count document should atomically persist mixed increase/decrease differences as one business document.
 - Whether zero-delta rows should be stored for count audit.
 - Whether positive count deltas should default unit cost from last cost, weighted average, or another policy. This batch keeps manual unit cost for positive deltas.
 - Whether negative count deltas should preview exact FIFO lot allocations before posting.
