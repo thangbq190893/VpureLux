@@ -57,4 +57,8 @@ public class SalesOrderController : AbpControllerBase
     [HttpGet("/api/sales/customers/{customerId:guid}/purchase-history")]
     public Task<List<CustomerPurchaseHistoryDto>> GetCustomerHistoryAsync(Guid customerId) =>
         _appService.GetCustomerHistoryAsync(customerId);
+
+    [HttpGet("/api/sales/customers/{customerId:guid}/receivable-summary")]
+    public Task<CustomerReceivableSummaryDto> GetCustomerReceivableSummaryAsync(Guid customerId) =>
+        _appService.GetCustomerReceivableSummaryAsync(customerId);
 }

@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using VPureLux.Permissions;
 using VPureLux.Sales;
 using Volo.Abp.Application.Dtos;
@@ -11,6 +12,7 @@ public class IndexModel : VPureLuxPageModel
 {
     private readonly ISalesOrderAppService _service;
     private readonly IAuthorizationService _authorizationService;
+    [BindProperty(SupportsGet = true)] public SalesOrderReceivableStatus? PaymentStatus { get; set; }
     public PagedResultDto<SalesOrderDto> Orders { get; private set; } = new();
     public bool CanCreate { get; private set; }
     public bool CanViewHistory { get; private set; }
@@ -23,7 +25,7 @@ public class IndexModel : VPureLuxPageModel
 
     public async Task OnGetAsync()
     {
-        Orders = await _service.GetListAsync(new GetSalesOrderListInput { MaxResultCount = 100 });
+        Orders = await _service.GetListAsync(new GetSalesOrderListInput { MaxResultCount = 100, PaymentStatus = PaymentStatus });
         CanCreate = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.Create)).Succeeded;
         CanViewHistory = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.ViewCustomerHistory)).Succeeded;
     }

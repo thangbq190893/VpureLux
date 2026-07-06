@@ -75,6 +75,11 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
 
     public async Task<PagedResultDto<SalesOrderDto>> GetListAsync(GetSalesOrderListInput input)
     {
+        if (input.PaymentStatus.HasValue)
+        {
+            return await GetListFilteredByPaymentStatusAsync(input);
+        }
+
         var count = await _salesOrders.GetCountAsync(input.CustomerId, input.Status);
         var page = await _salesOrders.GetListAsync(
             input.CustomerId, input.Status, input.Sorting, input.MaxResultCount, input.SkipCount);
@@ -248,6 +253,28 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
             throw new BusinessException(VPureLuxDomainErrorCodes.CustomerNotFound);
         }
         return (await _salesOrders.GetCustomerPurchaseHistoryAsync(customerId)).Select(_mapper.ToDto).ToList();
+    }
+
+    [Authorize(VPureLuxPermissions.Sales.ViewCustomerHistory)]
+    [Authorize(VPureLuxPermissions.Sales.ViewProfit)]
+    public async Task<CustomerReceivableSummaryDto> GetCustomerReceivableSummaryAsync(Guid customerId)
+    {
+        if (await _customers.FindAsync(customerId) == null)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.CustomerNotFound);
+        }
+
+        var orders = await _salesOrders.GetListAsync(customerId, SalesOrderStatus.Confirmed);
+        var summaries = await GetPaymentSummariesAsync(orders);
+        return new CustomerReceivableSummaryDto
+        {
+            CustomerId = customerId,
+            ConfirmedSalesTotal = summaries.Values.Sum(x => x.TotalAmount),
+            PaidTotal = summaries.Values.Sum(x => x.PaidAmount),
+            RemainingDebt = summaries.Values.Sum(x => Math.Max(x.RemainingAmount, 0)),
+            UnpaidOrPartialOrderCount = summaries.Values.Count(x =>
+                x.PaymentStatus is SalesOrderReceivableStatus.Unpaid or SalesOrderReceivableStatus.PartiallyPaid)
+        };
     }
 
     private async Task AddInputLineAsync(SalesOrder order, CreateSalesOrderLineDto input)
@@ -425,18 +452,42 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
         await _salesOrders.FindAsync(id, includeDetails: true)
         ?? throw new BusinessException(VPureLuxDomainErrorCodes.SalesOrderNotFound);
 
+    private async Task<PagedResultDto<SalesOrderDto>> GetListFilteredByPaymentStatusAsync(GetSalesOrderListInput input)
+    {
+        var orders = await _salesOrders.GetListAsync(input.CustomerId, input.Status, input.Sorting);
+        var visibility = await GetFinancialVisibilityAsync();
+        var summaries = await GetPaymentSummariesAsync(orders);
+        var filtered = orders
+            .Where(x => summaries[x.Id].PaymentStatus == input.PaymentStatus)
+            .ToList();
+        var page = filtered
+            .Skip(input.SkipCount)
+            .Take(input.MaxResultCount)
+            .ToList();
+        return new PagedResultDto<SalesOrderDto>(
+            filtered.Count,
+            page.Select(x => _mapper.ToDto(x, visibility.Cost, visibility.Profit, summaries[x.Id])).ToList());
+    }
+
     private async Task<Dictionary<Guid, SalesOrderPaymentSummary>> GetPaymentSummariesAsync(List<SalesOrder> orders)
     {
         var paidAmounts = await _payments.GetPostedPaidAmountsAsync(orders.Select(x => x.Id));
         return orders.ToDictionary(
             x => x.Id,
-            x => SalesOrderPaymentSummary.From(
-                x.TotalRevenueAmount,
-                paidAmounts.TryGetValue(x.Id, out var paidAmount) ? paidAmount : 0));
+            x => x.Status == SalesOrderStatus.Confirmed
+                ? SalesOrderPaymentSummary.From(
+                    x.TotalRevenueAmount,
+                    paidAmounts.TryGetValue(x.Id, out var paidAmount) ? paidAmount : 0)
+                : new SalesOrderPaymentSummary(0, 0, 0, SalesOrderReceivableStatus.NotApplicable));
     }
 
     private async Task<SalesOrderPaymentSummary> GetPaymentSummaryAsync(SalesOrder order)
     {
+        if (order.Status != SalesOrderStatus.Confirmed)
+        {
+            return new SalesOrderPaymentSummary(0, 0, 0, SalesOrderReceivableStatus.NotApplicable);
+        }
+
         var paidAmounts = await _payments.GetPostedPaidAmountsAsync([order.Id]);
         return SalesOrderPaymentSummary.From(
             order.TotalRevenueAmount,

@@ -73,6 +73,28 @@ public class SalesPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Sales_Index_Should_Pass_Payment_Status_Filter_To_Read_Model()
+    {
+        GetSalesOrderListInput? captured = null;
+        var service = Substitute.For<ISalesOrderAppService>();
+        service.GetListAsync(Arg.Do<GetSalesOrderListInput>(input => captured = input))
+            .Returns(new PagedResultDto<SalesOrderDto>());
+        var authorization = Substitute.For<IAuthorizationService>();
+        authorization.AuthorizeAsync(Arg.Any<ClaimsPrincipal>(), Arg.Any<object?>(), Arg.Any<string>())
+            .Returns(AuthorizationResult.Failed());
+        var model = new IndexModel(service, authorization)
+        {
+            PageContext = new PageContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) } },
+            PaymentStatus = SalesOrderReceivableStatus.PartiallyPaid
+        };
+
+        await model.OnGetAsync();
+
+        captured.ShouldNotBeNull();
+        captured!.PaymentStatus.ShouldBe(SalesOrderReceivableStatus.PartiallyPaid);
+    }
+
+    [Fact]
     public async Task Sales_Create_Should_Render_Product_Context_Hooks_And_External_Script()
     {
         var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
@@ -1226,6 +1248,38 @@ public class SalesPagesTests : VPureLuxWebTestBase
         var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/CustomerHistory.cshtml"));
         pageSource.ShouldNotContain("@item.ProductId");
         pageSource.ShouldNotContain("@item.CustomerId");
+    }
+
+    [Fact]
+    public async Task Sales_CustomerHistory_PageModel_Should_Load_Receivable_Summary()
+    {
+        var context = await CreateSalesContextAsync("SALES-CHR");
+        var salesService = GetRequiredService<ISalesOrderAppService>();
+        var order = await salesService.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 2, ActualSellingPrice = 100 }]
+        });
+        await salesService.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        await salesService.AddPaymentAsync(order.Id, new CreateSalesOrderPaymentDto
+        {
+            Amount = 75,
+            PaymentDate = DateTime.UtcNow,
+            PaymentMethod = SalesPaymentMethod.Cash,
+            ReferenceNo = "HISTORY-RECEIVABLE",
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+        var model = GetRequiredService<CustomerHistoryModel>();
+        SetPageContext(model);
+        model.CustomerId = context.CustomerId;
+
+        await model.OnGetAsync();
+
+        model.ReceivableSummary.ConfirmedSalesTotal.ShouldBe(200);
+        model.ReceivableSummary.PaidTotal.ShouldBe(75);
+        model.ReceivableSummary.RemainingDebt.ShouldBe(125);
+        model.ReceivableSummary.UnpaidOrPartialOrderCount.ShouldBe(1);
     }
 
     [Fact]

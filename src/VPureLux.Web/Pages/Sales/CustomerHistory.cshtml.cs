@@ -22,6 +22,7 @@ public class CustomerHistoryModel : VPureLuxPageModel
     private readonly ICustomerAppService _customers;
     [BindProperty(SupportsGet = true)] public Guid? CustomerId { get; set; }
     public IReadOnlyList<CustomerPurchaseHistoryDto> Items { get; private set; } = Array.Empty<CustomerPurchaseHistoryDto>();
+    public CustomerReceivableSummaryDto ReceivableSummary { get; private set; } = new();
     public List<SelectListItem> Customers { get; private set; } = new();
     public Dictionary<Guid, string> ProductLabels { get; private set; } = new();
     public string? SelectedCustomerLabel { get; private set; }
@@ -49,6 +50,7 @@ public class CustomerHistoryModel : VPureLuxPageModel
             SelectedCustomerLabel = Customers
                 .FirstOrDefault(x => x.Value == CustomerId.Value.ToString())?.Text;
             Items = await _service.GetCustomerHistoryAsync(CustomerId.Value);
+            ReceivableSummary = await _service.GetCustomerReceivableSummaryAsync(CustomerId.Value);
             ProductLabels = (await _products.GetListAsync(new GetProductListInput { MaxResultCount = 1000 })).Items
                 .Where(x => Items.Any(item => item.ProductId == x.Id))
                 .ToDictionary(x => x.Id, x => $"{x.Code} - {x.Name}");

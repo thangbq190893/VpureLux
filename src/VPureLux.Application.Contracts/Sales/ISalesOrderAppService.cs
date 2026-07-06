@@ -20,4 +20,5 @@ public interface ISalesOrderAppService : IApplicationService
     Task<SalesOrderPaymentSummaryDto> GetPaymentSummaryAsync(Guid id);
     Task<List<SalesOrderPaymentDto>> GetPaymentsAsync(Guid id);
     Task<List<CustomerPurchaseHistoryDto>> GetCustomerHistoryAsync(Guid customerId);
+    Task<CustomerReceivableSummaryDto> GetCustomerReceivableSummaryAsync(Guid customerId);
 }

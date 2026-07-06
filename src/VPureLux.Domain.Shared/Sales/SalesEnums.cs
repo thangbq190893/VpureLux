@@ -28,6 +28,7 @@ public enum SalesPaymentMethod : byte
 
 public enum SalesOrderReceivableStatus : byte
 {
+    NotApplicable = 0,
     Unpaid = 1,
     PartiallyPaid = 2,
     Paid = 3,

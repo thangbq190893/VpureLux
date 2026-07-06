@@ -91,6 +91,15 @@ public class CustomerPurchaseHistoryDto
     public decimal Profit { get; set; }
 }
 
+public class CustomerReceivableSummaryDto
+{
+    public Guid CustomerId { get; set; }
+    public decimal ConfirmedSalesTotal { get; set; }
+    public decimal PaidTotal { get; set; }
+    public decimal RemainingDebt { get; set; }
+    public int UnpaidOrPartialOrderCount { get; set; }
+}
+
 public class ConfirmSalesOrderResultDto
 {
     public Guid SalesOrderId { get; set; }

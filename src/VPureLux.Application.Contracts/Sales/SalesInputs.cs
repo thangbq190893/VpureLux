@@ -59,4 +59,5 @@ public class GetSalesOrderListInput : PagedAndSortedResultRequestDto
 {
     public Guid? CustomerId { get; set; }
     public SalesOrderStatus? Status { get; set; }
+    public SalesOrderReceivableStatus? PaymentStatus { get; set; }
 }

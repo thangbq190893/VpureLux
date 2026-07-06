@@ -191,6 +191,82 @@ public class SalesOrderPaymentReadModelTests : VPureLuxEntityFrameworkCoreTestBa
         payments.Count(x => x.IdempotencyKey == key).ShouldBe(1);
     }
 
+    [Fact]
+    public async Task SalesOrderPayment_List_Read_Model_Should_Filter_By_Payment_Status_And_Keep_Draft_Neutral()
+    {
+        var context = await CreateContextAsync();
+        var unpaid = await CreateConfirmedOrderAsync(context, quantity: 1, price: 1_000);
+        var partial = await CreateConfirmedOrderAsync(context, quantity: 1, price: 2_000);
+        var paid = await CreateConfirmedOrderAsync(context, quantity: 1, price: 3_000);
+        var draft = await _sales.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 4_000 }]
+        });
+        await _sales.AddPaymentAsync(partial.Id, PaymentInput(500, "PAY-LIST-PARTIAL"));
+        await _sales.AddPaymentAsync(paid.Id, PaymentInput(3_000, "PAY-LIST-PAID"));
+
+        var partialList = await _sales.GetListAsync(new GetSalesOrderListInput
+        {
+            CustomerId = context.CustomerId,
+            PaymentStatus = SalesOrderReceivableStatus.PartiallyPaid,
+            MaxResultCount = 100
+        });
+        var paidList = await _sales.GetListAsync(new GetSalesOrderListInput
+        {
+            CustomerId = context.CustomerId,
+            PaymentStatus = SalesOrderReceivableStatus.Paid,
+            MaxResultCount = 100
+        });
+        var unpaidList = await _sales.GetListAsync(new GetSalesOrderListInput
+        {
+            CustomerId = context.CustomerId,
+            PaymentStatus = SalesOrderReceivableStatus.Unpaid,
+            MaxResultCount = 100
+        });
+        var draftDetail = await _sales.GetAsync(draft.Id);
+
+        partialList.Items.Select(x => x.Id).ShouldContain(partial.Id);
+        partialList.Items.Select(x => x.Id).ShouldNotContain(unpaid.Id);
+        paidList.Items.Select(x => x.Id).ShouldContain(paid.Id);
+        unpaidList.Items.Select(x => x.Id).ShouldContain(unpaid.Id);
+        unpaidList.Items.Select(x => x.Id).ShouldNotContain(draft.Id);
+        draftDetail.PaymentSummary.TotalAmount.ShouldBe(0);
+        draftDetail.PaymentSummary.PaidAmount.ShouldBe(0);
+        draftDetail.PaymentSummary.RemainingAmount.ShouldBe(0);
+        draftDetail.PaymentSummary.PaymentStatus.ShouldBe(SalesOrderReceivableStatus.NotApplicable);
+    }
+
+    [Fact]
+    public async Task SalesOrderPayment_Customer_Receivable_Summary_Should_Aggregate_Confirmed_Orders()
+    {
+        var context = await CreateContextAsync();
+        var unpaid = await CreateConfirmedOrderAsync(context, quantity: 1, price: 1_000);
+        var partial = await CreateConfirmedOrderAsync(context, quantity: 1, price: 2_000);
+        var paid = await CreateConfirmedOrderAsync(context, quantity: 1, price: 3_000);
+        await _sales.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 4_000 }]
+        });
+        await _sales.AddPaymentAsync(partial.Id, PaymentInput(500, "PAY-REC-PARTIAL"));
+        await _sales.AddPaymentAsync(paid.Id, PaymentInput(3_000, "PAY-REC-PAID"));
+
+        var summary = await _sales.GetCustomerReceivableSummaryAsync(context.CustomerId);
+
+        summary.CustomerId.ShouldBe(context.CustomerId);
+        summary.ConfirmedSalesTotal.ShouldBe(6_000);
+        summary.PaidTotal.ShouldBe(3_500);
+        summary.RemainingDebt.ShouldBe(2_500);
+        summary.UnpaidOrPartialOrderCount.ShouldBe(2);
+        var refreshed = await _sales.GetAsync(unpaid.Id);
+        refreshed.TotalRevenueAmount.ShouldBe(1_000);
+        refreshed.TotalCostAmount.ShouldBe(50);
+        refreshed.TotalProfitAmount.ShouldBe(950);
+    }
+
     private async Task<SalesOrderDto> CreateConfirmedOrderAsync(
         (Guid CustomerId, Guid WarehouseId, Guid ProductId) context,
         decimal quantity,

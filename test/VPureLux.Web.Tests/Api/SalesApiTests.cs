@@ -46,6 +46,7 @@ public class SalesApiTests : VPureLuxWebTestBase
         var confirm = await Client.PostAsJsonAsync($"/api/sales/orders/{order.Id}/confirm", new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
         confirm.StatusCode.ShouldBe(HttpStatusCode.OK, await confirm.Content.ReadAsStringAsync());
         (await Client.GetAsync($"/api/sales/customers/{context.CustomerId}/purchase-history")).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await Client.GetAsync($"/api/sales/customers/{context.CustomerId}/receivable-summary")).StatusCode.ShouldBe(HttpStatusCode.OK);
         (await Client.GetAsync($"/api/sales/orders/{order.Id}/payment-summary")).StatusCode.ShouldBe(HttpStatusCode.OK);
         (await Client.GetAsync($"/api/sales/orders/{order.Id}/payments")).StatusCode.ShouldBe(HttpStatusCode.OK);
 
