@@ -1,0 +1,210 @@
+{
+  "A.Global": {
+    "PASS": 10,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "NOT_TESTED": 1,
+    "notes": "",
+    "at": "2026-07-06T19:35:49.787Z"
+  },
+  "B": {
+    "PASS": 0,
+    "FAIL": 0,
+    "BLOCKED": 1,
+    "NOT_TESTED": 0,
+    "notes": "locator.getAttribute: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('a[href*=\"/Catalog/Products/Edit/\"]').first()\n",
+    "at": "2026-07-06T19:43:55.298Z"
+  },
+  "C": {
+    "PASS": 0,
+    "FAIL": 0,
+    "BLOCKED": 1,
+    "NOT_TESTED": 0,
+    "notes": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('a[href*=\"/Catalog/Components/Details/\"]').first()\n    - locator resolved to <a class=\"dropdown-item\" data-catalog-details=\"\" data-id=\"bd6a0486-6c0e-ff29-0736-3a224b1bb910\" href=\"/Catalog/Components/Details/bd6a0486-6c0e-ff29-0736-3a224b1bb910\">Chi tiết</a>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n      - waiting 100ms\n    58 × waiting for element to be visible, enabled and stable\n       - element is not visible\n     - retrying click action\n       - waiting 500ms\n",
+    "at": "2026-07-06T19:37:22.926Z"
+  },
+  "D": {
+    "PASS": 0,
+    "FAIL": 0,
+    "BLOCKED": 1,
+    "NOT_TESTED": 0,
+    "notes": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('select.component-id').first()\n    - locator resolved to <select id=\"Items_0__ComponentId\" data-lpx-sync-bound=\"true\" name=\"Items[0].ComponentId\" data-dynamic-select2=\"disabled\" data-lpx-property-sync-bound=\"true\" data-id=\"Items___index____ComponentId\" data-name=\"Items[__index__].ComponentId\" class=\"form-select form-select-sm component-id\">…</select>\n  - attempting select option action\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n    - waiting 20ms\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n      - waiting 100ms\n    58 × waiting for element to be visible and enabled\n       - element is not visible\n     - retrying select option action\n       - waiting 500ms\n",
+    "at": "2026-07-06T19:37:59.049Z"
+  },
+  "E.Pricing": {
+    "PASS": 3,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "NOT_TESTED": 1,
+    "notes": "",
+    "at": "2026-07-06T19:38:15.754Z"
+  },
+  "F.Inventory Warehouse": {
+    "PASS": 3,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "NOT_TESTED": 0,
+    "notes": "",
+    "at": "2026-07-06T19:38:22.290Z"
+  },
+  "G": {
+    "PASS": 0,
+    "FAIL": 0,
+    "BLOCKED": 1,
+    "NOT_TESTED": 0,
+    "notes": "page.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('input[name=\"Input.Lines[0].ReceivedAt\"]')\n",
+    "at": "2026-07-06T19:44:57.836Z"
+  },
+  "H": {
+    "PASS": 0,
+    "FAIL": 0,
+    "BLOCKED": 1,
+    "NOT_TESTED": 0,
+    "notes": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('select[name=\"Input.WarehouseId\"]')\n    - locator resolved to <select data-val=\"true\" class=\"form-select\" id=\"Input_WarehouseId\" name=\"Input.WarehouseId\" data-lpx-sync-bound=\"true\" data-lpx-property-sync-bound=\"true\" data-val-required=\"The WarehouseId field is required.\">…</select>\n  - attempting select option action\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n    - waiting 20ms\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n      - waiting 100ms\n    58 × waiting for element to be visible and enabled\n       - element is not visible\n     - retrying select option action\n       - waiting 500ms\n",
+    "at": "2026-07-06T19:39:28.386Z"
+  },
+  "I": {
+    "PASS": 0,
+    "FAIL": 0,
+    "BLOCKED": 1,
+    "NOT_TESTED": 0,
+    "notes": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('select[name=\"WarehouseId\"]')\n    - locator resolved to <select data-val=\"true\" id=\"WarehouseId\" name=\"WarehouseId\" class=\"form-select\" data-lpx-sync-bound=\"true\" data-adjustment-warehouse=\"\" data-lpx-property-sync-bound=\"true\" data-val-required=\"The WarehouseId field is required.\">…</select>\n  - attempting select option action\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n    - waiting 20ms\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n      - waiting 100ms\n    59 × waiting for element to be visible and enabled\n       - element is not visible\n     - retrying select option action\n       - waiting 500ms\n",
+    "at": "2026-07-06T19:40:01.367Z"
+  },
+  "J": {
+    "PASS": 0,
+    "FAIL": 0,
+    "BLOCKED": 1,
+    "NOT_TESTED": 0,
+    "notes": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('select[name=\"Input.CustomerGroupId\"]')\n    - locator resolved to <select data-val=\"true\" class=\"form-select mb-3\" id=\"Input_CustomerGroupId\" data-lpx-sync-bound=\"true\" name=\"Input.CustomerGroupId\" data-lpx-property-sync-bound=\"true\" data-val-required=\"Trường CustomerGroupId là bắt buộc.\">…</select>\n  - attempting select option action\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n    - waiting 20ms\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n      - waiting 100ms\n    59 × waiting for element to be visible and enabled\n       - element is not visible\n     - retrying select option action\n       - waiting 500ms\n",
+    "at": "2026-07-06T19:40:34.566Z"
+  },
+  "K": {
+    "PASS": 0,
+    "FAIL": 0,
+    "BLOCKED": 1,
+    "NOT_TESTED": 0,
+    "notes": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('form[asp-page-handler=\"AddPayment\"] button[type=\"submit\"]')\n",
+    "at": "2026-07-06T19:49:36.478Z"
+  },
+  "L": {
+    "PASS": 0,
+    "FAIL": 0,
+    "BLOCKED": 1,
+    "NOT_TESTED": 0,
+    "notes": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('select[name=\"PaymentStatus\"]')\n    - locator resolved to <select id=\"PaymentStatus\" name=\"PaymentStatus\" data-lpx-sync-bound=\"true\" class=\"form-select form-select-sm\" data-lpx-property-sync-bound=\"true\">…</select>\n  - attempting select option action\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n    - waiting 20ms\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n      - waiting 100ms\n    59 × waiting for element to be visible and enabled\n       - element is not visible\n     - retrying select option action\n       - waiting 500ms\n",
+    "at": "2026-07-06T19:41:43.270Z"
+  },
+  "M": {
+    "PASS": 0,
+    "FAIL": 0,
+    "BLOCKED": 1,
+    "NOT_TESTED": 0,
+    "notes": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('select[name=\"CustomerId\"]')\n    - locator resolved to <select id=\"CustomerId\" name=\"CustomerId\" class=\"form-select\" data-lpx-sync-bound=\"true\" data-lpx-property-sync-bound=\"true\">…</select>\n  - attempting select option action\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n    - waiting 20ms\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n      - waiting 100ms\n    59 × waiting for element to be visible and enabled\n       - element is not visible\n     - retrying select option action\n       - waiting 500ms\n",
+    "at": "2026-07-06T19:42:16.096Z"
+  },
+  "N.Audit": {
+    "PASS": 2,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "NOT_TESTED": 1,
+    "notes": "",
+    "at": "2026-07-06T19:42:21.827Z"
+  },
+  "O.Validation": {
+    "PASS": 1,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "NOT_TESTED": 1,
+    "notes": "",
+    "at": "2026-07-06T19:42:21.832Z"
+  },
+  "P.UI/UX": {
+    "PASS": 2,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "NOT_TESTED": 0,
+    "notes": "",
+    "at": "2026-07-06T19:42:21.836Z"
+  },
+  "C.Catalog Vật tư": {
+    "PASS": 6,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "NOT_TESTED": 0,
+    "notes": "",
+    "at": "2026-07-06T19:44:08.792Z"
+  },
+  "D.BOM": {
+    "PASS": 5,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "NOT_TESTED": 1,
+    "notes": "",
+    "at": "2026-07-06T19:47:54.671Z"
+  },
+  "H.Inventory Issue": {
+    "PASS": 5,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "NOT_TESTED": 0,
+    "notes": "",
+    "at": "2026-07-06T19:45:20.906Z"
+  },
+  "I.Inventory Adjustment": {
+    "PASS": 3,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "NOT_TESTED": 3,
+    "notes": "",
+    "at": "2026-07-06T19:45:43.493Z"
+  },
+  "J.Sales Create": {
+    "PASS": 6,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "NOT_TESTED": 1,
+    "notes": "",
+    "at": "2026-07-06T19:49:03.271Z"
+  },
+  "L.Sales List": {
+    "PASS": 4,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "NOT_TESTED": 0,
+    "notes": "",
+    "at": "2026-07-06T19:46:37.469Z"
+  },
+  "M.Customer History": {
+    "PASS": 4,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "NOT_TESTED": 0,
+    "notes": "",
+    "at": "2026-07-06T19:50:35.112Z"
+  },
+  "B.Catalog Product": {
+    "PASS": 7,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "NOT_TESTED": 0,
+    "notes": "",
+    "at": "2026-07-06T19:47:34.049Z"
+  },
+  "G.Inventory Receipt": {
+    "PASS": 5,
+    "FAIL": 1,
+    "BLOCKED": 0,
+    "NOT_TESTED": 1,
+    "notes": "",
+    "at": "2026-07-06T19:48:26.716Z"
+  },
+  "K.Sales Payment": {
+    "PASS": 4,
+    "FAIL": 1,
+    "BLOCKED": 1,
+    "NOT_TESTED": 0,
+    "notes": "",
+    "at": "2026-07-06T19:50:28.744Z"
+  }
+}

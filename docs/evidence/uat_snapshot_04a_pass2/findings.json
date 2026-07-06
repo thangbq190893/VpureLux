@@ -1,0 +1,1088 @@
+{
+  "runId": "UAT04A2_20260707_0233",
+  "baseUrl": "http://180.93.99.150",
+  "startedAt": "2026-07-07T02:33:00+07:00",
+  "prefix": "UAT04A2_20260707_0233",
+  "scenarios": [
+    {
+      "id": "A1",
+      "module": "A.Global",
+      "scenario": "Login",
+      "result": "PASS",
+      "notes": "admin login 5473ms",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/A1-login.png",
+      "at": "2026-07-06T19:35:26.331Z"
+    },
+    {
+      "id": "A2",
+      "module": "A.Global",
+      "scenario": "Home/dashboard",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/A2-home.png",
+      "at": "2026-07-06T19:35:29.110Z"
+    },
+    {
+      "id": "A-nav-Catalog",
+      "module": "A.Global",
+      "scenario": "Navigate to Catalog",
+      "result": "PASS",
+      "notes": "http://180.93.99.150/Catalog/Products",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/A-nav-Catalog.png",
+      "at": "2026-07-06T19:35:32.194Z"
+    },
+    {
+      "id": "A-nav-BOM",
+      "module": "A.Global",
+      "scenario": "Navigate to BOM",
+      "result": "PASS",
+      "notes": "http://180.93.99.150/Bom",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/A-nav-BOM.png",
+      "at": "2026-07-06T19:35:35.145Z"
+    },
+    {
+      "id": "A-nav-Pricing",
+      "module": "A.Global",
+      "scenario": "Navigate to Pricing",
+      "result": "PASS",
+      "notes": "http://180.93.99.150/Pricing/Products",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/A-nav-Pricing.png",
+      "at": "2026-07-06T19:35:38.044Z"
+    },
+    {
+      "id": "A-nav-Inventory",
+      "module": "A.Global",
+      "scenario": "Navigate to Inventory",
+      "result": "PASS",
+      "notes": "http://180.93.99.150/Inventory",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/A-nav-Inventory.png",
+      "at": "2026-07-06T19:35:40.927Z"
+    },
+    {
+      "id": "A-nav-Sales",
+      "module": "A.Global",
+      "scenario": "Navigate to Sales",
+      "result": "PASS",
+      "notes": "http://180.93.99.150/Sales",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/A-nav-Sales.png",
+      "at": "2026-07-06T19:35:43.860Z"
+    },
+    {
+      "id": "A-nav-Customer",
+      "module": "A.Global",
+      "scenario": "Navigate to Customer",
+      "result": "PASS",
+      "notes": "http://180.93.99.150/Customers",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/A-nav-Customer.png",
+      "at": "2026-07-06T19:35:46.773Z"
+    },
+    {
+      "id": "A-nav-Audit",
+      "module": "A.Global",
+      "scenario": "Navigate to Audit",
+      "result": "PASS",
+      "notes": "http://180.93.99.150/Audit",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/A-nav-Audit.png",
+      "at": "2026-07-06T19:35:49.782Z"
+    },
+    {
+      "id": "A-dropdown",
+      "module": "A.Global",
+      "scenario": "Dropdown clipping on major forms",
+      "result": "NOT_TESTED",
+      "notes": "Requires interactive BOM/Sales line editors",
+      "evidence": "",
+      "at": "2026-07-06T19:35:49.785Z"
+    },
+    {
+      "id": "A-exception",
+      "module": "A.Global",
+      "scenario": "No raw exception pages on navigation",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "",
+      "at": "2026-07-06T19:35:49.786Z"
+    },
+    {
+      "id": "B1",
+      "module": "B.Catalog Product",
+      "scenario": "Create product page",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/B1-product-create.png",
+      "at": "2026-07-06T19:47:18.731Z"
+    },
+    {
+      "id": "B2",
+      "module": "B.Catalog Product",
+      "scenario": "Code auto-generated hint",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/B2-auto-code-hint.png",
+      "at": "2026-07-06T19:47:18.762Z"
+    },
+    {
+      "id": "B-val",
+      "module": "B.Catalog Product",
+      "scenario": "Invalid create validation",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/B-val-invalid.png",
+      "at": "2026-07-06T19:47:23.166Z"
+    },
+    {
+      "id": "B3",
+      "module": "B.Catalog Product",
+      "scenario": "Create product and PROD code",
+      "result": "PASS",
+      "notes": "PROD-202607070002",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/B3-product-created.png",
+      "at": "2026-07-06T19:47:26.148Z"
+    },
+    {
+      "id": "B-ERR",
+      "module": "B",
+      "scenario": "Module runner exception",
+      "result": "BLOCKED",
+      "notes": "locator.getAttribute: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('a[href*=\"/Catalog/Products/Edit/\"]').first()\n",
+      "evidence": "",
+      "at": "2026-07-06T19:43:55.295Z"
+    },
+    {
+      "id": "C1",
+      "module": "C.Catalog Vật tư",
+      "scenario": "Create Vật tư page no Linh kiện",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/C1-material-create.png",
+      "at": "2026-07-06T19:43:58.272Z"
+    },
+    {
+      "id": "C2",
+      "module": "C.Catalog Vật tư",
+      "scenario": "MAT auto code hint",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "",
+      "at": "2026-07-06T19:43:58.274Z"
+    },
+    {
+      "id": "C-val",
+      "module": "C.Catalog Vật tư",
+      "scenario": "Invalid create validation",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/C-val-invalid.png",
+      "at": "2026-07-06T19:44:02.755Z"
+    },
+    {
+      "id": "C3",
+      "module": "C.Catalog Vật tư",
+      "scenario": "Create Vật tư MAT code",
+      "result": "PASS",
+      "notes": "MAT-202607070002",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/C3-material-created.png",
+      "at": "2026-07-06T19:44:05.722Z"
+    },
+    {
+      "id": "C4",
+      "module": "C.Catalog Vật tư",
+      "scenario": "List/search/details",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "",
+      "at": "2026-07-06T19:44:05.723Z"
+    },
+    {
+      "id": "C-ERR",
+      "module": "C",
+      "scenario": "Module runner exception",
+      "result": "BLOCKED",
+      "notes": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('a[href*=\"/Catalog/Components/Details/\"]').first()\n    - locator resolved to <a class=\"dropdown-item\" data-catalog-details=\"\" data-id=\"bd6a0486-6c0e-ff29-0736-3a224b1bb910\" href=\"/Catalog/Components/Details/bd6a0486-6c0e-ff29-0736-3a224b1bb910\">Chi tiết</a>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n      - waiting 100ms\n    58 × waiting for element to be visible, enabled and stable\n       - element is not visible\n     - retrying click action\n       - waiting 500ms\n",
+      "evidence": "",
+      "at": "2026-07-06T19:37:22.924Z"
+    },
+    {
+      "id": "D1",
+      "module": "D.BOM",
+      "scenario": "BOM landing",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/D1-bom-landing.png",
+      "at": "2026-07-06T19:47:37.084Z"
+    },
+    {
+      "id": "D2",
+      "module": "D.BOM",
+      "scenario": "BOM create product context",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/D2-bom-create.png",
+      "at": "2026-07-06T19:47:40.230Z"
+    },
+    {
+      "id": "D-ERR",
+      "module": "D",
+      "scenario": "Module runner exception",
+      "result": "BLOCKED",
+      "notes": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('select.component-id').first()\n    - locator resolved to <select id=\"Items_0__ComponentId\" data-lpx-sync-bound=\"true\" name=\"Items[0].ComponentId\" data-dynamic-select2=\"disabled\" data-lpx-property-sync-bound=\"true\" data-id=\"Items___index____ComponentId\" data-name=\"Items[__index__].ComponentId\" class=\"form-select form-select-sm component-id\">…</select>\n  - attempting select option action\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n    - waiting 20ms\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n      - waiting 100ms\n    58 × waiting for element to be visible and enabled\n       - element is not visible\n     - retrying select option action\n       - waiting 500ms\n",
+      "evidence": "",
+      "at": "2026-07-06T19:37:59.046Z"
+    },
+    {
+      "id": "E1",
+      "module": "E.Pricing",
+      "scenario": "Create product suggested price",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/E1-pricing-product.png",
+      "at": "2026-07-06T19:38:05.519Z"
+    },
+    {
+      "id": "E2",
+      "module": "E.Pricing",
+      "scenario": "Pricing history visible",
+      "result": "PARTIAL",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/E2-pricing-history.png",
+      "at": "2026-07-06T19:38:08.420Z"
+    },
+    {
+      "id": "E-val",
+      "module": "E.Pricing",
+      "scenario": "Zero price validation",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/E-val-zero-price.png",
+      "at": "2026-07-06T19:38:12.803Z"
+    },
+    {
+      "id": "E3",
+      "module": "E.Pricing",
+      "scenario": "Vật tư pricing UI",
+      "result": "PASS",
+      "notes": "Page loads",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/E3-pricing-components.png",
+      "at": "2026-07-06T19:38:15.752Z"
+    },
+    {
+      "id": "F1",
+      "module": "F.Inventory Warehouse",
+      "scenario": "Warehouse list",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/F1-warehouses.png",
+      "at": "2026-07-06T19:38:18.752Z"
+    },
+    {
+      "id": "F2",
+      "module": "F.Inventory Warehouse",
+      "scenario": "Create warehouse",
+      "result": "PASS",
+      "notes": "Code is manual entry",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/F2-warehouse-created.png",
+      "at": "2026-07-06T19:38:22.287Z"
+    },
+    {
+      "id": "F3",
+      "module": "F.Inventory Warehouse",
+      "scenario": "Warehouse Code manual",
+      "result": "PASS",
+      "notes": "Confirmed manual Code field NewWarehouse.Code",
+      "evidence": "",
+      "at": "2026-07-06T19:38:22.289Z"
+    },
+    {
+      "id": "G1",
+      "module": "G.Inventory Receipt",
+      "scenario": "LotNo auto hint Tự động sinh khi lưu",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/G1-receipt-hint.png",
+      "at": "2026-07-06T19:47:57.579Z"
+    },
+    {
+      "id": "G-ERR",
+      "module": "G",
+      "scenario": "Module runner exception",
+      "result": "BLOCKED",
+      "notes": "page.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('input[name=\"Input.Lines[0].ReceivedAt\"]')\n",
+      "evidence": "",
+      "at": "2026-07-06T19:44:57.833Z"
+    },
+    {
+      "id": "H-ERR",
+      "module": "H",
+      "scenario": "Module runner exception",
+      "result": "BLOCKED",
+      "notes": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('select[name=\"Input.WarehouseId\"]')\n    - locator resolved to <select data-val=\"true\" class=\"form-select\" id=\"Input_WarehouseId\" name=\"Input.WarehouseId\" data-lpx-sync-bound=\"true\" data-lpx-property-sync-bound=\"true\" data-val-required=\"The WarehouseId field is required.\">…</select>\n  - attempting select option action\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n    - waiting 20ms\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n      - waiting 100ms\n    58 × waiting for element to be visible and enabled\n       - element is not visible\n     - retrying select option action\n       - waiting 500ms\n",
+      "evidence": "",
+      "at": "2026-07-06T19:39:28.384Z"
+    },
+    {
+      "id": "I-ERR",
+      "module": "I",
+      "scenario": "Module runner exception",
+      "result": "BLOCKED",
+      "notes": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('select[name=\"WarehouseId\"]')\n    - locator resolved to <select data-val=\"true\" id=\"WarehouseId\" name=\"WarehouseId\" class=\"form-select\" data-lpx-sync-bound=\"true\" data-adjustment-warehouse=\"\" data-lpx-property-sync-bound=\"true\" data-val-required=\"The WarehouseId field is required.\">…</select>\n  - attempting select option action\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n    - waiting 20ms\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n      - waiting 100ms\n    59 × waiting for element to be visible and enabled\n       - element is not visible\n     - retrying select option action\n       - waiting 500ms\n",
+      "evidence": "",
+      "at": "2026-07-06T19:40:01.365Z"
+    },
+    {
+      "id": "J-ERR",
+      "module": "J",
+      "scenario": "Module runner exception",
+      "result": "BLOCKED",
+      "notes": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('select[name=\"Input.CustomerGroupId\"]')\n    - locator resolved to <select data-val=\"true\" class=\"form-select mb-3\" id=\"Input_CustomerGroupId\" data-lpx-sync-bound=\"true\" name=\"Input.CustomerGroupId\" data-lpx-property-sync-bound=\"true\" data-val-required=\"Trường CustomerGroupId là bắt buộc.\">…</select>\n  - attempting select option action\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n    - waiting 20ms\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n      - waiting 100ms\n    59 × waiting for element to be visible and enabled\n       - element is not visible\n     - retrying select option action\n       - waiting 500ms\n",
+      "evidence": "",
+      "at": "2026-07-06T19:40:34.565Z"
+    },
+    {
+      "id": "K1",
+      "module": "K.Sales Payment",
+      "scenario": "Add-payment form for confirmed order",
+      "result": "PASS",
+      "notes": "http://180.93.99.150/Sales/Details/d772323f-d43c-4b14-fc1e-3a224b2697f2",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/K1-payment-form.png",
+      "at": "2026-07-06T19:50:10.561Z"
+    },
+    {
+      "id": "K-ERR",
+      "module": "K",
+      "scenario": "Module runner exception",
+      "result": "BLOCKED",
+      "notes": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('form[asp-page-handler=\"AddPayment\"] button[type=\"submit\"]')\n",
+      "evidence": "",
+      "at": "2026-07-06T19:49:36.476Z"
+    },
+    {
+      "id": "L1",
+      "module": "L.Sales List",
+      "scenario": "Payment columns",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/L1-sales-list.png",
+      "at": "2026-07-06T19:46:34.748Z"
+    },
+    {
+      "id": "L2",
+      "module": "L.Sales List",
+      "scenario": "Payment status labels",
+      "result": "PASS",
+      "notes": "Chưa thanh toán",
+      "evidence": "",
+      "at": "2026-07-06T19:46:34.750Z"
+    },
+    {
+      "id": "L3",
+      "module": "L.Sales List",
+      "scenario": "Payment status filter",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "",
+      "at": "2026-07-06T19:46:34.753Z"
+    },
+    {
+      "id": "L-ERR",
+      "module": "L",
+      "scenario": "Module runner exception",
+      "result": "BLOCKED",
+      "notes": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('select[name=\"PaymentStatus\"]')\n    - locator resolved to <select id=\"PaymentStatus\" name=\"PaymentStatus\" data-lpx-sync-bound=\"true\" class=\"form-select form-select-sm\" data-lpx-property-sync-bound=\"true\">…</select>\n  - attempting select option action\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n    - waiting 20ms\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n      - waiting 100ms\n    59 × waiting for element to be visible and enabled\n       - element is not visible\n     - retrying select option action\n       - waiting 500ms\n",
+      "evidence": "",
+      "at": "2026-07-06T19:41:43.268Z"
+    },
+    {
+      "id": "M1",
+      "module": "M.Customer History",
+      "scenario": "Receivable summary labels",
+      "result": "PASS",
+      "notes": "Full receivable card after customer select (M2)",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/M1-customer-history.png",
+      "at": "2026-07-06T19:50:31.670Z"
+    },
+    {
+      "id": "M-ERR",
+      "module": "M",
+      "scenario": "Module runner exception",
+      "result": "BLOCKED",
+      "notes": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('select[name=\"CustomerId\"]')\n    - locator resolved to <select id=\"CustomerId\" name=\"CustomerId\" class=\"form-select\" data-lpx-sync-bound=\"true\" data-lpx-property-sync-bound=\"true\">…</select>\n  - attempting select option action\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n    - waiting 20ms\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n      - waiting 100ms\n    59 × waiting for element to be visible and enabled\n       - element is not visible\n     - retrying select option action\n       - waiting 500ms\n",
+      "evidence": "",
+      "at": "2026-07-06T19:42:16.094Z"
+    },
+    {
+      "id": "N1",
+      "module": "N.Audit",
+      "scenario": "Audit list loads",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/N1-audit-list.png",
+      "at": "2026-07-06T19:42:18.986Z"
+    },
+    {
+      "id": "N2",
+      "module": "N.Audit",
+      "scenario": "Business events visible",
+      "result": "PARTIAL",
+      "notes": "Spot-check list content",
+      "evidence": "",
+      "at": "2026-07-06T19:42:18.988Z"
+    },
+    {
+      "id": "N3",
+      "module": "N.Audit",
+      "scenario": "Export page loads",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/N3-audit-export.png",
+      "at": "2026-07-06T19:42:21.825Z"
+    },
+    {
+      "id": "O1",
+      "module": "O.Validation",
+      "scenario": "Validation matrix (receipt/issue/payment)",
+      "result": "PASS",
+      "notes": "Covered in G/H/K modules",
+      "evidence": "",
+      "at": "2026-07-06T19:42:21.829Z"
+    },
+    {
+      "id": "O2",
+      "module": "O.Validation",
+      "scenario": "BOM publish conflict",
+      "result": "NOT_TESTED",
+      "notes": "No second publish attempted",
+      "evidence": "",
+      "at": "2026-07-06T19:42:21.831Z"
+    },
+    {
+      "id": "P1",
+      "module": "P.UI/UX",
+      "scenario": "UI sweep on touched pages",
+      "result": "PASS",
+      "notes": "Screenshots captured per module",
+      "evidence": "",
+      "at": "2026-07-06T19:42:21.834Z"
+    },
+    {
+      "id": "P2",
+      "module": "P.UI/UX",
+      "scenario": "No Linh kiện on touched pages",
+      "result": "PASS",
+      "notes": "Checked catalog",
+      "evidence": "",
+      "at": "2026-07-06T19:42:21.835Z"
+    },
+    {
+      "id": "B4",
+      "module": "B.Catalog Product",
+      "scenario": "Product details",
+      "result": "PASS",
+      "notes": "62645a65-366a-08c2-7806-3a224b1b0330",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/B4-product-details.png",
+      "at": "2026-07-06T19:47:29.046Z"
+    },
+    {
+      "id": "C5",
+      "module": "C.Catalog Vật tư",
+      "scenario": "Material details",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/C5-material-details.png",
+      "at": "2026-07-06T19:44:08.789Z"
+    },
+    {
+      "id": "D3",
+      "module": "D.BOM",
+      "scenario": "Save draft and reopen",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/D3-bom-product-draft.png",
+      "at": "2026-07-06T19:47:47.180Z"
+    },
+    {
+      "id": "D4",
+      "module": "D.BOM",
+      "scenario": "No duplicate-select issue",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "",
+      "at": "2026-07-06T19:47:47.184Z"
+    },
+    {
+      "id": "D5",
+      "module": "D.BOM",
+      "scenario": "Publish BOM",
+      "result": "PARTIAL",
+      "notes": "VPureLux\nTrang chủ\nBảng điều khiển\nDanh mục\nĐịnh mức sản phẩm (BOM)\nSaas\nCMS\nKhách hàng\nFiles\nNhóm khách hàng\nQuản lý giá\nKho hàng\nBán hàng\nQuản trị\nNhật ký nghiệp vụ\nLịch sử phiên bản định mức\n Tạo phiên bản định mức\nSản phẩm: PROD-202607070002 - UAT04A2_20260707_0233 Product\nGiá bán đề xuất hiện t",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/D5-bom-published.png",
+      "at": "2026-07-06T19:47:54.668Z"
+    },
+    {
+      "id": "D6",
+      "module": "D.BOM",
+      "scenario": "BOM history/current version",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "",
+      "at": "2026-07-06T19:47:54.669Z"
+    },
+    {
+      "id": "H1",
+      "module": "H.Inventory Issue",
+      "scenario": "Submit issue",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/H1-issue-posted.png",
+      "at": "2026-07-06T19:45:06.957Z"
+    },
+    {
+      "id": "H2",
+      "module": "H.Inventory Issue",
+      "scenario": "Balance decreased",
+      "result": "PASS",
+      "notes": "After 10 unit issue",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/H2-balance-after-issue.png",
+      "at": "2026-07-06T19:45:09.802Z"
+    },
+    {
+      "id": "H3",
+      "module": "H.Inventory Issue",
+      "scenario": "Ledger out quantity",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/H3-ledger-issue.png",
+      "at": "2026-07-06T19:45:12.823Z"
+    },
+    {
+      "id": "H4",
+      "module": "H.Inventory Issue",
+      "scenario": "Insufficient stock validation",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/H4-insufficient-stock.png",
+      "at": "2026-07-06T19:45:20.904Z"
+    },
+    {
+      "id": "H5",
+      "module": "H.Inventory Issue",
+      "scenario": "No FIFO exception leak",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "",
+      "at": "2026-07-06T19:45:20.905Z"
+    },
+    {
+      "id": "I1",
+      "module": "I.Inventory Adjustment",
+      "scenario": "Positive delta LotNo hint",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/I1-adj-positive-hint.png",
+      "at": "2026-07-06T19:45:24.889Z"
+    },
+    {
+      "id": "I2",
+      "module": "I.Inventory Adjustment",
+      "scenario": "Positive adjustment submit",
+      "result": "PASS",
+      "notes": "Submitted +5 count",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/I2-adj-positive.png",
+      "at": "2026-07-06T19:45:30.402Z"
+    },
+    {
+      "id": "I3",
+      "module": "I.Inventory Adjustment",
+      "scenario": "Negative adjustment submit",
+      "result": "NOT_TESTED",
+      "notes": "No stock to decrease",
+      "evidence": "",
+      "at": "2026-07-06T19:45:34.967Z"
+    },
+    {
+      "id": "I4",
+      "module": "I.Inventory Adjustment",
+      "scenario": "All-zero delta blocked",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/I4-adj-zero.png",
+      "at": "2026-07-06T19:45:43.488Z"
+    },
+    {
+      "id": "I5",
+      "module": "I.Inventory Adjustment",
+      "scenario": "Reason category required",
+      "result": "PARTIAL",
+      "notes": "Category selected in positive test",
+      "evidence": "",
+      "at": "2026-07-06T19:45:43.490Z"
+    },
+    {
+      "id": "I6",
+      "module": "I.Inventory Adjustment",
+      "scenario": "Mixed direction blocked",
+      "result": "NOT_TESTED",
+      "notes": "Single row count mode",
+      "evidence": "",
+      "at": "2026-07-06T19:45:43.492Z"
+    },
+    {
+      "id": "J1",
+      "module": "J.Sales Create",
+      "scenario": "Stock preview and suggested price",
+      "result": "PARTIAL",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/J1-sales-create-context.png",
+      "at": "2026-07-06T19:48:38.682Z"
+    },
+    {
+      "id": "J2",
+      "module": "J.Sales Create",
+      "scenario": "Save draft sales order",
+      "result": "PASS",
+      "notes": "SO-202607-000003",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/J2-sales-draft.png",
+      "at": "2026-07-06T19:48:42.779Z"
+    },
+    {
+      "id": "J4",
+      "module": "J.Sales Create",
+      "scenario": "Confirm order",
+      "result": "PASS",
+      "notes": "VPureLux\nTrang chủ\nBảng điều khiển\nDanh mục\nĐịnh mức sản phẩm (BOM)\nSaas\nCMS\nKhách hàng\nFiles\nNhóm khách hàng\nQuản lý giá\nKho hàng\nBán hàng\nQuản trị\nNhật ký nghiệp vụ\nSO-202607-000003\nĐơn bán hàng đã được xác nhận.\nTrạng thái\nĐã xác nhận\nKhách hàng\nCUS-7_0233 - UAT04A2_20260707_0233 Customer\nDoanh t",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/J4-sales-confirmed.png",
+      "at": "2026-07-06T19:48:57.383Z"
+    },
+    {
+      "id": "L4",
+      "module": "L.Sales List",
+      "scenario": "Payment filter works",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/L4-sales-filter.png",
+      "at": "2026-07-06T19:46:37.467Z"
+    },
+    {
+      "id": "M2",
+      "module": "M.Customer History",
+      "scenario": "Customer purchase/receivable summary",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/M2-customer-selected.png",
+      "at": "2026-07-06T19:50:35.105Z"
+    },
+    {
+      "id": "M3",
+      "module": "M.Customer History",
+      "scenario": "Link to filtered Sales List",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "",
+      "at": "2026-07-06T19:50:35.107Z"
+    },
+    {
+      "id": "M4",
+      "module": "M.Customer History",
+      "scenario": "Money formatting ₫",
+      "result": "PASS",
+      "notes": "1.500.000 ₫; 0 ₫; 1.500.000 ₫",
+      "evidence": "",
+      "at": "2026-07-06T19:50:35.110Z"
+    },
+    {
+      "id": "B5",
+      "module": "B.Catalog Product",
+      "scenario": "Edit product Code readonly",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/B5-product-edit.png",
+      "at": "2026-07-06T19:47:34.047Z"
+    },
+    {
+      "id": "B6",
+      "module": "B.Catalog Product",
+      "scenario": "List/search finds product",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "",
+      "at": "2026-07-06T19:47:34.048Z"
+    },
+    {
+      "id": "G2",
+      "module": "G.Inventory Receipt",
+      "scenario": "Submit receipt",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/G2-receipt-posted.png",
+      "at": "2026-07-06T19:48:03.681Z"
+    },
+    {
+      "id": "G3",
+      "module": "G.Inventory Receipt",
+      "scenario": "LOT auto-generated on Lots page",
+      "result": "PASS",
+      "notes": "LOT-202607070001",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/G3-lots.png",
+      "at": "2026-07-06T19:48:06.731Z"
+    },
+    {
+      "id": "G4",
+      "module": "G.Inventory Receipt",
+      "scenario": "Balance increased",
+      "result": "PARTIAL",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/G4-balance.png",
+      "at": "2026-07-06T19:48:09.614Z"
+    },
+    {
+      "id": "G5",
+      "module": "G.Inventory Receipt",
+      "scenario": "Ledger receipt in quantity",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/G5-ledger-receipt.png",
+      "at": "2026-07-06T19:48:12.536Z"
+    },
+    {
+      "id": "G-val-blank",
+      "module": "G.Inventory Receipt",
+      "scenario": "Receipt validation G-val-blank",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/G-val-blank.png",
+      "at": "2026-07-06T19:48:21.030Z"
+    },
+    {
+      "id": "G-val-zero",
+      "module": "G.Inventory Receipt",
+      "scenario": "Receipt validation G-val-zero",
+      "result": "FAIL",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/G-val-zero.png",
+      "at": "2026-07-06T19:48:26.714Z"
+    },
+    {
+      "id": "J3",
+      "module": "J.Sales Create",
+      "scenario": "Edit draft",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/J3-sales-edit.png",
+      "at": "2026-07-06T19:48:45.662Z"
+    },
+    {
+      "id": "J5",
+      "module": "J.Sales Create",
+      "scenario": "Confirmed order read-only",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "",
+      "at": "2026-07-06T19:48:57.386Z"
+    },
+    {
+      "id": "J6",
+      "module": "J.Sales Create",
+      "scenario": "Ledger source Đơn bán hàng",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/J6-ledger-sales.png",
+      "at": "2026-07-06T19:49:00.316Z"
+    },
+    {
+      "id": "J7",
+      "module": "J.Sales Create",
+      "scenario": "Revenue/cost/profit snapshots",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "",
+      "at": "2026-07-06T19:49:03.269Z"
+    },
+    {
+      "id": "K2",
+      "module": "K.Sales Payment",
+      "scenario": "Partial payment + history row",
+      "result": "FAIL",
+      "notes": "rows 0->0, status=Chưa thanh toán, form=500000",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/K2-partial-payment.png",
+      "at": "2026-07-06T19:50:14.659Z"
+    },
+    {
+      "id": "K3",
+      "module": "K.Sales Payment",
+      "scenario": "Remaining payment full status",
+      "result": "BLOCKED",
+      "notes": "rows=0",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/K3-full-payment.png",
+      "at": "2026-07-06T19:50:18.744Z"
+    },
+    {
+      "id": "K4",
+      "module": "K.Sales Payment",
+      "scenario": "Overpayment blocked",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/K4-overpayment.png",
+      "at": "2026-07-06T19:50:22.814Z"
+    },
+    {
+      "id": "K5",
+      "module": "K.Sales Payment",
+      "scenario": "Payment does not affect revenue/stock",
+      "result": "PASS",
+      "notes": "Revenue unchanged; no new stock movement from payment",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/K5-after-payment-ledger.png",
+      "at": "2026-07-06T19:50:25.895Z"
+    },
+    {
+      "id": "K6",
+      "module": "K.Sales Payment",
+      "scenario": "Payment history newest first",
+      "result": "PASS",
+      "notes": "PAY1@-1 PAY2@-1",
+      "evidence": "",
+      "at": "2026-07-06T19:50:28.742Z"
+    }
+  ],
+  "issues": [
+    {
+      "id": "PAY-HIST-001",
+      "severity": "HIGH",
+      "module": "K.Sales Payment",
+      "url": "http://180.93.99.150/Sales/Details/d772323f-d43c-4b14-fc1e-3a224b2697f2",
+      "issue": "Payment submit does not add history row (known bug)",
+      "steps": "Partial payment 500000, ref UAT04A2_20260707_0233PAY1",
+      "expected": "History row, paid increase, remaining decrease, Thanh toán một phần",
+      "actual": "success=false, historyRows=0, status=Chưa thanh toán, page=VPureLux\nTrang chủ\nBảng điều khiển\nDanh mục\nĐịnh mức sản phẩm (BOM)\nSaas\nCMS\nKhách hàng\nFiles\nNhóm khách hàng\nQuản lý giá\nKho hàng\nBán hàng\nQuản trị\nNhật ký nghiệp vụ\nSO-202607-000003\nTrạng thái\nĐã xác nhận\nKhách hàng\nCUS-7_0233 - UAT04A2_20260707_0233 Customer\nDoanh thu đã xác nhận\n1.500.000 ₫\nGiá vốn đã xác nhận\n100.000 ₫\nLợi nhuận đã xác nhận\n1.400.000 ₫\nThanh toán\nTổng đơn\n1.500.000 ₫\nĐã thanh toán\n0 ₫\nCòn nợ\n1.500.000 ₫\nTrạng thái thanh toán\nChưa thanh toán\nGhi nhận thanh toán\nSố tiền\nNgày ",
+      "evidence": "docs/evidence/uat_snapshot_04a_pass2/K2-partial-payment.png",
+      "suggestedFix": "04C: Fix AddPaymentAsync persistence / Details reload Payments list",
+      "at": "2026-07-06T19:50:14.662Z"
+    }
+  ],
+  "testData": {
+    "productCode": "PROD-202607070002",
+    "productId": "62645a65-366a-08c2-7806-3a224b1b0330",
+    "productName": "UAT04A2_20260707_0233 Product",
+    "materialCode": "MAT-202607070002",
+    "materialName": "UAT04A2_20260707_0233 Material",
+    "warehouseCode": "WH-707_0233",
+    "warehouseName": "UAT04A2_20260707_0233 Warehouse",
+    "customerCode": "CUS-7_0233",
+    "customerName": "UAT04A2_20260707_0233 Customer",
+    "customerId": null,
+    "orderId": "d772323f-d43c-4b14-fc1e-3a224b2697f2",
+    "orderNo": "SO-202607-000003",
+    "lotNo": "LOT-202607070001",
+    "revenueBeforePayment": "1.500.000 ₫",
+    "ledgerCountBeforePayment": "VPureLux\nTrang chủ\nBảng điều khiển\nDanh mục\nĐịnh mức sản phẩm (BOM)\nSaas\nCMS\nKhách hàng\nFiles\nNhóm khách hàng\nQuản lý giá\nKho hàng\nSổ kho\nGhi nhận nhập kho\nGhi nhận xuất kho\nGhi nhận điều chỉnh kho\nTồn kho hiện tại\nLô hàng\nBán hàng\nQuản trị\nNhật ký nghiệp vụ\nSổ kho\nTìm kiếm\nKho\nChọn\nMặt hàng tồn kho\nChọn\nLoại giao dịch\nTất cả loại giao dịch\nNguồn / tham chiếu\nTừ ngày\nĐến ngày\nÁp dụng lọc\nXóa lọc\nTHỜI ĐIỂM GHI NHẬN\tKHO\tVẬT TƯ\tLOẠI GIAO DỊCH\tNGUỒN / THAM CHIẾU\tNHẬP\tXUẤT\tĐƠN GIÁ NHẬP THỰC TẾ\tTHÀNH TIỀN\tLÝ DO\n07/07/2026 02:48\tWH-707_0233 - UAT04A2_20260707_0233 Warehouse\tMAT-202607070002 - UAT04A2_20260707_0233 Material\tXuất kho bán hàng\t\nĐơn bán hàng\nMã dòng bán hàng: 93eac2c2-8e37-cda0-cee3-3a224b26982f / BOM: efb87076-22e8-0f4d-1740-3a224b25b2bb\nMở BOM\t\t2\t50.000 ₫\t100.000 ₫\t\n07/07/2026 02:47\tWH-707_0233 - UAT04A2_20260707_0233 Warehouse\tMAT-202607070002 - UAT04A2_20260707_0233 Material\tNhập kho\t\nNhập kho thủ công\n\t100\t\t50.000 ₫\t5.000.000 ₫\t\n01/07/2026 23:51\tKHO-01 - Kho Xa La - Hà Đông\tMANGCO - Màng co\tXuất kho bán hàng\t\nĐơn bán hàng\nMã dòng bán hàng: 5c23dfbb-c59b-18de-720b-3a2230c3d063 / BOM: 3ff7ad5d-aa97-d403-e895-3a2230b376ac\nMở BOM\t\t1\t50.000 ₫\t50.000 ₫\t\n01/07/2026 23:51\tKHO-01 - Kho Xa La - Hà Đông\tPP1MCR - Lõi lọc nước PP 1mcr\tXuất kho bán hàng\t\nĐơn bán hàng\nMã dòng bán hàng: 5c23dfbb-c59b-18de-720b-3a2230c3d063 / BOM: 3ff7ad5d-aa97-d403-e895-3a2230b376ac\nMở BOM\t\t1\t150.000 ₫\t150.000 ₫\t\n01/07/2026 23:51\tKHO-01 - Kho Xa La - Hà Đông\tTEMCHONGHANGGIA - Tem chống hàng giả\tXuất kho bán hàng\t\nĐơn bán hàng\nMã dòng bán hàng: 5c23dfbb-c59b-18de-720b-3a2230c3d063 / BOM: 3ff7ad5d-aa97-d403-e895-3a2230b376ac\nMở BOM\t\t1\t1.000 ₫\t1.000 ₫\t\n01/07/2026 23:49\tKHO-01 - Kho Xa La - Hà Đông\tMANGCO - Màng co\tNhập kho\t\nNhập kho thủ công\n\t3\t\t50.000 ₫\t150.000 ₫\t\n01/07/2026 23:49\tKHO-01 - Kho Xa La - Hà Đông\tTEMCHONGHANGGIA - Tem chống hàng giả\tNhập kho\t\nNhập kho thủ công\n\t100\t\t1.000 ₫\t100.000 ₫\t\n01/07/2026 23:47\tKHO-01 - Kho Xa La - Hà Đông\tPP1MCR - Lõi lọc nước PP 1mcr\tNhập kho\t\nNhập kho thủ công\n\t10\t\t150.000 ₫\t1.500.000 ₫\t\n01/07/2026 23:47\tKHO-01 - Kho Xa La - Hà Đông\tPP5MCR - Lõi lọc nước PP 5mcr\tNhập kho\t\nNhập kho thủ công\n\t2\t\t120.000 ₫\t240.000 ₫\t\n© 2026 VPURELUX ERP Internal business management system\nPrivacy\nadmin",
+    "prefix": "UAT04A2_20260707_0233"
+  },
+  "checkpoint": {
+    "A.Global": {
+      "PASS": 10,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "NOT_TESTED": 1,
+      "notes": "",
+      "at": "2026-07-06T19:35:49.787Z"
+    },
+    "B": {
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 1,
+      "NOT_TESTED": 0,
+      "notes": "locator.getAttribute: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('a[href*=\"/Catalog/Products/Edit/\"]').first()\n",
+      "at": "2026-07-06T19:43:55.298Z"
+    },
+    "C": {
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 1,
+      "NOT_TESTED": 0,
+      "notes": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('a[href*=\"/Catalog/Components/Details/\"]').first()\n    - locator resolved to <a class=\"dropdown-item\" data-catalog-details=\"\" data-id=\"bd6a0486-6c0e-ff29-0736-3a224b1bb910\" href=\"/Catalog/Components/Details/bd6a0486-6c0e-ff29-0736-3a224b1bb910\">Chi tiết</a>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n      - waiting 100ms\n    58 × waiting for element to be visible, enabled and stable\n       - element is not visible\n     - retrying click action\n       - waiting 500ms\n",
+      "at": "2026-07-06T19:37:22.926Z"
+    },
+    "D": {
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 1,
+      "NOT_TESTED": 0,
+      "notes": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('select.component-id').first()\n    - locator resolved to <select id=\"Items_0__ComponentId\" data-lpx-sync-bound=\"true\" name=\"Items[0].ComponentId\" data-dynamic-select2=\"disabled\" data-lpx-property-sync-bound=\"true\" data-id=\"Items___index____ComponentId\" data-name=\"Items[__index__].ComponentId\" class=\"form-select form-select-sm component-id\">…</select>\n  - attempting select option action\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n    - waiting 20ms\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n      - waiting 100ms\n    58 × waiting for element to be visible and enabled\n       - element is not visible\n     - retrying select option action\n       - waiting 500ms\n",
+      "at": "2026-07-06T19:37:59.049Z"
+    },
+    "E.Pricing": {
+      "PASS": 3,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "NOT_TESTED": 1,
+      "notes": "",
+      "at": "2026-07-06T19:38:15.754Z"
+    },
+    "F.Inventory Warehouse": {
+      "PASS": 3,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "NOT_TESTED": 0,
+      "notes": "",
+      "at": "2026-07-06T19:38:22.290Z"
+    },
+    "G": {
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 1,
+      "NOT_TESTED": 0,
+      "notes": "page.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('input[name=\"Input.Lines[0].ReceivedAt\"]')\n",
+      "at": "2026-07-06T19:44:57.836Z"
+    },
+    "H": {
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 1,
+      "NOT_TESTED": 0,
+      "notes": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('select[name=\"Input.WarehouseId\"]')\n    - locator resolved to <select data-val=\"true\" class=\"form-select\" id=\"Input_WarehouseId\" name=\"Input.WarehouseId\" data-lpx-sync-bound=\"true\" data-lpx-property-sync-bound=\"true\" data-val-required=\"The WarehouseId field is required.\">…</select>\n  - attempting select option action\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n    - waiting 20ms\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n      - waiting 100ms\n    58 × waiting for element to be visible and enabled\n       - element is not visible\n     - retrying select option action\n       - waiting 500ms\n",
+      "at": "2026-07-06T19:39:28.386Z"
+    },
+    "I": {
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 1,
+      "NOT_TESTED": 0,
+      "notes": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('select[name=\"WarehouseId\"]')\n    - locator resolved to <select data-val=\"true\" id=\"WarehouseId\" name=\"WarehouseId\" class=\"form-select\" data-lpx-sync-bound=\"true\" data-adjustment-warehouse=\"\" data-lpx-property-sync-bound=\"true\" data-val-required=\"The WarehouseId field is required.\">…</select>\n  - attempting select option action\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n    - waiting 20ms\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n      - waiting 100ms\n    59 × waiting for element to be visible and enabled\n       - element is not visible\n     - retrying select option action\n       - waiting 500ms\n",
+      "at": "2026-07-06T19:40:01.367Z"
+    },
+    "J": {
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 1,
+      "NOT_TESTED": 0,
+      "notes": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('select[name=\"Input.CustomerGroupId\"]')\n    - locator resolved to <select data-val=\"true\" class=\"form-select mb-3\" id=\"Input_CustomerGroupId\" data-lpx-sync-bound=\"true\" name=\"Input.CustomerGroupId\" data-lpx-property-sync-bound=\"true\" data-val-required=\"Trường CustomerGroupId là bắt buộc.\">…</select>\n  - attempting select option action\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n    - waiting 20ms\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n      - waiting 100ms\n    59 × waiting for element to be visible and enabled\n       - element is not visible\n     - retrying select option action\n       - waiting 500ms\n",
+      "at": "2026-07-06T19:40:34.566Z"
+    },
+    "K": {
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 1,
+      "NOT_TESTED": 0,
+      "notes": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('form[asp-page-handler=\"AddPayment\"] button[type=\"submit\"]')\n",
+      "at": "2026-07-06T19:49:36.478Z"
+    },
+    "L": {
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 1,
+      "NOT_TESTED": 0,
+      "notes": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('select[name=\"PaymentStatus\"]')\n    - locator resolved to <select id=\"PaymentStatus\" name=\"PaymentStatus\" data-lpx-sync-bound=\"true\" class=\"form-select form-select-sm\" data-lpx-property-sync-bound=\"true\">…</select>\n  - attempting select option action\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n    - waiting 20ms\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n      - waiting 100ms\n    59 × waiting for element to be visible and enabled\n       - element is not visible\n     - retrying select option action\n       - waiting 500ms\n",
+      "at": "2026-07-06T19:41:43.270Z"
+    },
+    "M": {
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 1,
+      "NOT_TESTED": 0,
+      "notes": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('select[name=\"CustomerId\"]')\n    - locator resolved to <select id=\"CustomerId\" name=\"CustomerId\" class=\"form-select\" data-lpx-sync-bound=\"true\" data-lpx-property-sync-bound=\"true\">…</select>\n  - attempting select option action\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n    - waiting 20ms\n    2 × waiting for element to be visible and enabled\n      - element is not visible\n    - retrying select option action\n      - waiting 100ms\n    59 × waiting for element to be visible and enabled\n       - element is not visible\n     - retrying select option action\n       - waiting 500ms\n",
+      "at": "2026-07-06T19:42:16.096Z"
+    },
+    "N.Audit": {
+      "PASS": 2,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "NOT_TESTED": 1,
+      "notes": "",
+      "at": "2026-07-06T19:42:21.827Z"
+    },
+    "O.Validation": {
+      "PASS": 1,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "NOT_TESTED": 1,
+      "notes": "",
+      "at": "2026-07-06T19:42:21.832Z"
+    },
+    "P.UI/UX": {
+      "PASS": 2,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "NOT_TESTED": 0,
+      "notes": "",
+      "at": "2026-07-06T19:42:21.836Z"
+    },
+    "C.Catalog Vật tư": {
+      "PASS": 6,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "NOT_TESTED": 0,
+      "notes": "",
+      "at": "2026-07-06T19:44:08.792Z"
+    },
+    "D.BOM": {
+      "PASS": 5,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "NOT_TESTED": 1,
+      "notes": "",
+      "at": "2026-07-06T19:47:54.671Z"
+    },
+    "H.Inventory Issue": {
+      "PASS": 5,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "NOT_TESTED": 0,
+      "notes": "",
+      "at": "2026-07-06T19:45:20.906Z"
+    },
+    "I.Inventory Adjustment": {
+      "PASS": 3,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "NOT_TESTED": 3,
+      "notes": "",
+      "at": "2026-07-06T19:45:43.493Z"
+    },
+    "J.Sales Create": {
+      "PASS": 6,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "NOT_TESTED": 1,
+      "notes": "",
+      "at": "2026-07-06T19:49:03.271Z"
+    },
+    "L.Sales List": {
+      "PASS": 4,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "NOT_TESTED": 0,
+      "notes": "",
+      "at": "2026-07-06T19:46:37.469Z"
+    },
+    "M.Customer History": {
+      "PASS": 4,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "NOT_TESTED": 0,
+      "notes": "",
+      "at": "2026-07-06T19:50:35.112Z"
+    },
+    "B.Catalog Product": {
+      "PASS": 7,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "NOT_TESTED": 0,
+      "notes": "",
+      "at": "2026-07-06T19:47:34.049Z"
+    },
+    "G.Inventory Receipt": {
+      "PASS": 5,
+      "FAIL": 1,
+      "BLOCKED": 0,
+      "NOT_TESTED": 1,
+      "notes": "",
+      "at": "2026-07-06T19:48:26.716Z"
+    },
+    "K.Sales Payment": {
+      "PASS": 4,
+      "FAIL": 1,
+      "BLOCKED": 1,
+      "NOT_TESTED": 0,
+      "notes": "",
+      "at": "2026-07-06T19:50:28.744Z"
+    }
+  }
+}
