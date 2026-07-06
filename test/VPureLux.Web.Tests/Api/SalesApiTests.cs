@@ -46,10 +46,33 @@ public class SalesApiTests : VPureLuxWebTestBase
         var confirm = await Client.PostAsJsonAsync($"/api/sales/orders/{order.Id}/confirm", new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
         confirm.StatusCode.ShouldBe(HttpStatusCode.OK, await confirm.Content.ReadAsStringAsync());
         (await Client.GetAsync($"/api/sales/customers/{context.CustomerId}/purchase-history")).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await Client.GetAsync($"/api/sales/orders/{order.Id}/payment-summary")).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await Client.GetAsync($"/api/sales/orders/{order.Id}/payments")).StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var cancelOrderResponse = await Client.PostAsJsonAsync("/api/sales/orders", OrderInput(context));
         var cancelOrder = await cancelOrderResponse.Content.ReadFromJsonAsync<SalesOrderDto>();
         (await Client.PostAsJsonAsync($"/api/sales/orders/{cancelOrder!.Id}/cancel", new { })).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task SalesOrderPayment_Api_Should_Expose_Read_Model_Routes()
+    {
+        var context = await CreateContextAsync();
+        var create = await Client.PostAsJsonAsync("/api/sales/orders", OrderInput(context));
+        create.StatusCode.ShouldBe(HttpStatusCode.OK, await create.Content.ReadAsStringAsync());
+        var order = await create.Content.ReadFromJsonAsync<SalesOrderDto>();
+        var confirm = await Client.PostAsJsonAsync($"/api/sales/orders/{order!.Id}/confirm", new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        confirm.StatusCode.ShouldBe(HttpStatusCode.OK, await confirm.Content.ReadAsStringAsync());
+
+        var summary = await Client.GetAsync($"/api/sales/orders/{order.Id}/payment-summary");
+        summary.StatusCode.ShouldBe(HttpStatusCode.OK, await summary.Content.ReadAsStringAsync());
+        var summaryDto = await summary.Content.ReadFromJsonAsync<SalesOrderPaymentSummaryDto>();
+        summaryDto!.PaymentStatus.ShouldBe(SalesOrderReceivableStatus.Unpaid);
+
+        var payments = await Client.GetAsync($"/api/sales/orders/{order.Id}/payments");
+        payments.StatusCode.ShouldBe(HttpStatusCode.OK, await payments.Content.ReadAsStringAsync());
+        var paymentDtos = await payments.Content.ReadFromJsonAsync<SalesOrderPaymentDto[]>();
+        paymentDtos.ShouldBeEmpty();
     }
 
     [Fact]

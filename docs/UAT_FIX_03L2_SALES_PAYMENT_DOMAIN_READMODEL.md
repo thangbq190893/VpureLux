@@ -152,3 +152,34 @@ This batch does not change:
 - `dotnet test test/VPureLux.Application.Tests/VPureLux.Application.Tests.csproj --no-build --filter "FullyQualifiedName~Sales" -m:1` - completed with no matching Sales tests in that project
 
 Manual browser smoke is deferred/not run because this batch has no UI changes.
+
+## 03L.2.1 Application coverage
+
+Added focused integration coverage in `VPureLux.EntityFrameworkCore.Tests` because the `VPureLux.Application.Tests` project has no existing Sales application-service tests and uses the domain test module rather than the EF-backed Sales workflow setup.
+
+Tests added:
+
+- `SalesOrderPayment_Read_Model_Should_Derive_Unpaid_Partial_Paid_And_Ignore_Voided`
+- `SalesOrderPayment_History_Should_Return_Expected_Order`
+
+Coverage:
+
+- `GetPaymentSummaryAsync` returns unpaid when no payment rows exist
+- posted payment rows derive partially paid and paid statuses
+- voided rows do not contribute to paid amount
+- `GetPaymentsAsync` returns history newest first
+- `SalesOrderDto.PaymentSummary` is populated in detail and list reads
+- payment rows do not change revenue/cost/profit snapshots or inventory transaction references
+
+HTTP API endpoint smoke coverage was added to the existing Sales API route test for:
+
+- `/api/sales/orders/{id}/payment-summary`
+- `/api/sales/orders/{id}/payments`
+
+No production behavior was changed in 03L.2.1.
+
+03L.2.1 validation:
+
+- `dotnet build VPureLux.slnx --no-restore -m:2` - passed
+- `dotnet test test/VPureLux.EntityFrameworkCore.Tests/VPureLux.EntityFrameworkCore.Tests.csproj --no-build --filter "FullyQualifiedName~SalesOrderPayment" -m:1` - passed, 2 tests
+- `dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build --filter "FullyQualifiedName~SalesOrderPayment" -m:1` - passed, 1 test
