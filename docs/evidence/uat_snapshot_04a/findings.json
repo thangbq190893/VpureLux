@@ -1,0 +1,367 @@
+{
+  "scenarios": [
+    {
+      "id": "A1",
+      "module": "Global/Shell",
+      "scenario": "Login",
+      "result": "PASS",
+      "notes": "Logged in as admin in 4491ms",
+      "evidence": "docs/evidence/uat_snapshot_04a/01-login-home.png",
+      "at": "2026-07-06T19:20:23.897Z"
+    },
+    {
+      "id": "A3",
+      "module": "Global/Shell",
+      "scenario": "Dashboard/home",
+      "result": "PASS",
+      "notes": "Home loaded",
+      "evidence": "docs/evidence/uat_snapshot_04a/01b-home-dashboard.png",
+      "at": "2026-07-06T19:20:26.150Z"
+    },
+    {
+      "id": "A4",
+      "module": "Global/Shell",
+      "scenario": "Left menu structure",
+      "result": "PASS",
+      "notes": "Checked body text for menu labels",
+      "evidence": "",
+      "at": "2026-07-06T19:20:26.152Z"
+    },
+    {
+      "id": "A5",
+      "module": "Global/Shell",
+      "scenario": "Inventory submenu",
+      "result": "PASS",
+      "notes": "Inventory hub loaded",
+      "evidence": "docs/evidence/uat_snapshot_04a/01c-inventory-hub.png",
+      "at": "2026-07-06T19:20:28.773Z"
+    },
+    {
+      "id": "A6",
+      "module": "Global/Shell",
+      "scenario": "Sales menu",
+      "result": "PASS",
+      "notes": "Sales list loaded",
+      "evidence": "docs/evidence/uat_snapshot_04a/01d-sales-list.png",
+      "at": "2026-07-06T19:20:31.151Z"
+    },
+    {
+      "id": "A7",
+      "module": "Global/Shell",
+      "scenario": "BOM menu title",
+      "result": "PASS",
+      "notes": "This website uses cookies to ensure you get the best experience on the website.If you continue to browse, then you agree to our Cookie Policy and Privacy Policy.\nAccept\nVPureLux\nTrang chủ\nBảng điều kh",
+      "evidence": "docs/evidence/uat_snapshot_04a/01e-bom-landing.png",
+      "at": "2026-07-06T19:20:33.596Z"
+    },
+    {
+      "id": "A8",
+      "module": "Global/Shell",
+      "scenario": "Vietnamese localization",
+      "result": "PASS",
+      "notes": "Spot-check Vietnamese labels",
+      "evidence": "",
+      "at": "2026-07-06T19:20:33.597Z"
+    },
+    {
+      "id": "A2",
+      "module": "Global/Shell",
+      "scenario": "Logout",
+      "result": "NOT TESTED",
+      "notes": "Skipped to preserve session for workflow audit",
+      "evidence": "",
+      "at": "2026-07-06T19:20:33.599Z"
+    },
+    {
+      "id": "A9",
+      "module": "Global/Shell",
+      "scenario": "Breadcrumb/page title",
+      "result": "NOT TESTED",
+      "notes": "Deferred to UI consistency pass",
+      "evidence": "",
+      "at": "2026-07-06T19:20:33.599Z"
+    },
+    {
+      "id": "A10",
+      "module": "Global/Shell",
+      "scenario": "Dropdowns not clipped",
+      "result": "NOT TESTED",
+      "notes": "Requires interactive BOM/Sales create",
+      "evidence": "",
+      "at": "2026-07-06T19:20:33.600Z"
+    },
+    {
+      "id": "A11",
+      "module": "Global/Shell",
+      "scenario": "No fixed-height clipping",
+      "result": "NOT TESTED",
+      "notes": "Requires line editor pages",
+      "evidence": "",
+      "at": "2026-07-06T19:20:33.600Z"
+    },
+    {
+      "id": "A12",
+      "module": "Global/Shell",
+      "scenario": "Empty state and alert style",
+      "result": "NOT TESTED",
+      "notes": "Deferred",
+      "evidence": "",
+      "at": "2026-07-06T19:20:33.600Z"
+    },
+    {
+      "id": "B1",
+      "module": "Catalog",
+      "scenario": "Product list loads",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a/02-catalog-product-list.png",
+      "at": "2026-07-06T19:20:36.011Z"
+    },
+    {
+      "id": "B3",
+      "module": "Catalog",
+      "scenario": "Create product auto code hint",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a/02-catalog-product-create.png",
+      "at": "2026-07-06T19:20:38.482Z"
+    },
+    {
+      "id": "B3-save",
+      "module": "Catalog",
+      "scenario": "Product save generates PROD code",
+      "result": "PASS",
+      "notes": "PROD-202607070001",
+      "evidence": "docs/evidence/uat_snapshot_04a/02-catalog-product-created.png",
+      "at": "2026-07-06T19:20:41.856Z"
+    },
+    {
+      "id": "C1",
+      "module": "Catalog",
+      "scenario": "Vật tư list loads",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a/02-catalog-component-list.png",
+      "at": "2026-07-06T19:20:44.755Z"
+    },
+    {
+      "id": "C3",
+      "module": "Catalog",
+      "scenario": "Create Vật tư auto code + wording",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a/02-catalog-component-create.png",
+      "at": "2026-07-06T19:20:47.254Z"
+    },
+    {
+      "id": "C3-save",
+      "module": "Catalog",
+      "scenario": "Vật tư save generates MAT code",
+      "result": "PASS",
+      "notes": "MAT-202607070001",
+      "evidence": "docs/evidence/uat_snapshot_04a/02-catalog-component-created.png",
+      "at": "2026-07-06T19:20:50.456Z"
+    },
+    {
+      "id": "D1",
+      "module": "BOM",
+      "scenario": "BOM landing table style",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a/03-bom-landing.png",
+      "at": "2026-07-06T19:20:57.890Z"
+    },
+    {
+      "id": "E1",
+      "module": "Pricing",
+      "scenario": "Product pricing list",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a/03-pricing-products.png",
+      "at": "2026-07-06T19:20:57.891Z"
+    },
+    {
+      "id": "F2-1",
+      "module": "Inventory",
+      "scenario": "Receipt LotNo auto hint",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a/04-inventory-receipt-auto-lot.png",
+      "at": "2026-07-06T19:21:00.363Z"
+    },
+    {
+      "id": "F4-1",
+      "module": "Inventory",
+      "scenario": "Adjustment count-first UI",
+      "result": "PASS",
+      "notes": "Page loaded",
+      "evidence": "docs/evidence/uat_snapshot_04a/04-inventory-adjustment.png",
+      "at": "2026-07-06T19:21:03.215Z"
+    },
+    {
+      "id": "F5-3",
+      "module": "Inventory",
+      "scenario": "Ledger filters page",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a/05-inventory-ledger-source-reference.png",
+      "at": "2026-07-06T19:21:06.667Z"
+    },
+    {
+      "id": "F5-2",
+      "module": "Inventory",
+      "scenario": "Lots page",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a/04-inventory-lots.png",
+      "at": "2026-07-06T19:21:09.465Z"
+    },
+    {
+      "id": "F1-1",
+      "module": "Inventory",
+      "scenario": "Warehouse list",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a/04-inventory-warehouses.png",
+      "at": "2026-07-06T19:21:12.163Z"
+    },
+    {
+      "id": "G1-3",
+      "module": "Sales/Payment",
+      "scenario": "Sales list payment columns",
+      "result": "PASS",
+      "notes": "Case-insensitive header check",
+      "evidence": "docs/evidence/uat_snapshot_04a/07-sales-confirm-payment-summary.png",
+      "at": "2026-07-06T19:22:28.158Z"
+    },
+    {
+      "id": "G1-4",
+      "module": "Sales/Payment",
+      "scenario": "Payment status labels in UI",
+      "result": "PASS",
+      "notes": "Chưa thanh toán",
+      "evidence": "",
+      "at": "2026-07-06T19:22:28.160Z"
+    },
+    {
+      "id": "G1-5",
+      "module": "Sales/Payment",
+      "scenario": "Payment status filter UI",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a/06-sales-list-filter.png",
+      "at": "2026-07-06T19:21:14.542Z"
+    },
+    {
+      "id": "G2-1",
+      "module": "Sales/Payment",
+      "scenario": "Sales create draft page",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a/06-sales-create-draft.png",
+      "at": "2026-07-06T19:21:17.397Z"
+    },
+    {
+      "id": "H5",
+      "module": "Customer/Receivable",
+      "scenario": "Customer History receivable summary",
+      "result": "PASS",
+      "notes": "CustomerId=6a01f8fe-2659-023e-bd19-3a2230bda76f",
+      "evidence": "docs/evidence/uat_snapshot_04a/08-customer-history-receivable-selected.png",
+      "at": "2026-07-06T19:24:11.486Z"
+    },
+    {
+      "id": "H1",
+      "module": "Customer/Receivable",
+      "scenario": "Customer list",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a/08-customer-list.png",
+      "at": "2026-07-06T19:21:22.245Z"
+    },
+    {
+      "id": "I1",
+      "module": "Audit",
+      "scenario": "Audit list",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a/09-audit-list.png",
+      "at": "2026-07-06T19:21:24.683Z"
+    },
+    {
+      "id": "I4",
+      "module": "Audit",
+      "scenario": "Audit export page",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a/09-audit-export.png",
+      "at": "2026-07-06T19:21:27.325Z"
+    },
+    {
+      "id": "G5-1",
+      "module": "Sales/Payment",
+      "scenario": "Payment summary on details",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a/07-sales-details-payment.png",
+      "at": "2026-07-06T19:22:30.845Z"
+    },
+    {
+      "id": "G5-2",
+      "module": "Sales/Payment",
+      "scenario": "Add payment form visibility",
+      "result": "PASS",
+      "notes": "Ghi nhận thanh toán form visible on confirmed order",
+      "evidence": "",
+      "at": "2026-07-06T19:22:30.846Z"
+    },
+    {
+      "id": "H6",
+      "module": "Customer/Receivable",
+      "scenario": "Link to filtered Sales List",
+      "result": "PASS",
+      "notes": "",
+      "evidence": "docs/evidence/uat_snapshot_04a/08-customer-history-receivable-selected.png",
+      "at": "2026-07-06T19:24:11.487Z"
+    }
+  ],
+  "issues": [
+    {
+      "id": "LOC-LOGIN-001",
+      "severity": "MEDIUM",
+      "module": "Global/Shell",
+      "url": "http://180.93.99.150/Account/Login",
+      "issue": "Login form labels remain in English",
+      "steps": "Open /Account/Login",
+      "expected": "Vietnamese username/password labels",
+      "actual": "User name or email address / Password / Remember me / Forgot password?",
+      "evidence": "docs/evidence/uat_snapshot_04a/00-login-form.png",
+      "suggestedFix": "Localize Volo.Abp.Account login resources in vi-VN"
+    },
+    {
+      "id": "LOC-COOKIE-001",
+      "severity": "LOW",
+      "module": "Global/Shell",
+      "url": "http://180.93.99.150/",
+      "issue": "Cookie consent banner in English on authenticated pages",
+      "steps": "Load home or any page after login",
+      "expected": "Vietnamese cookie notice",
+      "actual": "English banner with Accept button",
+      "evidence": "docs/evidence/uat_snapshot_04a/01b-home-dashboard.png",
+      "suggestedFix": "Localize cookie policy banner text"
+    }
+  ],
+  "testData": [
+    {
+      "entity": "Product",
+      "code": "PROD-202607070001",
+      "name": "UAT04A_20260707_0210 Product"
+    },
+    {
+      "entity": "Vật tư",
+      "code": "MAT-202607070001",
+      "name": "UAT04A_20260707_0210 Material"
+    }
+  ],
+  "performance": []
+}
