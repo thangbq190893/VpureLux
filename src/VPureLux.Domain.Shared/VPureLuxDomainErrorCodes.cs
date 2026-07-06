@@ -60,6 +60,9 @@ public static class VPureLuxDomainErrorCodes
 
     public const string AuditPayloadTooLarge = "AUDIT_001";
 
+    public const string BusinessCodeGenerationUnavailable = "BCODE_001";
+    public const string BusinessCodeGenerationRetryLimitExceeded = "BCODE_002";
+
     public const string ValidationFailed = "COM_001";
     public const string EntityNotFound = "COM_002";
     public const string AccessDenied = "COM_003";

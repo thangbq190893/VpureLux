@@ -567,6 +567,8 @@
     "Audit:BomChanges": "Thay đổi định mức vật tư",
     "Audit:InventoryActions": "Thao tác kho",
     "Audit:SalesActions": "Thao tác bán hàng",
-    "AUDIT_001": "Dữ liệu nhật ký vượt quá giới hạn 32 KB."
+    "AUDIT_001": "Dữ liệu nhật ký vượt quá giới hạn 32 KB.",
+    "BCODE_001": "Không thể khóa bộ sinh mã tự động. Vui lòng thử lại.",
+    "BCODE_002": "Không thể sinh mã tự động không trùng sau nhiều lần thử. Vui lòng thử lại."
   }
 }
