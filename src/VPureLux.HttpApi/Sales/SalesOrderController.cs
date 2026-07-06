@@ -42,6 +42,14 @@ public class SalesOrderController : AbpControllerBase
     [HttpPost("{id:guid}/cancel")]
     public Task CancelAsync(Guid id) => _appService.CancelAsync(id);
 
+    [HttpGet("{id:guid}/payment-summary")]
+    public Task<SalesOrderPaymentSummaryDto> GetPaymentSummaryAsync(Guid id) =>
+        _appService.GetPaymentSummaryAsync(id);
+
+    [HttpGet("{id:guid}/payments")]
+    public Task<List<SalesOrderPaymentDto>> GetPaymentsAsync(Guid id) =>
+        _appService.GetPaymentsAsync(id);
+
     [HttpGet("/api/sales/customers/{customerId:guid}/purchase-history")]
     public Task<List<CustomerPurchaseHistoryDto>> GetCustomerHistoryAsync(Guid customerId) =>
         _appService.GetCustomerHistoryAsync(customerId);

@@ -88,6 +88,43 @@ public class SalesDomainTests
         Should.Throw<BusinessException>(() => order.AddLine(Guid.NewGuid(), Guid.NewGuid(), Guid.Empty, 1, null, null, 1, null));
     }
 
+    [Fact]
+    public void Payment_Summary_Should_Derive_Receivable_Status()
+    {
+        SalesOrderPaymentSummary.From(1_000, 0).PaymentStatus.ShouldBe(SalesOrderReceivableStatus.Unpaid);
+        SalesOrderPaymentSummary.From(1_000, 250).PaymentStatus.ShouldBe(SalesOrderReceivableStatus.PartiallyPaid);
+        SalesOrderPaymentSummary.From(1_000, 1_000).PaymentStatus.ShouldBe(SalesOrderReceivableStatus.Paid);
+        SalesOrderPaymentSummary.From(1_000, 1_100).PaymentStatus.ShouldBe(SalesOrderReceivableStatus.Overpaid);
+        SalesOrderPaymentSummary.From(1_000, 250).RemainingAmount.ShouldBe(750);
+        SalesOrderPaymentSummary.From(1_000, 1_100).RemainingAmount.ShouldBe(-100);
+    }
+
+    [Fact]
+    public void SalesOrderPayment_Should_Default_To_Posted_History_Row()
+    {
+        var orderId = Guid.NewGuid();
+        var customerId = Guid.NewGuid();
+        var payment = new SalesOrderPayment(
+            Guid.NewGuid(),
+            orderId,
+            customerId,
+            500,
+            DateTime.UtcNow,
+            SalesPaymentMethod.BankTransfer,
+            "BANK-001",
+            "First installment",
+            "pay-key");
+
+        payment.SalesOrderId.ShouldBe(orderId);
+        payment.CustomerId.ShouldBe(customerId);
+        payment.Amount.ShouldBe(500);
+        payment.ReferenceNo.ShouldBe("BANK-001");
+        payment.Note.ShouldBe("First installment");
+        payment.IdempotencyKey.ShouldBe("pay-key");
+        payment.Status.ShouldBe(SalesOrderPaymentStatus.Posted);
+        payment.ContributesToReceivable.ShouldBeTrue();
+    }
+
     private static SalesOrder ConfirmedOrder(string key = "key")
     {
         var order = Order();

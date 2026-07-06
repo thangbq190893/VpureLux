@@ -34,6 +34,7 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
     private readonly IInventoryBalanceRepository _balances;
     private readonly InventoryManager _inventoryManager;
     private readonly SalesManager _salesManager;
+    private readonly ISalesOrderPaymentRepository _payments;
     private readonly SalesApplicationMapper _mapper;
 
     public SalesOrderAppService(
@@ -51,6 +52,7 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
         IInventoryBalanceRepository balances,
         InventoryManager inventoryManager,
         SalesManager salesManager,
+        ISalesOrderPaymentRepository payments,
         SalesApplicationMapper mapper)
     {
         _salesOrders = salesOrders;
@@ -67,6 +69,7 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
         _balances = balances;
         _inventoryManager = inventoryManager;
         _salesManager = salesManager;
+        _payments = payments;
         _mapper = mapper;
     }
 
@@ -76,15 +79,17 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
         var page = await _salesOrders.GetListAsync(
             input.CustomerId, input.Status, input.Sorting, input.MaxResultCount, input.SkipCount);
         var visibility = await GetFinancialVisibilityAsync();
+        var summaries = await GetPaymentSummariesAsync(page);
         return new PagedResultDto<SalesOrderDto>(
             count,
-            page.Select(x => _mapper.ToDto(x, visibility.Cost, visibility.Profit)).ToList());
+            page.Select(x => _mapper.ToDto(x, visibility.Cost, visibility.Profit, summaries[x.Id])).ToList());
     }
 
     public async Task<SalesOrderDto> GetAsync(Guid id)
     {
         var visibility = await GetFinancialVisibilityAsync();
-        return _mapper.ToDto(await GetOrderAsync(id), visibility.Cost, visibility.Profit);
+        var order = await GetOrderAsync(id);
+        return _mapper.ToDto(order, visibility.Cost, visibility.Profit, await GetPaymentSummaryAsync(order));
     }
 
     [Authorize(VPureLuxPermissions.Sales.Create)]
@@ -170,6 +175,19 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
         var order = await GetOrderAsync(id);
         order.CancelDraft(Clock.Now);
         await _salesOrders.UpdateAsync(order, autoSave: true);
+    }
+
+    public async Task<SalesOrderPaymentSummaryDto> GetPaymentSummaryAsync(Guid id)
+    {
+        var order = await GetOrderAsync(id);
+        return _mapper.ToDto(await GetPaymentSummaryAsync(order));
+    }
+
+    public async Task<List<SalesOrderPaymentDto>> GetPaymentsAsync(Guid id)
+    {
+        var order = await GetOrderAsync(id);
+        var payments = await _payments.GetListBySalesOrderIdAsync(order.Id);
+        return payments.Select(_mapper.ToDto).ToList();
     }
 
     [Authorize(VPureLuxPermissions.Sales.ViewCustomerHistory)]
@@ -357,6 +375,24 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
     private async Task<SalesOrder> GetOrderAsync(Guid id) =>
         await _salesOrders.FindAsync(id, includeDetails: true)
         ?? throw new BusinessException(VPureLuxDomainErrorCodes.SalesOrderNotFound);
+
+    private async Task<Dictionary<Guid, SalesOrderPaymentSummary>> GetPaymentSummariesAsync(List<SalesOrder> orders)
+    {
+        var paidAmounts = await _payments.GetPostedPaidAmountsAsync(orders.Select(x => x.Id));
+        return orders.ToDictionary(
+            x => x.Id,
+            x => SalesOrderPaymentSummary.From(
+                x.TotalRevenueAmount,
+                paidAmounts.TryGetValue(x.Id, out var paidAmount) ? paidAmount : 0));
+    }
+
+    private async Task<SalesOrderPaymentSummary> GetPaymentSummaryAsync(SalesOrder order)
+    {
+        var paidAmounts = await _payments.GetPostedPaidAmountsAsync([order.Id]);
+        return SalesOrderPaymentSummary.From(
+            order.TotalRevenueAmount,
+            paidAmounts.TryGetValue(order.Id, out var paidAmount) ? paidAmount : 0);
+    }
 
     private async Task<(bool Cost, bool Profit)> GetFinancialVisibilityAsync() =>
         ((await AuthorizationService.AuthorizeAsync(VPureLuxPermissions.Sales.ViewCost)).Succeeded,

@@ -32,3 +32,14 @@ public interface ISalesOrderRepository : IRepository<SalesOrder, Guid>
         CancellationToken cancellationToken = default);
     Task<List<CustomerPurchaseHistoryRecord>> GetCustomerPurchaseHistoryAsync(Guid customerId, CancellationToken cancellationToken = default);
 }
+
+public interface ISalesOrderPaymentRepository : IRepository<SalesOrderPayment, Guid>
+{
+    Task<List<SalesOrderPayment>> GetListBySalesOrderIdAsync(
+        Guid salesOrderId,
+        CancellationToken cancellationToken = default);
+
+    Task<Dictionary<Guid, decimal>> GetPostedPaidAmountsAsync(
+        IEnumerable<Guid> salesOrderIds,
+        CancellationToken cancellationToken = default);
+}

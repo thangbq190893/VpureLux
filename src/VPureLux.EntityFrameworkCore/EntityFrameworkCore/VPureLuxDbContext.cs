@@ -57,6 +57,7 @@ public class VPureLuxDbContext :
     public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
     public DbSet<InventoryBalance> InventoryBalances { get; set; }
     public DbSet<SalesOrder> SalesOrders { get; set; }
+    public DbSet<SalesOrderPayment> SalesOrderPayments { get; set; }
     public DbSet<NumberSequence> NumberSequences { get; set; }
     public DbSet<BusinessAuditLog> BusinessAuditLogs { get; set; }
 
@@ -140,6 +141,7 @@ public class VPureLuxDbContext :
         builder.Ignore<SalesOrderLine>();
         builder.Ignore<SalesOrderBomSnapshotItem>();
         builder.ApplyConfiguration(new SalesOrderConfiguration());
+        builder.ApplyConfiguration(new SalesOrderPaymentConfiguration());
         builder.ApplyConfiguration(new NumberSequenceConfiguration());
         builder.ApplyConfiguration(new BusinessAuditLogConfiguration());
 
@@ -152,6 +154,9 @@ public class VPureLuxDbContext :
                 .IsConcurrencyToken()
                 .ValueGeneratedNever();
             builder.Entity<SalesOrder>().Property(x => x.RowVersion)
+                .IsConcurrencyToken()
+                .ValueGeneratedNever();
+            builder.Entity<SalesOrderPayment>().Property(x => x.RowVersion)
                 .IsConcurrencyToken()
                 .ValueGeneratedNever();
         }

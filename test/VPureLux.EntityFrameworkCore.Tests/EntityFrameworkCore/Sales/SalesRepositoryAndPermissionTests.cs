@@ -58,6 +58,20 @@ public class SalesRepositoryAndPermissionTests : VPureLuxEntityFrameworkCoreTest
             line.FindProperty(nameof(SalesOrderLine.MarginPercent))!.GetScale().ShouldBe(4);
             line.FindProperty(nameof(SalesOrderLine.OverrideReason))!.GetColumnType().ShouldBe("nvarchar(500)");
             line.GetForeignKeys().Where(x => !x.IsOwnership).ShouldAllBe(x => x.DeleteBehavior == DeleteBehavior.Restrict);
+            var payment = db.Model.FindEntityType(typeof(SalesOrderPayment))!;
+            payment.GetTableName().ShouldBe("AppSalesOrderPayments");
+            payment.FindProperty(nameof(SalesOrderPayment.Amount))!.GetPrecision().ShouldBe(SalesConsts.MoneyPrecision);
+            payment.FindProperty(nameof(SalesOrderPayment.Amount))!.GetScale().ShouldBe(SalesConsts.MoneyScale);
+            payment.FindProperty(nameof(SalesOrderPayment.PaymentMethod))!.GetProviderClrType().ShouldBe(typeof(byte));
+            payment.FindProperty(nameof(SalesOrderPayment.Status))!.GetProviderClrType().ShouldBe(typeof(byte));
+            payment.FindProperty(nameof(SalesOrderPayment.ReferenceNo))!.GetMaxLength().ShouldBe(SalesConsts.MaxPaymentReferenceNoLength);
+            payment.FindProperty(nameof(SalesOrderPayment.Note))!.GetColumnType().ShouldBe("nvarchar(500)");
+            payment.FindProperty(nameof(SalesOrderPayment.RowVersion))!.IsConcurrencyToken.ShouldBeTrue();
+            payment.GetIndexes().Single(x => x.GetDatabaseName() == "IX_SalesOrderPayments_SalesOrderId");
+            payment.GetIndexes().Single(x => x.GetDatabaseName() == "IX_SalesOrderPayments_CustomerId_PaymentDate");
+            payment.GetIndexes().Single(x => x.GetDatabaseName() == SalesOrderPaymentConfiguration.IdempotencyKeyUniqueIndexName)
+                .IsUnique.ShouldBeTrue();
+            payment.GetForeignKeys().ShouldAllBe(x => x.DeleteBehavior == DeleteBehavior.Restrict);
             db.Model.FindEntityType(typeof(NumberSequence))!.GetTableName().ShouldBe("AppNumberSequences");
         });
     }

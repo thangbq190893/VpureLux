@@ -32,6 +32,7 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     private readonly IBomAppService _boms;
     private readonly IComponentSuggestedSellingPriceAppService _componentPrices;
     private readonly IProductSuggestedPriceAppService _prices;
+    private readonly ISalesOrderPaymentRepository _payments;
 
     public SalesWorkflowTests()
     {
@@ -47,6 +48,7 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         _boms = GetRequiredService<IBomAppService>();
         _componentPrices = GetRequiredService<IComponentSuggestedSellingPriceAppService>();
         _prices = GetRequiredService<IProductSuggestedPriceAppService>();
+        _payments = GetRequiredService<ISalesOrderPaymentRepository>();
     }
 
     [Fact]
@@ -273,6 +275,67 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     [Fact]
+    public async Task Payment_Read_Model_Should_Derive_Receivable_Status_And_Preserve_Sales_Posting()
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 500);
+        var (product, _) = await CreateProductForComponentAsync(component);
+        var order = await _sales.CreateAsync(Input(context, product.Id, 2, 1_000));
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var confirmed = await _sales.GetAsync(order.Id);
+        var line = confirmed.Lines.Single();
+        var transactionCountBeforePayment = await WithUnitOfWorkAsync(async () =>
+        {
+            var db = await GetRequiredService<IDbContextProvider<VPureLuxDbContext>>().GetDbContextAsync();
+            return await db.InventoryTransactions.CountAsync();
+        });
+
+        var unpaid = await _sales.GetPaymentSummaryAsync(order.Id);
+        unpaid.TotalAmount.ShouldBe(2_000);
+        unpaid.PaidAmount.ShouldBe(0);
+        unpaid.RemainingAmount.ShouldBe(2_000);
+        unpaid.PaymentStatus.ShouldBe(SalesOrderReceivableStatus.Unpaid);
+
+        await InsertPaymentAsync(order.Id, context.Customer.Id, 500, "PAY-PARTIAL");
+        var partial = await _sales.GetAsync(order.Id);
+        partial.PaymentSummary.PaidAmount.ShouldBe(500);
+        partial.PaymentSummary.RemainingAmount.ShouldBe(1_500);
+        partial.PaymentSummary.PaymentStatus.ShouldBe(SalesOrderReceivableStatus.PartiallyPaid);
+
+        await InsertPaymentAsync(order.Id, context.Customer.Id, 1_500, "PAY-PAID");
+        var paid = await _sales.GetAsync(order.Id);
+        paid.PaymentSummary.PaidAmount.ShouldBe(2_000);
+        paid.PaymentSummary.RemainingAmount.ShouldBe(0);
+        paid.PaymentSummary.PaymentStatus.ShouldBe(SalesOrderReceivableStatus.Paid);
+
+        await InsertPaymentAsync(order.Id, context.Customer.Id, 100, "PAY-OVER");
+        var overpaid = await _sales.GetPaymentSummaryAsync(order.Id);
+        overpaid.PaidAmount.ShouldBe(2_100);
+        overpaid.RemainingAmount.ShouldBe(-100);
+        overpaid.PaymentStatus.ShouldBe(SalesOrderReceivableStatus.Overpaid);
+
+        var payments = await _sales.GetPaymentsAsync(order.Id);
+        payments.Count.ShouldBe(3);
+        payments.ShouldAllBe(x => x.Status == SalesOrderPaymentStatus.Posted);
+        payments.Select(x => x.ReferenceNo).ShouldContain("PAY-PARTIAL");
+
+        var listed = await _sales.GetListAsync(new GetSalesOrderListInput { CustomerId = context.Customer.Id });
+        listed.Items.Single(x => x.Id == order.Id).PaymentSummary.PaymentStatus.ShouldBe(SalesOrderReceivableStatus.Overpaid);
+
+        var reloaded = await _sales.GetAsync(order.Id);
+        reloaded.TotalRevenueAmount.ShouldBe(confirmed.TotalRevenueAmount);
+        reloaded.TotalCostAmount.ShouldBe(confirmed.TotalCostAmount);
+        reloaded.TotalProfitAmount.ShouldBe(confirmed.TotalProfitAmount);
+        reloaded.Lines.Single().InventoryTransactionId.ShouldBe(line.InventoryTransactionId);
+        var transactionCountAfterPayment = await WithUnitOfWorkAsync(async () =>
+        {
+            var db = await GetRequiredService<IDbContextProvider<VPureLuxDbContext>>().GetDbContextAsync();
+            return await db.InventoryTransactions.CountAsync();
+        });
+        transactionCountAfterPayment.ShouldBe(transactionCountBeforePayment);
+    }
+
+    [Fact]
     public async Task Inventory_Failure_Should_Leave_Order_Draft_Without_Snapshot()
     {
         var context = await CreateBaseAsync();
@@ -453,6 +516,23 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
                     ReceivedAt = DateTime.UtcNow
                 }
             ]
+        });
+    }
+
+    private async Task InsertPaymentAsync(Guid salesOrderId, Guid customerId, decimal amount, string referenceNo)
+    {
+        await WithUnitOfWorkAsync(async () =>
+        {
+            await _payments.InsertAsync(new SalesOrderPayment(
+                Guid.NewGuid(),
+                salesOrderId,
+                customerId,
+                amount,
+                DateTime.UtcNow,
+                SalesPaymentMethod.Cash,
+                referenceNo,
+                "Test payment",
+                Guid.NewGuid().ToString("N")), autoSave: true);
         });
     }
 

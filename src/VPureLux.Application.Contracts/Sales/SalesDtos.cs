@@ -37,6 +37,27 @@ public class SalesOrderLineDto : EntityDto<Guid>
     public List<SalesOrderBomSnapshotItemDto> BomSnapshotItems { get; set; } = new();
 }
 
+public class SalesOrderPaymentSummaryDto
+{
+    public decimal TotalAmount { get; set; }
+    public decimal PaidAmount { get; set; }
+    public decimal RemainingAmount { get; set; }
+    public SalesOrderReceivableStatus PaymentStatus { get; set; } = SalesOrderReceivableStatus.Unpaid;
+}
+
+public class SalesOrderPaymentDto : EntityDto<Guid>
+{
+    public Guid SalesOrderId { get; set; }
+    public Guid CustomerId { get; set; }
+    public decimal Amount { get; set; }
+    public DateTime PaymentDate { get; set; }
+    public SalesPaymentMethod PaymentMethod { get; set; }
+    public string ReferenceNo { get; set; } = string.Empty;
+    public string? Note { get; set; }
+    public SalesOrderPaymentStatus Status { get; set; }
+    public string? IdempotencyKey { get; set; }
+}
+
 public class SalesOrderDto : EntityDto<Guid>
 {
     public string OrderNo { get; set; } = string.Empty;
@@ -55,6 +76,7 @@ public class SalesOrderDto : EntityDto<Guid>
     public decimal TotalRevenueAmount { get; set; }
     public decimal? TotalCostAmount { get; set; }
     public decimal? TotalProfitAmount { get; set; }
+    public SalesOrderPaymentSummaryDto PaymentSummary { get; set; } = new();
     public List<SalesOrderLineDto> Lines { get; set; } = new();
 }
 
