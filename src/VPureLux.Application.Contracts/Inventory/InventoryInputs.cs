@@ -29,8 +29,8 @@ public class ReceiptLineInput
     public Guid StockItemId { get; set; }
     [Range(typeof(decimal), "0.0001", "99999999999999.9999", ParseLimitsInInvariantCulture = true)]
     public decimal Quantity { get; set; }
-    [Required, StringLength(InventoryConsts.MaxLotNoLength)]
-    public string LotNo { get; set; } = string.Empty;
+    [StringLength(InventoryConsts.MaxLotNoLength)]
+    public string? LotNo { get; set; }
     public DateTime ReceivedAt { get; set; }
     [Range(typeof(decimal), "0.01", "9999999999999999.99", ParseLimitsInInvariantCulture = true)]
     public decimal UnitCost { get; set; }

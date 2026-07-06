@@ -205,11 +205,6 @@ public class AdjustmentModel : VPureLuxPageModel
 
             if (delta > 0)
             {
-                if (string.IsNullOrWhiteSpace(line.LotNo))
-                {
-                    ModelState.AddModelError($"{nameof(CountLines)}[{i}].{nameof(CountAdjustmentLineInput.LotNo)}", L["Inventory:PositiveDeltaLotRequired"]);
-                }
-
                 if (!InventoryPostingUi.TryParseDate(line.ReceivedAtText, out var receivedAt))
                 {
                     ModelState.AddModelError($"{nameof(CountLines)}[{i}].{nameof(CountAdjustmentLineInput.ReceivedAtText)}", L["Inventory:InvalidDateFormat"]);
@@ -226,7 +221,7 @@ public class AdjustmentModel : VPureLuxPageModel
                     {
                         StockItemId = line.StockItemId,
                         Quantity = delta,
-                        LotNo = line.LotNo.Trim(),
+                        LotNo = string.IsNullOrWhiteSpace(line.LotNo) ? null : line.LotNo.Trim(),
                         ReceivedAt = receivedAt,
                         UnitCost = line.UnitCost!.Value
                     });

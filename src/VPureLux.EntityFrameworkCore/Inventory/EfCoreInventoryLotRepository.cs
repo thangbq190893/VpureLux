@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,6 +15,23 @@ public class EfCoreInventoryLotRepository : EfCoreRepository<VPureLuxDbContext, 
 {
     public EfCoreInventoryLotRepository(IDbContextProvider<VPureLuxDbContext> provider) : base(provider) { }
 
+    public async Task<bool> LotNoExistsAsync(string lotNo, CancellationToken cancellationToken = default) =>
+        await (await GetDbSetAsync())
+            .AnyAsync(x => x.LotNo == lotNo, GetCancellationToken(cancellationToken));
+
+    public async Task<int> GetMaxLotNoSequenceAsync(string lotNoPrefix, CancellationToken cancellationToken = default)
+    {
+        var lotNos = await (await GetDbSetAsync())
+            .Where(x => x.LotNo.StartsWith(lotNoPrefix))
+            .Select(x => x.LotNo)
+            .ToListAsync(GetCancellationToken(cancellationToken));
+
+        return lotNos
+            .Select(lotNo => TryParseSequence(lotNo, lotNoPrefix, out var sequence) ? sequence : 0)
+            .DefaultIfEmpty(0)
+            .Max();
+    }
+
     public async Task<List<InventoryLot>> GetAvailableFifoLotsAsync(Guid warehouseId, Guid stockItemId, CancellationToken cancellationToken = default) =>
         await (await GetDbSetAsync()).Where(x => x.WarehouseId == warehouseId && x.StockItemId == stockItemId && x.AvailableQuantity > 0)
             .OrderBy(x => x.ReceivedAt).ThenBy(x => x.CreationTime).ThenBy(x => x.Id)
@@ -25,5 +43,12 @@ public class EfCoreInventoryLotRepository : EfCoreRepository<VPureLuxDbContext, 
         return await query.Where(x => (!warehouseId.HasValue || x.WarehouseId == warehouseId) && (!stockItemId.HasValue || x.StockItemId == stockItemId))
             .OrderBy(x => x.ReceivedAt).ThenBy(x => x.CreationTime).ThenBy(x => x.Id)
             .ToListAsync(GetCancellationToken(cancellationToken));
+    }
+
+    private static bool TryParseSequence(string lotNo, string lotNoPrefix, out int sequence)
+    {
+        sequence = 0;
+        return lotNo.Length > lotNoPrefix.Length &&
+               int.TryParse(lotNo[lotNoPrefix.Length..], NumberStyles.None, CultureInfo.InvariantCulture, out sequence);
     }
 }

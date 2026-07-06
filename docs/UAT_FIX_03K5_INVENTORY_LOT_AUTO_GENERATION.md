@@ -1,0 +1,91 @@
+# UAT Fix 03K.5A - Inventory LotNo Auto Generation
+
+## Reason
+
+03K.2 introduced the shared `IBusinessCodeGenerator`, and 03K.3 applied it to Product and Vật tư codes. This phase applies the same infrastructure to Inventory LotNo generation for receipt-like increase flows so users and PageModels no longer have to supply an internal lot number before posting.
+
+## Phase A Scope
+
+- Backend/Application generation for blank receipt LotNo.
+- Backend/Application generation for blank adjustment-increase LotNo.
+- PageModel validation change so positive count deltas may submit blank LotNo.
+- Focused tests for AppService, repository seed behavior, and Inventory PageModel behavior.
+- Minimal Razor impact only through the create DTO validation metadata; UI layout polish is deferred.
+
+## Generated Prefix And Format
+
+Inventory lot numbers use:
+
+```text
+LOT-{yyyyMMdd}{sequence:D4}
+```
+
+Example:
+
+```text
+LOT-202607060001
+```
+
+Sequence name: `InventoryLot`.
+
+## Backend Generation Behavior
+
+Receipt:
+
+- If `ReceiptLineInput.LotNo` is blank, `InventoryTransactionAppService` generates a LotNo before adding the receipt line.
+- Explicit LotNo values remain supported and are trimmed before posting.
+- Existing received date, quantity, stock item, and unit cost validation remain.
+
+Adjustment:
+
+- Adjustment increase lines use the same receipt-like LotNo generation path.
+- Adjustment decrease lines do not allocate LotNo.
+- Zero-delta adjustment submissions are still blocked before posting and do not allocate LotNo.
+
+The idempotency hash is calculated from the original request before generated LotNo values are applied. This keeps retrying the same blank-LotNo request with the same idempotency key idempotent instead of creating a new generated LotNo and causing a hash conflict.
+
+## Redis, Lock, And DB Seed Usage
+
+Generation uses the existing `IBusinessCodeGenerator`.
+
+- Cache logical key: `Sequence:InventoryLot:{yyyyMMdd}`.
+- Lock key: `VPureLux:SequenceLock:InventoryLot:{yyyyMMdd}`.
+- Cache stores the latest allocated integer.
+- DB seed uses MAX numeric suffix from existing `InventoryLots` where `LotNo` starts with `LOT-{yyyyMMdd}`.
+- COUNT is not used.
+- Collision retry checks broad LotNo existence through `IInventoryLotRepository.LotNoExistsAsync`.
+
+## Explicit LotNo Compatibility
+
+Manual/API/import callers can still pass an explicit LotNo. Existing DB uniqueness remains scoped to `(WarehouseId, StockItemId, LotNo)` and is not changed in this phase.
+
+## Intentionally Not Changed
+
+- No Product/Vật tư code generation changes.
+- No Customer, CustomerGroup, or Warehouse code changes.
+- No Sales, BOM, or Pricing numbering changes.
+- No Inventory posting, FIFO, or costing logic changes.
+- No DB/schema/migration/index changes.
+- No Razor or JavaScript LotNo generation.
+- No LotNo allocation on page GET.
+
+## Tests Run
+
+Validation completed:
+
+```text
+dotnet build VPureLux.slnx --no-restore -m:2 -> passed
+dotnet test test/VPureLux.Application.Tests/VPureLux.Application.Tests.csproj --no-build --filter "FullyQualifiedName~Inventory|FullyQualifiedName~BusinessCode" -m:1 -> passed, 10 tests
+dotnet test test/VPureLux.EntityFrameworkCore.Tests/VPureLux.EntityFrameworkCore.Tests.csproj --no-build --filter "FullyQualifiedName~Inventory" -m:1 -> passed, 22 tests
+dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build --filter "FullyQualifiedName~Inventory" -m:1 -> passed, 55 tests
+git diff --check -> passed
+legacy component wording grep -> no matches
+```
+
+Manual browser smoke was not run in this backend/PageModel phase.
+
+## Deferred To 03K.5B
+
+- Receipt UI polish for showing `Tự động sinh khi lưu`.
+- Adjustment positive-delta UI polish for showing auto LotNo behavior.
+- Any layout, hint, placeholder, or visual affordance improvements.

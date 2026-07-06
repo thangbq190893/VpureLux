@@ -18,6 +18,10 @@ public interface IWarehouseRepository : IRepository<Warehouse, Guid>
 
 public interface IInventoryLotRepository : IRepository<InventoryLot, Guid>
 {
+    Task<bool> LotNoExistsAsync(string lotNo, CancellationToken cancellationToken = default);
+
+    Task<int> GetMaxLotNoSequenceAsync(string lotNoPrefix, CancellationToken cancellationToken = default);
+
     Task<List<InventoryLot>> GetAvailableFifoLotsAsync(
         Guid warehouseId,
         Guid stockItemId,

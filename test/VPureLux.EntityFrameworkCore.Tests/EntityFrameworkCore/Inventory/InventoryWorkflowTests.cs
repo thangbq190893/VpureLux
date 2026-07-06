@@ -1,11 +1,14 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Distributed;
 using Shouldly;
 using VPureLux.Catalog;
 using VPureLux.Catalog.Components;
 using VPureLux.Inventory;
 using Volo.Abp;
+using Volo.Abp.Timing;
 using Xunit;
 
 namespace VPureLux.EntityFrameworkCore.Inventory;
@@ -19,6 +22,8 @@ public class InventoryWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     private readonly IWarehouseAppService _warehouses;
     private readonly IInventoryTransactionAppService _transactions;
     private readonly IInventoryQueryAppService _queries;
+    private readonly IDistributedCache _cache;
+    private readonly IClock _clock;
 
     public InventoryWorkflowTests()
     {
@@ -28,6 +33,8 @@ public class InventoryWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         _warehouses = GetRequiredService<IWarehouseAppService>();
         _transactions = GetRequiredService<IInventoryTransactionAppService>();
         _queries = GetRequiredService<IInventoryQueryAppService>();
+        _cache = GetRequiredService<IDistributedCache>();
+        _clock = GetRequiredService<IClock>();
     }
 
     [Fact]
@@ -110,6 +117,181 @@ public class InventoryWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     [Fact]
+    public async Task Should_Generate_Receipt_LotNo_When_Blank()
+    {
+        await ResetInventoryLotSequenceAsync();
+        var context = await CreateContextAsync();
+
+        var receipt = await _transactions.PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 3,
+                    UnitCost = 100,
+                    ReceivedAt = DateTime.UtcNow
+                }
+            ]
+        });
+
+        receipt.Lines.Single().LotNo.ShouldBe($"LOT-{DatePart()}0001");
+    }
+
+    [Fact]
+    public async Task Should_Seed_Receipt_LotNo_From_Existing_Max_Suffix()
+    {
+        await ResetInventoryLotSequenceAsync();
+        var context = await CreateContextAsync();
+        var datePart = DatePart();
+        await ReceiptAsync(context.WarehouseId, context.StockItemId, 1, 100, $"LOT-{datePart}0003");
+        await ReceiptAsync(context.WarehouseId, context.StockItemId, 1, 100, $"LOT-{datePart}0009");
+
+        var receipt = await _transactions.PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 1,
+                    UnitCost = 100,
+                    ReceivedAt = DateTime.UtcNow
+                }
+            ]
+        });
+
+        receipt.Lines.Single().LotNo.ShouldBe($"LOT-{datePart}0010");
+    }
+
+    [Fact]
+    public async Task Should_Retry_Receipt_LotNo_Collision_From_Cache()
+    {
+        await ResetInventoryLotSequenceAsync();
+        var context = await CreateContextAsync();
+        var datePart = DatePart();
+        await ReceiptAsync(context.WarehouseId, context.StockItemId, 1, 100, $"LOT-{datePart}0001");
+        await _cache.SetStringAsync($"Sequence:InventoryLot:{datePart}", "0");
+
+        var receipt = await _transactions.PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 1,
+                    UnitCost = 100,
+                    ReceivedAt = DateTime.UtcNow
+                }
+            ]
+        });
+
+        receipt.Lines.Single().LotNo.ShouldBe($"LOT-{datePart}0002");
+    }
+
+    [Fact]
+    public async Task Should_Keep_Explicit_Receipt_LotNo()
+    {
+        var context = await CreateContextAsync();
+        var explicitLotNo = Unique("MANUAL-LOT");
+
+        var receipt = await ReceiptAsync(context.WarehouseId, context.StockItemId, 2, 100, explicitLotNo);
+
+        receipt.Lines.Single().LotNo.ShouldBe(explicitLotNo);
+    }
+
+    [Fact]
+    public async Task Should_Generate_Adjustment_Increase_LotNo_When_Blank()
+    {
+        await ResetInventoryLotSequenceAsync();
+        var context = await CreateContextAsync();
+
+        var adjustment = await _transactions.PostAdjustmentAsync(new PostAdjustmentDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Type = InventoryTransactionType.AdjustmentIncrease,
+            Reason = "Count correction",
+            IncreaseLines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 2,
+                    UnitCost = 100,
+                    ReceivedAt = DateTime.UtcNow
+                }
+            ]
+        });
+
+        adjustment.Lines.Single().LotNo.ShouldBe($"LOT-{DatePart()}0001");
+    }
+
+    [Fact]
+    public async Task Should_Not_Generate_LotNo_For_Adjustment_Decrease()
+    {
+        await ResetInventoryLotSequenceAsync();
+        var context = await CreateContextAsync();
+        await ReceiptAsync(context.WarehouseId, context.StockItemId, 5, 100, Unique("LOT-NEG-SEED"));
+
+        var adjustment = await _transactions.PostAdjustmentAsync(new PostAdjustmentDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Type = InventoryTransactionType.AdjustmentDecrease,
+            Reason = "Count decrease",
+            DecreaseLines =
+            [
+                new IssueLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 2
+                }
+            ]
+        });
+
+        adjustment.Lines.Single().LotNo.ShouldBeNull();
+        (await _cache.GetStringAsync($"Sequence:InventoryLot:{DatePart()}")).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Should_Return_Same_Result_For_Idempotent_Blank_LotNo_Receipt()
+    {
+        await ResetInventoryLotSequenceAsync();
+        var context = await CreateContextAsync();
+        var key = Guid.NewGuid().ToString("N");
+        var input = new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = key,
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 1,
+                    UnitCost = 100,
+                    ReceivedAt = DateTime.UtcNow
+                }
+            ]
+        };
+
+        var first = await _transactions.PostReceiptAsync(input);
+        var second = await _transactions.PostReceiptAsync(input);
+
+        second.Id.ShouldBe(first.Id);
+        second.Lines.Single().LotNo.ShouldBe(first.Lines.Single().LotNo);
+    }
+
+    [Fact]
     public async Task Should_Reject_Product_Inventory_Operations()
     {
         var productService = GetRequiredService<VPureLux.Catalog.Products.IProductAppService>();
@@ -175,5 +357,7 @@ public class InventoryWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         _transactions.PostAdjustmentAsync(new PostAdjustmentDto { WarehouseId = warehouseId, IdempotencyKey = Guid.NewGuid().ToString("N"), Type = InventoryTransactionType.AdjustmentIncrease, Reason = "Count correction", IncreaseLines = [new ReceiptLineInput { StockItemId = itemId, Quantity = qty, UnitCost = cost, LotNo = lot, ReceivedAt = DateTime.UtcNow }] });
     private static PostReceiptDto ReceiptInput(Guid warehouseId, Guid itemId, decimal qty, decimal cost, string lot, string key, DateTime? receivedAt = null) =>
         new() { WarehouseId = warehouseId, IdempotencyKey = key, Lines = [new ReceiptLineInput { StockItemId = itemId, Quantity = qty, UnitCost = cost, LotNo = lot, ReceivedAt = receivedAt ?? DateTime.UtcNow }] };
+    private string DatePart() => _clock.Now.Date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+    private Task ResetInventoryLotSequenceAsync() => _cache.RemoveAsync($"Sequence:InventoryLot:{DatePart()}");
     private static string Unique(string prefix) => prefix + Guid.NewGuid().ToString("N")[..8];
 }

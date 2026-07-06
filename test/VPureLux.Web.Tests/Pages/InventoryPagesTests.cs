@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Localization;
 using NSubstitute;
 using Shouldly;
@@ -21,6 +22,7 @@ using VPureLux.Localization;
 using VPureLux.Web.Pages.Inventory;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Application.Dtos;
+using Volo.Abp.Timing;
 using Xunit;
 
 namespace VPureLux.Pages;
@@ -305,6 +307,7 @@ public class InventoryPagesTests : VPureLuxWebTestBase
     [Fact]
     public async Task Adjustment_Count_First_Positive_Delta_Should_Post_Increase()
     {
+        await ResetInventoryLotSequenceAsync();
         var context = await CreateInquiryFilterContextAsync("ADJ-POS");
         var model = CreateAdjustmentModel();
         model.WarehouseId = context.WarehouseId;
@@ -316,7 +319,6 @@ public class InventoryPagesTests : VPureLuxWebTestBase
             {
                 StockItemId = context.StockItemId,
                 CountedQuantity = 3,
-                LotNo = Unique("LOT-ADJ-POS"),
                 ReceivedAtText = "18/06/2026",
                 UnitCost = 12000
             }
@@ -332,11 +334,13 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         transaction.Lines.Single().Quantity.ShouldBe(3);
         transaction.Lines.Single().Direction.ShouldBe(InventoryMovementDirection.Increase);
         transaction.Lines.Single().UnitCost.ShouldBe(12000);
+        transaction.Lines.Single().LotNo.ShouldBe($"LOT-{DatePart()}0001");
     }
 
     [Fact]
     public async Task Adjustment_Count_First_Negative_Delta_Should_Post_Decrease()
     {
+        await ResetInventoryLotSequenceAsync();
         var context = await CreateInquiryFilterContextAsync("ADJ-NEG");
         await GetRequiredService<IInventoryTransactionAppService>().PostReceiptAsync(new PostReceiptDto
         {
@@ -375,6 +379,8 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         transaction.Reason.ShouldBe("Hàng hỏng");
         transaction.Lines.Single().Quantity.ShouldBe(3);
         transaction.Lines.Single().Direction.ShouldBe(InventoryMovementDirection.Decrease);
+        transaction.Lines.Single().LotNo.ShouldBeNull();
+        (await GetRequiredService<IDistributedCache>().GetStringAsync($"Sequence:InventoryLot:{DatePart()}")).ShouldBeNull();
     }
 
     [Fact]
@@ -444,6 +450,7 @@ public class InventoryPagesTests : VPureLuxWebTestBase
     [Fact]
     public async Task Adjustment_Count_First_All_Zero_Delta_Should_Be_Blocked()
     {
+        await ResetInventoryLotSequenceAsync();
         var context = await CreateInquiryFilterContextAsync("ADJ-ZERO");
         await GetRequiredService<IInventoryTransactionAppService>().PostReceiptAsync(new PostReceiptDto
         {
@@ -479,6 +486,7 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         model.ModelState.IsValid.ShouldBeFalse();
         model.ModelState[string.Empty]!.Errors.Single().ErrorMessage
             .ShouldContain(GetRequiredService<IStringLocalizer<VPureLuxResource>>()["Inventory:AdjustmentAllRowsZeroDelta"].Value);
+        (await GetRequiredService<IDistributedCache>().GetStringAsync($"Sequence:InventoryLot:{DatePart()}")).ShouldBeNull();
     }
 
     [Fact]
@@ -642,15 +650,17 @@ public class InventoryPagesTests : VPureLuxWebTestBase
             new AdjustmentModel.CountAdjustmentLineInput
             {
                 StockItemId = context.StockItemId,
-                CountedQuantity = 1
+                CountedQuantity = 1,
+                ReceivedAtText = "not-a-date"
             }
         ];
 
         var result = await model.OnPostAsync();
 
         result.ShouldBeOfType<PageResult>();
-        model.ModelState["CountLines[0].LotNo"]!.Errors.ShouldNotBeEmpty();
+        model.ModelState.ContainsKey("CountLines[0].LotNo").ShouldBeFalse();
         model.ModelState["CountLines[0].UnitCost"]!.Errors.ShouldNotBeEmpty();
+        model.ModelState["CountLines[0].ReceivedAtText"]!.Errors.ShouldNotBeEmpty();
     }
 
     [Fact]
@@ -1521,6 +1531,11 @@ public class InventoryPagesTests : VPureLuxWebTestBase
     }
 
     private static string Unique(string prefix) => prefix + Guid.NewGuid().ToString("N")[..8];
+
+    private string DatePart() => GetRequiredService<IClock>().Now.Date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+
+    private Task ResetInventoryLotSequenceAsync() =>
+        GetRequiredService<IDistributedCache>().RemoveAsync($"Sequence:InventoryLot:{DatePart()}");
 
     private static int CountOccurrences(string value, string token)
     {
