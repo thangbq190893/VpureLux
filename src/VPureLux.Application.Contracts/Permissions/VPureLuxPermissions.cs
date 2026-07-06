@@ -102,6 +102,13 @@ public static class VPureLuxPermissions
         public const string ViewCost = Default + ".ViewCost";
         public const string ViewProfit = Default + ".ViewProfit";
         public const string ViewCustomerHistory = Default + ".ViewCustomerHistory";
+
+        public static class Payments
+        {
+            public const string Default = Sales.Default + ".Payments";
+            public const string View = Default + ".View";
+            public const string Manage = Default + ".Manage";
+        }
     }
 
     public static class Audit

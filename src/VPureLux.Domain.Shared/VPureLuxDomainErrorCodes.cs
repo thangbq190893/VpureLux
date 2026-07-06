@@ -56,6 +56,9 @@ public static class VPureLuxDomainErrorCodes
     public const string SalesOrderNotFound = "SALES_008";
     public const string SalesOverrideReasonRequired = "SALES_009";
     public const string SalesBomMustBePublished = "SALES_010";
+    public const string SalesPaymentRequiresConfirmedOrder = "SALES_011";
+    public const string SalesPaymentOverpaymentNotAllowed = "SALES_012";
+    public const string SalesPaymentIdempotencyConflict = "SALES_013";
     public const string SalesConfirmationIdempotencyConflict = DuplicateConfirmationKey;
 
     public const string AuditPayloadTooLarge = "AUDIT_001";

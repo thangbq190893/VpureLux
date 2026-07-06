@@ -87,6 +87,9 @@ public class VPureLuxPermissionDefinitionProvider : PermissionDefinitionProvider
         sales.AddChild(VPureLuxPermissions.Sales.ViewCost, L("Permission:Sales.ViewCost"));
         sales.AddChild(VPureLuxPermissions.Sales.ViewProfit, L("Permission:Sales.ViewProfit"));
         sales.AddChild(VPureLuxPermissions.Sales.ViewCustomerHistory, L("Permission:Sales.ViewCustomerHistory"));
+        var salesPayments = sales.AddChild(VPureLuxPermissions.Sales.Payments.Default, L("Permission:Sales.Payments"));
+        salesPayments.AddChild(VPureLuxPermissions.Sales.Payments.View, L("Permission:Sales.Payments.View"));
+        salesPayments.AddChild(VPureLuxPermissions.Sales.Payments.Manage, L("Permission:Sales.Payments.Manage"));
 
         var audit = myGroup.AddPermission(VPureLuxPermissions.Audit.Default, L("Permission:Audit"));
         audit.AddChild(VPureLuxPermissions.Audit.View, L("Permission:Audit.View"));

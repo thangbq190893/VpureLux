@@ -31,6 +31,8 @@
 
         return value.ToString("0.####", Vi);
     }
+
+    private static string FormatDate(DateTime value) => value.ToString("dd/MM/yyyy", Vi);
 }
 
 <div id="SalesDetailsPage" class="vpl-page" data-sales-success-message="@Model.SuccessMessage">
@@ -73,6 +75,10 @@
     {
         <div class="alert alert-danger" role="alert">@Model.ConfirmErrorMessage</div>
     }
+    @if (!string.IsNullOrWhiteSpace(Model.PaymentErrorMessage))
+    {
+        <div class="alert alert-danger" role="alert">@Model.PaymentErrorMessage</div>
+    }
 
     <abp-validation-summary />
 
@@ -106,6 +112,114 @@
                     <dd class="col-sm-9 text-muted">@L["Sales:DraftFinancialTotalsNote"]</dd>
                 }
             </dl>
+        </abp-card-body>
+    </abp-card>
+
+    <abp-card class="vpl-card-dense mb-3">
+        <abp-card-header>
+            <strong>@L["Sales:PaymentSummary"]</strong>
+        </abp-card-header>
+        <abp-card-body>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="text-muted small">@L["Sales:PaymentTotalAmount"]</div>
+                    <div class="fs-5 fw-semibold">@FormatMoney(Model.Order.PaymentSummary.TotalAmount)</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">@L["Sales:PaymentPaidAmount"]</div>
+                    <div class="fs-5 fw-semibold">@FormatMoney(Model.Order.PaymentSummary.PaidAmount)</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">@L["Sales:PaymentRemainingAmount"]</div>
+                    <div class="fs-5 fw-semibold">@FormatMoney(Model.Order.PaymentSummary.RemainingAmount)</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">@L["Sales:PaymentStatus"]</div>
+                    <div class="fs-5 fw-semibold">@L[$"Sales:PaymentStatus:{Model.Order.PaymentSummary.PaymentStatus}"]</div>
+                </div>
+            </div>
+        </abp-card-body>
+    </abp-card>
+
+    @if (Model.CanAddPayment)
+    {
+        <abp-card class="vpl-card-dense mb-3">
+            <abp-card-header>
+                <strong>@L["Sales:AddPayment"]</strong>
+            </abp-card-header>
+            <abp-card-body>
+                <form method="post" asp-page-handler="AddPayment" class="row g-2">
+                    <input type="hidden" asp-for="Payment.IdempotencyKey" />
+                    <div class="col-md-2">
+                        <label asp-for="Payment.Amount" class="form-label">@L["Sales:PaymentAmount"]</label>
+                        <input asp-for="Payment.Amount" class="form-control" type="number" min="0.01" step="0.01" />
+                        <span asp-validation-for="Payment.Amount" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-2">
+                        <label asp-for="Payment.PaymentDate" class="form-label">@L["Sales:PaymentDate"]</label>
+                        <input asp-for="Payment.PaymentDate" class="form-control" type="date" asp-format="{0:yyyy-MM-dd}" />
+                        <span asp-validation-for="Payment.PaymentDate" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-2">
+                        <label asp-for="Payment.PaymentMethod" class="form-label">@L["Sales:PaymentMethod"]</label>
+                        <select asp-for="Payment.PaymentMethod" asp-items="Model.PaymentMethodOptions" class="form-select"></select>
+                        <span asp-validation-for="Payment.PaymentMethod" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="Payment.ReferenceNo" class="form-label">@L["Sales:PaymentReferenceNo"]</label>
+                        <input asp-for="Payment.ReferenceNo" class="form-control" />
+                        <span asp-validation-for="Payment.ReferenceNo" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="Payment.Note" class="form-label">@L["Sales:PaymentNote"]</label>
+                        <input asp-for="Payment.Note" class="form-control" />
+                        <span asp-validation-for="Payment.Note" class="text-danger"></span>
+                    </div>
+                    <div class="col-12">
+                        <button class="btn btn-sm btn-primary">@L["Sales:AddPayment"]</button>
+                    </div>
+                </form>
+            </abp-card-body>
+        </abp-card>
+    }
+
+    <abp-card class="vpl-card-dense mb-3">
+        <abp-card-header>
+            <strong>@L["Sales:PaymentHistory"]</strong>
+        </abp-card-header>
+        <abp-card-body>
+            @if (Model.Payments.Count == 0)
+            {
+                <div class="vpl-empty-state">@L["Sales:NoPaymentHistory"]</div>
+            }
+            else
+            {
+                <abp-table striped-rows="true" class="vpl-table-dense">
+                    <thead>
+                    <tr>
+                        <th>@L["Sales:PaymentDate"]</th>
+                        <th>@L["Sales:PaymentAmount"]</th>
+                        <th>@L["Sales:PaymentMethod"]</th>
+                        <th>@L["Sales:PaymentReferenceNo"]</th>
+                        <th>@L["Sales:PaymentNote"]</th>
+                        <th>@L["Sales:PaymentRowStatus"]</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var payment in Model.Payments)
+                    {
+                        <tr>
+                            <td>@FormatDate(payment.PaymentDate)</td>
+                            <td>@FormatMoney(payment.Amount)</td>
+                            <td>@L[$"Sales:PaymentMethod:{payment.PaymentMethod}"]</td>
+                            <td>@payment.ReferenceNo</td>
+                            <td>@payment.Note</td>
+                            <td>@L[$"Sales:PaymentRowStatus:{payment.Status}"]</td>
+                        </tr>
+                    }
+                    </tbody>
+                </abp-table>
+            }
         </abp-card-body>
     </abp-card>
 

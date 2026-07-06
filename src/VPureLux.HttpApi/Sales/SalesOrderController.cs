@@ -42,6 +42,10 @@ public class SalesOrderController : AbpControllerBase
     [HttpPost("{id:guid}/cancel")]
     public Task CancelAsync(Guid id) => _appService.CancelAsync(id);
 
+    [HttpPost("{id:guid}/payments")]
+    public Task<SalesOrderPaymentDto> AddPaymentAsync(Guid id, [FromBody] CreateSalesOrderPaymentDto input) =>
+        _appService.AddPaymentAsync(id, input);
+
     [HttpGet("{id:guid}/payment-summary")]
     public Task<SalesOrderPaymentSummaryDto> GetPaymentSummaryAsync(Guid id) =>
         _appService.GetPaymentSummaryAsync(id);

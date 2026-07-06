@@ -76,6 +76,34 @@ public class SalesApiTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task SalesOrderPayment_Api_Should_Record_Payment()
+    {
+        var context = await CreateContextAsync();
+        var create = await Client.PostAsJsonAsync("/api/sales/orders", OrderInput(context));
+        create.StatusCode.ShouldBe(HttpStatusCode.OK, await create.Content.ReadAsStringAsync());
+        var order = await create.Content.ReadFromJsonAsync<SalesOrderDto>();
+        var confirm = await Client.PostAsJsonAsync($"/api/sales/orders/{order!.Id}/confirm", new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        confirm.StatusCode.ShouldBe(HttpStatusCode.OK, await confirm.Content.ReadAsStringAsync());
+
+        var add = await Client.PostAsJsonAsync($"/api/sales/orders/{order.Id}/payments", new CreateSalesOrderPaymentDto
+        {
+            Amount = 25,
+            PaymentDate = DateTime.UtcNow,
+            PaymentMethod = SalesPaymentMethod.Cash,
+            ReferenceNo = "API-PAY-001",
+            Note = "API payment smoke",
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+
+        add.StatusCode.ShouldBe(HttpStatusCode.OK, await add.Content.ReadAsStringAsync());
+        var payment = await add.Content.ReadFromJsonAsync<SalesOrderPaymentDto>();
+        payment!.ReferenceNo.ShouldBe("API-PAY-001");
+        var summary = await Client.GetFromJsonAsync<SalesOrderPaymentSummaryDto>($"/api/sales/orders/{order.Id}/payment-summary");
+        summary!.PaidAmount.ShouldBe(25);
+        summary.PaymentStatus.ShouldBe(SalesOrderReceivableStatus.PartiallyPaid);
+    }
+
+    [Fact]
     public async Task Should_Reject_Invalid_Create_Request()
     {
         var response = await Client.PostAsJsonAsync("/api/sales/orders", new CreateSalesOrderDto());

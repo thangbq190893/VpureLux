@@ -18,6 +18,14 @@ public class EfCoreSalesOrderPaymentRepository :
     {
     }
 
+    public async Task<SalesOrderPayment?> FindByIdempotencyKeyAsync(
+        string idempotencyKey,
+        CancellationToken cancellationToken = default) =>
+        await (await GetDbSetAsync())
+            .FirstOrDefaultAsync(
+                x => x.IdempotencyKey == idempotencyKey,
+                GetCancellationToken(cancellationToken));
+
     public async Task<List<SalesOrderPayment>> GetListBySalesOrderIdAsync(
         Guid salesOrderId,
         CancellationToken cancellationToken = default) =>

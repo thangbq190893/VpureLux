@@ -41,6 +41,20 @@ public class ConfirmSalesOrderDto
     public string IdempotencyKey { get; set; } = string.Empty;
 }
 
+public class CreateSalesOrderPaymentDto
+{
+    [Range(typeof(decimal), "0.01", "9999999999999999.99", ParseLimitsInInvariantCulture = true)]
+    public decimal Amount { get; set; }
+    public DateTime PaymentDate { get; set; }
+    public SalesPaymentMethod PaymentMethod { get; set; }
+    [StringLength(SalesConsts.MaxPaymentReferenceNoLength)]
+    public string? ReferenceNo { get; set; }
+    [StringLength(SalesConsts.MaxPaymentNoteLength)]
+    public string? Note { get; set; }
+    [Required, StringLength(SalesConsts.MaxIdempotencyKeyLength)]
+    public string IdempotencyKey { get; set; } = string.Empty;
+}
+
 public class GetSalesOrderListInput : PagedAndSortedResultRequestDto
 {
     public Guid? CustomerId { get; set; }

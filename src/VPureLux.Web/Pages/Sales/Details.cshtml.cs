@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Localization;
@@ -31,17 +32,23 @@ public class DetailsModel : VPureLuxPageModel
     private readonly IUnitOfWorkManager _unitOfWorkManager;
     [BindProperty(SupportsGet = true)] public Guid Id { get; set; }
     [BindProperty] public ConfirmSalesOrderDto Confirmation { get; set; } = new() { IdempotencyKey = Guid.NewGuid().ToString("N") };
+    [BindProperty] public CreateSalesOrderPaymentDto Payment { get; set; } = CreateDefaultPaymentInput();
     [TempData] public string? SuccessMessage { get; set; }
     public SalesOrderDto Order { get; private set; } = new();
+    public List<SalesOrderPaymentDto> Payments { get; private set; } = new();
     public bool CanEdit { get; private set; }
     public bool CanConfirm { get; private set; }
     public bool CanCancel { get; private set; }
+    public bool CanAddPayment { get; private set; }
     public bool IsDraft => Order.Status == SalesOrderStatus.Draft;
+    public bool IsConfirmed => Order.Status == SalesOrderStatus.Confirmed;
     public decimal DraftEstimatedRevenueAmount { get; private set; }
     public string CustomerDisplay { get; private set; } = string.Empty;
     [TempData] public string? ConfirmErrorMessage { get; set; }
+    public string? PaymentErrorMessage { get; private set; }
     public Dictionary<Guid, string> ProductLabels { get; private set; } = new();
     public Dictionary<Guid, SalesProductContextViewModel> ProductContexts { get; private set; } = new();
+    public List<SelectListItem> PaymentMethodOptions { get; private set; } = new();
 
     public DetailsModel(
         ISalesOrderAppService service,
@@ -104,6 +111,38 @@ public class DetailsModel : VPureLuxPageModel
         }
     }
 
+    public async Task<IActionResult> OnPostAddPaymentAsync()
+    {
+        if (!ModelState.IsValid)
+        {
+            await LoadAsync();
+            return Page();
+        }
+
+        try
+        {
+            await _service.AddPaymentAsync(Id, Payment);
+            SuccessMessage = L["Sales:PaymentAddedSuccessfully"];
+            return RedirectToPage(new { id = Id });
+        }
+        catch (BusinessException exception) when (IsKnownPaymentException(exception))
+        {
+            PaymentErrorMessage = SalesUiFormatter.GetFriendlyErrorMessage(L, exception);
+            ModelState.AddModelError(string.Empty, PaymentErrorMessage);
+            await LoadAsync();
+            return Page();
+        }
+        catch (AbpAuthorizationException)
+        {
+            PaymentErrorMessage = SalesUiFormatter.GetFriendlyErrorMessage(
+                L,
+                new BusinessException(VPureLuxDomainErrorCodes.AccessDenied));
+            ModelState.AddModelError(string.Empty, PaymentErrorMessage);
+            await LoadAsync();
+            return Page();
+        }
+    }
+
     public string GetProductLabel(SalesOrderLineDto line) =>
         SalesUiFormatter.GetProductLabel(line, ProductLabels, L);
 
@@ -134,6 +173,7 @@ public class DetailsModel : VPureLuxPageModel
     private async Task LoadAsync()
     {
         Order = await _service.GetAsync(Id);
+        Payments = await _service.GetPaymentsAsync(Id);
         DraftEstimatedRevenueAmount = Order.Lines.Sum(x => decimal.Round(
             x.Quantity * x.ActualSellingPrice,
             SalesConsts.MoneyScale,
@@ -147,6 +187,13 @@ public class DetailsModel : VPureLuxPageModel
         CanEdit = draft && (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.Edit)).Succeeded;
         CanConfirm = draft && (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.Confirm)).Succeeded;
         CanCancel = draft && (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.Cancel)).Succeeded;
+        CanAddPayment = Order.Status == SalesOrderStatus.Confirmed &&
+            (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.Payments.Manage)).Succeeded;
+        PaymentMethodOptions = BuildPaymentMethodOptions();
+        if (string.IsNullOrWhiteSpace(Payment.IdempotencyKey))
+        {
+            Payment.IdempotencyKey = Guid.NewGuid().ToString("N");
+        }
     }
 
     private async Task LoadProductContextsAsync()
@@ -281,4 +328,28 @@ public class DetailsModel : VPureLuxPageModel
             VPureLuxDomainErrorCodes.SalesConcurrentModification or
             VPureLuxDomainErrorCodes.AccessDenied or
             VPureLuxDomainErrorCodes.ValidationFailed;
+
+    private static bool IsKnownPaymentException(BusinessException exception) =>
+        exception.Code is
+            VPureLuxDomainErrorCodes.SalesOrderNotFound or
+            VPureLuxDomainErrorCodes.SalesPaymentRequiresConfirmedOrder or
+            VPureLuxDomainErrorCodes.SalesPaymentOverpaymentNotAllowed or
+            VPureLuxDomainErrorCodes.SalesPaymentIdempotencyConflict or
+            VPureLuxDomainErrorCodes.AccessDenied or
+            VPureLuxDomainErrorCodes.ValidationFailed;
+
+    private List<SelectListItem> BuildPaymentMethodOptions() =>
+    [
+        new SelectListItem(L["Sales:PaymentMethod:Cash"], SalesPaymentMethod.Cash.ToString()),
+        new SelectListItem(L["Sales:PaymentMethod:BankTransfer"], SalesPaymentMethod.BankTransfer.ToString()),
+        new SelectListItem(L["Sales:PaymentMethod:Card"], SalesPaymentMethod.Card.ToString()),
+        new SelectListItem(L["Sales:PaymentMethod:Other"], SalesPaymentMethod.Other.ToString())
+    ];
+
+    private static CreateSalesOrderPaymentDto CreateDefaultPaymentInput() => new()
+    {
+        PaymentDate = DateTime.Today,
+        PaymentMethod = SalesPaymentMethod.Cash,
+        IdempotencyKey = Guid.NewGuid().ToString("N")
+    };
 }

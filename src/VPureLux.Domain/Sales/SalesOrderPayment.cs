@@ -39,7 +39,7 @@ public class SalesOrderPayment : FullAuditedAggregateRoot<Guid>
         Amount = amount;
         PaymentDate = paymentDate;
         PaymentMethod = paymentMethod;
-        ReferenceNo = Check.Length(referenceNo?.Trim() ?? string.Empty, nameof(referenceNo), SalesConsts.MaxPaymentReferenceNoLength);
+        ReferenceNo = Check.Length(referenceNo?.Trim() ?? string.Empty, nameof(referenceNo), SalesConsts.MaxPaymentReferenceNoLength) ?? string.Empty;
         Note = string.IsNullOrWhiteSpace(note)
             ? null
             : Check.Length(note.Trim(), nameof(note), SalesConsts.MaxPaymentNoteLength);

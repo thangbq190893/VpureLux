@@ -1476,6 +1476,140 @@ public class SalesPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Sales_Details_Should_Render_Payment_Summary_History_And_Add_Form_For_Confirmed_Order()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-PAY");
+        var salesService = GetRequiredService<ISalesOrderAppService>();
+        var order = await salesService.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 2, ActualSellingPrice = 100 }]
+        });
+        await salesService.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        await salesService.AddPaymentAsync(order.Id, new CreateSalesOrderPaymentDto
+        {
+            Amount = 75,
+            PaymentDate = DateTime.UtcNow,
+            PaymentMethod = SalesPaymentMethod.BankTransfer,
+            ReferenceNo = "WEB-PAY-001",
+            Note = "Thanh toán thử",
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Sales/Details/{order.Id}"));
+
+        html.ShouldContain(localizer["Sales:PaymentSummary"].Value);
+        html.ShouldContain(localizer["Sales:PaymentHistory"].Value);
+        html.ShouldContain(localizer["Sales:AddPayment"].Value);
+        html.ShouldContain(localizer["Sales:PaymentPaidAmount"].Value);
+        html.ShouldContain(localizer["Sales:PaymentRemainingAmount"].Value);
+        html.ShouldContain(localizer["Sales:PaymentStatus:PartiallyPaid"].Value);
+        html.ShouldContain("WEB-PAY-001");
+        html.ShouldContain("Thanh toán thử");
+        html.ShouldContain("name=\"Payment.Amount\"");
+        html.ShouldContain("name=\"Payment.IdempotencyKey\"");
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Details.cshtml"));
+        pageSource.ShouldContain("asp-page-handler=\"AddPayment\"");
+    }
+
+    [Fact]
+    public async Task Sales_Details_Should_Hide_AddPayment_For_Draft_And_Cancelled_Orders()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-PHD");
+        var salesService = GetRequiredService<ISalesOrderAppService>();
+        var draft = await salesService.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 }]
+        });
+        var cancelled = await salesService.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 }]
+        });
+        await salesService.CancelAsync(cancelled.Id);
+
+        var draftHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Sales/Details/{draft.Id}"));
+        var cancelledHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Sales/Details/{cancelled.Id}"));
+
+        draftHtml.ShouldContain(localizer["Sales:PaymentSummary"].Value);
+        draftHtml.ShouldNotContain("name=\"Payment.Amount\"");
+        cancelledHtml.ShouldContain(localizer["Sales:PaymentSummary"].Value);
+        cancelledHtml.ShouldNotContain("name=\"Payment.Amount\"");
+    }
+
+    [Fact]
+    public async Task Sales_Details_OnPostAddPaymentAsync_Should_Record_Payment()
+    {
+        var context = await CreateSalesContextAsync("SALES-PHS");
+        var service = GetRequiredService<ISalesOrderAppService>();
+        var order = await service.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 }]
+        });
+        await service.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var model = GetRequiredService<DetailsModel>();
+        SetPageContext(model);
+        model.Id = order.Id;
+        model.Payment = new CreateSalesOrderPaymentDto
+        {
+            Amount = 40,
+            PaymentDate = DateTime.UtcNow,
+            PaymentMethod = SalesPaymentMethod.Cash,
+            ReferenceNo = "PAGE-PAY-001",
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        };
+
+        var result = await model.OnPostAddPaymentAsync();
+
+        var redirect = result.ShouldBeOfType<RedirectToPageResult>();
+        redirect.RouteValues!["id"].ShouldBe(order.Id);
+        model.SuccessMessage.ShouldBe(GetRequiredService<IStringLocalizer<VPureLuxResource>>()["Sales:PaymentAddedSuccessfully"].Value);
+        var summary = await service.GetPaymentSummaryAsync(order.Id);
+        summary.PaidAmount.ShouldBe(40);
+        summary.PaymentStatus.ShouldBe(SalesOrderReceivableStatus.PartiallyPaid);
+    }
+
+    [Fact]
+    public async Task Sales_Details_OnPostAddPaymentAsync_Should_Show_Friendly_Overpayment_Error()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-PHE");
+        var service = GetRequiredService<ISalesOrderAppService>();
+        var order = await service.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 }]
+        });
+        await service.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var model = GetRequiredService<DetailsModel>();
+        SetPageContext(model);
+        model.Id = order.Id;
+        model.Payment = new CreateSalesOrderPaymentDto
+        {
+            Amount = 101,
+            PaymentDate = DateTime.UtcNow,
+            PaymentMethod = SalesPaymentMethod.Cash,
+            ReferenceNo = "PAGE-PAY-OVER",
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        };
+
+        var result = await model.OnPostAddPaymentAsync();
+
+        result.ShouldBeOfType<PageResult>();
+        model.ModelState.IsValid.ShouldBeFalse();
+        model.PaymentErrorMessage.ShouldBe(localizer[VPureLuxDomainErrorCodes.SalesPaymentOverpaymentNotAllowed].Value);
+    }
+
+    [Fact]
     public async Task Sales_Details_Should_Render_All_Multi_Line_Order_Lines()
     {
         var context = await CreateSalesContextAsync("SALES-DML");

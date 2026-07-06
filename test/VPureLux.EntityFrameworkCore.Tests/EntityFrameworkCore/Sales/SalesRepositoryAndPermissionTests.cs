@@ -24,7 +24,8 @@ public class SalesRepositoryAndPermissionTests : VPureLuxEntityFrameworkCoreTest
                  {
                      VPureLuxPermissions.Sales.View, VPureLuxPermissions.Sales.Create, VPureLuxPermissions.Sales.Edit,
                      VPureLuxPermissions.Sales.OverridePrice, VPureLuxPermissions.Sales.Confirm, VPureLuxPermissions.Sales.Cancel,
-                     VPureLuxPermissions.Sales.ViewCost, VPureLuxPermissions.Sales.ViewProfit, VPureLuxPermissions.Sales.ViewCustomerHistory
+                     VPureLuxPermissions.Sales.ViewCost, VPureLuxPermissions.Sales.ViewProfit, VPureLuxPermissions.Sales.ViewCustomerHistory,
+                     VPureLuxPermissions.Sales.Payments.View, VPureLuxPermissions.Sales.Payments.Manage
                  })
         {
             (await manager.GetAsync(permission)).ShouldNotBeNull();
@@ -35,6 +36,7 @@ public class SalesRepositoryAndPermissionTests : VPureLuxEntityFrameworkCoreTest
         Permission(nameof(SalesOrderAppService.AddLineAsync)).ShouldBe(VPureLuxPermissions.Sales.Edit);
         Permission(nameof(SalesOrderAppService.ConfirmAsync)).ShouldBe(VPureLuxPermissions.Sales.Confirm);
         Permission(nameof(SalesOrderAppService.CancelAsync)).ShouldBe(VPureLuxPermissions.Sales.Cancel);
+        Permission(nameof(SalesOrderAppService.AddPaymentAsync)).ShouldBe(VPureLuxPermissions.Sales.Payments.Manage);
     }
 
     [Fact]

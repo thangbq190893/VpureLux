@@ -177,6 +177,55 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
         await _salesOrders.UpdateAsync(order, autoSave: true);
     }
 
+    [Authorize(VPureLuxPermissions.Sales.Payments.Manage)]
+    public async Task<SalesOrderPaymentDto> AddPaymentAsync(Guid id, CreateSalesOrderPaymentDto input)
+    {
+        var order = await GetOrderAsync(id);
+        if (order.Status != SalesOrderStatus.Confirmed)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.SalesPaymentRequiresConfirmedOrder);
+        }
+        if (input.Amount <= 0 || input.PaymentDate == default || !Enum.IsDefined(input.PaymentMethod))
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.ValidationFailed);
+        }
+
+        var idempotencyKey = input.IdempotencyKey?.Trim();
+        if (string.IsNullOrWhiteSpace(idempotencyKey))
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.ValidationFailed);
+        }
+
+        var existing = await _payments.FindByIdempotencyKeyAsync(idempotencyKey);
+        if (existing != null)
+        {
+            if (existing.SalesOrderId != order.Id)
+            {
+                throw new BusinessException(VPureLuxDomainErrorCodes.SalesPaymentIdempotencyConflict);
+            }
+            return _mapper.ToDto(existing);
+        }
+
+        var summary = await GetPaymentSummaryAsync(order);
+        if (input.Amount > summary.RemainingAmount)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.SalesPaymentOverpaymentNotAllowed);
+        }
+
+        var payment = new SalesOrderPayment(
+            GuidGenerator.Create(),
+            order.Id,
+            order.CustomerId,
+            input.Amount,
+            input.PaymentDate,
+            input.PaymentMethod,
+            input.ReferenceNo,
+            input.Note,
+            idempotencyKey);
+        await _payments.InsertAsync(payment, autoSave: true);
+        return _mapper.ToDto(payment);
+    }
+
     public async Task<SalesOrderPaymentSummaryDto> GetPaymentSummaryAsync(Guid id)
     {
         var order = await GetOrderAsync(id);

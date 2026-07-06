@@ -16,6 +16,7 @@ public interface ISalesOrderAppService : IApplicationService
     Task<SalesOrderDto> RemoveLineAsync(Guid id, Guid lineId);
     Task<ConfirmSalesOrderResultDto> ConfirmAsync(Guid id, ConfirmSalesOrderDto input);
     Task CancelAsync(Guid id);
+    Task<SalesOrderPaymentDto> AddPaymentAsync(Guid id, CreateSalesOrderPaymentDto input);
     Task<SalesOrderPaymentSummaryDto> GetPaymentSummaryAsync(Guid id);
     Task<List<SalesOrderPaymentDto>> GetPaymentsAsync(Guid id);
     Task<List<CustomerPurchaseHistoryDto>> GetCustomerHistoryAsync(Guid customerId);

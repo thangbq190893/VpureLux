@@ -35,6 +35,10 @@ public interface ISalesOrderRepository : IRepository<SalesOrder, Guid>
 
 public interface ISalesOrderPaymentRepository : IRepository<SalesOrderPayment, Guid>
 {
+    Task<SalesOrderPayment?> FindByIdempotencyKeyAsync(
+        string idempotencyKey,
+        CancellationToken cancellationToken = default);
+
     Task<List<SalesOrderPayment>> GetListBySalesOrderIdAsync(
         Guid salesOrderId,
         CancellationToken cancellationToken = default);
