@@ -91,10 +91,42 @@ UI polish is deferred to 03L.5B:
 - Customer History receivable summary display
 - responsive layout/visual polish
 
-## Tests run
+## 03L.5B UI Polish
 
-- `dotnet build VPureLux.slnx --no-restore -m:2` - passed
-- `dotnet test test/VPureLux.EntityFrameworkCore.Tests/VPureLux.EntityFrameworkCore.Tests.csproj --no-build --filter "FullyQualifiedName~SalesOrderPayment|FullyQualifiedName~Sales" -m:1` - passed, 23 tests
-- `dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build --filter "FullyQualifiedName~Sales" -m:1` - passed, 64 tests
+### Sales List UI behavior
 
-Manual browser smoke is deferred/not run.
+- Sales List shows compact payment columns for Tổng đơn, Đã thanh toán, Còn nợ, and a badge for Trạng thái thanh toán.
+- Draft and cancelled orders display `—` for payment amounts and badge `Chưa xác nhận` (`NotApplicable`) so they do not look like customer debt.
+- Confirmed orders render `Chưa thanh toán`, `Thanh toán một phần`, `Đã thanh toán`, and `Trả dư` from the 03L.5A read model.
+- Payment status filter control binds to `IndexModel.PaymentStatus` and passes through to `GetSalesOrderListInput`.
+- Optional `CustomerId` query binding is preserved for safe links from Customer History.
+- Existing revenue column, action routes, and cost/profit visibility rules are unchanged.
+
+### Customer History UI behavior
+
+- Receivable summary card shows Tổng doanh số đã xác nhận, Tổng đã thanh toán, Tổng còn nợ, and Số đơn còn nợ from `CustomerReceivableSummaryDto`.
+- Existing product purchase summary cards and product table remain intact.
+- Safe link to Sales List filtered by `CustomerId` when a customer is selected.
+- Receivable summary renders even when purchase history is empty.
+
+### Filter UI
+
+- Sales List exposes a GET filter form for payment status with clear-filter support.
+- Customer History customer selector is unchanged.
+
+### Backend changes
+
+No Application, Domain, EF, DB, payment command, confirmation, inventory, or snapshot logic changes in this phase.
+
+### Tests run
+
+Validation completed:
+
+```text
+dotnet build VPureLux.slnx --no-restore -m:2 -> passed
+dotnet test test/VPureLux.Web.Tests/VPureLux.Web.Tests.csproj --no-build --filter "FullyQualifiedName~Sales" -m:1 -> passed
+git diff --check -> passed
+legacy component wording grep -> no matches
+```
+
+Manual browser smoke was not run in this UI polish phase.

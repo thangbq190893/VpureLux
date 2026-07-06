@@ -95,6 +95,136 @@ public class SalesPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Sales_Index_Should_Pass_Customer_Filter_To_Read_Model()
+    {
+        GetSalesOrderListInput? captured = null;
+        var service = Substitute.For<ISalesOrderAppService>();
+        service.GetListAsync(Arg.Do<GetSalesOrderListInput>(input => captured = input))
+            .Returns(new PagedResultDto<SalesOrderDto>());
+        var authorization = Substitute.For<IAuthorizationService>();
+        authorization.AuthorizeAsync(Arg.Any<ClaimsPrincipal>(), Arg.Any<object?>(), Arg.Any<string>())
+            .Returns(AuthorizationResult.Failed());
+        var customerId = Guid.NewGuid();
+        var model = new IndexModel(service, authorization)
+        {
+            PageContext = new PageContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) } },
+            CustomerId = customerId
+        };
+
+        await model.OnGetAsync();
+
+        captured.ShouldNotBeNull();
+        captured!.CustomerId.ShouldBe(customerId);
+    }
+
+    [Fact]
+    public async Task Sales_Index_Should_Render_Payment_Summary_Columns_And_Status_Badges()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-IDX-PAY");
+        var salesService = GetRequiredService<ISalesOrderAppService>();
+        var order = await salesService.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 2, ActualSellingPrice = 100 }]
+        });
+        await salesService.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        await salesService.AddPaymentAsync(order.Id, new CreateSalesOrderPaymentDto
+        {
+            Amount = 75,
+            PaymentDate = DateTime.UtcNow,
+            PaymentMethod = SalesPaymentMethod.Cash,
+            ReferenceNo = "IDX-PAY-001",
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Sales"));
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Index.cshtml"));
+
+        html.ShouldContain(localizer["Sales:PaymentTotalAmount"].Value);
+        html.ShouldContain(localizer["Sales:PaymentPaidAmount"].Value);
+        html.ShouldContain(localizer["Sales:PaymentRemainingAmount"].Value);
+        html.ShouldContain(localizer["Sales:PaymentStatus:PartiallyPaid"].Value);
+        html.ShouldContain("badge");
+        pageSource.ShouldContain("order.PaymentSummary");
+        pageSource.ShouldContain("GetPaymentStatusBadgeClass");
+        pageSource.ShouldContain("FormatPaymentAmount");
+    }
+
+    [Fact]
+    public async Task Sales_Index_Should_Render_Chua_Xac_Nhan_For_Draft_Orders()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-IDX-DRF");
+        var salesService = GetRequiredService<ISalesOrderAppService>();
+        await salesService.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 }]
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Sales"));
+
+        html.ShouldContain(localizer["Sales:PaymentStatus:NotApplicable"].Value);
+        localizer["Sales:PaymentStatus:NotApplicable"].Value.ShouldBe("Chưa xác nhận");
+        html.ShouldContain("—");
+    }
+
+    [Fact]
+    public async Task Sales_Index_Should_Render_Payment_Status_Filter_Control()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Sales"));
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Index.cshtml"));
+
+        html.ShouldContain("name=\"PaymentStatus\"");
+        html.ShouldContain(localizer["Sales:PaymentStatus:Unpaid"].Value);
+        html.ShouldContain(localizer["Sales:PaymentStatus:Paid"].Value);
+        html.ShouldContain(localizer["Sales:PaymentStatus:Overpaid"].Value);
+        localizer["Sales:PaymentStatus:Overpaid"].Value.ShouldBe("Trả dư");
+        pageSource.ShouldContain("asp-for=\"PaymentStatus\"");
+        pageSource.ShouldContain("Sales:ClearFilters");
+    }
+
+    [Fact]
+    public async Task Sales_Index_Should_Render_Unpaid_And_Paid_Status_Labels()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-IDX-ST");
+        var salesService = GetRequiredService<ISalesOrderAppService>();
+        var unpaid = await salesService.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 }]
+        });
+        await salesService.ConfirmAsync(unpaid.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+
+        var paidOrder = await salesService.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 }]
+        });
+        await salesService.ConfirmAsync(paidOrder.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        await salesService.AddPaymentAsync(paidOrder.Id, new CreateSalesOrderPaymentDto
+        {
+            Amount = 100,
+            PaymentDate = DateTime.UtcNow,
+            PaymentMethod = SalesPaymentMethod.Cash,
+            ReferenceNo = "IDX-PAID",
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Sales"));
+
+        html.ShouldContain(localizer["Sales:PaymentStatus:Unpaid"].Value);
+        html.ShouldContain(localizer["Sales:PaymentStatus:Paid"].Value);
+    }
+
+    [Fact]
     public async Task Sales_Create_Should_Render_Product_Context_Hooks_And_External_Script()
     {
         var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
@@ -1205,6 +1335,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
         var indexSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Index.cshtml"));
         indexSource.ShouldContain("FormatDate(order.OrderDate)");
         indexSource.ShouldContain("FormatMoney(order.TotalRevenueAmount)");
+        indexSource.ShouldContain("order.PaymentSummary");
 
         var detailsSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Details.cshtml"));
         detailsSource.ShouldContain("canViewCost");
@@ -1244,10 +1375,50 @@ public class SalesPagesTests : VPureLuxWebTestBase
         html.ShouldContain($"{context.ProductCode} - {context.ProductName}");
         html.ShouldContain(localizer["Sales:SummaryProductCount"].Value);
         html.ShouldContain(localizer["Sales:CustomerHistoryFor", $"{context.CustomerCode} - {context.CustomerName}"].Value);
+        html.ShouldContain(localizer["Sales:ReceivableSummary"].Value);
+        html.ShouldContain(localizer["Sales:ReceivableConfirmedSalesTotal"].Value);
+        html.ShouldContain(localizer["Sales:ReceivablePaidTotal"].Value);
+        html.ShouldContain(localizer["Sales:ReceivableRemainingDebt"].Value);
+        html.ShouldContain(localizer["Sales:ReceivableUnpaidOrderCount"].Value);
+        html.ShouldContain(localizer["Sales:ViewCustomerSalesOrders"].Value);
+        html.ShouldContain($"CustomerId={context.CustomerId}");
 
         var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/CustomerHistory.cshtml"));
         pageSource.ShouldNotContain("@item.ProductId");
         pageSource.ShouldNotContain("@item.CustomerId");
+        pageSource.ShouldContain("ReceivableSummary");
+        pageSource.ShouldContain("asp-page=\"/Sales/Index\"");
+    }
+
+    [Fact]
+    public async Task Sales_CustomerHistory_Should_Render_Receivable_Summary_Cards()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-CH-RCV");
+        var salesService = GetRequiredService<ISalesOrderAppService>();
+        var order = await salesService.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 2, ActualSellingPrice = 100 }]
+        });
+        await salesService.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        await salesService.AddPaymentAsync(order.Id, new CreateSalesOrderPaymentDto
+        {
+            Amount = 50,
+            PaymentDate = DateTime.UtcNow,
+            PaymentMethod = SalesPaymentMethod.Cash,
+            ReferenceNo = "CH-RCV-001",
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Sales/CustomerHistory?CustomerId={context.CustomerId}"));
+
+        html.ShouldContain(localizer["Sales:ReceivableConfirmedSalesTotal"].Value);
+        html.ShouldContain(localizer["Sales:ReceivablePaidTotal"].Value);
+        html.ShouldContain(localizer["Sales:ReceivableRemainingDebt"].Value);
+        html.ShouldContain(localizer["Sales:ReceivableUnpaidOrderCount"].Value);
+        html.ShouldContain(">1</");
     }
 
     [Fact]
@@ -1295,6 +1466,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
 
         html.ShouldContain(localizer["Sales:NoPurchaseHistory"].Value);
         html.ShouldNotContain(localizer["Sales:SummaryProductCount"].Value);
+        html.ShouldContain(localizer["Sales:ReceivableSummary"].Value);
     }
 
     [Fact]
@@ -1316,6 +1488,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
             "src/VPureLux.Web/Pages/Sales/Create.cshtml",
             "src/VPureLux.Web/Pages/Sales/Edit.cshtml",
             "src/VPureLux.Web/Pages/Sales/Details.cshtml",
+            "src/VPureLux.Web/Pages/Sales/Index.cshtml",
             "src/VPureLux.Web/Pages/Sales/CustomerHistory.cshtml"
         })
         {

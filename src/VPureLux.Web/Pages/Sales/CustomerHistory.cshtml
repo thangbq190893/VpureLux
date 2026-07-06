@@ -1,6 +1,17 @@
 @page
 @model VPureLux.Web.Pages.Sales.CustomerHistoryModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using System.Globalization
+
+@functions {
+    private static readonly CultureInfo Vi = CultureInfo.GetCultureInfo("vi-VN");
+
+    private static string FormatMoney(decimal value)
+    {
+        var amount = decimal.Round(value, 0, MidpointRounding.AwayFromZero);
+        return amount.ToString("#,0", Vi) + " ₫";
+    }
+}
 
 <div class="vpl-page">
     <div class="vpl-page-header">
@@ -23,16 +34,50 @@
         </abp-card-body>
     </abp-card>
 
-    @if (Model.CustomerId.HasValue && Model.Items.Count > 0)
+    @if (Model.CustomerId.HasValue)
     {
         @if (!string.IsNullOrWhiteSpace(Model.SelectedCustomerLabel))
         {
             <p class="vpl-page-subtitle mb-3">@L["Sales:CustomerHistoryFor", Model.SelectedCustomerLabel]</p>
         }
 
+        <abp-card class="vpl-card-dense mb-3">
+            <abp-card-header>
+                <strong>@L["Sales:ReceivableSummary"]</strong>
+            </abp-card-header>
+            <abp-card-body>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="text-muted small">@L["Sales:ReceivableConfirmedSalesTotal"]</div>
+                        <div class="fs-5 fw-semibold">@FormatMoney(Model.ReceivableSummary.ConfirmedSalesTotal)</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-muted small">@L["Sales:ReceivablePaidTotal"]</div>
+                        <div class="fs-5 fw-semibold">@FormatMoney(Model.ReceivableSummary.PaidTotal)</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-muted small">@L["Sales:ReceivableRemainingDebt"]</div>
+                        <div class="fs-5 fw-semibold">@FormatMoney(Model.ReceivableSummary.RemainingDebt)</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-muted small">@L["Sales:ReceivableUnpaidOrderCount"]</div>
+                        <div class="fs-5 fw-semibold">@Model.ReceivableSummary.UnpaidOrPartialOrderCount</div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <a class="btn btn-sm btn-outline-secondary" asp-page="/Sales/Index" asp-route-CustomerId="@Model.CustomerId">
+                        @L["Sales:ViewCustomerSalesOrders"]
+                    </a>
+                </div>
+            </abp-card-body>
+        </abp-card>
+    }
+
+    @if (Model.CustomerId.HasValue && Model.Items.Count > 0)
+    {
         <div class="row g-3 mb-4">
             <div class="col-md-3">
-                <div class="card h-100 vpl-card-dense">
+                <div class="card vpl-card-dense">
                     <div class="card-body">
                         <div class="text-muted small">@L["Sales:SummaryProductCount"]</div>
                         <div class="fs-4 fw-semibold">@Model.ProductCount</div>
@@ -40,7 +85,7 @@
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card h-100 vpl-card-dense">
+                <div class="card vpl-card-dense">
                     <div class="card-body">
                         <div class="text-muted small">@L["Sales:Revenue"]</div>
                         <div class="fs-4 fw-semibold">@Model.TotalRevenue</div>
@@ -48,7 +93,7 @@
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card h-100 vpl-card-dense">
+                <div class="card vpl-card-dense">
                     <div class="card-body">
                         <div class="text-muted small">@L["Sales:Profit"]</div>
                         <div class="fs-4 fw-semibold">@Model.TotalProfit</div>
@@ -56,7 +101,7 @@
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card h-100 vpl-card-dense">
+                <div class="card vpl-card-dense">
                     <div class="card-body">
                         <div class="text-muted small">@L["Sales:LastPurchaseDate"]</div>
                         <div class="fs-4 fw-semibold">@(Model.LatestPurchaseDate?.ToString("dd/MM/yyyy") ?? L["Sales:NoPurchaseHistory"].Value)</div>

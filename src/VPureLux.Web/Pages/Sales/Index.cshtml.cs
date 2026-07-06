@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +13,8 @@ public class IndexModel : VPureLuxPageModel
 {
     private readonly ISalesOrderAppService _service;
     private readonly IAuthorizationService _authorizationService;
+    [BindProperty(SupportsGet = true)] public Guid? CustomerId { get; set; }
+    [BindProperty(SupportsGet = true)] public SalesOrderStatus? Status { get; set; }
     [BindProperty(SupportsGet = true)] public SalesOrderReceivableStatus? PaymentStatus { get; set; }
     public PagedResultDto<SalesOrderDto> Orders { get; private set; } = new();
     public bool CanCreate { get; private set; }
@@ -25,7 +28,13 @@ public class IndexModel : VPureLuxPageModel
 
     public async Task OnGetAsync()
     {
-        Orders = await _service.GetListAsync(new GetSalesOrderListInput { MaxResultCount = 100, PaymentStatus = PaymentStatus });
+        Orders = await _service.GetListAsync(new GetSalesOrderListInput
+        {
+            MaxResultCount = 100,
+            CustomerId = CustomerId,
+            Status = Status,
+            PaymentStatus = PaymentStatus
+        });
         CanCreate = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.Create)).Succeeded;
         CanViewHistory = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.ViewCustomerHistory)).Succeeded;
     }
