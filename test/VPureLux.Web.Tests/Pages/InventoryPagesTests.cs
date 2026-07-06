@@ -258,6 +258,11 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         html.ShouldContain(localizer["Inventory:CountedQuantity"].Value);
         html.ShouldContain(localizer["Inventory:Delta"].Value);
         html.ShouldContain(localizer["Inventory:Direction"].Value);
+        html.ShouldContain(localizer["Inventory:AdjustmentReasonCategory"].Value);
+        html.ShouldContain(localizer["Inventory:AdjustmentReasonDetail"].Value);
+        html.ShouldContain("name=\"ReasonCategory\"");
+        html.ShouldContain("name=\"ReasonDetail\"");
+        html.ShouldContain(AdjustmentModel.OtherReasonCategory);
         html.ShouldContain(localizer["Inventory:NoChange"].Value);
         html.ShouldContain("name=\"CountLines[0].ReceivedAtText\"");
         html.ShouldContain("placeholder=\"dd/MM/yyyy\"");
@@ -301,7 +306,8 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         var context = await CreateInquiryFilterContextAsync("ADJ-POS");
         var model = CreateAdjustmentModel();
         model.WarehouseId = context.WarehouseId;
-        model.Reason = "Count increase";
+        model.ReasonCategory = "Kiểm kê lệch tồn";
+        model.ReasonDetail = "Count increase";
         model.CountLines =
         [
             new AdjustmentModel.CountAdjustmentLineInput
@@ -320,7 +326,7 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         var transaction = (await GetRequiredService<IInventoryQueryAppService>()
                 .GetLedgerAsync(context.WarehouseId, context.StockItemId))
             .Single(x => x.Type == InventoryTransactionType.AdjustmentIncrease);
-        transaction.Reason.ShouldBe("Count increase");
+        transaction.Reason.ShouldBe("Kiểm kê lệch tồn - Count increase");
         transaction.Lines.Single().Quantity.ShouldBe(3);
         transaction.Lines.Single().Direction.ShouldBe(InventoryMovementDirection.Increase);
         transaction.Lines.Single().UnitCost.ShouldBe(12000);
@@ -348,7 +354,7 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         });
         var model = CreateAdjustmentModel();
         model.WarehouseId = context.WarehouseId;
-        model.Reason = "Count decrease";
+        model.ReasonCategory = "Hàng hỏng";
         model.CountLines =
         [
             new AdjustmentModel.CountAdjustmentLineInput
@@ -364,7 +370,7 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         var transaction = (await GetRequiredService<IInventoryQueryAppService>()
                 .GetLedgerAsync(context.WarehouseId, context.StockItemId))
             .Single(x => x.Type == InventoryTransactionType.AdjustmentDecrease);
-        transaction.Reason.ShouldBe("Count decrease");
+        transaction.Reason.ShouldBe("Hàng hỏng");
         transaction.Lines.Single().Quantity.ShouldBe(3);
         transaction.Lines.Single().Direction.ShouldBe(InventoryMovementDirection.Decrease);
     }
@@ -399,7 +405,8 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         });
         var model = CreateAdjustmentModel();
         model.WarehouseId = context.WarehouseId;
-        model.Reason = "Mixed blocked";
+        model.ReasonCategory = "Kiểm kê lệch tồn";
+        model.ReasonDetail = "Mixed blocked";
         model.CountLines =
         [
             new AdjustmentModel.CountAdjustmentLineInput
@@ -425,7 +432,7 @@ public class InventoryPagesTests : VPureLuxWebTestBase
             .ShouldContain(GetRequiredService<IStringLocalizer<VPureLuxResource>>()["Inventory:AdjustmentMixedDirectionsNotAtomic"].Value);
         var ledger = await GetRequiredService<IInventoryQueryAppService>().GetLedgerAsync(context.WarehouseId);
         ledger.Any(x =>
-                x.Reason == "Mixed blocked" &&
+                x.Reason == "Kiểm kê lệch tồn - Mixed blocked" &&
                 x.Type is InventoryTransactionType.AdjustmentIncrease or InventoryTransactionType.AdjustmentDecrease)
             .ShouldBeFalse();
         ledger.Count.ShouldBe(1);
@@ -454,7 +461,7 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         });
         var model = CreateAdjustmentModel();
         model.WarehouseId = context.WarehouseId;
-        model.Reason = "No count change";
+        model.ReasonCategory = "Kiểm kê lệch tồn";
         model.CountLines =
         [
             new AdjustmentModel.CountAdjustmentLineInput
@@ -473,12 +480,12 @@ public class InventoryPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
-    public async Task Adjustment_Count_First_Should_Require_Reason()
+    public async Task Adjustment_Count_First_Should_Require_Reason_Category()
     {
         var context = await CreateInquiryFilterContextAsync("ADJ-RSN");
         var model = CreateAdjustmentModel();
         model.WarehouseId = context.WarehouseId;
-        model.Reason = string.Empty;
+        model.ReasonCategory = string.Empty;
         model.CountLines =
         [
             new AdjustmentModel.CountAdjustmentLineInput
@@ -494,8 +501,130 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         var result = await model.OnPostAsync();
 
         result.ShouldBeOfType<PageResult>();
-        model.ModelState[nameof(AdjustmentModel.Reason)]!.Errors.Single().ErrorMessage
-            .ShouldContain(GetRequiredService<IStringLocalizer<VPureLuxResource>>()["Inventory:AdjustmentReasonRequired"].Value);
+        model.ModelState[nameof(AdjustmentModel.ReasonCategory)]!.Errors.Single().ErrorMessage
+            .ShouldContain(GetRequiredService<IStringLocalizer<VPureLuxResource>>()["Inventory:AdjustmentReasonCategoryRequired"].Value);
+    }
+
+    [Fact]
+    public async Task Adjustment_Count_First_Should_Require_Detail_For_Other_Reason()
+    {
+        var context = await CreateInquiryFilterContextAsync("ADJ-OTH");
+        var model = CreateAdjustmentModel();
+        model.WarehouseId = context.WarehouseId;
+        model.ReasonCategory = AdjustmentModel.OtherReasonCategory;
+        model.ReasonDetail = string.Empty;
+        model.CountLines =
+        [
+            new AdjustmentModel.CountAdjustmentLineInput
+            {
+                StockItemId = context.StockItemId,
+                CountedQuantity = 1,
+                LotNo = Unique("LOT-ADJ-OTH"),
+                ReceivedAtText = "18/06/2026",
+                UnitCost = 10000
+            }
+        ];
+
+        var result = await model.OnPostAsync();
+
+        result.ShouldBeOfType<PageResult>();
+        model.ModelState[nameof(AdjustmentModel.ReasonDetail)]!.Errors.Single().ErrorMessage
+            .ShouldContain(GetRequiredService<IStringLocalizer<VPureLuxResource>>()["Inventory:AdjustmentReasonDetailRequiredForOther"].Value);
+    }
+
+    [Fact]
+    public async Task Adjustment_Count_First_Should_Compose_Other_Reason_With_Detail()
+    {
+        var context = await CreateInquiryFilterContextAsync("ADJ-OTH-C");
+        var model = CreateAdjustmentModel();
+        model.WarehouseId = context.WarehouseId;
+        model.ReasonCategory = AdjustmentModel.OtherReasonCategory;
+        model.ReasonDetail = "Stock card cleanup";
+        model.CountLines =
+        [
+            new AdjustmentModel.CountAdjustmentLineInput
+            {
+                StockItemId = context.StockItemId,
+                CountedQuantity = 2,
+                LotNo = Unique("LOT-ADJ-OTH-C"),
+                ReceivedAtText = "18/06/2026",
+                UnitCost = 10000
+            }
+        ];
+
+        var result = await model.OnPostAsync();
+
+        result.ShouldBeOfType<RedirectToPageResult>();
+        var transaction = (await GetRequiredService<IInventoryQueryAppService>()
+                .GetLedgerAsync(context.WarehouseId, context.StockItemId))
+            .Single(x => x.Type == InventoryTransactionType.AdjustmentIncrease);
+        transaction.Reason.ShouldBe("Khác - Stock card cleanup");
+    }
+
+    [Fact]
+    public async Task Adjustment_Count_First_Should_Keep_Base_Input_Validation_Friendly()
+    {
+        var model = CreateAdjustmentModel();
+        model.WarehouseId = Guid.Empty;
+        model.ReasonCategory = "Kiểm kê lệch tồn";
+        model.CountLines =
+        [
+            new AdjustmentModel.CountAdjustmentLineInput()
+        ];
+
+        var result = await model.OnPostAsync();
+
+        result.ShouldBeOfType<PageResult>();
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        model.ModelState[nameof(AdjustmentModel.WarehouseId)]!.Errors.Single().ErrorMessage
+            .ShouldContain(localizer["Inventory:WarehouseRequired"].Value);
+        model.ModelState["CountLines[0].StockItemId"]!.Errors.Single().ErrorMessage
+            .ShouldContain(localizer["Inventory:StockItemRequired"].Value);
+    }
+
+    [Fact]
+    public async Task Adjustment_Count_First_Should_Require_Counted_Quantity()
+    {
+        var context = await CreateInquiryFilterContextAsync("ADJ-CNT-QTY");
+        var model = CreateAdjustmentModel();
+        model.WarehouseId = context.WarehouseId;
+        model.ReasonCategory = "Kiểm kê lệch tồn";
+        model.CountLines =
+        [
+            new AdjustmentModel.CountAdjustmentLineInput
+            {
+                StockItemId = context.StockItemId
+            }
+        ];
+
+        var result = await model.OnPostAsync();
+
+        result.ShouldBeOfType<PageResult>();
+        model.ModelState["CountLines[0].CountedQuantity"]!.Errors.Single().ErrorMessage
+            .ShouldContain(GetRequiredService<IStringLocalizer<VPureLuxResource>>()["Inventory:CountedQuantityRequired"].Value);
+    }
+
+    [Fact]
+    public async Task Adjustment_Count_First_Should_Block_Negative_Counted_Quantity()
+    {
+        var context = await CreateInquiryFilterContextAsync("ADJ-NEG-QTY");
+        var model = CreateAdjustmentModel();
+        model.WarehouseId = context.WarehouseId;
+        model.ReasonCategory = "Kiểm kê lệch tồn";
+        model.CountLines =
+        [
+            new AdjustmentModel.CountAdjustmentLineInput
+            {
+                StockItemId = context.StockItemId,
+                CountedQuantity = -1
+            }
+        ];
+
+        var result = await model.OnPostAsync();
+
+        result.ShouldBeOfType<PageResult>();
+        model.ModelState["CountLines[0].CountedQuantity"]!.Errors.Single().ErrorMessage
+            .ShouldContain(GetRequiredService<IStringLocalizer<VPureLuxResource>>()["Inventory:CountedQuantityNonNegative"].Value);
     }
 
     [Fact]
@@ -504,7 +633,8 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         var context = await CreateInquiryFilterContextAsync("ADJ-VAL");
         var model = CreateAdjustmentModel();
         model.WarehouseId = context.WarehouseId;
-        model.Reason = "Missing valuation";
+        model.ReasonCategory = "Kiểm kê lệch tồn";
+        model.ReasonDetail = "Missing valuation";
         model.CountLines =
         [
             new AdjustmentModel.CountAdjustmentLineInput

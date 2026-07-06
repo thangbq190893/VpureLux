@@ -51,7 +51,20 @@
                 <span asp-validation-for="WarehouseId" class="text-danger"></span>
             </div>
 
-            <abp-input asp-for="Reason" />
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label asp-for="ReasonCategory" class="form-label">@L["Inventory:AdjustmentReasonCategory"]</label>
+                    <select asp-for="ReasonCategory" asp-items="Model.ReasonCategoryOptions" class="form-select">
+                        <option value="">@L["Select"]</option>
+                    </select>
+                    <span asp-validation-for="ReasonCategory" class="text-danger"></span>
+                </div>
+                <div class="col-md-8">
+                    <label asp-for="ReasonDetail" class="form-label">@L["Inventory:AdjustmentReasonDetail"]</label>
+                    <textarea asp-for="ReasonDetail" class="form-control" rows="2" placeholder="@L["Inventory:AdjustmentReasonDetailPlaceholder"]"></textarea>
+                    <span asp-validation-for="ReasonDetail" class="text-danger"></span>
+                </div>
+            </div>
 
             <h5 class="mt-4">@L["Inventory:CountAdjustmentLines"]</h5>
             <div class="vpl-line-editor table-responsive">

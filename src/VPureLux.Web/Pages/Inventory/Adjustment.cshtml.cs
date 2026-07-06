@@ -16,6 +16,18 @@ namespace VPureLux.Web.Pages.Inventory;
 [Authorize(VPureLuxPermissions.Inventory.Adjust)]
 public class AdjustmentModel : VPureLuxPageModel
 {
+    public const string OtherReasonCategory = "Khác";
+
+    private static readonly string[] ReasonCategories =
+    [
+        "Kiểm kê lệch tồn",
+        "Hàng hỏng",
+        "Hàng mất",
+        "Sai thao tác nhập/xuất trước đó",
+        "Điều chỉnh tồn đầu kỳ",
+        OtherReasonCategory
+    ];
+
     private readonly IInventoryTransactionAppService _service;
     private readonly IInventoryQueryAppService _queryService;
     private readonly IWarehouseAppService _warehouseAppService;
@@ -24,9 +36,14 @@ public class AdjustmentModel : VPureLuxPageModel
     [BindProperty] public Guid WarehouseId { get; set; }
     [BindProperty] public string IdempotencyKey { get; set; } = Guid.NewGuid().ToString("N");
     [BindProperty] public string Reason { get; set; } = string.Empty;
+    [BindProperty] public string ReasonCategory { get; set; } = string.Empty;
+    [BindProperty] public string ReasonDetail { get; set; } = string.Empty;
     [BindProperty] public List<CountAdjustmentLineInput> CountLines { get; set; } = [new CountAdjustmentLineInput()];
     public List<SelectListItem> WarehouseOptions { get; private set; } = new();
     public List<SelectListItem> StockItemOptions { get; private set; } = new();
+    public IReadOnlyList<SelectListItem> ReasonCategoryOptions => ReasonCategories
+        .Select(category => new SelectListItem(category, category))
+        .ToList();
     public IReadOnlyList<BalanceQuantityView> BalanceQuantities { get; private set; } = [];
     public string BalanceQuantitiesJson => JsonSerializer.Serialize(BalanceQuantities);
     public string DefaultDateText => InventoryPostingUi.FormatDate(Clock.Now.Date);
@@ -140,9 +157,21 @@ public class AdjustmentModel : VPureLuxPageModel
             ModelState.AddModelError(nameof(WarehouseId), L["Inventory:WarehouseRequired"]);
         }
 
-        if (string.IsNullOrWhiteSpace(Reason))
+        var reasonCategory = ReasonCategory.Trim();
+        var reasonDetail = ReasonDetail.Trim();
+
+        if (string.IsNullOrWhiteSpace(reasonCategory))
         {
-            ModelState.AddModelError(nameof(Reason), L["Inventory:AdjustmentReasonRequired"]);
+            ModelState.AddModelError(nameof(ReasonCategory), L["Inventory:AdjustmentReasonCategoryRequired"]);
+        }
+        else if (!ReasonCategories.Contains(reasonCategory))
+        {
+            ModelState.AddModelError(nameof(ReasonCategory), L["Inventory:AdjustmentReasonCategoryInvalid"]);
+        }
+
+        if (reasonCategory == OtherReasonCategory && string.IsNullOrWhiteSpace(reasonDetail))
+        {
+            ModelState.AddModelError(nameof(ReasonDetail), L["Inventory:AdjustmentReasonDetailRequiredForOther"]);
         }
 
         var currentQuantities = await LoadCurrentQuantityMapAsync();
@@ -230,6 +259,8 @@ public class AdjustmentModel : VPureLuxPageModel
             return result;
         }
 
+        Reason = ComposeReason();
+
         if (increaseLines.Any())
         {
             result.Add(new PostAdjustmentDto
@@ -255,6 +286,16 @@ public class AdjustmentModel : VPureLuxPageModel
         }
 
         return result;
+    }
+
+    private string ComposeReason()
+    {
+        var category = ReasonCategory.Trim();
+        var detail = ReasonDetail.Trim();
+
+        return string.IsNullOrWhiteSpace(detail)
+            ? category
+            : $"{category} - {detail}";
     }
 
     public class CountAdjustmentLineInput
