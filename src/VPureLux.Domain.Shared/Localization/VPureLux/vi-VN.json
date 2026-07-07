@@ -382,6 +382,7 @@
     "Inventory:AdjustmentReasonDetailPlaceholder": "Nhập thêm bối cảnh kiểm kê hoặc mã chứng từ liên quan nếu có",
     "Inventory:WarehouseRequired": "Bắt buộc chọn kho.",
     "Inventory:StockItemRequired": "Bắt buộc chọn vật tư.",
+    "Inventory:ReceiptQuantityPositive": "Số lượng nhập phải lớn hơn 0.",
     "Inventory:CountedQuantityRequired": "Bắt buộc nhập số lượng kiểm kê.",
     "Inventory:CountedQuantityNonNegative": "Số lượng kiểm kê không được âm.",
     "Inventory:AdjustmentReasonRequired": "Bắt buộc nhập lý do điều chỉnh.",

@@ -8,6 +8,7 @@ using VPureLux.Catalog;
 using VPureLux.Catalog.Components;
 using VPureLux.Inventory;
 using Volo.Abp;
+using Volo.Abp.Validation;
 using Volo.Abp.Timing;
 using Xunit;
 
@@ -139,6 +140,35 @@ public class InventoryWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         });
 
         receipt.Lines.Single().LotNo.ShouldBe($"LOT-{DatePart()}0001");
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task Should_Reject_Non_Positive_Receipt_Quantity_Before_Posting_And_LotNo_Generation(int quantity)
+    {
+        await ResetInventoryLotSequenceAsync();
+        var context = await CreateContextAsync();
+
+        await Should.ThrowAsync<AbpValidationException>(() => _transactions.PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = quantity,
+                    UnitCost = 100,
+                    ReceivedAt = DateTime.UtcNow
+                }
+            ]
+        }));
+
+        (await _queries.GetLedgerAsync(context.WarehouseId, context.StockItemId)).ShouldBeEmpty();
+        (await _queries.GetLotsAsync(context.WarehouseId, context.StockItemId)).ShouldBeEmpty();
+        (await _cache.GetStringAsync($"Sequence:InventoryLot:{DatePart()}")).ShouldBeNull();
     }
 
     [Fact]

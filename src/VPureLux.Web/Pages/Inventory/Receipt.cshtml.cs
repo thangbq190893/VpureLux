@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -51,6 +52,7 @@ public class ReceiptModel : VPureLuxPageModel
     {
         EnsureReceiptLine();
         ParseReceiptDates();
+        ValidateReceiptLines();
         if (!ModelState.IsValid)
         {
             await LoadOptionsAsync();
@@ -70,6 +72,19 @@ public class ReceiptModel : VPureLuxPageModel
 
         TempData["InventoryPostSuccessMessage"] = "Inventory:ReceiptPostedSuccessfully";
         return RedirectToPage();
+    }
+
+    public string GetPostedFieldValue(string key, decimal value)
+    {
+        if (ModelState.TryGetValue(key, out var state) &&
+            state.RawValue is string attemptedValue)
+        {
+            return attemptedValue;
+        }
+
+        return value == 0
+            ? string.Empty
+            : value.ToString("0.####", CultureInfo.InvariantCulture);
     }
 
     private async Task LoadOptionsAsync()
@@ -118,6 +133,21 @@ public class ReceiptModel : VPureLuxPageModel
             }
 
             Input.Lines[i].ReceivedAt = receivedAt;
+        }
+    }
+
+    private void ValidateReceiptLines()
+    {
+        for (var i = 0; i < Input.Lines.Count; i++)
+        {
+            var quantityKey = $"{nameof(Input)}.{nameof(Input.Lines)}[{i}].{nameof(ReceiptLineInput.Quantity)}";
+            if (Input.Lines[i].Quantity > 0)
+            {
+                continue;
+            }
+
+            ModelState.Remove(quantityKey);
+            ModelState.AddModelError(quantityKey, L["Inventory:ReceiptQuantityPositive"]);
         }
     }
 }

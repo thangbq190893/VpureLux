@@ -70,7 +70,9 @@
                                 <label class="visually-hidden" for="Input_Lines_@i.ToString()__Quantity"
                                        data-for="Input_Lines___index____Quantity">@L["Inventory:Quantity"]</label>
                                 <input class="form-control form-control-sm" name="Input.Lines[@i].Quantity" id="Input_Lines_@i.ToString()__Quantity"
-                                       value="@Model.Input.Lines[i].Quantity" data-name="Input.Lines[__index__].Quantity"
+                                       type="number" min="0.0001" step="0.0001"
+                                       value="@Model.GetPostedFieldValue($"Input.Lines[{i}].Quantity", Model.Input.Lines[i].Quantity)"
+                                       data-name="Input.Lines[__index__].Quantity"
                                        data-id="Input_Lines___index____Quantity" />
                                 <span class="text-danger small" data-valmsg-for="Input.Lines[@i].Quantity"
                                       data-valmsg-for-template="Input.Lines[__index__].Quantity" data-valmsg-replace="true"></span>
@@ -136,7 +138,7 @@
         </td>
         <td class="vpl-line-editor-col-number">
             <label class="visually-hidden" data-for="Input_Lines___index____Quantity">@L["Inventory:Quantity"]</label>
-            <input class="form-control form-control-sm" value="" data-name="Input.Lines[__index__].Quantity" data-id="Input_Lines___index____Quantity" />
+            <input class="form-control form-control-sm" type="number" min="0.0001" step="0.0001" value="" data-name="Input.Lines[__index__].Quantity" data-id="Input_Lines___index____Quantity" />
             <span class="text-danger small" data-valmsg-for-template="Input.Lines[__index__].Quantity" data-valmsg-replace="true"></span>
         </td>
         <td class="vpl-line-editor-col-text">

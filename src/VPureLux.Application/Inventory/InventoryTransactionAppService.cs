@@ -52,6 +52,7 @@ public class InventoryTransactionAppService : ApplicationService, IInventoryTran
     [Authorize(VPureLuxPermissions.Inventory.Receive)]
     public async Task<InventoryTransactionDto> PostReceiptAsync(PostReceiptDto input)
     {
+        ValidateReceiptInput(input);
         var hash = HashReceipt(input);
         var existing = await GetIdempotentResultAsync(input.IdempotencyKey, hash);
         if (existing != null)
@@ -300,6 +301,14 @@ public class InventoryTransactionAppService : ApplicationService, IInventoryTran
         }
 
         return result;
+    }
+
+    private static void ValidateReceiptInput(PostReceiptDto input)
+    {
+        if (input.Lines.Count == 0 || input.Lines.Any(x => x.Quantity <= 0))
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.ValidationFailed);
+        }
     }
 
     private async Task<string> GenerateLotNoAsync()
