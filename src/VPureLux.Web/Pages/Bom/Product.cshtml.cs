@@ -29,6 +29,7 @@ public class ProductModel : VPureLuxPageModel
     public bool CanCreate { get; private set; }
     public bool CanPublish { get; private set; }
     public bool CanArchive { get; private set; }
+    public Guid? CurrentPublishedVersionId { get; private set; }
     [TempData] public string? StatusMessageKey { get; set; }
 
     public ProductModel(
@@ -85,6 +86,11 @@ public class ProductModel : VPureLuxPageModel
         await LoadProductLabelAsync();
         await LoadPricingContextAsync();
         Versions = await _bomAppService.GetListAsync(ProductId);
+        CurrentPublishedVersionId = Versions
+            .Where(x => x.Status == BomStatus.Published)
+            .OrderByDescending(x => x.VersionNo)
+            .Select(x => (Guid?)x.Id)
+            .FirstOrDefault();
         await SetPermissionsAsync();
     }
 

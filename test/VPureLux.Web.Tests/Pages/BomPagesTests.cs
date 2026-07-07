@@ -15,6 +15,7 @@ using VPureLux.Catalog.Products;
 using VPureLux.Localization;
 using VPureLux.Pricing;
 using VPureLux.Web.Pages.Bom;
+using Volo.Abp;
 using Volo.Abp.Data;
 using Volo.Abp.DependencyInjection;
 using Xunit;
@@ -95,7 +96,7 @@ public class BomPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("<abp-style src=\"/Pages/Shared/LineEditors.css\" />");
         pageSource.ShouldContain("data-bom-create-product-context");
         pageSource.ShouldContain("data-line-editor-row");
-        pageSource.ShouldNotContain("data-dynamic-select2=\"disabled\"");
+        pageSource.ShouldContain("data-dynamic-select2=\"disabled\"");
         pageSource.ShouldNotContain("overflow-y");
         pageSource.ShouldNotContain("max-height");
         cssSource.ShouldContain(".vpl-line-editor.table-responsive");
@@ -165,14 +166,20 @@ public class BomPagesTests : VPureLuxWebTestBase
         draftHtml.ShouldContain("data-bom-product");
         draftHtml.ShouldContain("data-bom-action-form");
         draftHtml.ShouldContain(localizer["Bom:ConfirmPublish"].Value);
+        draftHtml.ShouldContain(localizer["Bom:Publish"].Value);
 
         await bomService.PublishAsync(draft.Id);
         var publishedHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom/Product/{product.Id}"));
         publishedHtml.ShouldContain(localizer["Bom:ConfirmArchive"].Value);
+        publishedHtml.ShouldContain(localizer["Bom:Status:Published"].Value);
+        publishedHtml.ShouldContain(localizer["Bom:CurrentVersionBadge"].Value);
+        publishedHtml.ShouldNotContain(localizer["Bom:ConfirmPublish"].Value);
 
         var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/Product.cshtml"));
         pageSource.ShouldContain("@section scripts");
         pageSource.ShouldContain("<abp-script src=\"/Pages/Bom/BomProduct.js\" />");
+        pageSource.ShouldContain("data-bom-status-message");
+        pageSource.ShouldContain("data-bom-current-version");
         pageSource.ShouldNotContain("<script>");
         pageSource.ShouldNotContain("<script src=");
         pageSource.ShouldNotContain("<abp-button href=");
@@ -183,6 +190,62 @@ public class BomPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("abp.notify.success");
         scriptSource.ShouldContain("abp.ui.setBusy");
         scriptSource.ShouldContain("dataset.confirmed");
+    }
+
+    [Fact]
+    public async Task Bom_Product_OnPostPublishAsync_Should_Show_Success_And_Reload_Fresh_State()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var product = await CreateProductAsync("BOM-PUB-OK-P", "BOM Publish Success Product");
+        var component = await CreateComponentAsync("BOM-PUB-OK-C", "BOM Publish Success Component");
+        var bomService = GetRequiredService<IBomAppService>();
+        var draft = await bomService.CreateAsync(product.Id, BomInput(component.Id, DateTime.Today));
+        var model = new ProductModel(
+            bomService,
+            GetRequiredService<IProductAppService>(),
+            GetRequiredService<IProductPricingContextLookupService>(),
+            GetRequiredService<IAuthorizationService>())
+        {
+            ProductId = product.Id
+        };
+        SetPageContext(model);
+
+        var result = await model.OnPostPublishAsync(draft.Id);
+
+        var redirect = result.ShouldBeOfType<RedirectToPageResult>();
+        redirect.RouteValues!["productId"].ShouldBe(product.Id);
+        model.StatusMessageKey.ShouldBe("Bom:PublishedSuccessfully");
+        localizer[model.StatusMessageKey!].Value.ShouldBe("Đã công bố phiên bản định mức.");
+        (await bomService.GetAsync(draft.Id)).Status.ShouldBe(BomStatus.Published);
+
+        var productHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom/Product/{product.Id}"));
+        productHtml.ShouldContain(localizer["Bom:Status:Published"].Value);
+        productHtml.ShouldContain(localizer["Bom:CurrentVersionBadge"].Value);
+        productHtml.ShouldNotContain(localizer["Bom:ConfirmPublish"].Value);
+    }
+
+    [Fact]
+    public async Task Bom_Publish_State_Should_Be_Clear_On_Details_And_Index()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var product = await CreateProductAsync("BOM-PUB-UI-P", "BOM Publish UI Product");
+        var component = await CreateComponentAsync("BOM-PUB-UI-C", "BOM Publish UI Component");
+        var bomService = GetRequiredService<IBomAppService>();
+        var draft = await bomService.CreateAsync(product.Id, BomInput(component.Id, DateTime.Today));
+
+        await bomService.PublishAsync(draft.Id);
+
+        var detailsHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom/Details/{draft.Id}"));
+        var indexHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom?SearchTerm={product.Code}"));
+
+        detailsHtml.ShouldContain("data-bom-version-status");
+        detailsHtml.ShouldContain(localizer["Bom:Status:Published"].Value);
+        detailsHtml.ShouldContain(localizer["Bom:CurrentVersionBadge"].Value);
+        detailsHtml.ShouldNotContain(localizer["Edit"].Value);
+        indexHtml.ShouldContain(product.Code);
+        indexHtml.ShouldContain($"/Bom/Details/{draft.Id}");
+        indexHtml.ShouldContain(localizer["Bom:Status:Published"].Value);
+        indexHtml.ShouldContain(localizer["Bom:ViewCurrentVersion"].Value);
     }
 
     [Fact]
@@ -286,7 +349,7 @@ public class BomPagesTests : VPureLuxWebTestBase
         html.ShouldContain("vpl-line-editor-icon-button");
         CountOccurrences(html, "name=\"Items[0].ComponentId\"").ShouldBe(1);
         CountOccurrences(html, "name=\"Items[1].ComponentId\"").ShouldBe(1);
-        CountOccurrences(html, "<select class=\"form-select form-select-sm component-id\"").ShouldBe(2);
+        CountOccurrences(RemoveTemplateBlocks(html), "<select class=\"form-select form-select-sm component-id\"").ShouldBe(2);
         CountLiveRowsWithExactlyOneSelect(html, "<tr class=\"bom-item\" data-line-editor-row>").ShouldBe(2);
         CountOccurrences(html, localizer["Bom:SelectComponent"].Value).ShouldBeGreaterThanOrEqualTo(2);
         html.ShouldNotContain("data-dynamic-row-template");
@@ -405,6 +468,10 @@ public class BomPagesTests : VPureLuxWebTestBase
         model.ModelState.IsValid.ShouldBeFalse();
         model.ModelState[string.Empty]!.Errors
             .ShouldContain(x => x.ErrorMessage == localizer[VPureLuxDomainErrorCodes.OnlyOneActiveBomAllowed].Value);
+        model.ModelState[string.Empty]!.Errors
+            .ShouldAllBe(x =>
+                !x.ErrorMessage.Contains(nameof(BusinessException), StringComparison.OrdinalIgnoreCase) &&
+                !x.ErrorMessage.Contains(VPureLuxDomainErrorCodes.OnlyOneActiveBomAllowed, StringComparison.OrdinalIgnoreCase));
         model.Versions.Count.ShouldBeGreaterThanOrEqualTo(2);
         (await bomService.GetAsync(draft.Id)).Status.ShouldBe(BomStatus.Draft);
     }
@@ -494,6 +561,7 @@ public class BomPagesTests : VPureLuxWebTestBase
 
     private static int CountLiveRowsWithExactlyOneSelect(string html, string rowMarker)
     {
+        html = RemoveTemplateBlocks(html);
         var rowCount = 0;
         var index = 0;
 
@@ -510,6 +578,26 @@ public class BomPagesTests : VPureLuxWebTestBase
         }
 
         return rowCount;
+    }
+
+    private static string RemoveTemplateBlocks(string html)
+    {
+        while (true)
+        {
+            var templateStart = html.IndexOf("<template", StringComparison.OrdinalIgnoreCase);
+            if (templateStart < 0)
+            {
+                return html;
+            }
+
+            var templateEnd = html.IndexOf("</template>", templateStart, StringComparison.OrdinalIgnoreCase);
+            if (templateEnd < 0)
+            {
+                return html[..templateStart];
+            }
+
+            html = html.Remove(templateStart, templateEnd + "</template>".Length - templateStart);
+        }
     }
 
     private void SetPageContext(PageModel model)

@@ -21,7 +21,17 @@
         <dl class="row">
             <dt class="col-sm-3">@L["Bom:Product"]</dt><dd class="col-sm-9">@Model.ProductLabel</dd>
             <dt class="col-sm-3">@L["Bom:VersionNo"]</dt><dd class="col-sm-9">@Model.BomVersion.VersionNo</dd>
-            <dt class="col-sm-3">@L["Bom:Status"]</dt><dd class="col-sm-9">@L[$"Bom:Status:{Model.BomVersion.Status}"]</dd>
+            <dt class="col-sm-3">@L["Bom:Status"]</dt>
+            <dd class="col-sm-9">
+                <span class="badge @(Model.BomVersion.Status == VPureLux.Bom.BomStatus.Published ? "bg-success" : Model.BomVersion.Status == VPureLux.Bom.BomStatus.Archived ? "bg-secondary" : "bg-warning text-dark")"
+                      data-bom-version-status>
+                    @L[$"Bom:Status:{Model.BomVersion.Status}"]
+                </span>
+                @if (Model.BomVersion.Status == VPureLux.Bom.BomStatus.Published)
+                {
+                    <span class="badge bg-primary ms-1">@L["Bom:CurrentVersionBadge"]</span>
+                }
+            </dd>
             <dt class="col-sm-3">@L["Bom:EffectiveFrom"]</dt><dd class="col-sm-9">@VPureLux.Web.Pages.Bom.BomUi.FormatDate(Model.BomVersion.EffectiveFrom)</dd>
             <dt class="col-sm-3">@L["Bom:EffectiveTo"]</dt><dd class="col-sm-9">@VPureLux.Web.Pages.Bom.BomUi.FormatDate(Model.BomVersion.EffectiveTo)</dd>
         </dl>

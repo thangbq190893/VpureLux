@@ -49,6 +49,7 @@
                                 <a asp-page="/Bom/Details" asp-route-id="@row.CurrentVersion.Id">
                                     @L["Bom:VersionNo"] @row.CurrentVersion.VersionNo
                                 </a>
+                                <span class="badge bg-success ms-1" data-bom-current-version>@L["Bom:Status:Published"]</span>
                             }
                             else
                             {

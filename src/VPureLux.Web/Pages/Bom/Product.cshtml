@@ -27,6 +27,12 @@
     {
         <div class="alert alert-danger" asp-validation-summary="All"></div>
     }
+    @if (!string.IsNullOrWhiteSpace(Model.StatusMessageKey))
+    {
+        <div class="alert alert-success" role="alert" data-bom-status-message>
+            @L[Model.StatusMessageKey]
+        </div>
+    }
 
     <abp-card class="vpl-card-dense">
         <abp-card-body>
@@ -97,7 +103,15 @@
                 {
                     <tr>
                         <td>@version.VersionNo</td>
-                        <td>@L[$"Bom:Status:{version.Status}"]</td>
+                        <td>
+                            <span class="badge @(version.Status == VPureLux.Bom.BomStatus.Published ? "bg-success" : version.Status == VPureLux.Bom.BomStatus.Archived ? "bg-secondary" : "bg-warning text-dark")">
+                                @L[$"Bom:Status:{version.Status}"]
+                            </span>
+                            @if (Model.CurrentPublishedVersionId == version.Id)
+                            {
+                                <span class="badge bg-primary ms-1" data-bom-current-version>@L["Bom:CurrentVersionBadge"]</span>
+                            }
+                        </td>
                         <td>@VPureLux.Web.Pages.Bom.BomUi.FormatDate(version.EffectiveFrom)</td>
                         <td>@VPureLux.Web.Pages.Bom.BomUi.FormatDate(version.EffectiveTo)</td>
                         <td class="text-end">

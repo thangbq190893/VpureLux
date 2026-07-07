@@ -34,7 +34,7 @@ public class DynamicRowDropdownRowsTests
         pageSource.ShouldContain("data-line-editor-row");
         pageSource.ShouldContain("data-name=\"Items[__index__].ComponentId\"");
         pageSource.ShouldContain("data-id=\"Items___index____ComponentId\"");
-        pageSource.ShouldNotContain("data-dynamic-select2=\"disabled\"");
+        pageSource.ShouldContain("data-dynamic-select2=\"disabled\"");
 
         scriptSource.ShouldContain("window.vplDynamicRowSelects");
         scriptSource.ShouldContain("ensureTemplate(container, rowSelector)");

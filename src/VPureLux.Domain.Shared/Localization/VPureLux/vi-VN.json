@@ -140,6 +140,7 @@
     "Bom:ClearSearch": "Xóa lọc",
     "Bom:VersionCount": "Số phiên bản",
     "Bom:CurrentVersion": "Phiên bản hiện tại",
+    "Bom:CurrentVersionBadge": "Phiên bản hiện tại",
     "Bom:NoCurrentVersion": "Chưa có phiên bản công bố",
     "Bom:NoProducts": "Không có sản phẩm phù hợp.",
     "Bom:ViewCurrentVersion": "Xem phiên bản hiện tại",
