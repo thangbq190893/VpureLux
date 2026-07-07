@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -113,8 +114,11 @@ public class DetailsModel : VPureLuxPageModel
 
     public async Task<IActionResult> OnPostAddPaymentAsync()
     {
+        NormalizePaymentInputFromForm();
+
         if (!ModelState.IsValid)
         {
+            PaymentErrorMessage = L[VPureLuxDomainErrorCodes.ValidationFailed];
             await LoadAsync();
             return Page();
         }
@@ -337,6 +341,186 @@ public class DetailsModel : VPureLuxPageModel
             VPureLuxDomainErrorCodes.SalesPaymentIdempotencyConflict or
             VPureLuxDomainErrorCodes.AccessDenied or
             VPureLuxDomainErrorCodes.ValidationFailed;
+
+    private void NormalizePaymentInputFromForm()
+    {
+        var formErrors = new List<(string Key, string Message)>();
+
+        if (HttpContext?.Request.HasFormContentType == true)
+        {
+            var form = HttpContext.Request.Form;
+
+            if (form.TryGetValue("Payment.Amount", out var amountValues))
+            {
+                var amountText = amountValues.FirstOrDefault();
+                if (TryParsePaymentAmount(amountText, out var amount))
+                {
+                    Payment.Amount = amount;
+                }
+                else
+                {
+                    Payment.Amount = 0;
+                    formErrors.Add(("Payment.Amount", L["Sales:PaymentAmountInvalid"]));
+                }
+            }
+
+            if (form.TryGetValue("Payment.PaymentDate", out var dateValues))
+            {
+                var dateText = dateValues.FirstOrDefault();
+                if (TryParsePaymentDate(dateText, out var paymentDate))
+                {
+                    Payment.PaymentDate = paymentDate;
+                }
+                else
+                {
+                    Payment.PaymentDate = default;
+                    formErrors.Add(("Payment.PaymentDate", L["Sales:PaymentDateInvalid"]));
+                }
+            }
+
+            if (form.TryGetValue("Payment.PaymentMethod", out var methodValues))
+            {
+                var methodText = methodValues.FirstOrDefault();
+                if (TryParsePaymentMethod(methodText, out var paymentMethod))
+                {
+                    Payment.PaymentMethod = paymentMethod;
+                }
+                else
+                {
+                    formErrors.Add(("Payment.PaymentMethod", L["Sales:PaymentMethodInvalid"]));
+                }
+            }
+        }
+
+        ModelState.Clear();
+        ValidatePaymentInput(formErrors.Select(x => x.Key).ToHashSet(StringComparer.Ordinal));
+
+        foreach (var (key, message) in formErrors)
+        {
+            ModelState.AddModelError(key, message);
+        }
+    }
+
+    private void ValidatePaymentInput(IReadOnlySet<string> formErrorKeys)
+    {
+        if (!formErrorKeys.Contains("Payment.Amount") &&
+            (Payment.Amount < 0.01m || Payment.Amount > 9999999999999999.99m))
+        {
+            ModelState.AddModelError("Payment.Amount", L["Sales:PaymentAmountInvalid"]);
+        }
+
+        if (!formErrorKeys.Contains("Payment.PaymentDate") && Payment.PaymentDate == default)
+        {
+            ModelState.AddModelError("Payment.PaymentDate", L["Sales:PaymentDateInvalid"]);
+        }
+
+        if (!formErrorKeys.Contains("Payment.PaymentMethod") && !Enum.IsDefined(Payment.PaymentMethod))
+        {
+            ModelState.AddModelError("Payment.PaymentMethod", L["Sales:PaymentMethodInvalid"]);
+        }
+
+        if (string.IsNullOrWhiteSpace(Payment.IdempotencyKey) ||
+            Payment.IdempotencyKey.Length > SalesConsts.MaxIdempotencyKeyLength)
+        {
+            ModelState.AddModelError("Payment.IdempotencyKey", L[VPureLuxDomainErrorCodes.ValidationFailed]);
+        }
+
+        if (Payment.ReferenceNo?.Length > SalesConsts.MaxPaymentReferenceNoLength)
+        {
+            ModelState.AddModelError("Payment.ReferenceNo", L[VPureLuxDomainErrorCodes.ValidationFailed]);
+        }
+
+        if (Payment.Note?.Length > SalesConsts.MaxPaymentNoteLength)
+        {
+            ModelState.AddModelError("Payment.Note", L[VPureLuxDomainErrorCodes.ValidationFailed]);
+        }
+    }
+
+    private static bool TryParsePaymentAmount(string? value, out decimal amount)
+    {
+        amount = 0;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        var trimmed = value.Trim();
+        var vi = CultureInfo.GetCultureInfo("vi-VN");
+        var preferredCultures = UsesVietnameseDecimalPattern(trimmed)
+            ? new[] { vi, CultureInfo.InvariantCulture, CultureInfo.CurrentCulture }
+            : new[] { CultureInfo.InvariantCulture, vi, CultureInfo.CurrentCulture };
+
+        foreach (var culture in preferredCultures)
+        {
+            if (decimal.TryParse(trimmed, NumberStyles.Number, culture, out amount))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool UsesVietnameseDecimalPattern(string value)
+    {
+        var comma = value.LastIndexOf(',');
+        if (comma < 0)
+        {
+            return false;
+        }
+
+        var dot = value.LastIndexOf('.');
+        return dot < 0 || comma > dot;
+    }
+
+    private static bool TryParsePaymentDate(string? value, out DateTime paymentDate)
+    {
+        paymentDate = default;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        var trimmed = value.Trim();
+        var formats = new[] { "yyyy-MM-dd", "dd/MM/yyyy", "d/M/yyyy", "MM/dd/yyyy", "M/d/yyyy" };
+        if (DateTime.TryParseExact(
+                trimmed,
+                formats,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out paymentDate))
+        {
+            return true;
+        }
+
+        return DateTime.TryParse(trimmed, CultureInfo.CurrentCulture, DateTimeStyles.None, out paymentDate) ||
+               DateTime.TryParse(trimmed, CultureInfo.GetCultureInfo("vi-VN"), DateTimeStyles.None, out paymentDate);
+    }
+
+    private static bool TryParsePaymentMethod(string? value, out SalesPaymentMethod paymentMethod)
+    {
+        paymentMethod = default;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        var trimmed = value.Trim();
+        if (Enum.TryParse(trimmed, ignoreCase: true, out paymentMethod) &&
+            Enum.IsDefined(paymentMethod))
+        {
+            return true;
+        }
+
+        if (byte.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out var rawValue) &&
+            Enum.IsDefined(typeof(SalesPaymentMethod), rawValue))
+        {
+            paymentMethod = (SalesPaymentMethod)rawValue;
+            return true;
+        }
+
+        return false;
+    }
 
     private List<SelectListItem> BuildPaymentMethodOptions() =>
     [

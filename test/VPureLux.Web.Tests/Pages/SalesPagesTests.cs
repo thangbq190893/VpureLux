@@ -4,10 +4,12 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Threading.Tasks;
+using HtmlAgilityPack;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -1805,6 +1807,108 @@ public class SalesPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Sales_Details_Form_Post_AddPayment_Should_Create_Row_Reload_History_And_Update_Summary()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-PHF");
+        var service = GetRequiredService<ISalesOrderAppService>();
+        var order = await service.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 2, ActualSellingPrice = 100 }]
+        });
+        await service.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var form = await GetSalesPaymentFormAsync(order.Id);
+        form.Action.ShouldContain(order.Id.ToString());
+        form.Fields["Payment.Amount"] = "50";
+        form.Fields["Payment.PaymentDate"] = DateTime.UtcNow.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        form.Fields["Payment.PaymentMethod"] = SalesPaymentMethod.BankTransfer.ToString();
+        form.Fields["Payment.ReferenceNo"] = "PAGE-FORM-PARTIAL";
+        form.Fields["Payment.Note"] = "Browser form payment";
+
+        var html = await PostPaymentFormAndGetReloadedPageAsync(form);
+
+        var payments = await service.GetPaymentsAsync(order.Id);
+        payments.Count.ShouldBe(1);
+        payments.Single().ReferenceNo.ShouldBe("PAGE-FORM-PARTIAL");
+        var summary = await service.GetPaymentSummaryAsync(order.Id);
+        summary.PaidAmount.ShouldBe(50);
+        summary.RemainingAmount.ShouldBe(150);
+        summary.PaymentStatus.ShouldBe(SalesOrderReceivableStatus.PartiallyPaid);
+        html.ShouldContain("PAGE-FORM-PARTIAL");
+        html.ShouldContain("Browser form payment");
+        html.ShouldContain(FormatMoneyForTest(50));
+        html.ShouldContain(FormatMoneyForTest(150));
+        html.ShouldContain(localizer["Sales:PaymentStatus:PartiallyPaid"].Value);
+    }
+
+    [Fact]
+    public async Task Sales_Details_Form_Post_AddPayment_Should_Mark_Order_Paid_When_Remaining_Is_Paid()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-PHFP");
+        var service = GetRequiredService<ISalesOrderAppService>();
+        var order = await service.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 2, ActualSellingPrice = 100 }]
+        });
+        await service.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        await service.AddPaymentAsync(order.Id, new CreateSalesOrderPaymentDto
+        {
+            Amount = 50,
+            PaymentDate = DateTime.UtcNow,
+            PaymentMethod = SalesPaymentMethod.Cash,
+            ReferenceNo = "PAGE-FORM-FIRST",
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+        var form = await GetSalesPaymentFormAsync(order.Id);
+        form.Fields["Payment.Amount"] = "150";
+        form.Fields["Payment.PaymentDate"] = DateTime.UtcNow.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        form.Fields["Payment.PaymentMethod"] = SalesPaymentMethod.Cash.ToString();
+        form.Fields["Payment.ReferenceNo"] = "PAGE-FORM-FULL";
+
+        var html = await PostPaymentFormAndGetReloadedPageAsync(form);
+
+        var summary = await service.GetPaymentSummaryAsync(order.Id);
+        summary.PaidAmount.ShouldBe(200);
+        summary.RemainingAmount.ShouldBe(0);
+        summary.PaymentStatus.ShouldBe(SalesOrderReceivableStatus.Paid);
+        (await service.GetPaymentsAsync(order.Id)).Count.ShouldBe(2);
+        html.ShouldContain("PAGE-FORM-FULL");
+        html.ShouldContain(localizer["Sales:PaymentStatus:Paid"].Value);
+    }
+
+    [Fact]
+    public async Task Sales_Details_Form_Post_AddPayment_Should_Parse_Vietnamese_Comma_Amount()
+    {
+        var context = await CreateSalesContextAsync("SALES-PHVC");
+        var service = GetRequiredService<ISalesOrderAppService>();
+        var order = await service.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 2, ActualSellingPrice = 100 }]
+        });
+        await service.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var form = await GetSalesPaymentFormAsync(order.Id);
+        form.Fields["Payment.Amount"] = "50,50";
+        form.Fields["Payment.PaymentDate"] = DateTime.UtcNow.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        form.Fields["Payment.PaymentMethod"] = SalesPaymentMethod.Cash.ToString();
+        form.Fields["Payment.ReferenceNo"] = "PAGE-FORM-COMMA";
+
+        var html = await PostPaymentFormAndGetReloadedPageAsync(form);
+
+        var summary = await service.GetPaymentSummaryAsync(order.Id);
+        summary.PaidAmount.ShouldBe(50.50m);
+        summary.RemainingAmount.ShouldBe(149.50m);
+        summary.PaymentStatus.ShouldBe(SalesOrderReceivableStatus.PartiallyPaid);
+        (await service.GetPaymentsAsync(order.Id)).Single().ReferenceNo.ShouldBe("PAGE-FORM-COMMA");
+    }
+
+    [Fact]
     public async Task Sales_Details_OnPostAddPaymentAsync_Should_Show_Friendly_Overpayment_Error()
     {
         var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
@@ -1836,6 +1940,44 @@ public class SalesPagesTests : VPureLuxWebTestBase
         model.PaymentErrorMessage.ShouldBe(localizer[VPureLuxDomainErrorCodes.SalesPaymentOverpaymentNotAllowed].Value);
     }
 
+    [Theory]
+    [InlineData("Payment.Amount", "abc", "Sales:PaymentAmountInvalid")]
+    [InlineData("Payment.PaymentDate", "not-a-date", "Sales:PaymentDateInvalid")]
+    [InlineData("Payment.PaymentMethod", "Wire", "Sales:PaymentMethodInvalid")]
+    [InlineData("Payment.IdempotencyKey", "", "COM_001")]
+    public async Task Sales_Details_Form_Post_AddPayment_Should_Show_Friendly_Validation(
+        string field,
+        string value,
+        string expectedMessageKey)
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-PHIV");
+        var service = GetRequiredService<ISalesOrderAppService>();
+        var order = await service.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 }]
+        });
+        await service.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var form = await GetSalesPaymentFormAsync(order.Id);
+        form.Fields["Payment.Amount"] = "25";
+        form.Fields["Payment.PaymentDate"] = DateTime.UtcNow.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        form.Fields["Payment.PaymentMethod"] = SalesPaymentMethod.Cash.ToString();
+        form.Fields["Payment.ReferenceNo"] = "PAGE-FORM-INVALID";
+        form.Fields[field] = value;
+
+        var response = await Client.PostAsync(form.Action, new FormUrlEncodedContent(form.Fields));
+        var html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, html);
+        html.ShouldContain(localizer[expectedMessageKey].Value);
+        (await service.GetPaymentsAsync(order.Id)).ShouldBeEmpty();
+        var summary = await service.GetPaymentSummaryAsync(order.Id);
+        summary.PaidAmount.ShouldBe(0);
+        summary.PaymentStatus.ShouldBe(SalesOrderReceivableStatus.Unpaid);
+    }
+
     [Fact]
     public async Task Sales_Details_Should_Render_All_Multi_Line_Order_Lines()
     {
@@ -1860,6 +2002,44 @@ public class SalesPagesTests : VPureLuxWebTestBase
         html.ShouldContain(FormatMoneyForTest(100));
         html.ShouldContain(FormatMoneyForTest(75));
         order.Lines.Count.ShouldBe(2);
+    }
+
+    private async Task<(string Action, Dictionary<string, string> Fields)> GetSalesPaymentFormAsync(Guid orderId)
+    {
+        var html = await GetResponseAsStringAsync($"/Sales/Details/{orderId}");
+        var document = new HtmlDocument();
+        document.LoadHtml(html);
+        var form = document.DocumentNode.SelectSingleNode("//form[.//input[@name='Payment.IdempotencyKey']]");
+        form.ShouldNotBeNull();
+
+        var action = HtmlEntity.DeEntitize(form!.GetAttributeValue(
+            "action",
+            $"/Sales/Details/{orderId}?handler=AddPayment"));
+        var fields = new Dictionary<string, string>();
+
+        foreach (var input in form.SelectNodes(".//input[@name]") ?? Enumerable.Empty<HtmlNode>())
+        {
+            fields[input.GetAttributeValue("name", string.Empty)] = HtmlEntity.DeEntitize(input.GetAttributeValue("value", string.Empty));
+        }
+
+        foreach (var select in form.SelectNodes(".//select[@name]") ?? Enumerable.Empty<HtmlNode>())
+        {
+            var selected = select.SelectSingleNode(".//option[@selected]") ?? select.SelectSingleNode(".//option");
+            fields[select.GetAttributeValue("name", string.Empty)] = HtmlEntity.DeEntitize(selected?.GetAttributeValue("value", string.Empty) ?? string.Empty);
+        }
+
+        return (action, fields);
+    }
+
+    private async Task<string> PostPaymentFormAndGetReloadedPageAsync((string Action, Dictionary<string, string> Fields) form)
+    {
+        var response = await Client.PostAsync(form.Action, new FormUrlEncodedContent(form.Fields));
+        response.StatusCode.ShouldBe(HttpStatusCode.Found, await response.Content.ReadAsStringAsync());
+        response.Headers.Location.ShouldNotBeNull();
+
+        var location = response.Headers.Location!;
+        var reloadUrl = location.IsAbsoluteUri ? location.PathAndQuery : location.ToString();
+        return WebUtility.HtmlDecode(await GetResponseAsStringAsync(reloadUrl));
     }
 
     private async Task<(Guid CustomerId, string CustomerCode, string CustomerName, Guid WarehouseId, Guid ProductId, string ProductCode, string ProductName)> CreateSalesContextAsync(string prefix)
