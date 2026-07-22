@@ -660,6 +660,15 @@
             return;
         }
 
+        if (productSelector.tagName === 'SELECT' && window.vplDynamicRowSelects) {
+            window.vplDynamicRowSelects.stripSelect2Enhancements(productSelector);
+            window.vplDynamicRowSelects.stripLeptonXSelectEnhancements(productSelector);
+            window.vplDynamicRowSelects.initializeSelects(productSelector);
+        } else if (productSelector.tagName === 'SELECT') {
+            productSelector.classList.remove('form-select', 'form-select-sm', 'form-select-lg');
+            productSelector.removeAttribute('data-lpx-sync-bound');
+        }
+
         scope.dataset.salesContextBound = 'true';
         bindProductSelector(scope, productSelector);
         bindActualPriceInput(scope);

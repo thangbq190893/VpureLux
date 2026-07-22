@@ -42,10 +42,10 @@
                             <td class="vpl-line-editor-col-main">
                                 <label class="visually-hidden" for="Input_Lines_@i.ToString()__StockItemId"
                                        data-for="Input_Lines___index____StockItemId">@L["Inventory:StockItem"]</label>
-                                <select class="form-select form-select-sm"
+                                <select class="vpl-select2-target stock-item-id js-select2"
                                         name="Input.Lines[@i].StockItemId"
                                         id="Input_Lines_@i.ToString()__StockItemId"
-                                        data-dynamic-select2="disabled"
+                                        data-use-select2="true"
                                         data-name="Input.Lines[__index__].StockItemId"
                                         data-id="Input_Lines___index____StockItemId">
                                     <option value="">@L["Select"]</option>
@@ -98,8 +98,8 @@
     <tr data-inventory-line-row data-line-editor-row>
         <td class="vpl-line-editor-col-main">
             <label class="visually-hidden" data-for="Input_Lines___index____StockItemId">@L["Inventory:StockItem"]</label>
-            <select class="form-select form-select-sm"
-                    data-dynamic-select2="disabled"
+            <select class="vpl-select2-target stock-item-id js-select2"
+                    data-use-select2="true"
                     data-name="Input.Lines[__index__].StockItemId"
                     data-id="Input_Lines___index____StockItemId">
                 <option value="">@L["Select"]</option>

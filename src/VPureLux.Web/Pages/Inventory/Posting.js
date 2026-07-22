@@ -22,10 +22,8 @@
 
     function prepareLineSelects(container, row) {
         dynamicRows.stripSelect2Enhancements(row);
-
-        if (!usesHtmlRowTemplate(container)) {
-            dynamicRows.initializeSelects(row);
-        }
+        dynamicRows.stripLeptonXSelectEnhancements(row);
+        dynamicRows.initializeSelects(row, '.stock-item-id');
     }
 
     function cloneInventoryRow(container) {
@@ -156,6 +154,7 @@
 
             if (row && dynamicRows) {
                 dynamicRows.stripSelect2Enhancements(row);
+                dynamicRows.stripLeptonXSelectEnhancements(row);
             }
 
             row.remove();

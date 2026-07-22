@@ -84,7 +84,9 @@ public class BomPagesTests : VPureLuxWebTestBase
         html.ShouldContain("data-bom-create-product-context");
         html.ShouldContain($"{product.Code} - {product.Name}");
         html.ShouldContain("vpl-line-editor-table bom-items-table");
-        html.ShouldContain("form-select form-select-sm component-id");
+        html.ShouldContain("vpl-select2-target component-id js-select2");
+        html.ShouldContain("data-use-select2=\"true\"");
+        html.ShouldNotContain("form-select form-select-sm component-id");
         html.ShouldContain("vpl-line-editor-icon-button");
         CountOccurrences(html, "name=\"Items[0].ComponentId\"").ShouldBe(1);
         CountLiveRowsWithExactlyOneSelect(html, "<tr class=\"bom-item\" data-line-editor-row>").ShouldBe(1);
@@ -96,7 +98,8 @@ public class BomPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("<abp-style src=\"/Pages/Shared/LineEditors.css\" />");
         pageSource.ShouldContain("data-bom-create-product-context");
         pageSource.ShouldContain("data-line-editor-row");
-        pageSource.ShouldContain("data-dynamic-select2=\"disabled\"");
+        pageSource.ShouldContain("data-use-select2=\"true\"");
+        pageSource.ShouldNotContain("data-dynamic-select2=\"disabled\"");
         pageSource.ShouldNotContain("overflow-y");
         pageSource.ShouldNotContain("max-height");
         cssSource.ShouldContain(".vpl-line-editor.table-responsive");
@@ -110,6 +113,7 @@ public class BomPagesTests : VPureLuxWebTestBase
         pageSource.ShouldNotContain("<script>");
 
         var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/BomItems.js"));
+        scriptSource.ShouldContain("sourceComponent && !usesHtmlRowTemplate(container)");
         scriptSource.ShouldContain("component.innerHTML = sourceComponent.innerHTML");
         scriptSource.ShouldContain("component.name = 'Items[' + index + '].ComponentId'");
         scriptSource.ShouldContain("quantity.name = 'Items[' + index + '].Quantity'");
@@ -117,7 +121,8 @@ public class BomPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("quantity.id = 'Items_' + index + '__Quantity'");
         scriptSource.ShouldContain("getLiveRows(container).forEach(function (row)");
         scriptSource.ShouldContain("dynamicRows.stripSelect2Enhancements(row)");
-        scriptSource.ShouldContain("initializeSelects(row)");
+        scriptSource.ShouldContain("dynamicRows.stripLeptonXSelectEnhancements(row)");
+        scriptSource.ShouldContain("initializeSelects(row, '.component-id')");
         scriptSource.ShouldContain("vplDynamicRowSelects");
     }
 
@@ -344,12 +349,14 @@ public class BomPagesTests : VPureLuxWebTestBase
         var sharedScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Shared/DynamicRowSelects.js"));
 
         html.ShouldContain("vpl-line-editor-table bom-items-table");
-        html.ShouldContain("form-select form-select-sm component-id");
+        html.ShouldContain("vpl-select2-target component-id js-select2");
+        html.ShouldContain("data-use-select2=\"true\"");
+        html.ShouldNotContain("form-select form-select-sm component-id");
         html.ShouldContain("form-control form-control-sm quantity");
         html.ShouldContain("vpl-line-editor-icon-button");
         CountOccurrences(html, "name=\"Items[0].ComponentId\"").ShouldBe(1);
         CountOccurrences(html, "name=\"Items[1].ComponentId\"").ShouldBe(1);
-        CountOccurrences(RemoveTemplateBlocks(html), "<select class=\"form-select form-select-sm component-id\"").ShouldBe(2);
+        CountOccurrences(RemoveTemplateBlocks(html), "<select class=\"vpl-select2-target component-id js-select2\"").ShouldBe(2);
         CountLiveRowsWithExactlyOneSelect(html, "<tr class=\"bom-item\" data-line-editor-row>").ShouldBe(2);
         CountOccurrences(html, localizer["Bom:SelectComponent"].Value).ShouldBeGreaterThanOrEqualTo(2);
         html.ShouldNotContain("data-dynamic-row-template");
@@ -359,7 +366,8 @@ public class BomPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("data-line-editor-row");
         pageSource.ShouldContain("data-row-template=\"bom-item-row-template\"");
         pageSource.ShouldContain("<template id=\"bom-item-row-template\">");
-        pageSource.ShouldContain("data-dynamic-select2=\"disabled\"");
+        pageSource.ShouldContain("data-use-select2=\"true\"");
+        pageSource.ShouldNotContain("data-dynamic-select2=\"disabled\"");
         pageSource.ShouldNotContain("overflow-y");
         pageSource.ShouldNotContain("max-height");
         pageSource.ShouldContain("vpl-line-editor-col-main");
@@ -377,7 +385,8 @@ public class BomPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("usesHtmlRowTemplate(container)");
         scriptSource.ShouldContain("prepareComponentSelects(container, row)");
         scriptSource.ShouldContain("cloneBomRow(container)");
-        sharedScriptSource.ShouldContain("data-dynamic-select2=\"disabled\"");
+        sharedScriptSource.ShouldContain("data-use-select2=\"true\"");
+        sharedScriptSource.ShouldContain("stripLeptonXSelectEnhancements");
         sharedScriptSource.ShouldContain("setControlsDisabled(template, true)");
         sharedScriptSource.ShouldContain("template.classList.add('d-none')");
         localizer["Bom:Component"].Value.ShouldBe("Vật tư");

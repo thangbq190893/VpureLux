@@ -21,10 +21,8 @@
 
     function prepareComponentSelects(container, row) {
         dynamicRows.stripSelect2Enhancements(row);
-
-        if (!usesHtmlRowTemplate(container)) {
-            dynamicRows.initializeSelects(row);
-        }
+        dynamicRows.stripLeptonXSelectEnhancements(row);
+        dynamicRows.initializeSelects(row, '.component-id');
     }
 
     function cloneBomRow(container) {
@@ -116,7 +114,7 @@
             var quantity = row.querySelector('.quantity');
 
             if (component) {
-                if (sourceComponent) {
+                if (sourceComponent && !usesHtmlRowTemplate(container)) {
                     component.innerHTML = sourceComponent.innerHTML;
                 }
 
@@ -141,6 +139,7 @@
 
                 if (row && dynamicRows) {
                     dynamicRows.stripSelect2Enhancements(row);
+                    dynamicRows.stripLeptonXSelectEnhancements(row);
                 }
 
                 row.remove();

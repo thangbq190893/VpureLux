@@ -45,7 +45,8 @@
                                     <td class="sales-line-col-product">
                                         <select asp-for="Input.Lines[i].ProductId"
                                                 asp-items="Model.Products"
-                                                class="form-select form-select-sm w-100 sales-line-product"
+                                                class="w-100 sales-line-product vpl-select2-target js-select2"
+                                                data-use-select2="true"
                                                 data-sales-product-select
                                                 data-sales-line-index="@i"
                                                 aria-label="@L["Sales:ProductSku"]"></select>
@@ -119,7 +120,8 @@
 <template id="sales-line-row-template">
     <tr class="sales-line-row" data-sales-line-row>
         <td class="sales-line-col-product">
-            <select class="form-select form-select-sm w-100 sales-line-product"
+            <select class="w-100 sales-line-product vpl-select2-target js-select2"
+                    data-use-select2="true"
                     data-sales-product-select
                     data-name="Input.Lines[__index__].ProductId"
                     data-id="Input_Lines___index____ProductId">

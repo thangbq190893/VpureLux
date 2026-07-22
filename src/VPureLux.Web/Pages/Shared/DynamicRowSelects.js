@@ -1,7 +1,23 @@
 (function (window) {
     var templateAttribute = 'data-dynamic-row-template';
+    var select2TargetSelector = 'select[data-use-select2="true"], select.js-select2';
 
-    function stripSelect2Enhancements(root) {
+    function getSelectTargets(root, selector) {
+        var searchRoot = root || document;
+        var targetSelector = selector || select2TargetSelector;
+
+        if (searchRoot.tagName === 'SELECT') {
+            return !targetSelector || searchRoot.matches(targetSelector) ? [searchRoot] : [];
+        }
+
+        if (typeof searchRoot.querySelectorAll !== 'function') {
+            return [];
+        }
+
+        return Array.prototype.slice.call(searchRoot.querySelectorAll(targetSelector));
+    }
+
+    function stripSelect2Enhancements(root, selector) {
         if (!root) {
             return;
         }
@@ -10,11 +26,11 @@
             node.remove();
         });
 
-        var selects = root.tagName === 'SELECT'
-            ? [root]
-            : Array.prototype.slice.call(root.querySelectorAll('select.form-select, select[data-sales-product-select]'));
+        root.querySelectorAll('[data-select2-id]').forEach(function (node) {
+            node.removeAttribute('data-select2-id');
+        });
 
-        selects.forEach(function (select) {
+        getSelectTargets(root, selector).forEach(function (select) {
             if (window.jQuery) {
                 var $select = window.jQuery(select);
 
@@ -32,6 +48,31 @@
             select.removeAttribute('aria-hidden');
             select.removeAttribute('tabindex');
             select.style.display = '';
+        });
+    }
+
+    function stripLeptonXSelectEnhancements(root, selector) {
+        getSelectTargets(root, selector).forEach(function (select) {
+            select.classList.remove('form-select', 'form-select-sm', 'form-select-lg');
+            select.removeAttribute('data-lpx-sync-bound');
+
+            var wrapper = select.closest('.custom-select-wrapper[data-lpx-bound]');
+
+            if (!wrapper) {
+                return;
+            }
+
+            wrapper.querySelectorAll('.custom-select-display, .custom-options-container').forEach(function (node) {
+                node.remove();
+            });
+
+            if (wrapper.parentNode) {
+                wrapper.parentNode.insertBefore(select, wrapper);
+                wrapper.remove();
+            }
+
+            select.classList.remove('form-select', 'form-select-sm', 'form-select-lg');
+            select.removeAttribute('data-lpx-sync-bound');
         });
     }
 
@@ -72,15 +113,17 @@
         } else if (selector) {
             $selects = window.jQuery(root).find(selector);
         } else {
-            $selects = window.jQuery(root).find('select.form-select');
+            $selects = window.jQuery(root).find(select2TargetSelector);
         }
 
-        $selects.each(function () {
-            var $select = window.jQuery(this);
+        stripLeptonXSelectEnhancements(root, selector);
 
-            if ($select.is('[data-sales-product-select]') && root.tagName !== 'SELECT') {
+        $selects.each(function () {
+            if (this.tagName !== 'SELECT') {
                 return;
             }
+
+            var $select = window.jQuery(this);
 
             if ($select.is('[data-dynamic-select2="disabled"]')) {
                 return;
@@ -101,9 +144,7 @@
                 return;
             }
 
-            if (!$select.hasClass('form-select')) {
-                $select.addClass('form-select');
-            }
+            this.classList.remove('form-select', 'form-select-sm', 'form-select-lg');
 
             $select.select2(getSelect2Options($select));
         });
@@ -112,6 +153,7 @@
     function createCleanClone(source) {
         var clone = source.cloneNode(true);
         stripSelect2Enhancements(clone);
+        stripLeptonXSelectEnhancements(clone);
         setControlsDisabled(clone, false);
         return clone;
     }
@@ -141,7 +183,9 @@
 
     window.vplDynamicRowSelects = {
         templateAttribute: templateAttribute,
+        select2TargetSelector: select2TargetSelector,
         stripSelect2Enhancements: stripSelect2Enhancements,
+        stripLeptonXSelectEnhancements: stripLeptonXSelectEnhancements,
         initializeSelects: initializeSelects,
         createCleanClone: createCleanClone,
         ensureTemplate: ensureTemplate,

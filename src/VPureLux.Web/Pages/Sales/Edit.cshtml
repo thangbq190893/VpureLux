@@ -138,7 +138,8 @@
                         <select asp-for="NewLine.ProductId"
                                 asp-items="Model.Products"
                                 form="@addFormId"
-                                class="form-select form-select-sm w-100 sales-line-product"
+                                class="w-100 sales-line-product vpl-select2-target js-select2"
+                                data-use-select2="true"
                                 data-sales-product-select
                                 data-sales-line-index="@addLineIndex"
                                 aria-label="@L["Sales:ProductSku"]"></select>
@@ -204,5 +205,6 @@
 }
 
 @section scripts {
+    <abp-script src="/Pages/Shared/DynamicRowSelects.js" />
     <abp-script src="/Pages/Sales/SalesProductContext.js" />
 }

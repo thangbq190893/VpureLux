@@ -95,7 +95,7 @@
         contextPanel.textContent = '';
     }
 
-    function ensureNativeProductSelect(row) {
+    function prepareProductSelect(row) {
         var product = row.querySelector(productSelectSelector);
 
         if (!product) {
@@ -104,9 +104,9 @@
 
         if (dynamicRows) {
             dynamicRows.stripSelect2Enhancements(row);
+            dynamicRows.stripLeptonXSelectEnhancements(row);
+            dynamicRows.initializeSelects(row, productSelectSelector);
         }
-
-        product.classList.add('form-select', 'form-select-sm', 'w-100');
     }
 
     function clearRow(row) {
@@ -148,7 +148,7 @@
 
     function prepareLineRow(row) {
         row.removeAttribute('data-sales-context-bound');
-        ensureNativeProductSelect(row);
+        prepareProductSelect(row);
 
         if (productContext && typeof productContext.initializeRow === 'function') {
             productContext.initializeRow(row);
@@ -235,6 +235,7 @@
 
                 if (row && dynamicRows) {
                     dynamicRows.stripSelect2Enhancements(row);
+                    dynamicRows.stripLeptonXSelectEnhancements(row);
                 }
 
                 row.remove();

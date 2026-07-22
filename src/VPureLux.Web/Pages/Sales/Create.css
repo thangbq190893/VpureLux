@@ -35,8 +35,9 @@
 }
 
 .sales-line-product,
-.sales-line-col-product .custom-select-wrapper {
+.sales-line-col-product .select2-container {
     min-width: 30rem;
+    width: 100% !important;
 }
 
 .sales-line-context {

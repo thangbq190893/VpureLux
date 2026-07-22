@@ -276,7 +276,9 @@ public class SalesPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("data-sales-lines-body");
         pageSource.ShouldContain("sales-line-col-product");
         pageSource.ShouldContain("sales-line-col-status");
-        pageSource.ShouldContain("form-select-sm");
+        pageSource.ShouldContain("w-100 sales-line-product vpl-select2-target js-select2");
+        pageSource.ShouldContain("data-use-select2=\"true\"");
+        pageSource.ShouldNotContain("form-select form-select-sm w-100 sales-line-product");
         pageSource.ShouldContain("form-control-sm");
         pageSource.ShouldNotContain("alert alert-light border mb-3");
         pageSource.ShouldContain("type=\"number\"");
@@ -298,11 +300,12 @@ public class SalesPagesTests : VPureLuxWebTestBase
         linesScriptSource.ShouldContain("indexToken");
         linesScriptSource.ShouldContain("applyTemplateAttribute");
         linesScriptSource.ShouldContain("data-name");
-        linesScriptSource.ShouldContain("ensureNativeProductSelect");
+        linesScriptSource.ShouldContain("prepareProductSelect");
         linesScriptSource.ShouldContain("stripSelect2Enhancements");
+        linesScriptSource.ShouldContain("stripLeptonXSelectEnhancements");
+        linesScriptSource.ShouldContain("initializeSelects(row, productSelectSelector)");
         linesScriptSource.ShouldContain("defaultQuantity");
         linesScriptSource.ShouldContain("productContext.initializeRow");
-        linesScriptSource.ShouldNotContain("initializeSelects");
         linesScriptSource.ShouldNotContain("ensureTemplate");
         linesScriptSource.ShouldNotContain("sourceProduct.innerHTML");
 
@@ -375,7 +378,8 @@ public class SalesPagesTests : VPureLuxWebTestBase
         createCss.ShouldContain(".sales-line-col-product");
         createCss.ShouldContain("min-width: 32rem");
         createCss.ShouldContain(".sales-line-product");
-        createCss.ShouldContain(".sales-line-col-product .custom-select-wrapper");
+        createCss.ShouldContain(".sales-line-col-product .select2-container");
+        createCss.ShouldNotContain(".sales-line-col-product .custom-select-wrapper");
         createCss.ShouldContain("min-width: 30rem");
         createCss.ShouldContain(".sales-create-actions");
         createCss.ShouldContain(".sales-action-button");

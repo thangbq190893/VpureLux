@@ -134,7 +134,9 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         var sharedScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Shared/DynamicRowSelects.js"));
 
         html.ShouldContain("vpl-line-editor-table inventory-receipt-lines-table");
-        html.ShouldContain("form-select form-select-sm");
+        html.ShouldContain("vpl-select2-target stock-item-id js-select2");
+        html.ShouldContain("data-use-select2=\"true\"");
+        html.ShouldNotContain("form-select form-select-sm");
         html.ShouldContain("form-control form-control-sm");
         html.ShouldContain("vpl-line-editor-icon-button");
         CountOccurrences(html, "name=\"Input.Lines[0].StockItemId\"").ShouldBe(1);
@@ -146,7 +148,8 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("data-add-button=\"#add-receipt-line\"");
         pageSource.ShouldContain("data-row-template=\"receipt-line-row-template\"");
         pageSource.ShouldContain("<template id=\"receipt-line-row-template\">");
-        pageSource.ShouldContain("data-dynamic-select2=\"disabled\"");
+        pageSource.ShouldContain("data-use-select2=\"true\"");
+        pageSource.ShouldNotContain("data-dynamic-select2=\"disabled\"");
         pageSource.ShouldContain("data-name=\"Input.Lines[__index__].StockItemId\"");
         pageSource.ShouldContain("data-name=\"Input.Lines[__index__].Quantity\"");
         pageSource.ShouldContain("data-name=\"ReceivedAtTexts[__index__]\"");
@@ -197,7 +200,9 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         var sharedScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Shared/DynamicRowSelects.js"));
 
         html.ShouldContain("vpl-line-editor-table inventory-issue-lines-table");
-        html.ShouldContain("form-select form-select-sm");
+        html.ShouldContain("vpl-select2-target stock-item-id js-select2");
+        html.ShouldContain("data-use-select2=\"true\"");
+        html.ShouldNotContain("form-select form-select-sm");
         html.ShouldContain("form-control form-control-sm");
         html.ShouldContain("vpl-line-editor-icon-button");
         CountOccurrences(html, "name=\"Input.Lines[0].StockItemId\"").ShouldBe(1);
@@ -213,7 +218,8 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("data-add-button=\"#add-issue-line\"");
         pageSource.ShouldContain("data-row-template=\"issue-line-row-template\"");
         pageSource.ShouldContain("<template id=\"issue-line-row-template\">");
-        pageSource.ShouldContain("data-dynamic-select2=\"disabled\"");
+        pageSource.ShouldContain("data-use-select2=\"true\"");
+        pageSource.ShouldNotContain("data-dynamic-select2=\"disabled\"");
         pageSource.ShouldContain("data-name=\"Input.Lines[__index__].StockItemId\"");
         pageSource.ShouldContain("data-name=\"Input.Lines[__index__].Quantity\"");
         pageSource.ShouldContain("vpl-line-editor-col-main");
@@ -251,7 +257,9 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         var sharedScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Shared/DynamicRowSelects.js"));
 
         html.ShouldContain("vpl-line-editor-table inventory-adjustment-count-lines-table");
-        html.ShouldContain("form-select form-select-sm");
+        html.ShouldContain("vpl-select2-target stock-item-id js-select2");
+        html.ShouldContain("data-use-select2=\"true\"");
+        html.ShouldNotContain("form-select form-select-sm");
         html.ShouldContain("form-control form-control-sm");
         html.ShouldContain("vpl-line-editor-icon-button");
         CountOccurrences(html, "name=\"CountLines[0].StockItemId\"").ShouldBe(1);
@@ -284,7 +292,8 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("data-add-button=\"#add-adjustment-count-line\"");
         pageSource.ShouldContain("data-row-template=\"adjustment-count-line-row-template\"");
         pageSource.ShouldContain("<template id=\"adjustment-count-line-row-template\">");
-        pageSource.ShouldContain("data-dynamic-select2=\"disabled\"");
+        pageSource.ShouldContain("data-use-select2=\"true\"");
+        pageSource.ShouldNotContain("data-dynamic-select2=\"disabled\"");
         pageSource.ShouldContain("data-name=\"CountLines[__index__].StockItemId\"");
         pageSource.ShouldContain("data-name=\"CountLines[__index__].CurrentQuantity\"");
         pageSource.ShouldContain("data-name=\"CountLines[__index__].CountedQuantity\"");
@@ -915,7 +924,8 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("abp.notify.success");
         scriptSource.ShouldContain("abp.ui.setBusy");
         scriptSource.ShouldContain("dataset.confirmed");
-        scriptSource.ShouldContain("initializeSelects(row)");
+        scriptSource.ShouldContain("stripLeptonXSelectEnhancements(row)");
+        scriptSource.ShouldContain("initializeSelects(row, '.stock-item-id')");
         scriptSource.ShouldContain("vplDynamicRowSelects");
     }
 

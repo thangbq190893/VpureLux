@@ -89,10 +89,10 @@
                             <td class="vpl-line-editor-col-main">
                                 <label class="visually-hidden" for="CountLines_@i.ToString()__StockItemId"
                                        data-for="CountLines___index____StockItemId">@L["Inventory:Material"]</label>
-                                <select class="form-select form-select-sm"
+                                <select class="vpl-select2-target stock-item-id js-select2"
                                         name="CountLines[@i].StockItemId"
                                         id="CountLines_@i.ToString()__StockItemId"
-                                        data-dynamic-select2="disabled"
+                                        data-use-select2="true"
                                         data-count-stock-item
                                         data-name="CountLines[__index__].StockItemId"
                                         data-id="CountLines___index____StockItemId">
@@ -185,8 +185,8 @@
     <tr data-inventory-line-row data-line-editor-row data-count-adjustment-row>
         <td class="vpl-line-editor-col-main">
             <label class="visually-hidden" data-for="CountLines___index____StockItemId">@L["Inventory:Material"]</label>
-            <select class="form-select form-select-sm"
-                    data-dynamic-select2="disabled"
+            <select class="vpl-select2-target stock-item-id js-select2"
+                    data-use-select2="true"
                     data-count-stock-item
                     data-name="CountLines[__index__].StockItemId"
                     data-id="CountLines___index____StockItemId">
