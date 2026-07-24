@@ -21,5 +21,6 @@ public class CatalogHardeningDomainTests
         VPureLuxDomainErrorCodes.ProductCodeAlreadyExists.ShouldBe("CATALOG_002");
         VPureLuxDomainErrorCodes.ComponentNotFound.ShouldBe("CATALOG_003");
         VPureLuxDomainErrorCodes.ProductNotFound.ShouldBe("CATALOG_004");
+        VPureLuxDomainErrorCodes.ProductCodeRequired.ShouldBe("CATALOG_011");
     }
 }

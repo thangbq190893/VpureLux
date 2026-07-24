@@ -117,7 +117,10 @@
     "Catalog:ProductSavedSuccessfully": "Đã lưu sản phẩm.",
     "Catalog:ComponentSavedSuccessfully": "Đã lưu vật tư.",
     "Catalog:ActivateUnavailable": "Chưa có thao tác kích hoạt lại cho vật tư trong phiên bản hiện tại.",
+    "Catalog:ProductCode": "Mã sản phẩm",
 
+    "CATALOG_001": "Mã vật tư đã tồn tại.",
+    "CATALOG_002": "Mã sản phẩm đã tồn tại.",
     "CATALOG_005": "Định dạng ảnh không được hỗ trợ.",
     "CATALOG_006": "Nội dung ảnh không phải Base64 hợp lệ.",
     "CATALOG_007": "Ảnh vượt quá giới hạn 2 MB.",
@@ -547,6 +550,7 @@
     "COM_002": "Không tìm thấy dữ liệu.",
     "COM_003": "Bạn không có quyền thực hiện thao tác này.",
     "CATALOG_004": "Không tìm thấy sản phẩm.",
+    "CATALOG_011": "Vui lòng nhập mã sản phẩm.",
 
     "Permission:Audit": "Nhật ký nghiệp vụ",
     "Permission:Audit.View": "Xem nhật ký nghiệp vụ",

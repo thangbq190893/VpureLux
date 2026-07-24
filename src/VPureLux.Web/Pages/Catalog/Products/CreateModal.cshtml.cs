@@ -2,7 +2,9 @@ using System.Threading.Tasks;
 using global::VPureLux.Catalog.Products;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using VPureLux;
 using VPureLux.Permissions;
+using Volo.Abp;
 
 namespace VPureLux.Web.Pages.Catalog.Products;
 
@@ -29,7 +31,16 @@ public class CreateModalModel : VPureLuxPageModel
             return Page();
         }
 
-        await _productAppService.CreateAsync(Input);
+        try
+        {
+            await _productAppService.CreateAsync(Input);
+        }
+        catch (BusinessException exception) when (exception.Code is VPureLuxDomainErrorCodes.ProductCodeRequired or VPureLuxDomainErrorCodes.ProductCodeAlreadyExists)
+        {
+            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.Code)}", L[exception.Code].Value);
+            return Page();
+        }
+
         return NoContent();
     }
 }

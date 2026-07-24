@@ -4,6 +4,7 @@ namespace VPureLux.Catalog.Products;
 
 public class CreateProductDto
 {
+    [Required(ErrorMessage = "Vui lòng nhập mã sản phẩm.")]
     [StringLength(CatalogConsts.MaxCodeLength)]
     public string? Code { get; set; }
 

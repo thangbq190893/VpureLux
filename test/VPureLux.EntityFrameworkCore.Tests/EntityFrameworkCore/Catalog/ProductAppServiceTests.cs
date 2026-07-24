@@ -1,12 +1,11 @@
 using System;
-using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Caching.Distributed;
 using Shouldly;
 using VPureLux.Catalog;
 using VPureLux.Catalog.Products;
 using Volo.Abp;
-using Volo.Abp.Timing;
+using Volo.Abp.Validation;
 using Xunit;
 
 namespace VPureLux.EntityFrameworkCore.Catalog;
@@ -15,14 +14,10 @@ namespace VPureLux.EntityFrameworkCore.Catalog;
 public class ProductAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
 {
     private readonly IProductAppService _productAppService;
-    private readonly IDistributedCache _cache;
-    private readonly IClock _clock;
 
     public ProductAppServiceTests()
     {
         _productAppService = GetRequiredService<IProductAppService>();
-        _cache = GetRequiredService<IDistributedCache>();
-        _clock = GetRequiredService<IClock>();
     }
 
     [Fact]
@@ -58,41 +53,41 @@ public class ProductAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     [Fact]
-    public async Task Should_Generate_Product_Code_When_Blank()
+    public async Task Should_Block_Blank_Product_Code()
     {
-        await ResetProductSequenceAsync();
+        var exception = await Should.ThrowAsync<AbpValidationException>(() =>
+            _productAppService.CreateAsync(new CreateProductDto
+            {
+                Code = "",
+                Name = "Blank Product Code"
+            }));
 
-        var product = await _productAppService.CreateAsync(new CreateProductDto
-        {
-            Code = " ",
-            Name = "Auto Product Code"
-        });
-
-        product.Code.ShouldBe($"PROD-{DatePart()}0001");
+        exception.ValidationErrors.ShouldContain(error => error.MemberNames.Contains(nameof(CreateProductDto.Code)));
     }
 
     [Fact]
-    public async Task Should_Seed_Product_Code_From_Existing_Max_Suffix()
+    public async Task Should_Block_Whitespace_Product_Code()
     {
-        await ResetProductSequenceAsync();
-        var datePart = DatePart();
-        await _productAppService.CreateAsync(new CreateProductDto
-        {
-            Code = $"PROD-{datePart}0003",
-            Name = "Seed Product 3"
-        });
-        await _productAppService.CreateAsync(new CreateProductDto
-        {
-            Code = $"PROD-{datePart}0009",
-            Name = "Seed Product 9"
-        });
+        var exception = await Should.ThrowAsync<AbpValidationException>(() =>
+            _productAppService.CreateAsync(new CreateProductDto
+            {
+                Code = "   ",
+                Name = "Whitespace Product Code"
+            }));
 
+        exception.ValidationErrors.ShouldContain(error => error.MemberNames.Contains(nameof(CreateProductDto.Code)));
+    }
+
+    [Fact]
+    public async Task Should_Trim_And_Preserve_Manual_Product_Code()
+    {
         var product = await _productAppService.CreateAsync(new CreateProductDto
         {
-            Name = "Seeded Auto Product"
+            Code = "  MANUAL-P-001  ",
+            Name = "Manual Product Code"
         });
 
-        product.Code.ShouldBe($"PROD-{datePart}0010");
+        product.Code.ShouldBe("MANUAL-P-001");
     }
 
     [Fact]
@@ -118,8 +113,4 @@ public class ProductAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
         deactivated.Status.ShouldBe(CatalogItemStatus.Inactive);
     }
 
-    private string DatePart() => _clock.Now.Date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
-
-    private Task ResetProductSequenceAsync() =>
-        _cache.RemoveAsync($"Sequence:Product:{DatePart()}");
 }

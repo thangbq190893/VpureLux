@@ -12,6 +12,7 @@ public static class VPureLuxDomainErrorCodes
     public const string CatalogImageInvalidSignature = "CATALOG_008";
     public const string CatalogImageUnsafeContent = "CATALOG_009";
     public const string CatalogImageNotFound = "CATALOG_010";
+    public const string ProductCodeRequired = "CATALOG_011";
 
     public const string PublishedBomCannotBeModified = "BOM_001";
     public const string ArchivedBomCannotBeModified = "BOM_002";

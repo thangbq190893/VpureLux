@@ -33,7 +33,13 @@ public class CatalogValidationTests
 
         Validate(new CreateProductDto
         {
-            Name = "Auto code product"
+            Name = "Manual code product"
+        }).ShouldNotBeEmpty();
+
+        Validate(new CreateProductDto
+        {
+            Code = "P-MANUAL",
+            Name = "Manual code product"
         }).ShouldBeEmpty();
     }
 
