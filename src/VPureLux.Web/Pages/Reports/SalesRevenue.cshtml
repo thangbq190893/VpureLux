@@ -1,0 +1,325 @@
+@page
+@model VPureLux.Web.Pages.Reports.SalesRevenueModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using System.Globalization
+@using System.Linq
+@using VPureLux.Reports
+@using VPureLux.Sales
+@{
+    ViewData["Title"] = L["Reports:SalesRevenueTitle"];
+    var topProducts = Model.Report.ByProduct.Take(10).ToList();
+}
+
+@functions {
+    private static readonly CultureInfo Vi = CultureInfo.GetCultureInfo("vi-VN");
+
+    private static string FormatMoney(decimal value)
+    {
+        var amount = decimal.Round(value, 0, MidpointRounding.AwayFromZero);
+        return amount.ToString("#,0", Vi) + " ₫";
+    }
+
+    private static string FormatQuantity(decimal value)
+    {
+        if (value == decimal.Truncate(value))
+        {
+            return decimal.Truncate(value).ToString("0", Vi);
+        }
+
+        return value.ToString("0.####", Vi);
+    }
+
+    private static string FormatDate(DateTime value)
+    {
+        return value.ToString("dd/MM/yyyy", Vi);
+    }
+
+    private static string FormatPercent(decimal value)
+    {
+        return value.ToString("0.##", Vi) + "%";
+    }
+
+    private static string GetPaymentStatusBadgeClass(SalesOrderReceivableStatus status) => status switch
+    {
+        SalesOrderReceivableStatus.Unpaid => "text-bg-danger",
+        SalesOrderReceivableStatus.PartiallyPaid => "text-bg-warning text-dark",
+        SalesOrderReceivableStatus.Paid => "text-bg-success",
+        SalesOrderReceivableStatus.Overpaid => "text-bg-info text-dark",
+        _ => "text-bg-secondary"
+    };
+}
+
+<div class="vpl-page vpl-inquiry-page">
+    <div class="vpl-page-header">
+        <h2 class="vpl-page-title mb-0">@L["Reports:SalesRevenueTitle"]</h2>
+    </div>
+
+    <abp-card class="vpl-inquiry-filter-card vpl-card-dense mb-3">
+        <abp-card-header>
+            <h5 class="mb-0">@L["Search"]</h5>
+        </abp-card-header>
+        <abp-card-body>
+            <form method="get" class="row g-2 align-items-end mb-0">
+                <div asp-validation-summary="All" class="text-danger"></div>
+                <div class="col-md-2">
+                    <label asp-for="FromDate" class="form-label">@L["Reports:FromDate"]</label>
+                    <input asp-for="FromDate" type="date" class="form-control" />
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="ToDate" class="form-label">@L["Reports:ToDate"]</label>
+                    <input asp-for="ToDate" type="date" class="form-control" />
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="GroupBy" class="form-label">@L["Reports:GroupBy"]</label>
+                    <select asp-for="GroupBy" class="form-select">
+                        @foreach (var group in Model.GroupByOptions)
+                        {
+                            <option value="@group">@L[$"Reports:GroupBy:{group}"]</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="ProductId" class="form-label">@L["Reports:Product"]</label>
+                    <select asp-for="ProductId" asp-items="Model.ProductOptions" class="form-select">
+                        <option value="">@L["Select"]</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="CustomerId" class="form-label">@L["Reports:Customer"]</label>
+                    <select asp-for="CustomerId" asp-items="Model.CustomerOptions" class="form-select">
+                        <option value="">@L["Select"]</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="WarehouseId" class="form-label">@L["Reports:Warehouse"]</label>
+                    <select asp-for="WarehouseId" asp-items="Model.WarehouseOptions" class="form-select">
+                        <option value="">@L["Select"]</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="PaymentStatus" class="form-label">@L["Reports:PaymentStatus"]</label>
+                    <select asp-for="PaymentStatus" class="form-select">
+                        <option value="">@L["Reports:AllPaymentStatuses"]</option>
+                        @foreach (var status in Model.PaymentStatusOptions)
+                        {
+                            <option value="@status">@L[$"Sales:PaymentStatus:{status}"]</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">@L["Reports:Filter"]</button>
+                    <a class="btn btn-outline-secondary" asp-page="/Reports/SalesRevenue">@L["Reports:Reset"]</a>
+                </div>
+            </form>
+        </abp-card-body>
+    </abp-card>
+
+    @if (!Model.HasData)
+    {
+        <abp-card class="vpl-inquiry-results-card vpl-card-dense">
+            <abp-card-body>
+                <div class="vpl-empty-state">@L["Reports:NoSalesRevenueData"]</div>
+            </abp-card-body>
+        </abp-card>
+    }
+    else
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-sm-6 col-xl-2">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">@L["Reports:TotalRevenue"]</div>
+                        <div class="fs-5 fw-semibold">@FormatMoney(Model.Report.Summary.TotalRevenue)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-2">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">@L["Reports:ConfirmedOrderCount"]</div>
+                        <div class="fs-5 fw-semibold">@Model.Report.Summary.ConfirmedOrderCount.ToString("#,0", Vi)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-2">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">@L["Reports:SoldQuantity"]</div>
+                        <div class="fs-5 fw-semibold">@FormatQuantity(Model.Report.Summary.TotalQuantity)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-2">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">@L["Reports:AverageOrderValue"]</div>
+                        <div class="fs-5 fw-semibold">@FormatMoney(Model.Report.Summary.AverageOrderValue)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-2">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">@L["Reports:PaidAmount"]</div>
+                        <div class="fs-5 fw-semibold">@FormatMoney(Model.Report.Summary.PaidAmount)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-2">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">@L["Reports:RemainingAmount"]</div>
+                        <div class="fs-5 fw-semibold">@FormatMoney(Model.Report.Summary.RemainingAmount)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <span class="badge text-bg-danger">@L["Sales:PaymentStatus:Unpaid"]: @Model.Report.Summary.UnpaidOrderCount</span>
+            <span class="badge text-bg-warning text-dark">@L["Sales:PaymentStatus:PartiallyPaid"]: @Model.Report.Summary.PartiallyPaidOrderCount</span>
+            <span class="badge text-bg-success">@L["Sales:PaymentStatus:Paid"]: @Model.Report.Summary.PaidOrderCount</span>
+            <span class="badge text-bg-info text-dark">@L["Sales:PaymentStatus:Overpaid"]: @Model.Report.Summary.OverpaidOrderCount</span>
+        </div>
+
+        <abp-card class="vpl-inquiry-results-card vpl-card-dense mb-3">
+            <abp-card-header>
+                <h5 class="mb-0">@L["Reports:RevenueByPeriod"]</h5>
+            </abp-card-header>
+            <abp-card-body>
+                <abp-table striped-rows="true" class="vpl-table-dense">
+                    <thead>
+                        <tr>
+                            <th>@L["Reports:Period"]</th>
+                            <th class="text-end">@L["Reports:OrderCount"]</th>
+                            <th class="text-end">@L["Reports:Quantity"]</th>
+                            <th class="text-end">@L["Reports:Revenue"]</th>
+                            <th class="text-end">@L["Reports:PaidAmount"]</th>
+                            <th class="text-end">@L["Reports:RemainingAmount"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var row in Model.Report.ByPeriod)
+                    {
+                        <tr>
+                            <td>@(string.IsNullOrWhiteSpace(row.PeriodLabel) ? row.PeriodKey : row.PeriodLabel)</td>
+                            <td class="text-end">@row.OrderCount.ToString("#,0", Vi)</td>
+                            <td class="text-end">@FormatQuantity(row.Quantity)</td>
+                            <td class="text-end text-nowrap">@FormatMoney(row.Revenue)</td>
+                            <td class="text-end text-nowrap">@FormatMoney(row.PaidAmount)</td>
+                            <td class="text-end text-nowrap">@FormatMoney(row.RemainingAmount)</td>
+                        </tr>
+                    }
+                    </tbody>
+                </abp-table>
+            </abp-card-body>
+        </abp-card>
+
+        <abp-card class="vpl-inquiry-results-card vpl-card-dense mb-3">
+            <abp-card-header>
+                <h5 class="mb-0">@L["Reports:TopProductsByRevenue"]</h5>
+            </abp-card-header>
+            <abp-card-body>
+                <abp-table striped-rows="true" class="vpl-table-dense">
+                    <thead>
+                        <tr>
+                            <th>@L["Reports:ProductCode"]</th>
+                            <th>@L["Reports:ProductName"]</th>
+                            <th class="text-end">@L["Reports:SoldQuantityShort"]</th>
+                            <th class="text-end">@L["Reports:OrderCount"]</th>
+                            <th class="text-end">@L["Reports:Revenue"]</th>
+                            <th class="text-end">@L["Reports:RevenueShare"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var row in topProducts)
+                    {
+                        <tr>
+                            <td class="text-nowrap">@row.ProductCode</td>
+                            <td>@row.ProductName</td>
+                            <td class="text-end">@FormatQuantity(row.Quantity)</td>
+                            <td class="text-end">@row.OrderCount.ToString("#,0", Vi)</td>
+                            <td class="text-end text-nowrap">@FormatMoney(row.Revenue)</td>
+                            <td class="text-end text-nowrap">@FormatPercent(row.RevenueSharePercent)</td>
+                        </tr>
+                    }
+                    </tbody>
+                </abp-table>
+            </abp-card-body>
+        </abp-card>
+
+        <abp-card class="vpl-inquiry-results-card vpl-card-dense mb-3">
+            <abp-card-header>
+                <h5 class="mb-0">@L["Reports:RevenueByCustomer"]</h5>
+            </abp-card-header>
+            <abp-card-body>
+                <abp-table striped-rows="true" class="vpl-table-dense">
+                    <thead>
+                        <tr>
+                            <th>@L["Reports:CustomerCode"]</th>
+                            <th>@L["Reports:CustomerName"]</th>
+                            <th class="text-end">@L["Reports:OrderCount"]</th>
+                            <th class="text-end">@L["Reports:Revenue"]</th>
+                            <th class="text-end">@L["Reports:PaidAmount"]</th>
+                            <th class="text-end">@L["Reports:RemainingAmount"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var row in Model.Report.ByCustomer)
+                    {
+                        <tr>
+                            <td class="text-nowrap">@row.CustomerCode</td>
+                            <td>@row.CustomerName</td>
+                            <td class="text-end">@row.OrderCount.ToString("#,0", Vi)</td>
+                            <td class="text-end text-nowrap">@FormatMoney(row.Revenue)</td>
+                            <td class="text-end text-nowrap">@FormatMoney(row.PaidAmount)</td>
+                            <td class="text-end text-nowrap">@FormatMoney(row.RemainingAmount)</td>
+                        </tr>
+                    }
+                    </tbody>
+                </abp-table>
+            </abp-card-body>
+        </abp-card>
+
+        <abp-card class="vpl-inquiry-results-card vpl-card-dense">
+            <abp-card-header>
+                <h5 class="mb-0">@L["Reports:OrderList"]</h5>
+            </abp-card-header>
+            <abp-card-body>
+                <abp-table striped-rows="true" class="vpl-table-dense">
+                    <thead>
+                        <tr>
+                            <th>@L["Reports:OrderNo"]</th>
+                            <th>@L["Reports:ConfirmationTime"]</th>
+                            <th>@L["Reports:CustomerName"]</th>
+                            <th>@L["Reports:Warehouse"]</th>
+                            <th class="text-end">@L["Reports:TotalAmount"]</th>
+                            <th class="text-end">@L["Reports:PaidAmount"]</th>
+                            <th class="text-end">@L["Reports:RemainingAmount"]</th>
+                            <th>@L["Reports:PaymentStatus"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var row in Model.Report.Orders)
+                    {
+                        <tr>
+                            <td><a asp-page="/Sales/Details" asp-route-id="@row.SalesOrderId">@row.OrderNo</a></td>
+                            <td>@FormatDate(row.ConfirmationTime)</td>
+                            <td>@row.CustomerName</td>
+                            <td>@row.WarehouseName</td>
+                            <td class="text-end text-nowrap">@FormatMoney(row.TotalAmount)</td>
+                            <td class="text-end text-nowrap">@FormatMoney(row.PaidAmount)</td>
+                            <td class="text-end text-nowrap">@FormatMoney(row.RemainingAmount)</td>
+                            <td class="text-nowrap">
+                                <span class="badge @GetPaymentStatusBadgeClass(row.PaymentStatus)">
+                                    @L[$"Sales:PaymentStatus:{row.PaymentStatus}"]
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </abp-table>
+            </abp-card-body>
+        </abp-card>
+    }
+</div>

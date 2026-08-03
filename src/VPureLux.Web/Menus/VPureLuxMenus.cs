@@ -27,5 +27,7 @@ public class VPureLuxMenus
     public const string InventoryBalances = Inventory + ".Balances";
     public const string InventoryLots = Inventory + ".Lots";
     public const string Sales = Prefix + ".Sales";
+    public const string Reports = Prefix + ".Reports";
+    public const string ReportsSalesRevenue = Reports + ".SalesRevenue";
     public const string Audit = Prefix + ".Audit";
 }

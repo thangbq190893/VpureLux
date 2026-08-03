@@ -177,12 +177,28 @@ public class VPureLuxMenuContributor : IMenuContributor
             order: 9
         ).RequirePermissions(VPureLuxPermissions.Sales.View));
 
+        var reports = new ApplicationMenuItem(
+            VPureLuxMenus.Reports,
+            l["Menu:Reports"],
+            icon: "fa fa-chart-bar",
+            order: 10
+        ).RequirePermissions(VPureLuxPermissions.Reports.Sales.View);
+
+        reports.AddItem(new ApplicationMenuItem(
+            VPureLuxMenus.ReportsSalesRevenue,
+            l["Reports:SalesRevenue"],
+            "~/Reports/SalesRevenue",
+            icon: "fa fa-line-chart"
+        ).RequirePermissions(VPureLuxPermissions.Reports.Sales.View));
+
+        context.Menu.AddItem(reports);
+
         context.Menu.AddItem(new ApplicationMenuItem(
             VPureLuxMenus.Audit,
             l["Menu:Audit"],
             "~/Audit",
             icon: "fa fa-history",
-            order: 10
+            order: 11
         ).RequirePermissions(VPureLuxPermissions.Audit.View));
 
         //Saas
