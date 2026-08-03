@@ -24,6 +24,7 @@ using VPureLux.Bom;
 using VPureLux.Customers;
 using VPureLux.Pricing;
 using VPureLux.Inventory;
+using VPureLux.Reports;
 using VPureLux.Sales;
 using VPureLux.Audit;
 
@@ -77,6 +78,7 @@ public class VPureLuxEntityFrameworkCoreModule : AbpModule
 
         context.Services.AddTransient<IInventoryBalanceRepository, EfCoreInventoryBalanceRepository>();
         context.Services.AddTransient<IBusinessAuditLogRepository, EfCoreBusinessAuditLogRepository>();
+        context.Services.AddTransient<ISalesReportReadRepository, EfCoreSalesReportReadRepository>();
 
         if (AbpStudioAnalyzeHelper.IsInAnalyzeMode)
         {

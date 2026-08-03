@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\VPureLux.Domain\VPureLux.Domain.csproj" />
+    <ProjectReference Include="..\VPureLux.Application.Contracts\VPureLux.Application.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

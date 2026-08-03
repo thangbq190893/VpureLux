@@ -111,6 +111,24 @@ public static class VPureLuxPermissions
         }
     }
 
+    public static class Reports
+    {
+        public const string Default = GroupName + ".Reports";
+        public const string Export = Default + ".Export";
+
+        public static class Sales
+        {
+            public const string Default = Reports.Default + ".Sales";
+            public const string View = Default + ".View";
+        }
+
+        public static class Profit
+        {
+            public const string Default = Reports.Default + ".Profit";
+            public const string View = Default + ".View";
+        }
+    }
+
     public static class Audit
     {
         public const string Default = GroupName + ".Audit";
