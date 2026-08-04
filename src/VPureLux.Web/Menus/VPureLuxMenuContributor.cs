@@ -182,7 +182,7 @@ public class VPureLuxMenuContributor : IMenuContributor
             l["Menu:Reports"],
             icon: "fa fa-chart-bar",
             order: 10
-        ).RequirePermissions(VPureLuxPermissions.Reports.Sales.View);
+        );
 
         reports.AddItem(new ApplicationMenuItem(
             VPureLuxMenus.ReportsSalesRevenue,
@@ -190,6 +190,13 @@ public class VPureLuxMenuContributor : IMenuContributor
             "~/Reports/SalesRevenue",
             icon: "fa fa-line-chart"
         ).RequirePermissions(VPureLuxPermissions.Reports.Sales.View));
+
+        reports.AddItem(new ApplicationMenuItem(
+            VPureLuxMenus.ReportsSalesProfit,
+            l["Reports:SalesProfit"],
+            "~/Reports/SalesProfit",
+            icon: "fa fa-bar-chart"
+        ).RequirePermissions(VPureLuxPermissions.Reports.Profit.View));
 
         context.Menu.AddItem(reports);
 

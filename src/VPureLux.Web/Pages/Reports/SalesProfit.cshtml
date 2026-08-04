@@ -1,13 +1,10 @@
 @page
-@model VPureLux.Web.Pages.Reports.SalesRevenueModel
+@model VPureLux.Web.Pages.Reports.SalesProfitModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
 @using System.Globalization
-@using System.Linq
 @using VPureLux.Reports
-@using VPureLux.Sales
 @{
-    ViewData["Title"] = L["Reports:SalesRevenueTitle"];
-    var topProducts = Model.Report.ByProduct.Take(10).ToList();
+    ViewData["Title"] = L["Reports:SalesProfitTitle"];
 }
 
 @functions {
@@ -17,6 +14,11 @@
     {
         var amount = decimal.Round(value, 0, MidpointRounding.AwayFromZero);
         return amount.ToString("#,0", Vi) + " ₫";
+    }
+
+    private static string FormatSignedMoney(decimal value)
+    {
+        return value < 0 ? "-" + FormatMoney(Math.Abs(value)) : FormatMoney(value);
     }
 
     private static string FormatQuantity(decimal value)
@@ -39,19 +41,15 @@
         return value.ToString("0.##", Vi) + "%";
     }
 
-    private static string GetPaymentStatusBadgeClass(SalesOrderReceivableStatus status) => status switch
+    private static string ProfitClass(decimal value)
     {
-        SalesOrderReceivableStatus.Unpaid => "text-bg-danger",
-        SalesOrderReceivableStatus.PartiallyPaid => "text-bg-warning text-dark",
-        SalesOrderReceivableStatus.Paid => "text-bg-success",
-        SalesOrderReceivableStatus.Overpaid => "text-bg-info text-dark",
-        _ => "text-bg-secondary"
-    };
+        return value < 0 ? "text-danger fw-semibold" : value > 0 ? "text-success fw-semibold" : string.Empty;
+    }
 }
 
 <div class="vpl-page vpl-inquiry-page">
     <div class="vpl-page-header">
-        <h2 class="vpl-page-title mb-0">@L["Reports:SalesRevenueTitle"]</h2>
+        <h2 class="vpl-page-title mb-0">@L["Reports:SalesProfitTitle"]</h2>
     </div>
 
     <abp-card class="vpl-inquiry-filter-card vpl-card-dense mb-3">
@@ -97,18 +95,20 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label asp-for="PaymentStatus" class="form-label">@L["Reports:PaymentStatus"]</label>
-                    <select asp-for="PaymentStatus" class="form-select">
-                        <option value="">@L["Reports:AllPaymentStatuses"]</option>
-                        @foreach (var status in Model.PaymentStatusOptions)
-                        {
-                            <option value="@status">@L[$"Sales:PaymentStatus:{status}"]</option>
-                        }
-                    </select>
+                    <div class="form-check mt-4">
+                        <input asp-for="LossOnly" class="form-check-input" />
+                        <label asp-for="LossOnly" class="form-check-label">@L["Reports:LossOnly"]</label>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check mt-4">
+                        <input asp-for="MissingCostOnly" class="form-check-input" />
+                        <label asp-for="MissingCostOnly" class="form-check-label">@L["Reports:MissingCostOnly"]</label>
+                    </div>
                 </div>
                 <div class="col-md-6 d-flex gap-2">
                     <button type="submit" class="btn btn-primary">@L["Reports:Filter"]</button>
-                    <a class="btn btn-outline-secondary" asp-page="/Reports/SalesRevenue">@L["Reports:Reset"]</a>
+                    <a class="btn btn-outline-secondary" asp-page="/Reports/SalesProfit">@L["Reports:Reset"]</a>
                     @if (Model.CanExport)
                     {
                         <button type="submit" class="btn btn-outline-primary" asp-page-handler="Export">@L["Reports:ExportCsv"]</button>
@@ -122,7 +122,7 @@
     {
         <abp-card class="vpl-inquiry-results-card vpl-card-dense">
             <abp-card-body>
-                <div class="vpl-empty-state">@L["Reports:NoSalesRevenueData"]</div>
+                <div class="vpl-empty-state">@L["Reports:NoSalesProfitData"]</div>
             </abp-card-body>
         </abp-card>
     }
@@ -132,8 +132,32 @@
             <div class="col-sm-6 col-xl-2">
                 <div class="card h-100">
                     <div class="card-body">
-                        <div class="text-muted small">@L["Reports:TotalRevenue"]</div>
-                        <div class="fs-5 fw-semibold">@FormatMoney(Model.Report.Summary.TotalRevenue)</div>
+                        <div class="text-muted small">@L["Reports:Revenue"]</div>
+                        <div class="fs-5 fw-semibold">@FormatMoney(Model.Report.Summary.Revenue)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-2">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">@L["Reports:CostAmount"]</div>
+                        <div class="fs-5 fw-semibold">@FormatMoney(Model.Report.Summary.CostAmount)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-2">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">@L["Reports:ProfitAmount"]</div>
+                        <div class="fs-5 @ProfitClass(Model.Report.Summary.ProfitAmount)">@FormatSignedMoney(Model.Report.Summary.ProfitAmount)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-2">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">@L["Reports:ProfitMargin"]</div>
+                        <div class="fs-5 fw-semibold">@FormatPercent(Model.Report.Summary.ProfitMarginPercent)</div>
                     </div>
                 </div>
             </div>
@@ -148,47 +172,21 @@
             <div class="col-sm-6 col-xl-2">
                 <div class="card h-100">
                     <div class="card-body">
-                        <div class="text-muted small">@L["Reports:SoldQuantity"]</div>
-                        <div class="fs-5 fw-semibold">@FormatQuantity(Model.Report.Summary.TotalQuantity)</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-xl-2">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <div class="text-muted small">@L["Reports:AverageOrderValue"]</div>
-                        <div class="fs-5 fw-semibold">@FormatMoney(Model.Report.Summary.AverageOrderValue)</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-xl-2">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <div class="text-muted small">@L["Reports:PaidAmount"]</div>
-                        <div class="fs-5 fw-semibold">@FormatMoney(Model.Report.Summary.PaidAmount)</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-xl-2">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <div class="text-muted small">@L["Reports:RemainingAmount"]</div>
-                        <div class="fs-5 fw-semibold">@FormatMoney(Model.Report.Summary.RemainingAmount)</div>
+                        <div class="text-muted small">@L["Reports:MissingCostLineCount"]</div>
+                        <div class="fs-5 fw-semibold">@Model.Report.Summary.MissingCostLineCount.ToString("#,0", Vi)</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="d-flex flex-wrap gap-2 mb-3">
-            <span class="badge text-bg-danger">@L["Sales:PaymentStatus:Unpaid"]: @Model.Report.Summary.UnpaidOrderCount</span>
-            <span class="badge text-bg-warning text-dark">@L["Sales:PaymentStatus:PartiallyPaid"]: @Model.Report.Summary.PartiallyPaidOrderCount</span>
-            <span class="badge text-bg-success">@L["Sales:PaymentStatus:Paid"]: @Model.Report.Summary.PaidOrderCount</span>
-            <span class="badge text-bg-info text-dark">@L["Sales:PaymentStatus:Overpaid"]: @Model.Report.Summary.OverpaidOrderCount</span>
-        </div>
+        @if (Model.Report.Summary.MissingCostLineCount > 0)
+        {
+            <div class="alert alert-warning">@L["Reports:MissingCostWarning"]</div>
+        }
 
         <abp-card class="vpl-inquiry-results-card vpl-card-dense mb-3">
             <abp-card-header>
-                <h5 class="mb-0">@L["Reports:RevenueByPeriod"]</h5>
+                <h5 class="mb-0">@L["Reports:ProfitByPeriod"]</h5>
             </abp-card-header>
             <abp-card-body>
                 <abp-table striped-rows="true" class="vpl-table-dense">
@@ -196,10 +194,10 @@
                         <tr>
                             <th>@L["Reports:Period"]</th>
                             <th class="text-end">@L["Reports:OrderCount"]</th>
-                            <th class="text-end">@L["Reports:Quantity"]</th>
                             <th class="text-end">@L["Reports:Revenue"]</th>
-                            <th class="text-end">@L["Reports:PaidAmount"]</th>
-                            <th class="text-end">@L["Reports:RemainingAmount"]</th>
+                            <th class="text-end">@L["Reports:CostAmount"]</th>
+                            <th class="text-end">@L["Reports:ProfitAmount"]</th>
+                            <th class="text-end">@L["Reports:ProfitMarginShort"]</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -208,10 +206,10 @@
                         <tr>
                             <td>@(string.IsNullOrWhiteSpace(row.PeriodLabel) ? row.PeriodKey : row.PeriodLabel)</td>
                             <td class="text-end">@row.OrderCount.ToString("#,0", Vi)</td>
-                            <td class="text-end">@FormatQuantity(row.Quantity)</td>
                             <td class="text-end text-nowrap">@FormatMoney(row.Revenue)</td>
-                            <td class="text-end text-nowrap">@FormatMoney(row.PaidAmount)</td>
-                            <td class="text-end text-nowrap">@FormatMoney(row.RemainingAmount)</td>
+                            <td class="text-end text-nowrap">@FormatMoney(row.CostAmount)</td>
+                            <td class="text-end text-nowrap @ProfitClass(row.ProfitAmount)">@FormatSignedMoney(row.ProfitAmount)</td>
+                            <td class="text-end text-nowrap">@FormatPercent(row.ProfitMarginPercent)</td>
                         </tr>
                     }
                     </tbody>
@@ -221,7 +219,7 @@
 
         <abp-card class="vpl-inquiry-results-card vpl-card-dense mb-3">
             <abp-card-header>
-                <h5 class="mb-0">@L["Reports:TopProductsByRevenue"]</h5>
+                <h5 class="mb-0">@L["Reports:ProfitByProduct"]</h5>
             </abp-card-header>
             <abp-card-body>
                 <abp-table striped-rows="true" class="vpl-table-dense">
@@ -230,21 +228,23 @@
                             <th>@L["Reports:ProductCode"]</th>
                             <th>@L["Reports:ProductName"]</th>
                             <th class="text-end">@L["Reports:SoldQuantityShort"]</th>
-                            <th class="text-end">@L["Reports:OrderCount"]</th>
                             <th class="text-end">@L["Reports:Revenue"]</th>
-                            <th class="text-end">@L["Reports:RevenueShare"]</th>
+                            <th class="text-end">@L["Reports:CostAmount"]</th>
+                            <th class="text-end">@L["Reports:ProfitAmount"]</th>
+                            <th class="text-end">@L["Reports:ProfitMarginShort"]</th>
                         </tr>
                     </thead>
                     <tbody>
-                    @foreach (var row in topProducts)
+                    @foreach (var row in Model.Report.ByProduct)
                     {
                         <tr>
                             <td class="text-nowrap">@row.ProductCode</td>
                             <td>@row.ProductName</td>
                             <td class="text-end">@FormatQuantity(row.Quantity)</td>
-                            <td class="text-end">@row.OrderCount.ToString("#,0", Vi)</td>
                             <td class="text-end text-nowrap">@FormatMoney(row.Revenue)</td>
-                            <td class="text-end text-nowrap">@FormatPercent(row.RevenueSharePercent)</td>
+                            <td class="text-end text-nowrap">@FormatMoney(row.CostAmount)</td>
+                            <td class="text-end text-nowrap @ProfitClass(row.ProfitAmount)">@FormatSignedMoney(row.ProfitAmount)</td>
+                            <td class="text-end text-nowrap">@FormatPercent(row.ProfitMarginPercent)</td>
                         </tr>
                     }
                     </tbody>
@@ -254,7 +254,7 @@
 
         <abp-card class="vpl-inquiry-results-card vpl-card-dense mb-3">
             <abp-card-header>
-                <h5 class="mb-0">@L["Reports:RevenueByCustomer"]</h5>
+                <h5 class="mb-0">@L["Reports:ProfitByCustomer"]</h5>
             </abp-card-header>
             <abp-card-body>
                 <abp-table striped-rows="true" class="vpl-table-dense">
@@ -264,7 +264,9 @@
                             <th>@L["Reports:CustomerName"]</th>
                             <th class="text-end">@L["Reports:OrderCount"]</th>
                             <th class="text-end">@L["Reports:Revenue"]</th>
-                            <th class="text-end">@L["Reports:PaidAmount"]</th>
+                            <th class="text-end">@L["Reports:CostAmount"]</th>
+                            <th class="text-end">@L["Reports:ProfitAmount"]</th>
+                            <th class="text-end">@L["Reports:ProfitMarginShort"]</th>
                             <th class="text-end">@L["Reports:RemainingAmount"]</th>
                         </tr>
                     </thead>
@@ -276,7 +278,9 @@
                             <td>@row.CustomerName</td>
                             <td class="text-end">@row.OrderCount.ToString("#,0", Vi)</td>
                             <td class="text-end text-nowrap">@FormatMoney(row.Revenue)</td>
-                            <td class="text-end text-nowrap">@FormatMoney(row.PaidAmount)</td>
+                            <td class="text-end text-nowrap">@FormatMoney(row.CostAmount)</td>
+                            <td class="text-end text-nowrap @ProfitClass(row.ProfitAmount)">@FormatSignedMoney(row.ProfitAmount)</td>
+                            <td class="text-end text-nowrap">@FormatPercent(row.ProfitMarginPercent)</td>
                             <td class="text-end text-nowrap">@FormatMoney(row.RemainingAmount)</td>
                         </tr>
                     }
@@ -287,7 +291,7 @@
 
         <abp-card class="vpl-inquiry-results-card vpl-card-dense">
             <abp-card-header>
-                <h5 class="mb-0">@L["Reports:OrderList"]</h5>
+                <h5 class="mb-0">@L["Reports:SalesLineDetail"]</h5>
             </abp-card-header>
             <abp-card-body>
                 <abp-table striped-rows="true" class="vpl-table-dense">
@@ -296,29 +300,43 @@
                             <th>@L["Reports:OrderNo"]</th>
                             <th>@L["Reports:ConfirmationTime"]</th>
                             <th>@L["Reports:CustomerName"]</th>
-                            <th>@L["Reports:Warehouse"]</th>
-                            <th class="text-end">@L["Reports:TotalAmount"]</th>
-                            <th class="text-end">@L["Reports:PaidAmount"]</th>
-                            <th class="text-end">@L["Reports:RemainingAmount"]</th>
-                            <th>@L["Reports:PaymentStatus"]</th>
+                            <th>@L["Reports:ProductCode"]</th>
+                            <th>@L["Reports:Product"]</th>
+                            <th class="text-end">@L["Reports:Quantity"]</th>
+                            <th class="text-end">@L["Reports:UnitPrice"]</th>
+                            <th class="text-end">@L["Reports:Revenue"]</th>
+                            <th class="text-end">@L["Reports:CostAmount"]</th>
+                            <th class="text-end">@L["Reports:ProfitAmount"]</th>
+                            <th class="text-end">@L["Reports:ProfitMarginShort"]</th>
+                            <th>@L["Reports:Note"]</th>
                         </tr>
                     </thead>
                     <tbody>
-                    @foreach (var row in Model.Report.Orders)
+                    @foreach (var row in Model.Report.Lines)
                     {
                         <tr>
                             <td><a asp-page="/Sales/Details" asp-route-id="@row.SalesOrderId">@row.OrderNo</a></td>
                             <td>@FormatDate(row.ConfirmationTime)</td>
                             <td>@row.CustomerName</td>
-                            <td>@row.WarehouseName</td>
-                            <td class="text-end text-nowrap">@FormatMoney(row.TotalAmount)</td>
-                            <td class="text-end text-nowrap">@FormatMoney(row.PaidAmount)</td>
-                            <td class="text-end text-nowrap">@FormatMoney(row.RemainingAmount)</td>
-                            <td class="text-nowrap">
-                                <span class="badge @GetPaymentStatusBadgeClass(row.PaymentStatus)">
-                                    @L[$"Sales:PaymentStatus:{row.PaymentStatus}"]
-                                </span>
-                            </td>
+                            <td class="text-nowrap">@row.ProductCode</td>
+                            <td>@row.ProductName</td>
+                            <td class="text-end">@FormatQuantity(row.Quantity)</td>
+                            <td class="text-end text-nowrap">@FormatMoney(row.UnitPrice)</td>
+                            <td class="text-end text-nowrap">@FormatMoney(row.Revenue)</td>
+                            @if (row.MissingCost)
+                            {
+                                <td class="text-end text-nowrap text-warning">@L["Reports:MissingCost"]</td>
+                                <td class="text-end">—</td>
+                                <td class="text-end">—</td>
+                                <td><span class="badge text-bg-warning text-dark">@L["Reports:MissingCostNote"]</span></td>
+                            }
+                            else
+                            {
+                                <td class="text-end text-nowrap">@FormatMoney(row.CostAmount)</td>
+                                <td class="text-end text-nowrap @ProfitClass(row.ProfitAmount)">@FormatSignedMoney(row.ProfitAmount)</td>
+                                <td class="text-end text-nowrap">@FormatPercent(row.ProfitMarginPercent)</td>
+                                <td></td>
+                            }
                         </tr>
                     }
                     </tbody>

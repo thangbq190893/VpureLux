@@ -10,13 +10,12 @@ using VPureLux.Customers;
 using VPureLux.Inventory;
 using VPureLux.Permissions;
 using VPureLux.Reports;
-using VPureLux.Sales;
 using Volo.Abp.Application.Dtos;
 
 namespace VPureLux.Web.Pages.Reports;
 
-[Authorize(VPureLuxPermissions.Reports.Sales.View)]
-public class SalesRevenueModel : VPureLuxPageModel
+[Authorize(VPureLuxPermissions.Reports.Profit.View)]
+public class SalesProfitModel : VPureLuxPageModel
 {
     private readonly ISalesReportsAppService _reports;
     private readonly IProductAppService _products;
@@ -30,9 +29,10 @@ public class SalesRevenueModel : VPureLuxPageModel
     [BindProperty(SupportsGet = true)] public Guid? ProductId { get; set; }
     [BindProperty(SupportsGet = true)] public Guid? CustomerId { get; set; }
     [BindProperty(SupportsGet = true)] public Guid? WarehouseId { get; set; }
-    [BindProperty(SupportsGet = true)] public SalesOrderReceivableStatus? PaymentStatus { get; set; }
+    [BindProperty(SupportsGet = true)] public bool LossOnly { get; set; }
+    [BindProperty(SupportsGet = true)] public bool MissingCostOnly { get; set; }
 
-    public SalesRevenueReportDto Report { get; private set; } = new();
+    public SalesProfitReportDto Report { get; private set; } = new();
     public bool CanExport { get; private set; }
     public List<SelectListItem> ProductOptions { get; private set; } = new();
     public List<SelectListItem> CustomerOptions { get; private set; } = new();
@@ -41,22 +41,15 @@ public class SalesRevenueModel : VPureLuxPageModel
         .Where(x => x != 0)
         .OrderBy(x => (byte)x)
         .ToList();
-    public IReadOnlyList<SalesOrderReceivableStatus> PaymentStatusOptions { get; } =
-    [
-        SalesOrderReceivableStatus.Unpaid,
-        SalesOrderReceivableStatus.PartiallyPaid,
-        SalesOrderReceivableStatus.Paid,
-        SalesOrderReceivableStatus.Overpaid
-    ];
 
     public bool HasData =>
         Report.Summary.ConfirmedOrderCount > 0 ||
         Report.ByPeriod.Count > 0 ||
         Report.ByProduct.Count > 0 ||
         Report.ByCustomer.Count > 0 ||
-        Report.Orders.Count > 0;
+        Report.Lines.Count > 0;
 
-    public SalesRevenueModel(
+    public SalesProfitModel(
         ISalesReportsAppService reports,
         IProductAppService products,
         ICustomerAppService customers,
@@ -84,12 +77,12 @@ public class SalesRevenueModel : VPureLuxPageModel
 
         try
         {
-            Report = await _reports.GetSalesRevenueAsync(BuildInput());
+            Report = await _reports.GetSalesProfitAsync(BuildInput());
         }
         catch (Exception)
         {
             ModelState.AddModelError(string.Empty, L["Reports:LoadFailed"]);
-            Report = new SalesRevenueReportDto();
+            Report = new SalesProfitReportDto();
         }
     }
 
@@ -109,9 +102,9 @@ public class SalesRevenueModel : VPureLuxPageModel
             return Forbid();
         }
 
-        var report = await _reports.GetSalesRevenueAsync(BuildInput());
-        var content = ReportCsv.BuildSalesRevenue(report, status => L[$"Sales:PaymentStatus:{status}"].Value);
-        var fileName = $"bao-cao-doanh-so-ban-hang-{Clock.Now:yyyyMMdd-HHmm}.csv";
+        var report = await _reports.GetSalesProfitAsync(BuildInput());
+        var content = ReportCsv.BuildSalesProfit(report);
+        var fileName = $"bao-cao-loi-nhuan-ban-hang-{Clock.Now:yyyyMMdd-HHmm}.csv";
         return File(content, "text/csv; charset=utf-8", fileName);
     }
 
@@ -163,7 +156,7 @@ public class SalesRevenueModel : VPureLuxPageModel
             .ToList();
     }
 
-    private SalesRevenueReportInput BuildInput() => new()
+    private SalesProfitReportInput BuildInput() => new()
     {
         FromDate = FromDate,
         ToDate = ToDate,
@@ -171,7 +164,8 @@ public class SalesRevenueModel : VPureLuxPageModel
         ProductId = ProductId,
         CustomerId = CustomerId,
         WarehouseId = WarehouseId,
-        PaymentStatus = PaymentStatus,
+        LossOnly = LossOnly,
+        MissingCostOnly = MissingCostOnly,
         MaxDetailRows = 500
     };
 
