@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,12 +10,13 @@ namespace VPureLux.Web.Pages.Customers;
 [Authorize(VPureLuxPermissions.Customers.View)]
 public class IndexModel : VPureLuxPageModel
 {
+    private const string DefaultSorting = "CreationTime DESC";
+
     private readonly ICustomerAppService _customerAppService;
     private readonly IAuthorizationService _authorizationService;
 
     [BindProperty(SupportsGet = true)] public string? SearchText { get; set; }
     [BindProperty(SupportsGet = true)] public CustomerStatus? Status { get; set; }
-    public IReadOnlyList<CustomerDto> Customers { get; private set; } = Array.Empty<CustomerDto>();
     public bool CanCreate { get; private set; }
     public bool CanEdit { get; private set; }
     public bool CanManageStatus { get; private set; }
@@ -30,12 +30,29 @@ public class IndexModel : VPureLuxPageModel
 
     public async Task OnGetAsync()
     {
-        Customers = (await _customerAppService.GetListAsync(new GetCustomerListInput
+        await SetPermissionsAsync();
+    }
+
+    public async Task<JsonResult> OnGetListAsync(GetCustomerListInput input)
+    {
+        if (string.IsNullOrWhiteSpace(input.Sorting))
         {
-            SearchText = SearchText,
-            Status = Status,
-            MaxResultCount = 100
-        })).Items;
+            input.Sorting = DefaultSorting;
+        }
+
+        return new JsonResult(await _customerAppService.GetListAsync(new GetCustomerListInput
+        {
+            SearchText = input.SearchText,
+            CustomerGroupId = input.CustomerGroupId,
+            Status = input.Status,
+            SkipCount = input.SkipCount,
+            MaxResultCount = input.MaxResultCount,
+            Sorting = input.Sorting
+        }));
+    }
+
+    private async Task SetPermissionsAsync()
+    {
         CanCreate = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Customers.Create)).Succeeded;
         CanEdit = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Customers.Edit)).Succeeded;
         CanManageStatus = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Customers.ManageStatus)).Succeeded;

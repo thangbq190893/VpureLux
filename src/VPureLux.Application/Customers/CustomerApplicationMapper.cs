@@ -20,6 +20,7 @@ public partial class CustomerApplicationMapper : ITransientDependency
             CustomerGroupCode = customerGroup.Code,
             CustomerGroupName = customerGroup.Name,
             Status = customer.Status,
+            CreationTime = customer.CreationTime,
             PhoneNumber = customer.PhoneNumber,
             Email = customer.Email,
             Address = customer.Address,

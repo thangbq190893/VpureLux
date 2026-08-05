@@ -60,8 +60,13 @@ public class EfCoreCustomerRepository :
         {
             "name" => query.OrderBy(x => x.Name),
             "name desc" => query.OrderByDescending(x => x.Name),
+            "status" => query.OrderBy(x => x.Status),
+            "status desc" => query.OrderByDescending(x => x.Status),
+            "creationtime" => query.OrderBy(x => x.CreationTime),
+            "creationtime desc" => query.OrderByDescending(x => x.CreationTime),
+            "code" => query.OrderBy(x => x.Code),
             "code desc" => query.OrderByDescending(x => x.Code),
-            _ => query.OrderBy(x => x.Code)
+            _ => query.OrderByDescending(x => x.CreationTime)
         };
 
         return await query.Skip(skipCount).Take(maxResultCount)

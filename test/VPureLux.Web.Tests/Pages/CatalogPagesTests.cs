@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
@@ -61,7 +60,8 @@ public class CatalogPagesTests : VPureLuxWebTestBase
 
         response.ShouldContain("/Catalog/Products/Create");
         response.ShouldContain("data-catalog-create");
-        response.ShouldContain("dropdown-menu");
+        response.ShouldContain("id=\"ProductsTable\"");
+        response.ShouldContain("data-table-selector=\"#ProductsTable\"");
     }
 
     [Fact]
@@ -84,22 +84,23 @@ public class CatalogPagesTests : VPureLuxWebTestBase
 
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Catalog/Products"));
 
-        html.ShouldContain(product.Code);
-        html.ShouldContain(product.Name);
+        html.ShouldNotContain(product.Code);
         html.ShouldContain("data-catalog-index");
         html.ShouldContain("data-create-view-url=\"Catalog/Products/CreateModal\"");
         html.ShouldContain("data-edit-view-url=\"Catalog/Products/EditModal\"");
         html.ShouldContain("data-details-view-url=\"Catalog/Products/DetailsModal\"");
-        html.ShouldContain("data-catalog-details");
-        html.ShouldContain("data-catalog-edit");
-        html.ShouldContain("data-catalog-status-form");
-        html.ShouldContain("dropdown-menu");
-        html.ShouldContain(localizer["Catalog:ManageImage"].Value);
+        html.ShouldContain("id=\"ProductsTable\"");
+        html.ShouldContain("data-table-selector=\"#ProductsTable\"");
+        html.ShouldContain("data-can-edit=\"true\"");
+        html.ShouldContain("data-can-view-pricing-context=\"true\"");
         html.ShouldContain(localizer["Catalog:CurrentProductSuggestedPrice"].Value);
-        html.ShouldContain(FormatVnd(88888m));
-        html.ShouldNotContain("88888.000000");
-        html.ShouldContain(localizer["Catalog:NoPublishedBom"].Value);
-        html.ShouldContain(localizer["Catalog:ConfirmDeactivateProduct"].Value);
+
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Catalog/Products/Index.js"));
+        scriptSource.ShouldContain("Catalog:ManageImage");
+        scriptSource.ShouldContain("Catalog:ConfirmDeactivateProduct");
+        scriptSource.ShouldContain("Catalog:NoProductSuggestedPrice");
+        scriptSource.ShouldContain("Catalog:PublishedBomAvailable");
+        scriptSource.ShouldContain("Catalog:NoPublishedBom");
     }
 
     [Fact]
@@ -364,6 +365,36 @@ public class CatalogPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Product_Index_Should_Use_Abp_DataTables_Server_Paging_And_Newest_First()
+    {
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Catalog/Products/Index.cshtml"));
+        var pageModelSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Catalog/Products/Index.cshtml.cs"));
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Catalog/Products/Index.js"));
+        var appServiceSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Application/Catalog/Products/ProductAppService.cs"));
+
+        pageSource.ShouldContain("<abp-table id=\"ProductsTable\"");
+        pageSource.ShouldNotContain("foreach (var product in Model.Products)");
+        pageModelSource.ShouldContain("OnGetListAsync(GetProductListInput input)");
+        pageModelSource.ShouldContain("_productAppService.GetListAsync");
+        pageModelSource.ShouldContain("FindMapAsync");
+        pageModelSource.ShouldNotContain("MaxResultCount = 100");
+
+        scriptSource.ShouldContain("$(tableSelector).DataTable");
+        scriptSource.ShouldContain("abp.libs.datatables.createAjax");
+        scriptSource.ShouldContain("serverSide: true");
+        scriptSource.ShouldContain("handler=List");
+        scriptSource.ShouldContain("ProductsSearchForm");
+        scriptSource.ShouldContain("ProductsClearButton");
+        scriptSource.ShouldContain("rowAction");
+        scriptSource.ShouldContain("function recordOf(data)");
+        scriptSource.IndexOf("select2", StringComparison.OrdinalIgnoreCase).ShouldBe(-1);
+
+        appServiceSource.ShouldContain("DefaultSorting = \"CreationTime DESC\"");
+        appServiceSource.ShouldContain("ApplySorting(queryable, input.Sorting)");
+        appServiceSource.ShouldContain("OrderByDescending(x => x.CreationTime)");
+    }
+
+    [Fact]
     public async Task Catalog_Razor_Pages_Should_Stay_Script_Link_And_Action_Compliant()
     {
         foreach (var relativePath in new[]
@@ -412,6 +443,7 @@ public class CatalogPagesTests : VPureLuxWebTestBase
 
         pageSource.ShouldContain("FindMapAsync");
         pageSource.ShouldNotContain("_productPricingContextAppService.GetListAsync()");
+        pageSource.ShouldNotContain("ProductPricingContexts { get; private set; }");
     }
 
     [Fact]
@@ -421,12 +453,6 @@ public class CatalogPagesTests : VPureLuxWebTestBase
 
         response.ShouldContain("\"success\":true");
         response.ShouldContain("\"data\":");
-    }
-
-    private static string FormatVnd(decimal value)
-    {
-        var vi = CultureInfo.GetCultureInfo("vi-VN");
-        return decimal.Round(value, 0, MidpointRounding.AwayFromZero).ToString("#,0", vi) + " ₫";
     }
 
     private static string Unique(string prefix) => prefix + Guid.NewGuid().ToString("N")[..8];

@@ -22,10 +22,20 @@ public class CatalogImagePagesTests : VPureLuxWebTestBase
         await service.SetImageAsync(withImage.Id, CatalogImageTestData.Png());
 
         var html = await GetResponseAsStringAsync("/Catalog/Products");
+        var script = await File.ReadAllTextAsync(Path.Combine(
+            FindRepositoryRoot(),
+            "src",
+            "VPureLux.Web",
+            "Pages",
+            "Catalog",
+            "Products",
+            "Index.js"));
 
-        html.ShouldContain($"/api/catalog/products/{withImage.Id}/thumbnail");
-        html.ShouldContain("loading=\"lazy\"");
-        html.ShouldContain("No image");
+        html.ShouldContain("id=\"ProductsTable\"");
+        script.ShouldContain("api/catalog/products/");
+        script.ShouldContain("/thumbnail");
+        script.ShouldContain("loading=\"lazy\"");
+        script.ShouldContain("vpl-catalog-thumbnail-placeholder");
     }
 
     [Fact]

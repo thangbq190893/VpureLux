@@ -9,6 +9,7 @@ public class ProductDto : EntityDto<Guid>
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public CatalogItemStatus Status { get; set; }
+    public DateTime CreationTime { get; set; }
     public bool HasImage { get; set; }
     public string? ImageHash { get; set; }
 }

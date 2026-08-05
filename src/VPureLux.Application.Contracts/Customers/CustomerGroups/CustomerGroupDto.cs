@@ -9,5 +9,6 @@ public class CustomerGroupDto : EntityDto<Guid>
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public CustomerGroupStatus Status { get; set; }
+    public DateTime CreationTime { get; set; }
     public int SortOrder { get; set; }
 }

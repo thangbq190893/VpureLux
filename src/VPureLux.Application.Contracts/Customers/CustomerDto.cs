@@ -11,6 +11,7 @@ public class CustomerDto : EntityDto<Guid>
     public string CustomerGroupCode { get; set; } = string.Empty;
     public string CustomerGroupName { get; set; } = string.Empty;
     public CustomerStatus Status { get; set; }
+    public DateTime CreationTime { get; set; }
     public string? PhoneNumber { get; set; }
     public string? Email { get; set; }
     public string? Address { get; set; }

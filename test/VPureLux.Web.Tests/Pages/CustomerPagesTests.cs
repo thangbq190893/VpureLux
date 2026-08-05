@@ -19,11 +19,13 @@ public class CustomerPagesTests : VPureLuxWebTestBase
     {
         var customers = await GetResponseAsStringAsync("/Customers");
         customers.ShouldContain("/Customers/Create");
+        customers.ShouldContain("id=\"CustomersTable\"");
         var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
         WebUtility.HtmlDecode(customers).ShouldContain(localizer["Customers:Title"].Value);
 
         var groups = await GetResponseAsStringAsync("/CustomerGroups");
         groups.ShouldContain("/CustomerGroups/Create");
+        groups.ShouldContain("id=\"CustomerGroupsTable\"");
         WebUtility.HtmlDecode(groups).ShouldContain(localizer["CustomerGroups:Title"].Value);
     }
 
@@ -102,9 +104,7 @@ public class CustomerPagesTests : VPureLuxWebTestBase
 
         var customers = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Customers"));
         customers.ShouldContain(localizer["Customers:Create"].Value);
-        customers.ShouldContain(localizer["Details"].Value);
-        customers.ShouldContain(localizer["Edit"].Value);
-        customers.ShouldContain(localizer["Deactivate"].Value);
+        customers.ShouldContain("id=\"CustomersTable\"");
 
         var customerCreate = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Customers/Create"));
         customerCreate.ShouldContain(localizer["Save"].Value);
@@ -115,9 +115,7 @@ public class CustomerPagesTests : VPureLuxWebTestBase
 
         var groups = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/CustomerGroups"));
         groups.ShouldContain(localizer["CustomerGroups:Create"].Value);
-        groups.ShouldContain(localizer["Details"].Value);
-        groups.ShouldContain(localizer["Edit"].Value);
-        groups.ShouldContain(localizer["Deactivate"].Value);
+        groups.ShouldContain("id=\"CustomerGroupsTable\"");
 
         var groupCreate = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/CustomerGroups/Create"));
         groupCreate.ShouldContain(localizer["Save"].Value);
@@ -143,15 +141,18 @@ public class CustomerPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("<abp-script src=\"/Pages/CustomerGroups/Index.js\" />");
 
         html.ShouldContain("data-customer-groups-index");
-        html.ShouldContain("dropdown-menu");
+        html.ShouldContain("id=\"CustomerGroupsTable\"");
         html.ShouldContain("data-customer-group-create");
-        html.ShouldContain("data-customer-group-details");
-        html.ShouldContain("data-customer-group-edit");
-        html.ShouldContain("data-customer-group-status-form");
-        html.ShouldContain(localizer["CustomerGroups:ConfirmDeactivate"].Value);
-        html.ShouldContain(localizer["CustomerGroups:ConfirmActivate"].Value);
-        html.ShouldContain(activeGroup.Name);
-        html.ShouldContain(inactiveGroup.Name);
+        html.ShouldContain("data-can-edit=\"true\"");
+        html.ShouldContain("data-can-manage-status=\"true\"");
+        html.ShouldNotContain(activeGroup.Name);
+        html.ShouldNotContain(inactiveGroup.Name);
+
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/CustomerGroups/Index.js"));
+        scriptSource.ShouldContain("rowAction");
+        scriptSource.ShouldContain("CustomerGroups:ConfirmDeactivate");
+        scriptSource.ShouldContain("CustomerGroups:ConfirmActivate");
+        scriptSource.ShouldContain("dataTable.ajax.reload(null, false)");
     }
 
     [Fact]
@@ -172,15 +173,63 @@ public class CustomerPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("<abp-script src=\"/Pages/Customers/Index.js\" />");
 
         html.ShouldContain("data-customers-index");
-        html.ShouldContain("dropdown-menu");
+        html.ShouldContain("id=\"CustomersTable\"");
         html.ShouldContain("data-customer-create");
-        html.ShouldContain("data-customer-details");
-        html.ShouldContain("data-customer-edit");
-        html.ShouldContain("data-customer-status-form");
-        html.ShouldContain(localizer["Customers:ConfirmDeactivate"].Value);
-        html.ShouldContain(localizer["Customers:ConfirmActivate"].Value);
-        html.ShouldContain(activeCustomer.Name);
-        html.ShouldContain(inactiveCustomer.Name);
+        html.ShouldContain("data-can-edit=\"true\"");
+        html.ShouldContain("data-can-manage-status=\"true\"");
+        html.ShouldNotContain(activeCustomer.Name);
+        html.ShouldNotContain(inactiveCustomer.Name);
+
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Customers/Index.js"));
+        scriptSource.ShouldContain("rowAction");
+        scriptSource.ShouldContain("Customers:ConfirmDeactivate");
+        scriptSource.ShouldContain("Customers:ConfirmActivate");
+        scriptSource.ShouldContain("dataTable.ajax.reload(null, false)");
+    }
+
+    [Fact]
+    public async Task Customer_And_Group_Index_Should_Use_Abp_DataTables_Server_Paging()
+    {
+        foreach (var relativePath in new[]
+        {
+            "src/VPureLux.Web/Pages/Customers/Index.cshtml",
+            "src/VPureLux.Web/Pages/CustomerGroups/Index.cshtml"
+        })
+        {
+            var pageSource = await File.ReadAllTextAsync(GetRepoFilePath(relativePath));
+            pageSource.ShouldContain("<abp-table id=");
+            pageSource.ShouldNotContain("foreach (var customer in Model.Customers)");
+            pageSource.ShouldNotContain("foreach (var group in Model.CustomerGroups)");
+        }
+
+        foreach (var relativePath in new[]
+        {
+            "src/VPureLux.Web/Pages/Customers/Index.cshtml.cs",
+            "src/VPureLux.Web/Pages/CustomerGroups/Index.cshtml.cs"
+        })
+        {
+            var pageModelSource = await File.ReadAllTextAsync(GetRepoFilePath(relativePath));
+            pageModelSource.ShouldContain("DefaultSorting = \"CreationTime DESC\"");
+            pageModelSource.ShouldContain("OnGetListAsync");
+            pageModelSource.ShouldNotContain("MaxResultCount = 100");
+        }
+
+        foreach (var relativePath in new[]
+        {
+            "src/VPureLux.Web/Pages/Customers/Index.js",
+            "src/VPureLux.Web/Pages/CustomerGroups/Index.js"
+        })
+        {
+            var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath(relativePath));
+            scriptSource.ShouldContain("DataTable");
+            scriptSource.ShouldContain("serverSide: true");
+            scriptSource.ShouldContain("abp.libs.datatables.createAjax");
+            scriptSource.ShouldContain("handler=List");
+            scriptSource.ShouldContain("event.preventDefault()");
+            scriptSource.ShouldContain("ClearButton");
+            scriptSource.ShouldContain("function recordOf(data)");
+            scriptSource.IndexOf("select2", StringComparison.OrdinalIgnoreCase).ShouldBe(-1);
+        }
     }
 
     private async Task AssertLocalizedPageAsync(string route, string expectedText)

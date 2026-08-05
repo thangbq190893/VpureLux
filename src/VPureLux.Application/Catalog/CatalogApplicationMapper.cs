@@ -26,6 +26,7 @@ public class CatalogApplicationMapper : ITransientDependency
         Name = product.Name,
         Description = product.Description,
         Status = product.Status,
+        CreationTime = product.CreationTime,
         HasImage = product.Image != null,
         ImageHash = product.Image?.ImageHash
     };
