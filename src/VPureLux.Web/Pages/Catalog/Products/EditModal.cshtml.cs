@@ -13,7 +13,7 @@ public class EditModalModel : VPureLuxPageModel
     private readonly IProductAppService _productAppService;
 
     [BindProperty(SupportsGet = true)] public Guid Id { get; set; }
-    [BindProperty] public string Code { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
     [BindProperty] public UpdateProductDto Input { get; set; } = new();
 
     public EditModalModel(IProductAppService productAppService)

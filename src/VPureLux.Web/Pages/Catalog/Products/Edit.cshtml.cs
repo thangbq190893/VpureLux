@@ -17,7 +17,6 @@ public class EditModel : VPureLuxPageModel
     [BindProperty(SupportsGet = true)]
     public Guid Id { get; set; }
 
-    [BindProperty]
     public string Code { get; set; } = string.Empty;
 
     [BindProperty]

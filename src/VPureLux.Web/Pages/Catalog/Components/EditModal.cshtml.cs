@@ -13,7 +13,7 @@ public class EditModalModel : VPureLuxPageModel
     private readonly IComponentAppService _componentAppService;
 
     [BindProperty(SupportsGet = true)] public Guid Id { get; set; }
-    [BindProperty] public string Code { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
     [BindProperty] public UpdateComponentDto Input { get; set; } = new();
 
     public EditModalModel(IComponentAppService componentAppService)

@@ -297,6 +297,35 @@ public class CatalogPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Catalog_Edit_Readonly_Code_Should_Not_Bind_On_Post()
+    {
+        foreach (var relativePath in new[]
+        {
+            "src/VPureLux.Web/Pages/Catalog/Products/Edit.cshtml",
+            "src/VPureLux.Web/Pages/Catalog/Products/EditModal.cshtml",
+            "src/VPureLux.Web/Pages/Catalog/Components/Edit.cshtml",
+            "src/VPureLux.Web/Pages/Catalog/Components/EditModal.cshtml"
+        })
+        {
+            var pageSource = await File.ReadAllTextAsync(GetRepoFilePath(relativePath));
+            pageSource.ShouldContain("<abp-input asp-for=\"Code\" disabled=\"true\" />");
+        }
+
+        foreach (var modelType in new[]
+        {
+            typeof(Web.Pages.Catalog.Products.EditModel),
+            typeof(Web.Pages.Catalog.Products.EditModalModel),
+            typeof(Web.Pages.Catalog.Components.EditModel),
+            typeof(Web.Pages.Catalog.Components.EditModalModel)
+        })
+        {
+            modelType.GetProperty("Code")!
+                .GetCustomAttributes(typeof(Microsoft.AspNetCore.Mvc.BindPropertyAttribute), inherit: true)
+                .ShouldBeEmpty();
+        }
+    }
+
+    [Fact]
     public async Task Component_Create_Pages_Should_Show_Auto_Code_Hint_And_Not_Post_Code_Input()
     {
         var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
