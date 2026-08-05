@@ -16,8 +16,19 @@
 
     function refreshAfterModal() {
         abp.notify.success(page.dataset.savedMessage);
+        if (page.dataset.tableSelector && $.fn.DataTable.isDataTable(page.dataset.tableSelector)) {
+            $(page.dataset.tableSelector).DataTable().ajax.reload(null, false);
+            return;
+        }
+
         location.reload();
     }
+
+    page.catalogModals = {
+        create: createModal,
+        edit: editModal,
+        details: detailsModal
+    };
 
     createModal.onResult(refreshAfterModal);
     editModal.onResult(refreshAfterModal);

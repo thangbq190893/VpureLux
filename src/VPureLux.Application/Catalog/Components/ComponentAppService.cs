@@ -20,6 +20,7 @@ public class ComponentAppService : ApplicationService, IComponentAppService
 {
     private const string MaterialSequenceName = "Material";
     private const string MaterialPrefix = "MAT";
+    private const string DefaultSorting = "CreationTime DESC";
 
     private readonly IComponentRepository _componentRepository;
     private readonly CatalogManager _catalogManager;
@@ -57,10 +58,11 @@ public class ComponentAppService : ApplicationService, IComponentAppService
                 x.Unit.Contains(input.Keyword!));
         }
 
+        queryable = ApplySorting(queryable, input.Sorting);
+
         var totalCount = await AsyncExecuter.CountAsync(queryable);
         var items = await AsyncExecuter.ToListAsync(
             queryable
-                .OrderBy(x => x.Code)
                 .Skip(input.SkipCount)
                 .Take(input.MaxResultCount)
                 .Select(x => new ComponentDto
@@ -71,6 +73,7 @@ public class ComponentAppService : ApplicationService, IComponentAppService
                     Description = x.Description,
                     Unit = x.Unit,
                     Status = x.Status,
+                    CreationTime = x.CreationTime,
                     HasImage = x.Image!.ImageHash != null,
                     ImageHash = x.Image.ImageHash
                 }));
@@ -189,6 +192,49 @@ public class ComponentAppService : ApplicationService, IComponentAppService
 
     private static BusinessException ImageNotFound(Guid id) =>
         new BusinessException(VPureLuxDomainErrorCodes.CatalogImageNotFound).WithData("Id", id);
+
+    private static IQueryable<Component> ApplySorting(IQueryable<Component> queryable, string? sorting)
+    {
+        var normalizedSorting = NormalizeSorting(sorting);
+
+        return normalizedSorting switch
+        {
+            "Code ASC" => queryable.OrderBy(x => x.Code),
+            "Code DESC" => queryable.OrderByDescending(x => x.Code),
+            "Name ASC" => queryable.OrderBy(x => x.Name),
+            "Name DESC" => queryable.OrderByDescending(x => x.Name),
+            "Unit ASC" => queryable.OrderBy(x => x.Unit),
+            "Unit DESC" => queryable.OrderByDescending(x => x.Unit),
+            "Status ASC" => queryable.OrderBy(x => x.Status),
+            "Status DESC" => queryable.OrderByDescending(x => x.Status),
+            "CreationTime ASC" => queryable.OrderBy(x => x.CreationTime),
+            _ => queryable.OrderByDescending(x => x.CreationTime)
+        };
+    }
+
+    private static string NormalizeSorting(string? sorting)
+    {
+        if (sorting.IsNullOrWhiteSpace())
+        {
+            return DefaultSorting;
+        }
+
+        var parts = sorting.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var field = parts[0].Split('.').Last();
+        var direction = parts.Length > 1 && parts[1].Equals("desc", StringComparison.OrdinalIgnoreCase)
+            ? "DESC"
+            : "ASC";
+
+        return field.ToLowerInvariant() switch
+        {
+            "code" => $"Code {direction}",
+            "name" => $"Name {direction}",
+            "unit" => $"Unit {direction}",
+            "status" => $"Status {direction}",
+            "creationtime" => $"CreationTime {direction}",
+            _ => DefaultSorting
+        };
+    }
 
     private async Task<string> ResolveCodeAsync(string? code)
     {

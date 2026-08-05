@@ -1,30 +1,27 @@
 @page
 @model VPureLux.Web.Pages.Catalog.Components.IndexModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
-@using System.Globalization
 @{
     ViewData["Title"] = L["Catalog:Components"];
-}
-
-@functions {
-    private static readonly CultureInfo Vi = CultureInfo.GetCultureInfo("vi-VN");
-
-    private static string FormatMoney(decimal value)
-    {
-        var amount = decimal.Round(value, 0, MidpointRounding.AwayFromZero);
-        return amount.ToString("#,0", Vi) + " ₫";
-    }
+    var canEdit = Model.CanEdit.ToString().ToLowerInvariant();
+    var canViewPricingContext = Model.CanViewPricingContext.ToString().ToLowerInvariant();
 }
 
 @section scripts {
     <abp-script src="/Pages/Catalog/CatalogIndex.js" />
+    <abp-script src="/Pages/Catalog/Components/Index.js" />
 }
 
 <div data-catalog-index
      data-create-view-url="Catalog/Components/CreateModal"
      data-edit-view-url="Catalog/Components/EditModal"
      data-details-view-url="Catalog/Components/DetailsModal"
+     data-table-selector="#ComponentsTable"
+     data-can-edit="@canEdit"
+     data-can-view-pricing-context="@canViewPricingContext"
      data-saved-message="@L["Catalog:ComponentSavedSuccessfully"]"
+     data-activated-message="@L["Catalog:ComponentActivatedSuccessfully"]"
+     data-deactivated-message="@L["Catalog:ComponentDeactivatedSuccessfully"]"
      data-status-success="@(string.IsNullOrWhiteSpace(Model.StatusMessageKey) ? string.Empty : L[Model.StatusMessageKey].Value)"></div>
 
 <div class="vpl-page">
@@ -40,17 +37,18 @@
 
     <abp-card class="vpl-card-dense">
         <abp-card-body>
-            <form method="get" class="mb-3">
+            <form id="ComponentsSearchForm" class="mb-3">
                 <abp-row>
                     <abp-column size-md="_4">
-                        <input asp-for="Keyword" class="form-control" placeholder="@L["Search"]" />
+                        <input asp-for="Keyword" id="ComponentsKeyword" class="form-control" placeholder="@L["Search"]" />
                     </abp-column>
-                    <abp-column size-md="_2">
+                    <abp-column size-md="_4">
                         <abp-button button-type="Secondary" type="submit">@L["Search"]</abp-button>
+                        <abp-button button-type="Light" type="button" id="ComponentsClearButton">@L["Clear"]</abp-button>
                     </abp-column>
                 </abp-row>
             </form>
-            <abp-table striped-rows="true" class="vpl-table-dense">
+            <abp-table id="ComponentsTable" striped-rows="true" class="vpl-table-dense">
                 <thead>
                 <tr>
                     <th>@L["Catalog:Image"]</th>
@@ -65,71 +63,6 @@
                     <th class="text-end">@L["Actions"]</th>
                 </tr>
                 </thead>
-                <tbody>
-                @foreach (var row in Model.Components)
-                {
-                    <tr>
-                        <td class="vpl-catalog-thumbnail-cell">
-                            @if (row.Component.HasImage)
-                            {
-                                <img src="/api/catalog/components/@row.Component.Id/thumbnail?v=@row.Component.ImageHash"
-                                     loading="lazy" width="40" height="40"
-                                     class="vpl-catalog-thumbnail border rounded" alt="@row.Component.Name" />
-                            }
-                            else
-                            {
-                                <div class="vpl-catalog-thumbnail vpl-catalog-thumbnail-placeholder border rounded d-flex align-items-center justify-content-center text-muted"
-                                     title="@L["Catalog:NoImage"]">-</div>
-                            }
-                        </td>
-                        <td>@row.Component.Code</td>
-                        <td>@row.Component.Name</td>
-                        <td>@row.Component.Unit</td>
-                        <td>@L[$"Status:{row.Component.Status}"]</td>
-                        @if (Model.CanViewPricingContext)
-                        {
-                            <td class="text-end">
-                                @(row.CurrentSuggestedSellingPrice == null
-                                    ? L["Catalog:NoComponentSuggestedPrice"].Value
-                                    : FormatMoney(row.CurrentSuggestedSellingPrice.Price))
-                            </td>
-                        }
-                        <td class="text-end">
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">@L["Actions"]</button>
-                                <div class="dropdown-menu dropdown-menu-end">
-                                    <a class="dropdown-item" asp-page="/Catalog/Components/Details" asp-route-id="@row.Component.Id" data-catalog-details data-id="@row.Component.Id">@L["Details"]</a>
-                                    @if (Model.CanEdit)
-                                    {
-                                        <a class="dropdown-item" asp-page="/Catalog/Components/Edit" asp-route-id="@row.Component.Id" data-catalog-edit data-id="@row.Component.Id">@L["Edit"]</a>
-                                        <a class="dropdown-item" asp-page="/Catalog/Components/Edit" asp-route-id="@row.Component.Id">@L["Catalog:ManageImage"]</a>
-                                        @if (row.Component.Status == VPureLux.Catalog.CatalogItemStatus.Active)
-                                        {
-                                            <form method="post"
-                                                  asp-page-handler="Deactivate"
-                                                  asp-route-id="@row.Component.Id"
-                                                  data-catalog-status-form
-                                                  data-confirm-message="@L["Catalog:ConfirmDeactivateComponent"]">
-                                                <button class="dropdown-item" type="submit">@L["Deactivate"]</button>
-                                            </form>
-                                        }
-                                        else
-                                        {
-                                            <form method="post"
-                                                  asp-page-handler="Activate"
-                                                  asp-route-id="@row.Component.Id"
-                                                  data-catalog-status-form
-                                                  data-confirm-message="@L["Catalog:ConfirmActivateComponent"]">
-                                                <button class="dropdown-item" type="submit">@L["Activate"]</button>
-                                            </form>
-                                        }
-                                    }
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                }
-                </tbody>
             </abp-table>
         </abp-card-body>
     </abp-card>

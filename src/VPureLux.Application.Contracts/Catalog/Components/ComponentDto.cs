@@ -10,6 +10,7 @@ public class ComponentDto : EntityDto<Guid>
     public string? Description { get; set; }
     public string Unit { get; set; } = string.Empty;
     public CatalogItemStatus Status { get; set; }
+    public DateTime CreationTime { get; set; }
     public bool HasImage { get; set; }
     public string? ImageHash { get; set; }
 }

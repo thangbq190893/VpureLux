@@ -37,9 +37,20 @@ public class CatalogImagePagesTests : VPureLuxWebTestBase
         await service.SetImageAsync(withImage.Id, CatalogImageTestData.Png());
 
         var html = await GetResponseAsStringAsync("/Catalog/Components");
+        var script = await File.ReadAllTextAsync(Path.Combine(
+            FindRepositoryRoot(),
+            "src",
+            "VPureLux.Web",
+            "Pages",
+            "Catalog",
+            "Components",
+            "Index.js"));
 
-        html.ShouldContain($"/api/catalog/components/{withImage.Id}/thumbnail");
-        html.ShouldContain("loading=\"lazy\"");
+        html.ShouldContain("id=\"ComponentsTable\"");
+        script.ShouldContain("api/catalog/components/");
+        script.ShouldContain("/thumbnail");
+        script.ShouldContain("loading=\"lazy\"");
+        script.ShouldContain("vpl-catalog-thumbnail-placeholder");
     }
 
     [Fact]

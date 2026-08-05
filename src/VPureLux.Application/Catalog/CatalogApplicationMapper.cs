@@ -14,6 +14,7 @@ public class CatalogApplicationMapper : ITransientDependency
         Description = component.Description,
         Unit = component.Unit,
         Status = component.Status,
+        CreationTime = component.CreationTime,
         HasImage = component.Image != null,
         ImageHash = component.Image?.ImageHash
     };
