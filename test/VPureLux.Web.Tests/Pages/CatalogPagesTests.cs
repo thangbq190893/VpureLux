@@ -352,6 +352,8 @@ public class CatalogPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("ComponentsClearButton");
         scriptSource.ShouldContain("dataTable.ajax.reload()");
         scriptSource.ShouldContain("rowAction");
+        scriptSource.ShouldContain("function recordOf(data)");
+        scriptSource.ShouldContain("data?.record || data || {}");
         scriptSource.IndexOf("select2", StringComparison.OrdinalIgnoreCase).ShouldBe(-1);
 
         catalogScriptSource.ShouldContain("page.dataset.tableSelector");

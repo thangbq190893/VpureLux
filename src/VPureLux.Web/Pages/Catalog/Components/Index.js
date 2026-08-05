@@ -25,6 +25,10 @@
         }).format(value) + ' ₫';
     }
 
+    function recordOf(data) {
+        return data?.record || data || {};
+    }
+
     function imageHtml(record) {
         if (!record.hasImage) {
             return '<div class="vpl-catalog-thumbnail vpl-catalog-thumbnail-placeholder border rounded d-flex align-items-center justify-content-center text-muted" title="' +
@@ -108,7 +112,8 @@
                 {
                     text: l('Details'),
                     action: function (data) {
-                        page.catalogModals.details.open({ id: data.record.id });
+                        const record = recordOf(data);
+                        page.catalogModals.details.open({ id: record.id });
                     }
                 },
                 {
@@ -117,7 +122,8 @@
                         return canEdit;
                     },
                     action: function (data) {
-                        page.catalogModals.edit.open({ id: data.record.id });
+                        const record = recordOf(data);
+                        page.catalogModals.edit.open({ id: record.id });
                     }
                 },
                 {
@@ -126,17 +132,20 @@
                         return canEdit;
                     },
                     action: function (data) {
-                        location.href = abp.appPath + 'Catalog/Components/Edit/' + data.record.id;
+                        const record = recordOf(data);
+                        location.href = abp.appPath + 'Catalog/Components/Edit/' + record.id;
                     }
                 },
                 {
                     text: l('Deactivate'),
                     visible: function (data) {
-                        return canEdit && data.record.status === 'Active';
+                        const record = recordOf(data);
+                        return canEdit && record.status === 'Active';
                     },
                     action: function (data) {
+                        const record = recordOf(data);
                         postStatus(
-                            data.record,
+                            record,
                             'Deactivate',
                             l('Catalog:ConfirmDeactivateComponent'),
                             page.dataset.deactivatedMessage);
@@ -145,11 +154,13 @@
                 {
                     text: l('Activate'),
                     visible: function (data) {
-                        return canEdit && data.record.status !== 'Active';
+                        const record = recordOf(data);
+                        return canEdit && record.status !== 'Active';
                     },
                     action: function (data) {
+                        const record = recordOf(data);
                         postStatus(
-                            data.record,
+                            record,
                             'Activate',
                             l('Catalog:ConfirmActivateComponent'),
                             page.dataset.activatedMessage);
