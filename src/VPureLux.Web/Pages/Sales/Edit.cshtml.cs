@@ -209,7 +209,7 @@ public class EditModel : VPureLuxPageModel
     private async Task LoadAsync()
     {
         Order = await _service.GetAsync(Id);
-        var productItems = (await _products.GetListAsync(new GetProductListInput { MaxResultCount = 1000 })).Items;
+        var productItems = (await _products.GetListAsync(new GetProductListInput { MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount })).Items;
         Products = [new SelectListItem(L["Select"], string.Empty)];
         Products.AddRange(productItems
             .Where(x => x.Status == CatalogItemStatus.Active)
@@ -226,7 +226,7 @@ public class EditModel : VPureLuxPageModel
 
         try
         {
-            productsById ??= (await _products.GetListAsync(new GetProductListInput { MaxResultCount = 1000 })).Items
+            productsById ??= (await _products.GetListAsync(new GetProductListInput { MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount })).Items
                 .ToDictionary(x => x.Id);
             ProductContexts = (await _productPricingContext.FindMapAsync(productsById.Keys.ToArray(), Clock.Now))
                 .Values

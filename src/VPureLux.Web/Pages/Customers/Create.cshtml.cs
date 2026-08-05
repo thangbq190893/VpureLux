@@ -32,7 +32,7 @@ public class CreateModel : VPureLuxPageModel
     }
     private async Task LoadGroupsAsync()
     {
-        var groups = await _customerGroupAppService.GetListAsync(new GetCustomerGroupListInput { Status = CustomerGroupStatus.Active, MaxResultCount = 100 });
+        var groups = await _customerGroupAppService.GetListAsync(new GetCustomerGroupListInput { Status = CustomerGroupStatus.Active, MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount });
         CustomerGroups = groups.Items
             .Select(x => new SelectListItem($"{x.Code} - {x.Name}", x.Id.ToString()))
             .ToList();

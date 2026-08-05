@@ -35,7 +35,7 @@ public class IndexModel : VPureLuxPageModel
     {
         var activeComponents = (await _componentAppService.GetListAsync(new GetComponentListInput
         {
-            MaxResultCount = 100
+            MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount
         })).Items.Where(x => x.Status == CatalogItemStatus.Active).ToList();
 
         var currentPrices = await _componentPriceLookupService.FindCurrentMapAsync(

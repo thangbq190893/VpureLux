@@ -61,7 +61,7 @@ public class IndexModel : VPureLuxPageModel
         var products = await _productAppService.GetListAsync(new GetProductListInput
         {
             Keyword = SearchTerm,
-            MaxResultCount = 1000
+            MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount
         });
 
         var filteredProducts = products.Items

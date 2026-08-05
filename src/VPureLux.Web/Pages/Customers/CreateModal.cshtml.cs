@@ -47,7 +47,7 @@ public class CreateModalModel : VPureLuxPageModel
         var groups = await _customerGroupAppService.GetListAsync(new GetCustomerGroupListInput
         {
             Status = CustomerGroupStatus.Active,
-            MaxResultCount = 100
+            MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount
         });
         CustomerGroups = groups.Items
             .Select(x => new SelectListItem($"{x.Code} - {x.Name}", x.Id.ToString()))

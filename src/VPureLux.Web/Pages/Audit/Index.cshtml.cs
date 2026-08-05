@@ -13,7 +13,7 @@ public class IndexModel : VPureLuxPageModel
 {
     private readonly IBusinessAuditAppService _service;
     private readonly IAuthorizationService _authorization;
-    [BindProperty(SupportsGet = true)] public AuditSearchInput Input { get; set; } = new() { MaxResultCount = 100 };
+    [BindProperty(SupportsGet = true)] public AuditSearchInput Input { get; set; } = new() { MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount };
     public IReadOnlyList<BusinessAuditLogDto> Logs { get; private set; } = Array.Empty<BusinessAuditLogDto>();
     public bool CanExport { get; private set; }
 

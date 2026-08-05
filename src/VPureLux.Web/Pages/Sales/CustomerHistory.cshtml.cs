@@ -51,7 +51,7 @@ public class CustomerHistoryModel : VPureLuxPageModel
                 .FirstOrDefault(x => x.Value == CustomerId.Value.ToString())?.Text;
             Items = await _service.GetCustomerHistoryAsync(CustomerId.Value);
             ReceivableSummary = await _service.GetCustomerReceivableSummaryAsync(CustomerId.Value);
-            ProductLabels = (await _products.GetListAsync(new GetProductListInput { MaxResultCount = 1000 })).Items
+            ProductLabels = (await _products.GetListAsync(new GetProductListInput { MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount })).Items
                 .Where(x => Items.Any(item => item.ProductId == x.Id))
                 .ToDictionary(x => x.Id, x => $"{x.Code} - {x.Name}");
         }

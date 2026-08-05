@@ -479,11 +479,11 @@ public class CreateModel : VPureLuxPageModel
 
     private async Task LoadSelectionsAsync()
     {
-        Customers = (await _customers.GetListAsync(new GetCustomerListInput { MaxResultCount = 500 })).Items
+        Customers = (await _customers.GetListAsync(new GetCustomerListInput { MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount })).Items
             .Select(x => new SelectListItem($"{x.Code} - {x.Name}", x.Id.ToString())).ToList();
-        Warehouses = (await _warehouses.GetListAsync(new GetInventoryListInput { MaxResultCount = 500 })).Items
+        Warehouses = (await _warehouses.GetListAsync(new GetInventoryListInput { MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount })).Items
             .Select(x => new SelectListItem($"{x.Code} - {x.Name}", x.Id.ToString())).ToList();
-        var productItems = (await _products.GetListAsync(new GetProductListInput { MaxResultCount = 1000 })).Items;
+        var productItems = (await _products.GetListAsync(new GetProductListInput { MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount })).Items;
         Products = [new SelectListItem(L["Select"], string.Empty)];
         Products.AddRange(productItems
             .Where(x => x.Status == CatalogItemStatus.Active)
@@ -500,7 +500,7 @@ public class CreateModel : VPureLuxPageModel
 
         try
         {
-            productsById ??= (await _products.GetListAsync(new GetProductListInput { MaxResultCount = 1000 })).Items
+            productsById ??= (await _products.GetListAsync(new GetProductListInput { MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount })).Items
                 .ToDictionary(x => x.Id);
             ProductContexts = (await _productPricingContext.FindMapAsync(productsById.Keys.ToArray(), Clock.Now))
                 .Values

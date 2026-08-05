@@ -81,6 +81,6 @@ public class WarehousesModel : VPureLuxPageModel
 
     private async Task LoadWarehousesAsync()
     {
-        Warehouses = (await _service.GetListAsync(new GetInventoryListInput { MaxResultCount = 100 })).Items;
+        Warehouses = (await _service.GetListAsync(new GetInventoryListInput { MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount })).Items;
     }
 }

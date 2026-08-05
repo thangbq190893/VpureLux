@@ -67,7 +67,7 @@ public class EditModalModel : VPureLuxPageModel
     {
         var groups = (await _customerGroupAppService.GetListAsync(new GetCustomerGroupListInput
         {
-            MaxResultCount = 100
+            MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount
         })).Items.Where(x => x.Status == CustomerGroupStatus.Active || x.Id == selectedId);
         CustomerGroups = groups.Select(x => new SelectListItem($"{x.Code} - {x.Name}", x.Id.ToString(), x.Id == selectedId)).ToList();
     }

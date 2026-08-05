@@ -183,7 +183,7 @@ public class DetailsModel : VPureLuxPageModel
             SalesConsts.MoneyScale,
             MidpointRounding.AwayFromZero));
         CustomerDisplay = await GetCustomerDisplayAsync();
-        ProductLabels = (await _products.GetListAsync(new GetProductListInput { MaxResultCount = 1000 })).Items
+        ProductLabels = (await _products.GetListAsync(new GetProductListInput { MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount })).Items
             .Where(x => Order.Lines.Any(line => line.ProductId == x.Id))
             .ToDictionary(x => x.Id, x => $"{x.Code} - {x.Name}");
         await LoadProductContextsAsync();

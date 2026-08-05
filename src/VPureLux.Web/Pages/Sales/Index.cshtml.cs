@@ -30,7 +30,7 @@ public class IndexModel : VPureLuxPageModel
     {
         Orders = await _service.GetListAsync(new GetSalesOrderListInput
         {
-            MaxResultCount = 100,
+            MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount,
             CustomerId = CustomerId,
             Status = Status,
             PaymentStatus = PaymentStatus

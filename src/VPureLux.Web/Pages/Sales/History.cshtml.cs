@@ -15,6 +15,6 @@ public class HistoryModel : VPureLuxPageModel
     public async Task OnGetAsync() => Orders = await _service.GetListAsync(new GetSalesOrderListInput
     {
         Status = SalesOrderStatus.Confirmed,
-        MaxResultCount = 500
+        MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount
     });
 }

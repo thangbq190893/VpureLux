@@ -61,7 +61,7 @@ public class DetailsModel : VPureLuxPageModel
 
         var components = await _componentAppService.GetListAsync(new GetComponentListInput
         {
-            MaxResultCount = 1000
+            MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount
         });
 
         var componentIds = BomVersion.Items.Select(x => x.ComponentId).ToHashSet();
