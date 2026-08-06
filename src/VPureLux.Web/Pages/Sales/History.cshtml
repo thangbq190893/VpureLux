@@ -1,11 +1,16 @@
 @page
 @model VPureLux.Web.Pages.Sales.HistoryModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
-@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
-@using VPureLux.Permissions
 @{
-    var canViewProfit = (await AuthorizationService.AuthorizeAsync(User, null, VPureLuxPermissions.Sales.ViewProfit)).Succeeded;
+    var canViewProfit = Model.CanViewProfit.ToString().ToLowerInvariant();
 }
+
+@section scripts {
+    <abp-script src="/Pages/Sales/History.js" />
+}
+
+<div data-sales-history
+     data-can-view-profit="@canViewProfit"></div>
 
 <div class="vpl-page">
     <div class="vpl-page-header">
@@ -14,38 +19,20 @@
 
     <abp-card class="vpl-card-dense">
         <abp-card-body>
-            <abp-table striped-rows="true" class="vpl-table-dense">
+            <abp-table id="SalesHistoryTable" striped-rows="true" class="vpl-table-dense">
                 <thead>
                 <tr>
                     <th>@L["Sales:OrderNo"]</th>
                     <th>@L["Sales:OrderDate"]</th>
                     <th>@L["Sales:Customer"]</th>
                     <th>@L["Sales:Revenue"]</th>
-                    @if (canViewProfit)
+                    @if (Model.CanViewProfit)
                     {
                         <th>@L["Sales:Profit"]</th>
                     }
                     <th></th>
                 </tr>
                 </thead>
-                <tbody>
-                @foreach (var order in Model.Orders.Items)
-                {
-                    <tr>
-                        <td>@order.OrderNo</td>
-                        <td>@order.OrderDate</td>
-                        <td>@order.CustomerCodeSnapshot - @order.CustomerNameSnapshot</td>
-                        <td>@order.TotalRevenueAmount</td>
-                        @if (canViewProfit)
-                        {
-                            <td>@order.TotalProfitAmount</td>
-                        }
-                        <td>
-                            <a class="btn btn-sm btn-outline-secondary" asp-page="/Sales/Details" asp-route-id="@order.Id">@L["Details"]</a>
-                        </td>
-                    </tr>
-                }
-                </tbody>
             </abp-table>
         </abp-card-body>
     </abp-card>

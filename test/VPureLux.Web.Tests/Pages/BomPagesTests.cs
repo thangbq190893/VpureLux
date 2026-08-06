@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -51,21 +52,39 @@ public class BomPagesTests : VPureLuxWebTestBase
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Bom"));
         var filteredHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom?SearchTerm={product.Code}"));
         var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/Index.cshtml"));
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/Index.js"));
+        var model = new IndexModel(
+            GetRequiredService<IBomAppService>(),
+            GetRequiredService<IProductAppService>(),
+            GetRequiredService<IAuthorizationService>());
+        SetPageContext(model);
+        var listResult = await model.OnGetListAsync(new GetProductListInput
+        {
+            Keyword = product.Code,
+            MaxResultCount = 10
+        });
+        var rows = listResult.Value.ShouldBeOfType<Volo.Abp.Application.Dtos.PagedResultDto<IndexModel.BomProductSummaryRow>>();
 
         html.ShouldContain(localizer["Bom:Title"].Value);
         html.ShouldContain("data-bom-search-form");
         html.ShouldContain("data-bom-summary-table");
+        html.ShouldContain("id=\"BomProductsTable\"");
         html.ShouldContain("name=\"SearchTerm\"");
         html.ShouldContain(localizer["Bom:VersionCount"].Value);
-        filteredHtml.ShouldContain(product.Code);
-        filteredHtml.ShouldContain(product.Name);
-        filteredHtml.ShouldContain("data-bom-summary-row");
-        html.ShouldContain(localizer["Bom:OpenHistory"].Value);
-        filteredHtml.ShouldContain(localizer["Bom:CreateVersionForProduct"].Value);
-        filteredHtml.ShouldContain(localizer["Bom:ViewCurrentVersion"].Value);
-        filteredHtml.ShouldContain($"href=\"/Bom/Product/{product.Id}");
-        filteredHtml.ShouldContain($"href=\"/Bom/Create/{product.Id}");
-        filteredHtml.ShouldContain($"/Bom/Details/{bom.Id}");
+        filteredHtml.ShouldNotContain(product.Name);
+        rows.Items.Count.ShouldBeGreaterThan(0);
+        rows.Items.Any(x => x.ProductCode == product.Code && x.ProductName == product.Name).ShouldBeTrue();
+        rows.Items.Any(x => x.CurrentVersion?.Id == bom.Id).ShouldBeTrue();
+        scriptSource.ShouldContain("Bom:OpenHistory");
+        scriptSource.ShouldContain("Bom:CreateVersionForProduct");
+        scriptSource.ShouldContain("Bom:ViewCurrentVersion");
+        scriptSource.ShouldContain("Bom/Product/");
+        scriptSource.ShouldContain("Bom/Create/");
+        scriptSource.ShouldContain("Bom/Details/");
+        scriptSource.ShouldContain("DataTable");
+        scriptSource.ShouldContain("serverSide: true");
+        scriptSource.ShouldContain("handler=List");
+        pageSource.ShouldNotContain("foreach (var row in Model.Rows)");
         pageSource.ShouldNotContain("asp-for=\"ProductId\" asp-items=");
         pageSource.ShouldNotContain("Bom:SelectProduct");
         html.ShouldNotContain("type=\"text\" id=\"ProductId\"");
@@ -242,15 +261,25 @@ public class BomPagesTests : VPureLuxWebTestBase
 
         var detailsHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom/Details/{draft.Id}"));
         var indexHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom?SearchTerm={product.Code}"));
+        var model = new IndexModel(
+            bomService,
+            GetRequiredService<IProductAppService>(),
+            GetRequiredService<IAuthorizationService>());
+        SetPageContext(model);
+        var listResult = await model.OnGetListAsync(new GetProductListInput
+        {
+            Keyword = product.Code,
+            MaxResultCount = 10
+        });
+        var rows = listResult.Value.ShouldBeOfType<Volo.Abp.Application.Dtos.PagedResultDto<IndexModel.BomProductSummaryRow>>();
 
         detailsHtml.ShouldContain("data-bom-version-status");
         detailsHtml.ShouldContain(localizer["Bom:Status:Published"].Value);
         detailsHtml.ShouldContain(localizer["Bom:CurrentVersionBadge"].Value);
         detailsHtml.ShouldNotContain(localizer["Edit"].Value);
-        indexHtml.ShouldContain(product.Code);
-        indexHtml.ShouldContain($"/Bom/Details/{draft.Id}");
-        indexHtml.ShouldContain(localizer["Bom:Status:Published"].Value);
-        indexHtml.ShouldContain(localizer["Bom:ViewCurrentVersion"].Value);
+        indexHtml.ShouldContain("id=\"BomProductsTable\"");
+        indexHtml.ShouldNotContain($"/Bom/Details/{draft.Id}");
+        rows.Items.Any(x => x.ProductCode == product.Code && x.CurrentVersion?.Id == draft.Id).ShouldBeTrue();
     }
 
     [Fact]

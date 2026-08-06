@@ -5,6 +5,10 @@
     ViewData["Title"] = L["Audit:Title"];
 }
 
+@section scripts {
+    <abp-script src="/Pages/Audit/Index.js" />
+}
+
 <div class="vpl-page vpl-inquiry-page">
     <div class="vpl-page-header">
         <h2 class="vpl-page-title mb-0">@L["Audit:Title"]</h2>
@@ -22,18 +26,18 @@
             <h5 class="mb-0">@L["Search"]</h5>
         </abp-card-header>
         <abp-card-body>
-            <form method="get" class="row g-2 mb-0">
+            <form id="AuditSearchForm" class="row g-2 mb-0">
                 <div class="col-md-2">
-                    <input asp-for="Input.Module" class="form-control" placeholder="@L["Audit:Module"]" />
+                    <input asp-for="Input.Module" id="AuditModule" class="form-control" placeholder="@L["Audit:Module"]" />
                 </div>
                 <div class="col-md-2">
-                    <input asp-for="Input.EntityType" class="form-control" placeholder="@L["Audit:Entity"]" />
+                    <input asp-for="Input.EntityType" id="AuditEntityType" class="form-control" placeholder="@L["Audit:Entity"]" />
                 </div>
                 <div class="col-md-3">
-                    <input asp-for="Input.CorrelationId" class="form-control" placeholder="@L["Audit:CorrelationId"]" />
+                    <input asp-for="Input.CorrelationId" id="AuditCorrelationId" class="form-control" placeholder="@L["Audit:CorrelationId"]" />
                 </div>
                 <div class="col-md-2">
-                    <select asp-for="Input.Severity" class="form-select">
+                    <select asp-for="Input.Severity" id="AuditSeverity" class="form-select">
                         <option value="">@L["Audit:AllSeverity"]</option>
                         <option value="Informational">@L["Audit:Severity:Informational"]</option>
                         <option value="Important">@L["Audit:Severity:Important"]</option>
@@ -42,6 +46,7 @@
                 </div>
                 <div class="col-md-2">
                     <button class="btn btn-secondary" type="submit">@L["Search"]</button>
+                    <button class="btn btn-light" type="button" id="AuditClearButton">@L["Clear"]</button>
                 </div>
             </form>
         </abp-card-body>
@@ -49,7 +54,7 @@
 
     <abp-card class="vpl-inquiry-results-card vpl-card-dense">
         <abp-card-body>
-            <abp-table striped-rows="true" class="vpl-table-dense">
+            <abp-table id="AuditTable" striped-rows="true" class="vpl-table-dense">
                 <thead>
                     <tr>
                         <th>@L["Audit:EventTime"]</th>
@@ -61,31 +66,6 @@
                         <th></th>
                     </tr>
                 </thead>
-                <tbody>
-                @foreach (var log in Model.Logs)
-                {
-                    <tr>
-                        <td>@log.EventTime</td>
-                        <td>@log.Module</td>
-                        <td>
-                            <span class="fw-semibold">@Model.GetActionLabel(log)</span>
-                            <div class="text-muted small">@log.EventName</div>
-                        </td>
-                        <td>
-                            <span class="fw-semibold">@Model.GetPrimaryEntityLabel(log)</span>
-                            <div class="text-muted small">@log.EntityType</div>
-                        </td>
-                        <td><span class="badge @Model.GetSeverityBadgeClass(log)">@Model.GetSeverityLabel(log)</span></td>
-                        <td>
-                            <span class="badge @Model.GetGeneratedStatusBadgeClass(log)">@Model.GetGeneratedStatusLabel(log)</span>
-                            <div class="text-muted small">@Model.GetActorTypeLabel(log)</div>
-                        </td>
-                        <td class="text-end">
-                            <a class="btn btn-sm btn-outline-secondary" asp-page="/Audit/Details" asp-route-id="@log.Id">@L["Details"]</a>
-                        </td>
-                    </tr>
-                }
-                </tbody>
             </abp-table>
         </abp-card-body>
     </abp-card>

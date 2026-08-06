@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Security.Claims;
@@ -62,14 +63,30 @@ public class AuditPagesTests : VPureLuxWebTestBase
             isSystemGenerated: false);
 
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Audit"));
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Audit/Index.cshtml"));
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Audit/Index.js"));
+        var model = new Web.Pages.Audit.IndexModel(
+            GetRequiredService<IBusinessAuditAppService>(),
+            GetRequiredService<IAuthorizationService>(),
+            GetRequiredService<Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource>>());
+        SetPageContext(model);
+        var listResult = await model.OnGetListAsync(new AuditSearchInput { MaxResultCount = 10 });
+        var rows = listResult.Value.ShouldBeOfType<Volo.Abp.Application.Dtos.PagedResultDto<Web.Pages.Audit.IndexModel.AuditLogRow>>();
 
-        html.ShouldContain("Xuất nhật ký 5 dòng");
-        html.ShouldContain("Hoàn tất xuất nhật ký");
-        html.ShouldContain("Nghiêm trọng");
-        html.ShouldContain("Ghi nhận");
-        html.ShouldContain("Người dùng");
-        html.ShouldContain("text-bg-danger");
-        html.ShouldContain($"/Audit/Details/{log.Id}");
+        html.ShouldContain("id=\"AuditTable\"");
+        html.ShouldNotContain("Xuất nhật ký 5 dòng");
+        rows.Items.Any(x => x.Id == log.Id && x.EntityLabel == "Xuất nhật ký 5 dòng").ShouldBeTrue();
+        rows.Items.Any(x => x.Id == log.Id && x.ActionLabel == "Hoàn tất xuất nhật ký").ShouldBeTrue();
+        rows.Items.Any(x => x.Id == log.Id && x.SeverityLabel == "Nghiêm trọng").ShouldBeTrue();
+        rows.Items.Any(x => x.Id == log.Id && x.StatusLabel == "Ghi nhận").ShouldBeTrue();
+        rows.Items.Any(x => x.Id == log.Id && x.ActorTypeLabel == "Người dùng").ShouldBeTrue();
+        rows.Items.Any(x => x.Id == log.Id && x.SeverityBadgeClass == "text-bg-danger").ShouldBeTrue();
+        pageSource.ShouldContain("<abp-script src=\"/Pages/Audit/Index.js\" />");
+        pageSource.ShouldNotContain("foreach (var log in Model.Logs)");
+        scriptSource.ShouldContain("DataTable");
+        scriptSource.ShouldContain("serverSide: true");
+        scriptSource.ShouldContain("handler=List");
+        scriptSource.ShouldContain("Audit/Details/");
     }
 
     [Fact]
@@ -166,7 +183,10 @@ public class AuditPagesTests : VPureLuxWebTestBase
         var authorization = Substitute.For<IAuthorizationService>();
         authorization.AuthorizeAsync(Arg.Any<ClaimsPrincipal>(), Arg.Any<object?>(), VPureLuxPermissions.Audit.Export)
             .Returns(AuthorizationResult.Failed());
-        var model = new Web.Pages.Audit.IndexModel(service, authorization)
+        var model = new Web.Pages.Audit.IndexModel(
+            service,
+            authorization,
+            GetRequiredService<Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource>>())
         {
             PageContext = new PageContext
             {
@@ -228,6 +248,18 @@ public class AuditPagesTests : VPureLuxWebTestBase
         await repository.InsertAsync(log, autoSave: true);
         await uow.CompleteAsync();
         return log;
+    }
+
+    private void SetPageContext(PageModel model)
+    {
+        model.PageContext = new PageContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                RequestServices = GetRequiredService<IServiceProvider>(),
+                User = new ClaimsPrincipal(new ClaimsIdentity())
+            }
+        };
     }
 
     private static string GetRepoFilePath(string relativePath)

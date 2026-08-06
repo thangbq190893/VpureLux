@@ -63,7 +63,10 @@ public class SalesPagesTests : VPureLuxWebTestBase
         var authorization = Substitute.For<IAuthorizationService>();
         authorization.AuthorizeAsync(Arg.Any<ClaimsPrincipal>(), Arg.Any<object?>(), Arg.Any<string>())
             .Returns(AuthorizationResult.Failed());
-        var model = new IndexModel(service, authorization)
+        var model = new IndexModel(
+            service,
+            authorization,
+            GetRequiredService<IStringLocalizer<VPureLuxResource>>())
         {
             PageContext = new PageContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) } }
         };
@@ -84,13 +87,20 @@ public class SalesPagesTests : VPureLuxWebTestBase
         var authorization = Substitute.For<IAuthorizationService>();
         authorization.AuthorizeAsync(Arg.Any<ClaimsPrincipal>(), Arg.Any<object?>(), Arg.Any<string>())
             .Returns(AuthorizationResult.Failed());
-        var model = new IndexModel(service, authorization)
+        var model = new IndexModel(
+            service,
+            authorization,
+            GetRequiredService<IStringLocalizer<VPureLuxResource>>())
         {
             PageContext = new PageContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) } },
             PaymentStatus = SalesOrderReceivableStatus.PartiallyPaid
         };
 
-        await model.OnGetAsync();
+        await model.OnGetListAsync(new GetSalesOrderListInput
+        {
+            PaymentStatus = model.PaymentStatus,
+            MaxResultCount = 10
+        });
 
         captured.ShouldNotBeNull();
         captured!.PaymentStatus.ShouldBe(SalesOrderReceivableStatus.PartiallyPaid);
@@ -107,13 +117,20 @@ public class SalesPagesTests : VPureLuxWebTestBase
         authorization.AuthorizeAsync(Arg.Any<ClaimsPrincipal>(), Arg.Any<object?>(), Arg.Any<string>())
             .Returns(AuthorizationResult.Failed());
         var customerId = Guid.NewGuid();
-        var model = new IndexModel(service, authorization)
+        var model = new IndexModel(
+            service,
+            authorization,
+            GetRequiredService<IStringLocalizer<VPureLuxResource>>())
         {
             PageContext = new PageContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) } },
             CustomerId = customerId
         };
 
-        await model.OnGetAsync();
+        await model.OnGetListAsync(new GetSalesOrderListInput
+        {
+            CustomerId = model.CustomerId,
+            MaxResultCount = 10
+        });
 
         captured.ShouldNotBeNull();
         captured!.CustomerId.ShouldBe(customerId);
@@ -143,15 +160,31 @@ public class SalesPagesTests : VPureLuxWebTestBase
 
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Sales"));
         var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Index.cshtml"));
+        var pageModelSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Index.cshtml.cs"));
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Index.js"));
+        var model = new IndexModel(
+            salesService,
+            GetRequiredService<IAuthorizationService>(),
+            localizer);
+        SetPageContext(model, GetRequiredService<IServiceProvider>());
+        var listResult = await model.OnGetListAsync(new GetSalesOrderListInput { MaxResultCount = 10 });
+        var rows = listResult.Value.ShouldBeOfType<PagedResultDto<IndexModel.SalesOrderRow>>();
 
         html.ShouldContain(localizer["Sales:PaymentTotalAmount"].Value);
         html.ShouldContain(localizer["Sales:PaymentPaidAmount"].Value);
         html.ShouldContain(localizer["Sales:PaymentRemainingAmount"].Value);
-        html.ShouldContain(localizer["Sales:PaymentStatus:PartiallyPaid"].Value);
-        html.ShouldContain("badge");
-        pageSource.ShouldContain("order.PaymentSummary");
-        pageSource.ShouldContain("GetPaymentStatusBadgeClass");
-        pageSource.ShouldContain("FormatPaymentAmount");
+        html.ShouldContain("id=\"SalesOrdersTable\"");
+        html.ShouldNotContain(order.OrderNo);
+        rows.Items.Any(x => x.PaymentStatusLabel == localizer["Sales:PaymentStatus:PartiallyPaid"].Value).ShouldBeTrue();
+        rows.Items.Any(x => x.PaymentStatusBadgeClass.Contains("text-bg-warning")).ShouldBeTrue();
+        pageSource.ShouldContain("<abp-script src=\"/Pages/Sales/Index.js\" />");
+        pageSource.ShouldNotContain("foreach (var order in Model.Orders.Items)");
+        pageModelSource.ShouldContain("order.PaymentSummary");
+        pageModelSource.ShouldContain("GetPaymentStatusBadgeClass");
+        pageModelSource.ShouldContain("FormatPaymentAmount");
+        scriptSource.ShouldContain("DataTable");
+        scriptSource.ShouldContain("serverSide: true");
+        scriptSource.ShouldContain("handler=List");
     }
 
     [Fact]
@@ -168,10 +201,17 @@ public class SalesPagesTests : VPureLuxWebTestBase
         });
 
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Sales"));
+        var model = new IndexModel(
+            salesService,
+            GetRequiredService<IAuthorizationService>(),
+            localizer);
+        SetPageContext(model, GetRequiredService<IServiceProvider>());
+        var listResult = await model.OnGetListAsync(new GetSalesOrderListInput { MaxResultCount = 10 });
+        var rows = listResult.Value.ShouldBeOfType<PagedResultDto<IndexModel.SalesOrderRow>>();
 
         html.ShouldContain(localizer["Sales:PaymentStatus:NotApplicable"].Value);
         localizer["Sales:PaymentStatus:NotApplicable"].Value.ShouldBe("Chưa xác nhận");
-        html.ShouldContain("—");
+        rows.Items.Any(x => x.PaymentTotalAmount == "—").ShouldBeTrue();
     }
 
     [Fact]
@@ -224,6 +264,38 @@ public class SalesPagesTests : VPureLuxWebTestBase
 
         html.ShouldContain(localizer["Sales:PaymentStatus:Unpaid"].Value);
         html.ShouldContain(localizer["Sales:PaymentStatus:Paid"].Value);
+    }
+
+    [Fact]
+    public async Task Sales_History_Should_Use_Server_Side_DataTable()
+    {
+        var context = await CreateSalesContextAsync("SALES-HIS-DT");
+        var salesService = GetRequiredService<ISalesOrderAppService>();
+        var order = await salesService.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 }]
+        });
+        await salesService.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Sales/History"));
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/History.cshtml"));
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/History.js"));
+        var model = GetRequiredService<HistoryModel>();
+        SetPageContext(model);
+        var listResult = await model.OnGetListAsync(new GetSalesOrderListInput { MaxResultCount = 10 });
+        var rows = listResult.Value.ShouldBeOfType<PagedResultDto<HistoryModel.SalesHistoryRow>>();
+
+        html.ShouldContain("id=\"SalesHistoryTable\"");
+        html.ShouldNotContain(order.OrderNo);
+        rows.Items.Any(x => x.Id == order.Id && x.OrderNo == order.OrderNo).ShouldBeTrue();
+        rows.Items.Any(x => x.Id == order.Id && x.TotalRevenueAmount.EndsWith("₫")).ShouldBeTrue();
+        pageSource.ShouldContain("<abp-script src=\"/Pages/Sales/History.js\" />");
+        pageSource.ShouldNotContain("foreach (var order in Model.Orders.Items)");
+        scriptSource.ShouldContain("DataTable");
+        scriptSource.ShouldContain("serverSide: true");
+        scriptSource.ShouldContain("Sales/History?handler=List");
     }
 
     [Fact]
@@ -1327,9 +1399,19 @@ public class SalesPagesTests : VPureLuxWebTestBase
         await salesService.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
 
         var indexHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Sales"));
-        indexHtml.ShouldContain(orderDate.ToString("dd/MM/yyyy", vi));
-        indexHtml.ShouldContain(expectedRevenue);
-        indexHtml.ShouldNotContain($"{(quantity * unitPrice):0.000000}");
+        var indexModel = new IndexModel(
+            salesService,
+            GetRequiredService<IAuthorizationService>(),
+            GetRequiredService<IStringLocalizer<VPureLuxResource>>());
+        SetPageContext(indexModel, GetRequiredService<IServiceProvider>());
+        var listResult = await indexModel.OnGetListAsync(new GetSalesOrderListInput { MaxResultCount = 10 });
+        var rows = listResult.Value.ShouldBeOfType<PagedResultDto<IndexModel.SalesOrderRow>>();
+
+        indexHtml.ShouldContain("id=\"SalesOrdersTable\"");
+        indexHtml.ShouldNotContain(order.OrderNo);
+        rows.Items.Any(x => x.OrderDate == orderDate.ToString("dd/MM/yyyy", vi)).ShouldBeTrue();
+        rows.Items.Any(x => x.TotalRevenueAmount == expectedRevenue).ShouldBeTrue();
+        rows.Items.ShouldAllBe(x => !x.TotalRevenueAmount.Contains($"{(quantity * unitPrice):0.000000}"));
 
         var detailsHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Sales/Details/{order.Id}"));
         detailsHtml.ShouldContain(expectedRevenue);
@@ -1338,7 +1420,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
         detailsHtml.ShouldNotContain("310000.000000");
         detailsHtml.ShouldNotContain("2.2500");
 
-        var indexSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Index.cshtml"));
+        var indexSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Index.cshtml.cs"));
         indexSource.ShouldContain("FormatDate(order.OrderDate)");
         indexSource.ShouldContain("FormatMoney(order.TotalRevenueAmount)");
         indexSource.ShouldContain("order.PaymentSummary");

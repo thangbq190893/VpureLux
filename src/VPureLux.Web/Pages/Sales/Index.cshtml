@@ -4,39 +4,13 @@
 @inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @using VPureLux.Permissions
 @using VPureLux.Sales
-@using System.Globalization
 @{
     ViewData["Title"] = L["Sales:Title"];
     var canViewCustomerHistory = Model.CanViewHistory && (await AuthorizationService.AuthorizeAsync(User, null, VPureLuxPermissions.Sales.ViewProfit)).Succeeded;
 }
 
-@functions {
-    private static readonly CultureInfo Vi = CultureInfo.GetCultureInfo("vi-VN");
-
-    private static string FormatMoney(decimal value)
-    {
-        var amount = decimal.Round(value, 0, MidpointRounding.AwayFromZero);
-        return amount.ToString("#,0", Vi) + " ₫";
-    }
-
-    private static string FormatDate(DateTime value)
-    {
-        return value.ToString("dd/MM/yyyy", Vi);
-    }
-
-    private static string FormatPaymentAmount(SalesOrderReceivableStatus status, decimal amount)
-    {
-        return status == SalesOrderReceivableStatus.NotApplicable ? "—" : FormatMoney(amount);
-    }
-
-    private static string GetPaymentStatusBadgeClass(SalesOrderReceivableStatus status) => status switch
-    {
-        SalesOrderReceivableStatus.Unpaid => "text-bg-danger",
-        SalesOrderReceivableStatus.PartiallyPaid => "text-bg-warning text-dark",
-        SalesOrderReceivableStatus.Paid => "text-bg-success",
-        SalesOrderReceivableStatus.Overpaid => "text-bg-info text-dark",
-        _ => "text-bg-secondary"
-    };
+@section scripts {
+    <abp-script src="/Pages/Sales/Index.js" />
 }
 
 <div class="vpl-page vpl-inquiry-page">
@@ -57,18 +31,18 @@
 
     <abp-card class="vpl-inquiry-filter-card vpl-card-dense mb-3">
         <abp-card-body>
-            <form method="get" class="row g-2 align-items-end mb-0">
+            <form id="SalesSearchForm" class="row g-2 align-items-end mb-0">
                 @if (Model.CustomerId.HasValue)
                 {
-                    <input type="hidden" asp-for="CustomerId" />
+                    <input type="hidden" asp-for="CustomerId" id="SalesCustomerId" />
                 }
                 @if (Model.Status.HasValue)
                 {
-                    <input type="hidden" asp-for="Status" />
+                    <input type="hidden" asp-for="Status" id="SalesStatus" />
                 }
                 <div class="col-md-4">
                     <label asp-for="PaymentStatus" class="form-label">@L["Sales:PaymentStatus"]</label>
-                    <select asp-for="PaymentStatus" class="form-select form-select-sm">
+                    <select asp-for="PaymentStatus" id="SalesPaymentStatus" class="form-select form-select-sm">
                         <option value="">@L["Select"]</option>
                         <option value="@SalesOrderReceivableStatus.NotApplicable">@L["Sales:PaymentStatus:NotApplicable"]</option>
                         <option value="@SalesOrderReceivableStatus.Unpaid">@L["Sales:PaymentStatus:Unpaid"]</option>
@@ -92,7 +66,7 @@
 
     <abp-card class="vpl-inquiry-results-card vpl-card-dense">
         <abp-card-body>
-            <abp-table striped-rows="true" class="vpl-table-dense">
+            <abp-table id="SalesOrdersTable" striped-rows="true" class="vpl-table-dense">
                 <thead>
                     <tr>
                         <th>@L["Sales:OrderNo"]</th>
@@ -107,30 +81,6 @@
                         <th></th>
                     </tr>
                 </thead>
-                <tbody>
-                @foreach (var order in Model.Orders.Items)
-                {
-                    var payment = order.PaymentSummary;
-                    <tr>
-                        <td>@order.OrderNo</td>
-                        <td>@FormatDate(order.OrderDate)</td>
-                        <td>@(string.IsNullOrEmpty(order.CustomerNameSnapshot) ? L["Sales:CustomerContextUnavailable"] : order.CustomerNameSnapshot)</td>
-                        <td>@L[$"Sales:Status:{order.Status}"]</td>
-                        <td>@FormatMoney(order.TotalRevenueAmount)</td>
-                        <td class="text-end text-nowrap">@FormatPaymentAmount(payment.PaymentStatus, payment.TotalAmount)</td>
-                        <td class="text-end text-nowrap">@FormatPaymentAmount(payment.PaymentStatus, payment.PaidAmount)</td>
-                        <td class="text-end text-nowrap">@FormatPaymentAmount(payment.PaymentStatus, payment.RemainingAmount)</td>
-                        <td class="text-nowrap">
-                            <span class="badge @GetPaymentStatusBadgeClass(payment.PaymentStatus)">
-                                @L[$"Sales:PaymentStatus:{payment.PaymentStatus}"]
-                            </span>
-                        </td>
-                        <td>
-                            <a class="btn btn-sm btn-outline-secondary" asp-page="/Sales/Details" asp-route-id="@order.Id">@L["Details"]</a>
-                        </td>
-                    </tr>
-                }
-                </tbody>
             </abp-table>
         </abp-card-body>
     </abp-card>

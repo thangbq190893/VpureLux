@@ -9,6 +9,7 @@ using VPureLux.Bom;
 using VPureLux.Catalog;
 using VPureLux.Catalog.Products;
 using VPureLux.Permissions;
+using Volo.Abp.Application.Dtos;
 
 namespace VPureLux.Web.Pages.Bom;
 
@@ -26,7 +27,6 @@ public class IndexModel : VPureLuxPageModel
     [BindProperty(SupportsGet = true)]
     public string? SearchTerm { get; set; }
 
-    public IReadOnlyList<BomProductSummaryRow> Rows { get; private set; } = Array.Empty<BomProductSummaryRow>();
     public bool CanCreate { get; private set; }
 
     public IndexModel(
@@ -41,7 +41,7 @@ public class IndexModel : VPureLuxPageModel
 
     public async Task OnGetAsync()
     {
-        await LoadPageAsync();
+        await SetPermissionsAsync();
     }
 
     public async Task<IActionResult> OnPostOpenProductAsync()
@@ -49,30 +49,26 @@ public class IndexModel : VPureLuxPageModel
         if (!ProductId.HasValue)
         {
             ModelState.AddModelError(nameof(ProductId), L["Bom:SelectProduct"]);
-            await LoadPageAsync();
+            await SetPermissionsAsync();
             return Page();
         }
 
         return RedirectToPage("/Bom/Product", new { productId = ProductId.Value });
     }
 
-    private async Task LoadPageAsync()
+    public async Task<JsonResult> OnGetListAsync(GetProductListInput input)
     {
         var products = await _productAppService.GetListAsync(new GetProductListInput
         {
-            Keyword = SearchTerm,
-            MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount
+            Keyword = input.Keyword,
+            SkipCount = input.SkipCount,
+            MaxResultCount = input.MaxResultCount,
+            Sorting = input.Sorting
         });
-
-        var filteredProducts = products.Items
-            .Where(MatchesSearch)
-            .OrderBy(x => x.Code)
-            .ThenBy(x => x.Name)
-            .ToList();
 
         var rows = new List<BomProductSummaryRow>();
 
-        foreach (var product in filteredProducts)
+        foreach (var product in products.Items)
         {
             var versions = await _bomAppService.GetListAsync(product.Id);
             var currentVersion = versions
@@ -84,31 +80,24 @@ public class IndexModel : VPureLuxPageModel
                 product.Id,
                 product.Code,
                 product.Name,
-                product.Status,
+                product.Status.ToString(),
                 versions.Count,
                 currentVersion));
         }
 
-        Rows = rows;
-        CanCreate = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Bom.Create)).Succeeded;
+        return new JsonResult(new PagedResultDto<BomProductSummaryRow>(products.TotalCount, rows));
     }
 
-    private bool MatchesSearch(ProductDto product)
+    private async Task SetPermissionsAsync()
     {
-        if (string.IsNullOrWhiteSpace(SearchTerm))
-        {
-            return true;
-        }
-
-        return product.Code.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
-               product.Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase);
+        CanCreate = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Bom.Create)).Succeeded;
     }
 
     public sealed record BomProductSummaryRow(
         Guid ProductId,
         string ProductCode,
         string ProductName,
-        CatalogItemStatus ProductStatus,
+        string ProductStatus,
         int VersionCount,
         BomVersionDto? CurrentVersion);
 }
