@@ -14,6 +14,8 @@ namespace VPureLux.Web.Pages.Inventory;
 [Authorize(VPureLuxPermissions.Inventory.View)]
 public class BalancesModel : VPureLuxPageModel
 {
+    private static readonly System.Globalization.CultureInfo Vi = System.Globalization.CultureInfo.GetCultureInfo("vi-VN");
+
     private readonly IInventoryQueryAppService _service;
     private readonly IWarehouseAppService _warehouses;
     private readonly IStockItemAppService _stockItems;
@@ -21,7 +23,6 @@ public class BalancesModel : VPureLuxPageModel
     [BindProperty(SupportsGet = true)] public Guid? WarehouseId { get; set; }
     [BindProperty(SupportsGet = true)] public Guid? StockItemId { get; set; }
 
-    public IReadOnlyList<InventoryBalanceDto> Items { get; private set; } = [];
     public List<SelectListItem> WarehouseOptions { get; private set; } = new();
     public List<SelectListItem> StockItemOptions { get; private set; } = new();
     public Dictionary<Guid, string> WarehouseLabels { get; private set; } = new();
@@ -39,16 +40,48 @@ public class BalancesModel : VPureLuxPageModel
 
     public async Task OnGetAsync()
     {
-        Items = await _service.GetBalancesAsync(WarehouseId, StockItemId);
         await LoadFilterOptionsAsync();
         await LoadLabelsAsync();
     }
 
-    public string GetWarehouseLabel(Guid id) =>
+    public async Task<JsonResult> OnGetListAsync(InventoryInquiryListInput input)
+    {
+        var items = await _service.GetBalancesAsync(input.WarehouseId, input.StockItemId);
+        await LoadLabelsAsync();
+        var rows = items.Select(ToRow).ToList();
+
+        return new JsonResult(new PagedResultDto<InventoryBalanceRow>(
+            rows.Count,
+            rows.Skip(input.SkipCount).Take(input.MaxResultCount).ToList()));
+    }
+
+    private InventoryBalanceRow ToRow(InventoryBalanceDto item) => new(
+        GetWarehouseLabel(item.WarehouseId),
+        GetStockItemLabel(item.StockItemId),
+        FormatQuantity(item.QuantityOnHand),
+        FormatMoney(item.InventoryValue));
+
+    private string GetWarehouseLabel(Guid id) =>
         WarehouseLabels.TryGetValue(id, out var label) ? label : L["Inventory:UnknownWarehouse"];
 
-    public string GetStockItemLabel(Guid id) =>
+    private string GetStockItemLabel(Guid id) =>
         StockItemLabels.TryGetValue(id, out var label) ? label : L["Inventory:UnknownStockItem"];
+
+    private static string FormatMoney(decimal value)
+    {
+        var amount = decimal.Round(value, 0, MidpointRounding.AwayFromZero);
+        return amount.ToString("#,0", Vi) + " ₫";
+    }
+
+    private static string FormatQuantity(decimal value)
+    {
+        if (value == decimal.Truncate(value))
+        {
+            return decimal.Truncate(value).ToString("0", Vi);
+        }
+
+        return value.ToString("0.####", Vi);
+    }
 
     private async Task LoadFilterOptionsAsync()
     {
@@ -86,4 +119,16 @@ public class BalancesModel : VPureLuxPageModel
             })).Items
             .ToDictionary(x => x.Id, x => $"{x.CodeSnapshot} - {x.NameSnapshot}");
     }
+
+    public class InventoryInquiryListInput : PagedResultRequestDto
+    {
+        public Guid? WarehouseId { get; set; }
+        public Guid? StockItemId { get; set; }
+    }
+
+    public sealed record InventoryBalanceRow(
+        string Warehouse,
+        string StockItem,
+        string QuantityOnHand,
+        string InventoryValue);
 }

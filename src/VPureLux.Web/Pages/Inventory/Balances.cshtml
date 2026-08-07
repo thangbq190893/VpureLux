@@ -1,26 +1,9 @@
 @page
 @model VPureLux.Web.Pages.Inventory.BalancesModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
-@using System.Globalization
 
-@functions {
-    private static readonly CultureInfo Vi = CultureInfo.GetCultureInfo("vi-VN");
-
-    private static string FormatMoney(decimal value)
-    {
-        var amount = decimal.Round(value, 0, MidpointRounding.AwayFromZero);
-        return amount.ToString("#,0", Vi) + " ₫";
-    }
-
-    private static string FormatQuantity(decimal value)
-    {
-        if (value == decimal.Truncate(value))
-        {
-            return decimal.Truncate(value).ToString("0", Vi);
-        }
-
-        return value.ToString("0.####", Vi);
-    }
+@section scripts {
+    <abp-script src="/Pages/Inventory/Balances.js" />
 }
 
 <div class="vpl-page vpl-inquiry-page">
@@ -33,16 +16,16 @@
             <h5 class="mb-0">@L["Search"]</h5>
         </abp-card-header>
         <abp-card-body>
-            <form method="get" class="row g-2 mb-0">
+            <form method="get" id="InventoryBalancesSearchForm" class="row g-2 mb-0">
                 <div class="col-md-4">
                     <label asp-for="WarehouseId" class="form-label">@L["Inventory:Warehouse"]</label>
-                    <select asp-for="WarehouseId" asp-items="Model.WarehouseOptions" class="form-select">
+                    <select asp-for="WarehouseId" asp-items="Model.WarehouseOptions" id="InventoryBalancesWarehouseId" class="form-select">
                         <option value="">@L["Select"]</option>
                     </select>
                 </div>
                 <div class="col-md-4">
                     <label asp-for="StockItemId" class="form-label">@L["Inventory:StockItem"]</label>
-                    <select asp-for="StockItemId" asp-items="Model.StockItemOptions" class="form-select">
+                    <select asp-for="StockItemId" asp-items="Model.StockItemOptions" id="InventoryBalancesStockItemId" class="form-select">
                         <option value="">@L["Select"]</option>
                     </select>
                 </div>
@@ -56,34 +39,17 @@
 
     <abp-card class="vpl-inquiry-results-card vpl-card-dense">
         <abp-card-body>
-            @if (Model.Items.Count == 0)
-            {
-                <div class="vpl-empty-state">@L["Inventory:NoBalances"]</div>
-            }
-            else
-            {
-                <abp-table striped-rows="true" class="vpl-table-dense">
-                    <thead>
-                        <tr>
-                            <th>@L["Inventory:Warehouse"]</th>
-                            <th>@L["Inventory:StockItem"]</th>
-                            <th>@L["Inventory:Quantity"]</th>
-                            <th>@L["Inventory:Value"]</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    @foreach (var x in Model.Items)
-                    {
-                        <tr>
-                            <td>@Model.GetWarehouseLabel(x.WarehouseId)</td>
-                            <td>@Model.GetStockItemLabel(x.StockItemId)</td>
-                            <td>@FormatQuantity(x.QuantityOnHand)</td>
-                            <td>@FormatMoney(x.InventoryValue)</td>
-                        </tr>
-                    }
-                    </tbody>
-                </abp-table>
-            }
+            <div class="vpl-empty-state d-none" data-inventory-empty-state>@L["Inventory:NoBalances"]</div>
+            <abp-table id="InventoryBalancesTable" striped-rows="true" class="vpl-table-dense">
+                <thead>
+                    <tr>
+                        <th>@L["Inventory:Warehouse"]</th>
+                        <th>@L["Inventory:StockItem"]</th>
+                        <th>@L["Inventory:Quantity"]</th>
+                        <th>@L["Inventory:Value"]</th>
+                    </tr>
+                </thead>
+            </abp-table>
         </abp-card-body>
     </abp-card>
 </div>

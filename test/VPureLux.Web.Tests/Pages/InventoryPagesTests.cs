@@ -1081,6 +1081,7 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         });
 
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Inventory/Ledger"));
+        var rows = await GetLedgerRowsAsync();
 
         html.ShouldContain(localizer["Inventory:TransactionType:PurchaseReceipt"].Value);
         html.ShouldContain(localizer["Inventory:TransactionType:SalesIssue"].Value);
@@ -1088,9 +1089,14 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         html.ShouldNotContain("Inventory:TransactionType:PurchaseReceipt");
         html.ShouldNotContain("Inventory:TransactionType:SalesIssue");
         html.ShouldNotContain("Inventory:TransactionType:AdjustmentDecrease");
+        rows.Items.Any(x => x.Type == localizer["Inventory:TransactionType:PurchaseReceipt"].Value).ShouldBeTrue();
+        rows.Items.Any(x => x.Type == localizer["Inventory:TransactionType:SalesIssue"].Value).ShouldBeTrue();
+        rows.Items.Any(x => x.Type == localizer["Inventory:TransactionType:AdjustmentDecrease"].Value).ShouldBeTrue();
 
         var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Ledger.cshtml"));
-        pageSource.ShouldContain("@L[$\"Inventory:TransactionType:{x.Type}\"]");
+        var pageModelSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Ledger.cshtml.cs"));
+        pageSource.ShouldContain("<abp-script src=\"/Pages/Inventory/Ledger.js\" />");
+        pageModelSource.ShouldContain("L[$\"Inventory:TransactionType:{row.Type}\"].Value");
     }
 
     [Fact]
@@ -1128,6 +1134,7 @@ public class InventoryPagesTests : VPureLuxWebTestBase
 
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync(
             $"/Inventory/Ledger?WarehouseId={context.WarehouseId}&StockItemId={context.StockItemId}"));
+        var rows = await GetLedgerRowsAsync(context.WarehouseId, context.StockItemId);
 
         html.ShouldContain(localizer["Inventory:Material"].Value);
         html.ShouldContain(localizer["Inventory:SourceReference"].Value);
@@ -1135,16 +1142,15 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         html.ShouldContain(localizer["Inventory:QuantityOut"].Value);
         html.ShouldContain(localizer["Inventory:UnitCost"].Value);
         html.ShouldContain(localizer["Inventory:Amount"].Value);
-        html.ShouldContain($"{context.WarehouseCode} - {context.WarehouseName}");
-        html.ShouldContain($"{context.StockItemCode} - {context.StockItemName}");
-        html.ShouldContain(localizer["Inventory:SourceUnknown"].Value);
-        html.ShouldContain(localizer["Inventory:SourceManualIssue"].Value);
-        html.ShouldContain(receiptSource);
-        html.ShouldContain(12000m.ToString("#,0", vi) + " ₫");
-        html.ShouldContain(60000m.ToString("#,0", vi) + " ₫");
-        html.ShouldContain(24000m.ToString("#,0", vi) + " ₫");
-        html.ShouldContain(">5</td>");
-        html.ShouldContain(">2</td>");
+        rows.Items.Any(x => x.Warehouse == $"{context.WarehouseCode} - {context.WarehouseName}").ShouldBeTrue();
+        rows.Items.Any(x => x.StockItem == $"{context.StockItemCode} - {context.StockItemName}").ShouldBeTrue();
+        rows.Items.Any(x => x.SourceLabel == localizer["Inventory:SourceUnknown"].Value && x.SourceDetail!.Contains(receiptSource)).ShouldBeTrue();
+        rows.Items.Any(x => x.SourceLabel == localizer["Inventory:SourceManualIssue"].Value).ShouldBeTrue();
+        rows.Items.Any(x => x.UnitCost == 12000m.ToString("#,0", vi) + " ₫").ShouldBeTrue();
+        rows.Items.Any(x => x.Amount == 60000m.ToString("#,0", vi) + " ₫").ShouldBeTrue();
+        rows.Items.Any(x => x.Amount == 24000m.ToString("#,0", vi) + " ₫").ShouldBeTrue();
+        rows.Items.Any(x => x.QuantityIn == "5").ShouldBeTrue();
+        rows.Items.Any(x => x.QuantityOut == "2").ShouldBeTrue();
         html.ShouldNotContain(localizer["Inventory:IssueCost"].Value);
     }
 
@@ -1203,14 +1209,17 @@ public class InventoryPagesTests : VPureLuxWebTestBase
 
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync(
             $"/Inventory/Ledger?WarehouseId={context.WarehouseId}&StockItemId={context.StockItemId}"));
+        var rows = await GetLedgerRowsAsync(context.WarehouseId, context.StockItemId);
 
-        html.ShouldContain(localizer["Inventory:SourceManualReceipt"].Value);
-        html.ShouldContain(localizer["Inventory:SourceSalesOrder"].Value);
-        html.ShouldContain(localizer["Inventory:SourceAdjustment"].Value);
-        html.ShouldContain(localizer["Inventory:SourceSalesOrderLineId"].Value);
-        html.ShouldContain(salesLineId.ToString("D"));
-        html.ShouldContain(localizer["Inventory:SourceOpenBom"].Value);
-        html.ShouldContain($"/Bom/Details/{bom.Id}");
+        rows.Items.Any(x => x.SourceLabel == localizer["Inventory:SourceManualReceipt"].Value).ShouldBeTrue();
+        rows.Items.Any(x => x.SourceLabel == localizer["Inventory:SourceSalesOrder"].Value).ShouldBeTrue();
+        rows.Items.Any(x => x.SourceLabel == localizer["Inventory:SourceAdjustment"].Value).ShouldBeTrue();
+        rows.Items.Any(x => x.SourceDetail != null && x.SourceDetail.Contains(localizer["Inventory:SourceSalesOrderLineId"].Value)).ShouldBeTrue();
+        rows.Items.Any(x => x.SourceDetail != null && x.SourceDetail.Contains(salesLineId.ToString("D"))).ShouldBeTrue();
+        rows.Items.Any(x => x.SourceBomVersionId == bom.Id).ShouldBeTrue();
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Ledger.js"));
+        scriptSource.ShouldContain("Bom/Details/");
+        scriptSource.ShouldContain("Inventory:SourceOpenBom");
     }
 
     [Fact]
@@ -1241,10 +1250,11 @@ public class InventoryPagesTests : VPureLuxWebTestBase
 
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync(
             $"/Inventory/Ledger?WarehouseId={context.WarehouseId}&StockItemId={context.StockItemId}"));
+        var rows = await GetLedgerRowsAsync(context.WarehouseId, context.StockItemId);
 
-        html.ShouldContain(localizer["Inventory:SourceUnknown"].Value);
-        html.ShouldContain("MysteryDocument");
-        html.ShouldContain(unknownReferenceId.ToString("D"));
+        rows.Items.Any(x => x.SourceLabel == localizer["Inventory:SourceUnknown"].Value).ShouldBeTrue();
+        rows.Items.Any(x => x.SourceDetail != null && x.SourceDetail.Contains("MysteryDocument")).ShouldBeTrue();
+        rows.Items.Any(x => x.SourceDetail != null && x.SourceDetail.Contains(unknownReferenceId.ToString("D"))).ShouldBeTrue();
         html.ShouldNotContain($"/Bom/Details/{unknownReferenceId}");
     }
 
@@ -1282,14 +1292,22 @@ public class InventoryPagesTests : VPureLuxWebTestBase
 
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync(
             $"/Inventory/Ledger?WarehouseId={context.WarehouseId}&StockItemId={context.StockItemId}&Type={InventoryTransactionType.PurchaseReceipt}&FromDate=2000-01-01&ToDate=2999-12-31&SourceReference={receiptSource}"));
+        var rows = await GetLedgerRowsAsync(
+            context.WarehouseId,
+            context.StockItemId,
+            InventoryTransactionType.PurchaseReceipt,
+            new DateTime(2000, 1, 1),
+            new DateTime(2999, 12, 31),
+            receiptSource);
 
         html.ShouldContain("name=\"Type\"");
         html.ShouldContain("name=\"FromDate\"");
         html.ShouldContain("name=\"ToDate\"");
         html.ShouldContain("name=\"SourceReference\"");
-        html.ShouldContain(receiptSource);
         html.ShouldContain(localizer["Inventory:TransactionType:PurchaseReceipt"].Value);
-        CountOccurrences(html, localizer["Inventory:TransactionType:PurchaseReceipt"].Value).ShouldBe(2);
+        rows.Items.Count.ShouldBe(1);
+        rows.Items.Single().SourceDetail!.ShouldContain(receiptSource);
+        rows.Items.Single().Type.ShouldBe(localizer["Inventory:TransactionType:PurchaseReceipt"].Value);
         CountOccurrences(html, localizer["Inventory:TransactionType:SalesIssue"].Value).ShouldBe(1);
     }
 
@@ -1326,12 +1344,17 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         var source = Uri.EscapeDataString(localizer["Inventory:SourceManualReceipt"].Value);
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync(
             $"/Inventory/Ledger?WarehouseId={context.WarehouseId}&StockItemId={context.StockItemId}&SourceReference={source}"));
+        var rows = await GetLedgerRowsAsync(
+            context.WarehouseId,
+            context.StockItemId,
+            sourceReference: localizer["Inventory:SourceManualReceipt"].Value);
 
         html.ShouldContain("name=\"WarehouseId\"");
         html.ShouldContain("name=\"StockItemId\"");
         html.ShouldContain("name=\"SourceReference\"");
-        html.ShouldContain(localizer["Inventory:SourceManualReceipt"].Value);
-        html.ShouldNotContain(localizer["Inventory:SourceManualIssue"].Value);
+        rows.Items.ShouldNotBeEmpty();
+        rows.Items.ShouldAllBe(x => x.SourceLabel == localizer["Inventory:SourceManualReceipt"].Value);
+        rows.Items.ShouldAllBe(x => x.SourceLabel != localizer["Inventory:SourceManualIssue"].Value);
     }
 
     [Fact]
@@ -1372,8 +1395,9 @@ public class InventoryPagesTests : VPureLuxWebTestBase
 
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync(
             $"/Inventory/Lots?WarehouseId={context.WarehouseId}&StockItemId={context.StockItemId}"));
+        var rows = await GetLotsRowsAsync(context.WarehouseId, context.StockItemId);
 
-        html.ShouldContain(InventoryPostingUi.FormatDate(receivedAt));
+        rows.Items.Any(x => x.ReceivedAt == InventoryPostingUi.FormatDate(receivedAt)).ShouldBeTrue();
         html.ShouldNotContain(receivedAt.ToString("O"));
     }
 
@@ -1406,15 +1430,17 @@ public class InventoryPagesTests : VPureLuxWebTestBase
 
         var lotsHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync(
             $"/Inventory/Lots?WarehouseId={context.WarehouseId}&StockItemId={context.StockItemId}"));
-        lotsHtml.ShouldContain(expectedMoney);
-        lotsHtml.ShouldContain(expectedQuantity);
+        var lotRows = await GetLotsRowsAsync(context.WarehouseId, context.StockItemId);
+        lotRows.Items.Any(x => x.UnitCost == expectedMoney).ShouldBeTrue();
+        lotRows.Items.Any(x => x.AvailableQuantity == expectedQuantity).ShouldBeTrue();
         lotsHtml.ShouldNotContain("41000.000000");
         lotsHtml.ShouldNotContain("7.2500");
 
         var balancesHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync(
             $"/Inventory/Balances?WarehouseId={context.WarehouseId}&StockItemId={context.StockItemId}"));
-        balancesHtml.ShouldContain(expectedInventoryValue);
-        balancesHtml.ShouldContain(expectedQuantity);
+        var balanceRows = await GetBalanceRowsAsync(context.WarehouseId, context.StockItemId);
+        balanceRows.Items.Any(x => x.InventoryValue == expectedInventoryValue).ShouldBeTrue();
+        balanceRows.Items.Any(x => x.QuantityOnHand == expectedQuantity).ShouldBeTrue();
 
         await GetRequiredService<IInventoryTransactionAppService>().PostIssueAsync(new PostIssueDto
         {
@@ -1425,12 +1451,13 @@ public class InventoryPagesTests : VPureLuxWebTestBase
 
         var ledgerHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync(
             $"/Inventory/Ledger?WarehouseId={context.WarehouseId}&StockItemId={context.StockItemId}"));
-        ledgerHtml.ShouldContain((41000m * 2).ToString("#,0", vi) + " ₫");
+        var ledgerRows = await GetLedgerRowsAsync(context.WarehouseId, context.StockItemId);
+        ledgerRows.Items.Any(x => x.Amount == (41000m * 2).ToString("#,0", vi) + " ₫").ShouldBeTrue();
         ledgerHtml.ShouldNotContain("82000.000000");
         ledgerHtml.ShouldNotContain("T00:00:00");
 
-        var ledgerSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Ledger.cshtml"));
-        ledgerSource.ShouldContain("FormatDateTime(postedAt)");
+        var ledgerSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Ledger.cshtml.cs"));
+        ledgerSource.ShouldContain("FormatDateTime(row.PostedAt.Value)");
     }
 
     [Theory]
@@ -1531,7 +1558,12 @@ public class InventoryPagesTests : VPureLuxWebTestBase
             }
         };
 
-        await model.OnGetAsync();
+        await model.OnGetListAsync(new BalancesModel.InventoryInquiryListInput
+        {
+            WarehouseId = warehouseId,
+            StockItemId = stockItemId,
+            MaxResultCount = 10
+        });
 
         await query.Received(1).GetBalancesAsync(warehouseId, stockItemId);
     }
@@ -1563,7 +1595,12 @@ public class InventoryPagesTests : VPureLuxWebTestBase
             }
         };
 
-        await model.OnGetAsync();
+        await model.OnGetListAsync(new LotsModel.InventoryInquiryListInput
+        {
+            WarehouseId = warehouseId,
+            StockItemId = stockItemId,
+            MaxResultCount = 10
+        });
 
         await query.Received(1).GetLotsAsync(warehouseId, stockItemId);
     }
@@ -1595,7 +1632,12 @@ public class InventoryPagesTests : VPureLuxWebTestBase
             }
         };
 
-        await model.OnGetAsync();
+        await model.OnGetListAsync(new LedgerModel.LedgerListInput
+        {
+            WarehouseId = warehouseId,
+            StockItemId = stockItemId,
+            MaxResultCount = 10
+        });
 
         await query.Received(1).GetLedgerAsync(warehouseId, stockItemId);
     }
@@ -1696,6 +1738,74 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         {
             vplModel.LazyServiceProvider = GetRequiredService<IAbpLazyServiceProvider>();
         }
+    }
+
+    private async Task<PagedResultDto<BalancesModel.InventoryBalanceRow>> GetBalanceRowsAsync(
+        Guid? warehouseId = null,
+        Guid? stockItemId = null)
+    {
+        var model = new BalancesModel(
+            GetRequiredService<IInventoryQueryAppService>(),
+            GetRequiredService<IWarehouseAppService>(),
+            GetRequiredService<IStockItemAppService>());
+        SetPageContext(model);
+
+        var result = await model.OnGetListAsync(new BalancesModel.InventoryInquiryListInput
+        {
+            WarehouseId = warehouseId,
+            StockItemId = stockItemId,
+            MaxResultCount = 100
+        });
+
+        return result.Value.ShouldBeOfType<PagedResultDto<BalancesModel.InventoryBalanceRow>>();
+    }
+
+    private async Task<PagedResultDto<LotsModel.InventoryLotRow>> GetLotsRowsAsync(
+        Guid? warehouseId = null,
+        Guid? stockItemId = null)
+    {
+        var model = new LotsModel(
+            GetRequiredService<IInventoryQueryAppService>(),
+            GetRequiredService<IWarehouseAppService>(),
+            GetRequiredService<IStockItemAppService>());
+        SetPageContext(model);
+
+        var result = await model.OnGetListAsync(new LotsModel.InventoryInquiryListInput
+        {
+            WarehouseId = warehouseId,
+            StockItemId = stockItemId,
+            MaxResultCount = 100
+        });
+
+        return result.Value.ShouldBeOfType<PagedResultDto<LotsModel.InventoryLotRow>>();
+    }
+
+    private async Task<PagedResultDto<LedgerModel.LedgerTraceListRow>> GetLedgerRowsAsync(
+        Guid? warehouseId = null,
+        Guid? stockItemId = null,
+        InventoryTransactionType? type = null,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        string? sourceReference = null)
+    {
+        var model = new LedgerModel(
+            GetRequiredService<IInventoryQueryAppService>(),
+            GetRequiredService<IWarehouseAppService>(),
+            GetRequiredService<IStockItemAppService>());
+        SetPageContext(model);
+
+        var result = await model.OnGetListAsync(new LedgerModel.LedgerListInput
+        {
+            WarehouseId = warehouseId,
+            StockItemId = stockItemId,
+            Type = type,
+            FromDate = fromDate,
+            ToDate = toDate,
+            SourceReference = sourceReference,
+            MaxResultCount = 100
+        });
+
+        return result.Value.ShouldBeOfType<PagedResultDto<LedgerModel.LedgerTraceListRow>>();
     }
 
     private static void AssertSelectHasSelectedValue(string html, string selectName, Guid id)

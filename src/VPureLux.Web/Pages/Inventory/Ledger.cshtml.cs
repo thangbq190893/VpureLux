@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -14,6 +15,8 @@ namespace VPureLux.Web.Pages.Inventory;
 [Authorize(VPureLuxPermissions.Inventory.ViewLedger)]
 public class LedgerModel : VPureLuxPageModel
 {
+    private static readonly CultureInfo Vi = CultureInfo.GetCultureInfo("vi-VN");
+
     private readonly IInventoryQueryAppService _service;
     private readonly IWarehouseAppService _warehouses;
     private readonly IStockItemAppService _stockItems;
@@ -25,8 +28,6 @@ public class LedgerModel : VPureLuxPageModel
     [BindProperty(SupportsGet = true)] public DateTime? ToDate { get; set; }
     [BindProperty(SupportsGet = true)] public string? SourceReference { get; set; }
 
-    public IReadOnlyList<InventoryTransactionDto> Items { get; private set; } = [];
-    public IReadOnlyList<LedgerTraceRow> Rows { get; private set; } = [];
     public List<SelectListItem> WarehouseOptions { get; private set; } = new();
     public List<SelectListItem> StockItemOptions { get; private set; } = new();
     public IReadOnlyList<InventoryTransactionType> TransactionTypes { get; } = Enum.GetValues<InventoryTransactionType>()
@@ -47,18 +48,29 @@ public class LedgerModel : VPureLuxPageModel
 
     public async Task OnGetAsync()
     {
-        var transactions = await _service.GetLedgerAsync(WarehouseId, StockItemId);
-        Items = ApplyTransactionFilters(transactions).ToList();
         await LoadFilterOptionsAsync();
         await LoadWarehouseLabelsAsync();
         await LoadStockItemLabelsAsync();
-        Rows = BuildTraceRows(Items).ToList();
     }
 
-    public string GetWarehouseLabel(Guid id) =>
+    public async Task<JsonResult> OnGetListAsync(LedgerListInput input)
+    {
+        var transactions = await _service.GetLedgerAsync(input.WarehouseId, input.StockItemId);
+        await LoadWarehouseLabelsAsync();
+        await LoadStockItemLabelsAsync();
+        var rows = BuildTraceRows(ApplyTransactionFilters(transactions, input), input.StockItemId)
+            .Select(ToRow)
+            .ToList();
+
+        return new JsonResult(new PagedResultDto<LedgerTraceListRow>(
+            rows.Count,
+            rows.Skip(input.SkipCount).Take(input.MaxResultCount).ToList()));
+    }
+
+    private string GetWarehouseLabel(Guid id) =>
         WarehouseLabels.TryGetValue(id, out var label) ? label : L["Inventory:UnknownWarehouse"];
 
-    public string GetStockItemLabel(Guid id) =>
+    private string GetStockItemLabel(Guid id) =>
         StockItemLabels.TryGetValue(id, out var label) ? label : L["Inventory:UnknownStockItem"];
 
     private async Task LoadFilterOptionsAsync()
@@ -101,43 +113,47 @@ public class LedgerModel : VPureLuxPageModel
             .ToDictionary(x => x.Id, x => $"{x.CodeSnapshot} - {x.NameSnapshot}");
     }
 
-    private IEnumerable<InventoryTransactionDto> ApplyTransactionFilters(IEnumerable<InventoryTransactionDto> transactions)
+    private IEnumerable<InventoryTransactionDto> ApplyTransactionFilters(
+        IEnumerable<InventoryTransactionDto> transactions,
+        LedgerListInput input)
     {
         var query = transactions;
 
-        if (Type.HasValue)
+        if (input.Type.HasValue)
         {
-            query = query.Where(x => x.Type == Type.Value);
+            query = query.Where(x => x.Type == input.Type.Value);
         }
 
-        if (FromDate.HasValue)
+        if (input.FromDate.HasValue)
         {
-            var from = FromDate.Value.Date;
+            var from = input.FromDate.Value.Date;
             query = query.Where(x => x.PostedAt.HasValue && x.PostedAt.Value.Date >= from);
         }
 
-        if (ToDate.HasValue)
+        if (input.ToDate.HasValue)
         {
-            var to = ToDate.Value.Date;
+            var to = input.ToDate.Value.Date;
             query = query.Where(x => x.PostedAt.HasValue && x.PostedAt.Value.Date <= to);
         }
 
-        if (!string.IsNullOrWhiteSpace(SourceReference))
+        if (!string.IsNullOrWhiteSpace(input.SourceReference))
         {
-            var source = SourceReference.Trim();
+            var source = input.SourceReference.Trim();
             query = query.Where(x => BuildSourceReferenceSearchText(x).Contains(source, StringComparison.OrdinalIgnoreCase));
         }
 
         return query;
     }
 
-    private IEnumerable<LedgerTraceRow> BuildTraceRows(IEnumerable<InventoryTransactionDto> transactions)
+    private IEnumerable<LedgerTraceRow> BuildTraceRows(
+        IEnumerable<InventoryTransactionDto> transactions,
+        Guid? stockItemId)
     {
         foreach (var transaction in transactions)
         {
             var source = BuildSourceReferenceView(transaction);
 
-            foreach (var line in transaction.Lines.Where(line => !StockItemId.HasValue || line.StockItemId == StockItemId))
+            foreach (var line in transaction.Lines.Where(line => !stockItemId.HasValue || line.StockItemId == stockItemId))
             {
                 var amount = GetLineAmount(line);
                 yield return new LedgerTraceRow(
@@ -154,6 +170,20 @@ public class LedgerModel : VPureLuxPageModel
             }
         }
     }
+
+    private LedgerTraceListRow ToRow(LedgerTraceRow row) => new(
+        row.PostedAt.HasValue ? FormatDateTime(row.PostedAt.Value) : string.Empty,
+        GetWarehouseLabel(row.WarehouseId),
+        GetStockItemLabel(row.StockItemId),
+        L[$"Inventory:TransactionType:{row.Type}"].Value,
+        row.Source.Label,
+        row.Source.Detail,
+        row.Source.BomVersionId,
+        FormatQuantity(row.QuantityIn),
+        FormatQuantity(row.QuantityOut),
+        FormatNullableMoney(row.UnitCost),
+        FormatNullableMoney(row.Amount),
+        row.Reason ?? string.Empty);
 
     private SourceReferenceView BuildSourceReferenceView(InventoryTransactionDto transaction)
     {
@@ -289,6 +319,61 @@ public class LedgerModel : VPureLuxPageModel
 
         return null;
     }
+
+    private static string FormatMoney(decimal value)
+    {
+        var amount = decimal.Round(value, 0, MidpointRounding.AwayFromZero);
+        return amount.ToString("#,0", Vi) + " ₫";
+    }
+
+    private static string FormatNullableMoney(decimal? value)
+    {
+        return value.HasValue ? FormatMoney(value.Value) : string.Empty;
+    }
+
+    private static string FormatQuantity(decimal value)
+    {
+        if (value == 0)
+        {
+            return string.Empty;
+        }
+
+        if (value == decimal.Truncate(value))
+        {
+            return decimal.Truncate(value).ToString("0", Vi);
+        }
+
+        return value.ToString("0.####", Vi);
+    }
+
+    private static string FormatDateTime(DateTime value)
+    {
+        return value.ToString("dd/MM/yyyy HH:mm", Vi);
+    }
+
+    public class LedgerListInput : PagedResultRequestDto
+    {
+        public Guid? WarehouseId { get; set; }
+        public Guid? StockItemId { get; set; }
+        public InventoryTransactionType? Type { get; set; }
+        public DateTime? FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
+        public string? SourceReference { get; set; }
+    }
+
+    public sealed record LedgerTraceListRow(
+        string PostedAt,
+        string Warehouse,
+        string StockItem,
+        string Type,
+        string SourceLabel,
+        string? SourceDetail,
+        Guid? SourceBomVersionId,
+        string QuantityIn,
+        string QuantityOut,
+        string UnitCost,
+        string Amount,
+        string Reason);
 
     public sealed record LedgerTraceRow(
         DateTime? PostedAt,
