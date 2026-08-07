@@ -36,11 +36,11 @@
             <dt class="col-sm-3">@L["Bom:EffectiveTo"]</dt><dd class="col-sm-9">@VPureLux.Web.Pages.Bom.BomUi.FormatDate(Model.BomVersion.EffectiveTo)</dd>
         </dl>
         <abp-table striped-rows="true">
-            <thead><tr><th>@L["Bom:Component"]</th><th>@L["Bom:Quantity"]</th></tr></thead>
+            <thead><tr><th class="text-center" style="width: 56px;">#</th><th>@L["Bom:Component"]</th><th>@L["Bom:Quantity"]</th></tr></thead>
             <tbody>
             @foreach (var item in Model.BomVersion.Items)
             {
-                <tr><td>@Model.GetComponentLabel(item.ComponentId)</td><td>@VPureLux.Web.Pages.Bom.BomUi.FormatQuantity(item.Quantity)</td></tr>
+                <tr><td class="text-center text-muted">@item.LineNo</td><td>@Model.GetComponentLabel(item.ComponentId)</td><td>@VPureLux.Web.Pages.Bom.BomUi.FormatQuantity(item.Quantity)</td></tr>
             }
             </tbody>
         </abp-table>

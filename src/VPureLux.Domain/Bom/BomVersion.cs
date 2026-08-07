@@ -17,6 +17,11 @@ public class BomVersion : FullAuditedAggregateRoot<Guid>
     public DateTime EffectiveFrom { get; private set; }
     public DateTime? EffectiveTo { get; private set; }
     public IReadOnlyCollection<BomItem> Items => _items.AsReadOnly();
+    public IReadOnlyList<BomItem> OrderedItems => _items
+        .OrderBy(x => x.LineNo)
+        .ThenBy(x => x.Id)
+        .ToList()
+        .AsReadOnly();
 
     protected BomVersion()
     {
@@ -41,9 +46,14 @@ public class BomVersion : FullAuditedAggregateRoot<Guid>
 
     public BomItem AddItem(Guid itemId, Guid componentId, decimal quantity)
     {
+        return AddItem(itemId, componentId, quantity, GetNextLineNo());
+    }
+
+    public BomItem AddItem(Guid itemId, Guid componentId, decimal quantity, int lineNo)
+    {
         EnsureModifiable();
 
-        var item = new BomItem(itemId, componentId, quantity);
+        var item = new BomItem(itemId, componentId, quantity, lineNo);
         _items.Add(item);
         return item;
     }
@@ -62,10 +72,27 @@ public class BomVersion : FullAuditedAggregateRoot<Guid>
         FindItem(itemId).UpdateQuantity(quantity);
     }
 
-    public void UpdateItem(Guid itemId, Guid componentId, decimal quantity)
+    public void UpdateItem(Guid itemId, Guid componentId, decimal quantity, int lineNo)
     {
         EnsureModifiable();
-        FindItem(itemId).Update(componentId, quantity);
+        FindItem(itemId).Update(componentId, quantity, lineNo);
+    }
+
+    public void UpdateItem(Guid itemId, Guid componentId, decimal quantity)
+    {
+        var item = FindItem(itemId);
+        UpdateItem(itemId, componentId, quantity, item.LineNo);
+    }
+
+    public void RenumberItems()
+    {
+        EnsureModifiable();
+
+        var lineNo = 1;
+        foreach (var item in OrderedItems)
+        {
+            item.UpdateLineNo(lineNo++);
+        }
     }
 
     public void Publish()
@@ -110,9 +137,9 @@ public class BomVersion : FullAuditedAggregateRoot<Guid>
         Check.NotNull(itemIdFactory, nameof(itemIdFactory));
 
         var clone = new BomVersion(newBomVersionId, ProductId, newVersionNo, effectiveFrom);
-        foreach (var item in _items)
+        foreach (var item in OrderedItems)
         {
-            clone.AddItem(itemIdFactory(), item.ComponentId, item.Quantity);
+            clone.AddItem(itemIdFactory(), item.ComponentId, item.Quantity, item.LineNo);
         }
 
         clone.AddLocalEvent(
@@ -131,6 +158,11 @@ public class BomVersion : FullAuditedAggregateRoot<Guid>
         }
 
         return item;
+    }
+
+    private int GetNextLineNo()
+    {
+        return _items.Count == 0 ? 1 : _items.Max(x => x.LineNo) + 1;
     }
 
     private void EnsureModifiable()

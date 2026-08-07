@@ -6,5 +6,6 @@ namespace VPureLux.Bom;
 public class BomItemDto : EntityDto<Guid>
 {
     public Guid ComponentId { get; set; }
+    public int LineNo { get; set; }
     public decimal Quantity { get; set; }
 }

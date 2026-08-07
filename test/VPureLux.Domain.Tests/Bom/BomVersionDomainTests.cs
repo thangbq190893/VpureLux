@@ -27,6 +27,7 @@ public class BomVersionDomainTests
 
         bom.UpdateItem(item.Id, replacementComponentId, 2);
         bom.Items.Single().ComponentId.ShouldBe(replacementComponentId);
+        bom.Items.Single().LineNo.ShouldBe(1);
         bom.Items.Single().Quantity.ShouldBe(2);
 
         bom.RemoveItem(item.Id);
@@ -98,8 +99,20 @@ public class BomVersionDomainTests
         clone.Status.ShouldBe(BomStatus.Draft);
         clone.VersionNo.Value.ShouldBe(2);
         clone.Items.Count.ShouldBe(2);
-        clone.Items.Select(x => x.ComponentId).ShouldBe(bom.Items.Select(x => x.ComponentId), ignoreOrder: true);
+        clone.OrderedItems.Select(x => x.ComponentId).ShouldBe(bom.OrderedItems.Select(x => x.ComponentId));
+        clone.OrderedItems.Select(x => x.LineNo).ShouldBe([1, 2]);
         clone.Items.Select(x => x.Id).Intersect(bom.Items.Select(x => x.Id)).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Should_Keep_Ordered_Items_By_Line_Number()
+    {
+        var bom = CreateBom();
+        var third = bom.AddItem(Guid.NewGuid(), Guid.NewGuid(), 3, 3);
+        var first = bom.AddItem(Guid.NewGuid(), Guid.NewGuid(), 1, 1);
+        var second = bom.AddItem(Guid.NewGuid(), Guid.NewGuid(), 2, 2);
+
+        bom.OrderedItems.Select(x => x.Id).ShouldBe([first.Id, second.Id, third.Id]);
     }
 
     [Fact]

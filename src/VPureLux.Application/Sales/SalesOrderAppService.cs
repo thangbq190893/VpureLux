@@ -304,7 +304,7 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
         }
         var snapshotItems = new List<SalesOrderBomSnapshotData>();
         var requirements = new List<(Component Component, decimal Quantity)>();
-        foreach (var item in bom.Items)
+        foreach (var item in bom.OrderedItems)
         {
             var component = await EnsureActiveComponentAsync(item.ComponentId);
             var required = item.Quantity * line.Quantity;

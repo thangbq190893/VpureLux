@@ -115,7 +115,7 @@ public class ProductPricingContextLookupService : IProductPricingContextLookupSe
 
             dto.HasPublishedBom = true;
             var componentBuildPrice = 0m;
-            foreach (var item in publishedBom.Items)
+            foreach (var item in publishedBom.OrderedItems)
             {
                 if (!componentPrices.TryGetValue(item.ComponentId, out var componentPrice))
                 {

@@ -49,6 +49,11 @@
         getLiveRows(container).forEach(function (row, index) {
             var component = row.querySelector('.component-id');
             var quantity = row.querySelector('.quantity');
+            var lineNo = row.querySelector('.line-no');
+
+            if (lineNo) {
+                lineNo.textContent = String(index + 1);
+            }
 
             if (component) {
                 component.name = 'Items[' + index + '].ComponentId';

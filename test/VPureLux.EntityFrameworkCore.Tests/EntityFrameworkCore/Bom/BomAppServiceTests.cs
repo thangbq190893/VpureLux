@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Shouldly;
 using VPureLux.Bom;
@@ -139,6 +140,45 @@ public class BomAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
         updated.Items.Count.ShouldBe(1);
         updated.Items[0].ComponentId.ShouldBe(secondComponent.Id);
         updated.Items[0].Quantity.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task Should_Preserve_Item_Order_From_Create_And_Update_Input()
+    {
+        var product = await CreateProductAsync();
+        var firstComponent = await CreateComponentAsync();
+        var secondComponent = await CreateComponentAsync();
+        var thirdComponent = await CreateComponentAsync();
+
+        var bom = await _bomAppService.CreateAsync(product.Id, new CreateBomVersionDto
+        {
+            EffectiveFrom = DateTime.UtcNow,
+            Items =
+            [
+                new CreateBomItemDto { ComponentId = firstComponent.Id, Quantity = 1 },
+                new CreateBomItemDto { ComponentId = secondComponent.Id, Quantity = 2 },
+                new CreateBomItemDto { ComponentId = thirdComponent.Id, Quantity = 3 }
+            ]
+        });
+
+        var created = await _bomAppService.GetAsync(bom.Id);
+        created.Items.Select(x => x.ComponentId).ShouldBe([firstComponent.Id, secondComponent.Id, thirdComponent.Id]);
+        created.Items.Select(x => x.LineNo).ShouldBe([1, 2, 3]);
+
+        await _bomAppService.UpdateAsync(bom.Id, new UpdateBomVersionDto
+        {
+            Items =
+            [
+                new CreateBomItemDto { ComponentId = thirdComponent.Id, Quantity = 30 },
+                new CreateBomItemDto { ComponentId = firstComponent.Id, Quantity = 10 },
+                new CreateBomItemDto { ComponentId = secondComponent.Id, Quantity = 20 }
+            ]
+        });
+
+        var updated = await _bomAppService.GetAsync(bom.Id);
+        updated.Items.Select(x => x.ComponentId).ShouldBe([thirdComponent.Id, firstComponent.Id, secondComponent.Id]);
+        updated.Items.Select(x => x.LineNo).ShouldBe([1, 2, 3]);
+        updated.Items.Select(x => x.Quantity).ShouldBe([30m, 10m, 20m]);
     }
 
     [Fact]

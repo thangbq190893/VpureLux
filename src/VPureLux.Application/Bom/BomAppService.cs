@@ -48,9 +48,10 @@ public class BomAppService : ApplicationService, IBomAppService
         await _catalogValidator.ValidateActiveComponentsAsync(input.Items.Select(x => x.ComponentId));
 
         var bomVersion = await _bomManager.CreateAsync(productId, input.EffectiveFrom);
-        foreach (var item in input.Items)
+        for (var index = 0; index < input.Items.Count; index++)
         {
-            bomVersion.AddItem(GuidGenerator.Create(), item.ComponentId, item.Quantity);
+            var item = input.Items[index];
+            bomVersion.AddItem(GuidGenerator.Create(), item.ComponentId, item.Quantity, index + 1);
         }
 
         await _bomVersionRepository.InsertAsync(bomVersion, autoSave: true);
@@ -75,7 +76,7 @@ public class BomAppService : ApplicationService, IBomAppService
         await _catalogValidator.ValidateActiveProductAsync(bomVersion.ProductId);
         await _catalogValidator.ValidateActiveComponentsAsync(input.Items.Select(x => x.ComponentId));
 
-        var existingItems = bomVersion.Items.ToList();
+        var existingItems = bomVersion.OrderedItems.ToList();
         var inputItems = input.Items.ToList();
         var commonItemCount = Math.Min(existingItems.Count, inputItems.Count);
 
@@ -84,7 +85,8 @@ public class BomAppService : ApplicationService, IBomAppService
             bomVersion.UpdateItem(
                 existingItems[index].Id,
                 inputItems[index].ComponentId,
-                inputItems[index].Quantity);
+                inputItems[index].Quantity,
+                index + 1);
         }
 
         foreach (var itemId in existingItems.Skip(commonItemCount).Select(x => x.Id).ToList())
@@ -92,9 +94,10 @@ public class BomAppService : ApplicationService, IBomAppService
             bomVersion.RemoveItem(itemId);
         }
 
-        foreach (var item in inputItems.Skip(commonItemCount))
+        for (var index = commonItemCount; index < inputItems.Count; index++)
         {
-            bomVersion.AddItem(GuidGenerator.Create(), item.ComponentId, item.Quantity);
+            var item = inputItems[index];
+            bomVersion.AddItem(GuidGenerator.Create(), item.ComponentId, item.Quantity, index + 1);
         }
 
         await _bomVersionRepository.UpdateAsync(bomVersion, autoSave: true);

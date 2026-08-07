@@ -13,6 +13,7 @@ public class BomVersionConfiguration : IEntityTypeConfiguration<BomVersion>
     {
         builder.ToTable(VPureLuxConsts.DbTablePrefix + "BomVersions", VPureLuxConsts.DbSchema);
         builder.ConfigureByConvention();
+        builder.Ignore(x => x.OrderedItems);
 
         builder.Property(x => x.ProductId)
             .IsRequired();
@@ -59,6 +60,9 @@ public class BomVersionConfiguration : IEntityTypeConfiguration<BomVersion>
             itemBuilder.Property(x => x.ComponentId)
                 .IsRequired();
 
+            itemBuilder.Property(x => x.LineNo)
+                .IsRequired();
+
             itemBuilder.Property(x => x.Quantity)
                 .HasPrecision(BomConsts.QuantityPrecision, BomConsts.QuantityScale)
                 .IsRequired();
@@ -70,6 +74,9 @@ public class BomVersionConfiguration : IEntityTypeConfiguration<BomVersion>
 
             itemBuilder.HasIndex("BomVersionId")
                 .HasDatabaseName("IX_BomItems_BomVersionId");
+
+            itemBuilder.HasIndex("BomVersionId", nameof(BomItem.LineNo))
+                .HasDatabaseName("IX_BomItems_BomVersionId_LineNo");
         });
     }
 }

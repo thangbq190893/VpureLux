@@ -346,12 +346,47 @@ public class BomPagesTests : VPureLuxWebTestBase
 
         html.ShouldContain($"{firstComponent.Code} - {firstComponent.Name}");
         html.ShouldContain($"{secondComponent.Code} - {secondComponent.Name}");
+        html.IndexOf($"{firstComponent.Code} - {firstComponent.Name}", StringComparison.Ordinal)
+            .ShouldBeLessThan(html.IndexOf($"{secondComponent.Code} - {secondComponent.Name}", StringComparison.Ordinal));
+        html.ShouldContain("<td class=\"text-center text-muted line-no\">1</td>");
+        html.ShouldContain("<td class=\"text-center text-muted line-no\">2</td>");
         html.ShouldContain("name=\"Items[0].ComponentId\"");
         html.ShouldContain("name=\"Items[1].ComponentId\"");
         html.ShouldContain("name=\"Items[0].Quantity\"");
         html.ShouldContain("name=\"Items[1].Quantity\"");
         html.ShouldContain("value=\"2\"");
         html.ShouldContain("value=\"3\"");
+    }
+
+    [Fact]
+    public async Task Bom_Details_Should_Render_Items_In_Saved_Order()
+    {
+        var product = await CreateProductAsync("BOM-DETAIL-ORDER-P", "BOM Detail Order Product");
+        var firstComponent = await CreateComponentAsync("BOM-DETAIL-ORDER-C1", "BOM Detail Order Component 1");
+        var secondComponent = await CreateComponentAsync("BOM-DETAIL-ORDER-C2", "BOM Detail Order Component 2");
+        var thirdComponent = await CreateComponentAsync("BOM-DETAIL-ORDER-C3", "BOM Detail Order Component 3");
+        var bom = await GetRequiredService<IBomAppService>().CreateAsync(product.Id, new CreateBomVersionDto
+        {
+            EffectiveFrom = DateTime.Today,
+            Items =
+            [
+                new CreateBomItemDto { ComponentId = thirdComponent.Id, Quantity = 3 },
+                new CreateBomItemDto { ComponentId = firstComponent.Id, Quantity = 1 },
+                new CreateBomItemDto { ComponentId = secondComponent.Id, Quantity = 2 }
+            ]
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom/Details/{bom.Id}"));
+
+        var thirdIndex = html.IndexOf($"{thirdComponent.Code} - {thirdComponent.Name}", StringComparison.Ordinal);
+        var firstIndex = html.IndexOf($"{firstComponent.Code} - {firstComponent.Name}", StringComparison.Ordinal);
+        var secondIndex = html.IndexOf($"{secondComponent.Code} - {secondComponent.Name}", StringComparison.Ordinal);
+        thirdIndex.ShouldBeGreaterThanOrEqualTo(0);
+        firstIndex.ShouldBeGreaterThan(thirdIndex);
+        secondIndex.ShouldBeGreaterThan(firstIndex);
+        html.ShouldContain("<td class=\"text-center text-muted\">1</td>");
+        html.ShouldContain("<td class=\"text-center text-muted\">2</td>");
+        html.ShouldContain("<td class=\"text-center text-muted\">3</td>");
     }
 
     [Fact]
