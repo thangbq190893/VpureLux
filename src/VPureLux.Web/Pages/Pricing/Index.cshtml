@@ -1,19 +1,18 @@
 @page
 @model VPureLux.Web.Pages.Pricing.IndexModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
-@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
-@using VPureLux.Web.Pages.Pricing
-@using VPureLux.Permissions
-@{ ViewData["Title"] = L["Pricing:Title"]; }
 @{
-    var canViewComponentHistory = (await AuthorizationService.AuthorizeAsync(
-        User,
-        null,
-        VPureLuxPermissions.Pricing.ComponentSuggestedSellingPrices.History)).Succeeded;
-    var canViewProductHistory = (await AuthorizationService.AuthorizeAsync(User, null, VPureLuxPermissions.Pricing.History)).Succeeded;
+    ViewData["Title"] = L["Pricing:Title"];
 }
 
-<div class="vpl-page">
+@section scripts {
+    <abp-script src="/Pages/Pricing/Index.js" />
+}
+
+<div class="vpl-page"
+     data-pricing-index
+     data-can-view-component-history="@Model.CanViewComponentHistory.ToString().ToLowerInvariant()"
+     data-can-view-product-history="@Model.CanViewProductHistory.ToString().ToLowerInvariant()">
     <div class="vpl-page-header">
         <h2 class="vpl-page-title mb-0">@L["Pricing:Title"]</h2>
     </div>
@@ -22,7 +21,16 @@
         <abp-card-body>
             <abp-tabs>
                 <abp-tab title="@L["Pricing:ComponentSuggestedSellingPrices"]">
-                    <abp-table striped-rows="true" class="vpl-table-dense">
+                    <form id="PricingComponentsSearchForm" class="row g-2 mb-3">
+                        <div class="col-md-6 col-lg-4">
+                            <input id="PricingComponentsKeyword" class="form-control" placeholder="@L["Search"]" />
+                        </div>
+                        <div class="col-md-auto d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">@L["Search"]</button>
+                            <button type="button" id="PricingComponentsClearButton" class="btn btn-outline-secondary">@L["Clear"]</button>
+                        </div>
+                    </form>
+                    <abp-table id="PricingComponentsTable" striped-rows="true" class="vpl-table-dense">
                         <thead>
                         <tr>
                             <th>@L["Pricing:Code"]</th>
@@ -32,40 +40,19 @@
                             <th class="text-end">@L["Actions"]</th>
                         </tr>
                         </thead>
-                        <tbody>
-                        @foreach (var row in Model.Components)
-                        {
-                            <tr>
-                                <td>@row.Component.Code</td>
-                                <td>@row.Component.Name</td>
-                                <td class="text-end">
-                                    @if (row.CurrentSuggestedSellingPrice == null)
-                                    {
-                                        <span class="text-muted">@L["Pricing:NoComponentSuggestedPrice"]</span>
-                                    }
-                                    else
-                                    {
-                                        <span>@row.CurrentSuggestedSellingPrice.Price.ToString("N0") @row.CurrentSuggestedSellingPrice.Currency</span>
-                                    }
-                                </td>
-                                <td>
-                                    @(row.CurrentSuggestedSellingPrice == null
-                                        ? L["Pricing:NoVersion"].Value
-                                        : PricingDateUi.Format(row.CurrentSuggestedSellingPrice.EffectiveFrom))
-                                </td>
-                                <td class="text-end">
-                                    @if (canViewComponentHistory)
-                                    {
-                                        <a class="btn btn-sm btn-outline-secondary" asp-page="/Pricing/Components/History" asp-route-componentId="@row.Component.Id">@L["Pricing:OpenHistory"]</a>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                        </tbody>
                     </abp-table>
                 </abp-tab>
                 <abp-tab title="@L["Pricing:ProductSuggestedPrices"]">
-                    <abp-table striped-rows="true" class="vpl-table-dense">
+                    <form id="PricingProductsSearchForm" class="row g-2 mb-3">
+                        <div class="col-md-6 col-lg-4">
+                            <input id="PricingProductsKeyword" class="form-control" placeholder="@L["Search"]" />
+                        </div>
+                        <div class="col-md-auto d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">@L["Search"]</button>
+                            <button type="button" id="PricingProductsClearButton" class="btn btn-outline-secondary">@L["Clear"]</button>
+                        </div>
+                    </form>
+                    <abp-table id="PricingProductsTable" striped-rows="true" class="vpl-table-dense">
                         <thead>
                         <tr>
                             <th>@L["Pricing:Code"]</th>
@@ -77,55 +64,6 @@
                             <th class="text-end">@L["Actions"]</th>
                         </tr>
                         </thead>
-                        <tbody>
-                        @foreach (var product in Model.ProductPricingContexts)
-                        {
-                            <tr>
-                                <td>@product.ProductCode</td>
-                                <td>@product.ProductName</td>
-                                <td>
-                                    @if (product.HasPublishedBom)
-                                    {
-                                        <span class="badge bg-success">@L["Pricing:PublishedBom"]</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-warning text-dark">@L["Pricing:NoPublishedBom"]</span>
-                                    }
-                                </td>
-                                <td class="text-end">
-                                    @if (!product.HasPublishedBom)
-                                    {
-                                        <span class="text-muted">@L["Pricing:NoPublishedBom"]</span>
-                                    }
-                                    else if (product.HasMissingComponentSuggestedPrices)
-                                    {
-                                        <span class="text-warning">@L["Pricing:MissingComponentPrices"]</span>
-                                    }
-                                    else if (product.ComponentBuildPrice.HasValue)
-                                    {
-                                        <span>@product.ComponentBuildPrice.Value.ToString("N0") @VPureLux.Pricing.PricingConsts.Currency</span>
-                                    }
-                                </td>
-                                <td class="text-end">
-                                    @(product.CurrentProductSuggestedPrice.HasValue
-                                        ? $"{product.CurrentProductSuggestedPrice.Value:N0} {VPureLux.Pricing.PricingConsts.Currency}"
-                                        : L["Pricing:NoProductSuggestedPrice"].Value)
-                                </td>
-                                <td class="text-end">
-                                    @(product.Difference.HasValue
-                                        ? $"{product.Difference.Value:N0} {VPureLux.Pricing.PricingConsts.Currency}"
-                                        : "-")
-                                </td>
-                                <td class="text-end">
-                                    @if (canViewProductHistory)
-                                    {
-                                        <a class="btn btn-sm btn-outline-secondary" asp-page="/Pricing/Products/History" asp-route-productId="@product.ProductId">@L["Pricing:OpenHistory"]</a>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                        </tbody>
                     </abp-table>
                 </abp-tab>
             </abp-tabs>

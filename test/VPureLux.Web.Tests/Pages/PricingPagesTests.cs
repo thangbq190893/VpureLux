@@ -3,15 +3,21 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Localization;
 using Shouldly;
 using VPureLux.Catalog.Components;
 using VPureLux.Catalog.Products;
 using VPureLux.Localization;
 using VPureLux.Pricing;
+using Volo.Abp.Application.Dtos;
+using Volo.Abp.DependencyInjection;
 using Xunit;
 using ComponentCreateModel = VPureLux.Web.Pages.Pricing.Components.CreateModel;
+using PricingIndexModel = VPureLux.Web.Pages.Pricing.IndexModel;
 using ProductCreateModel = VPureLux.Web.Pages.Pricing.Products.CreateModel;
 
 namespace VPureLux.Pages;
@@ -27,10 +33,11 @@ public class PricingPagesTests : VPureLuxWebTestBase
         var inactive = await componentService.CreateAsync(ComponentInput("PRICE-I", "Inactive Pricing Component"));
         await componentService.DeactivateAsync(inactive.Id);
 
-        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Pricing"));
+        var activeRows = await GetComponentPricingRowsAsync(active.Code);
+        var inactiveRows = await GetComponentPricingRowsAsync(inactive.Code);
 
-        html.ShouldContain(active.Name);
-        html.ShouldNotContain(inactive.Name);
+        activeRows.Items.ShouldContain(x => x.ComponentId == active.Id && x.Name == active.Name);
+        inactiveRows.TotalCount.ShouldBe(0);
     }
 
     [Fact]
@@ -140,14 +147,18 @@ public class PricingPagesTests : VPureLuxWebTestBase
             .CreateAsync(ProductInput("PRICE-CTX", "Context Product"));
 
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Pricing"));
+        var rows = await GetProductPricingRowsAsync(product.Code);
 
-        html.ShouldContain(product.Name);
+        html.ShouldNotContain(product.Name);
+        html.ShouldContain("id=\"PricingProductsTable\"");
         html.ShouldContain(localizer["Pricing:BomStatus"].Value);
         html.ShouldContain(localizer["Pricing:ComponentBuildPrice"].Value);
         html.ShouldContain(localizer["Pricing:CurrentProductSuggestedPrice"].Value);
         html.ShouldContain(localizer["Pricing:Difference"].Value);
-        html.ShouldContain(localizer["Pricing:NoPublishedBom"].Value);
-        html.ShouldContain(localizer["Pricing:NoProductSuggestedPrice"].Value);
+        rows.Items.ShouldContain(x =>
+            x.ProductId == product.Id &&
+            !x.HasPublishedBom &&
+            !x.CurrentProductSuggestedPrice.HasValue);
     }
 
     [Fact]
@@ -168,14 +179,19 @@ public class PricingPagesTests : VPureLuxWebTestBase
             });
 
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Pricing"));
+        var currentRows = await GetComponentPricingRowsAsync(component.Code);
+        var noPriceRows = await GetComponentPricingRowsAsync(componentWithoutPrice.Code);
 
-        html.ShouldContain(component.Code);
-        html.ShouldContain(component.Name);
-        html.ShouldContain(componentWithoutPrice.Code);
-        html.ShouldContain(componentWithoutPrice.Name);
-        html.ShouldContain($"{123456m.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))} VND");
-        html.ShouldContain(effectiveFrom.ToString("dd/MM/yyyy", CultureInfo.GetCultureInfo("vi-VN")));
-        html.ShouldContain(localizer["Pricing:NoComponentSuggestedPrice"].Value);
+        html.ShouldNotContain(component.Code);
+        html.ShouldContain("id=\"PricingComponentsTable\"");
+        currentRows.Items.ShouldContain(x =>
+            x.ComponentId == component.Id &&
+            x.CurrentSuggestedSellingPrice == 123456m &&
+            x.EffectiveFrom == effectiveFrom.ToString("dd/MM/yyyy", CultureInfo.GetCultureInfo("vi-VN")));
+        noPriceRows.Items.ShouldContain(x =>
+            x.ComponentId == componentWithoutPrice.Id &&
+            !x.HasCurrentSuggestedSellingPrice);
+        localizer["Pricing:NoComponentSuggestedPrice"].Value.ShouldNotBeNullOrWhiteSpace();
     }
 
     [Fact]
@@ -185,10 +201,38 @@ public class PricingPagesTests : VPureLuxWebTestBase
         var component = await GetRequiredService<IComponentAppService>()
             .CreateAsync(ComponentInput("PRICE-NO", "No Current Price Component"));
 
-        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Pricing"));
+        var rows = await GetComponentPricingRowsAsync(component.Code);
 
-        html.ShouldContain(component.Name);
-        html.ShouldContain(localizer["Pricing:NoComponentSuggestedPrice"].Value);
+        rows.Items.ShouldContain(x => x.ComponentId == component.Id && !x.CurrentSuggestedSellingPrice.HasValue);
+        localizer["Pricing:NoComponentSuggestedPrice"].Value.ShouldNotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task Pricing_Index_Should_Use_Abp_DataTables_Server_Paging()
+    {
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Pricing/Index.cshtml"));
+        var pageModelSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Pricing/Index.cshtml.cs"));
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Pricing/Index.js"));
+
+        pageSource.ShouldContain("<abp-script src=\"/Pages/Pricing/Index.js\" />");
+        pageSource.ShouldContain("id=\"PricingComponentsTable\"");
+        pageSource.ShouldContain("id=\"PricingProductsTable\"");
+        pageSource.ShouldNotContain("@foreach");
+        pageSource.ShouldNotContain("Model.Components");
+        pageSource.ShouldNotContain("Model.ProductPricingContexts");
+
+        pageModelSource.ShouldContain("OnGetComponentListAsync");
+        pageModelSource.ShouldContain("OnGetProductListAsync");
+        pageModelSource.ShouldNotContain("MaxMaxResultCount");
+        pageModelSource.ShouldNotContain("ProductPricingContexts");
+
+        scriptSource.ShouldContain("DataTable");
+        scriptSource.ShouldContain("serverSide: true");
+        scriptSource.ShouldContain("handler=ComponentList");
+        scriptSource.ShouldContain("handler=ProductList");
+        scriptSource.ShouldContain("PricingComponentsClearButton");
+        scriptSource.ShouldContain("PricingProductsClearButton");
+        scriptSource.IndexOf("select2", StringComparison.OrdinalIgnoreCase).ShouldBe(-1);
     }
 
     [Fact]
@@ -250,6 +294,66 @@ public class PricingPagesTests : VPureLuxWebTestBase
         Code = prefix + Guid.NewGuid().ToString("N")[..8],
         Name = name
     };
+
+    private async Task<PagedResultDto<PricingIndexModel.ComponentPricingListRow>> GetComponentPricingRowsAsync(
+        string? keyword = null,
+        int skipCount = 0,
+        int maxResultCount = 10)
+    {
+        var model = CreatePricingIndexModel();
+        var result = await model.OnGetComponentListAsync(new GetComponentListInput
+        {
+            Keyword = keyword,
+            SkipCount = skipCount,
+            MaxResultCount = maxResultCount
+        });
+
+        return result.Value.ShouldBeOfType<PagedResultDto<PricingIndexModel.ComponentPricingListRow>>();
+    }
+
+    private async Task<PagedResultDto<PricingIndexModel.ProductPricingListRow>> GetProductPricingRowsAsync(
+        string? keyword = null,
+        int skipCount = 0,
+        int maxResultCount = 10)
+    {
+        var model = CreatePricingIndexModel();
+        var result = await model.OnGetProductListAsync(new GetProductListInput
+        {
+            Keyword = keyword,
+            SkipCount = skipCount,
+            MaxResultCount = maxResultCount
+        });
+
+        return result.Value.ShouldBeOfType<PagedResultDto<PricingIndexModel.ProductPricingListRow>>();
+    }
+
+    private PricingIndexModel CreatePricingIndexModel()
+    {
+        var model = new PricingIndexModel(
+            GetRequiredService<IComponentAppService>(),
+            GetRequiredService<IComponentSuggestedSellingPriceLookupService>(),
+            GetRequiredService<IProductAppService>(),
+            GetRequiredService<IProductPricingContextLookupService>(),
+            GetRequiredService<IAuthorizationService>());
+        SetPageContext(model);
+        return model;
+    }
+
+    private void SetPageContext(PageModel model)
+    {
+        model.PageContext = new PageContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                RequestServices = GetRequiredService<IServiceProvider>()
+            }
+        };
+
+        if (model is global::VPureLux.Web.Pages.VPureLuxPageModel vplModel)
+        {
+            vplModel.LazyServiceProvider = GetRequiredService<IAbpLazyServiceProvider>();
+        }
+    }
 
     private static string GetRepoFilePath(string relativePath)
     {

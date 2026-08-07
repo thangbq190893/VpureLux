@@ -45,6 +45,11 @@ public class ProductAppService : ApplicationService, IProductAppService
                 x.Name.Contains(input.Keyword!));
         }
 
+        if (input.Status.HasValue)
+        {
+            queryable = queryable.Where(x => x.Status == input.Status.Value);
+        }
+
         queryable = ApplySorting(queryable, input.Sorting);
 
         var totalCount = await AsyncExecuter.CountAsync(queryable);
