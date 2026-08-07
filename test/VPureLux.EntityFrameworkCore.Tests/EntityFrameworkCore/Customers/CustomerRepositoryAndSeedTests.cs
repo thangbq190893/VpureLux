@@ -81,7 +81,7 @@ public class CustomerRepositoryAndSeedTests : VPureLuxEntityFrameworkCoreTestBas
     }
 
     [Fact]
-    public async Task Seed_Should_Be_Idempotent_And_Preserve_Customized_Name()
+    public async Task Seed_Should_Normalize_Default_Vietnamese_Names_And_Preserve_Customized_Name()
     {
         await WithUnitOfWorkAsync(async () =>
         {
@@ -90,11 +90,17 @@ public class CustomerRepositoryAndSeedTests : VPureLuxEntityFrameworkCoreTestBas
             var retail = (await _groups.FindByCodeAsync("RETAIL"))!;
             retail.UpdateInfo("Customized Retail", retail.Description, retail.SortOrder);
             await _groups.UpdateAsync(retail, autoSave: true);
+            var dealer = (await _groups.FindByCodeAsync("DEALER"))!;
+            dealer.UpdateInfo("Dealer", dealer.Description, dealer.SortOrder);
+            await _groups.UpdateAsync(dealer, autoSave: true);
 
             await _seedContributor.SeedAsync(new DataSeedContext());
 
             (await _groups.GetCountAsync()).ShouldBe(before);
             (await _groups.FindByCodeAsync("RETAIL"))!.Name.ShouldBe("Customized Retail");
+            (await _groups.FindByCodeAsync("DEALER"))!.Name.ShouldBe("Đại lý");
+            (await _groups.FindByCodeAsync("DISTRIBUTOR"))!.Name.ShouldBe("Nhà phân phối");
+            (await _groups.FindByCodeAsync("PROJECT"))!.Name.ShouldBe("Khách dự án");
             (await _groups.GetListAsync()).Select(x => x.Code).Distinct().Count().ShouldBe((int)before);
         });
     }

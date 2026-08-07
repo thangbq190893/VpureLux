@@ -5,9 +5,8 @@ namespace VPureLux.Customers;
 
 public class CreateCustomerDto
 {
-    [Required]
     [StringLength(CustomerConsts.MaxCodeLength)]
-    public string Code { get; set; } = string.Empty;
+    public string? Code { get; set; }
 
     [Required]
     [StringLength(CustomerConsts.MaxNameLength)]

@@ -125,6 +125,9 @@ public class ComponentAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
         var deactivated = await _componentAppService.GetAsync(component.Id);
 
         deactivated.Status.ShouldBe(CatalogItemStatus.Inactive);
+
+        await _componentAppService.ActivateAsync(component.Id);
+        (await _componentAppService.GetAsync(component.Id)).Status.ShouldBe(CatalogItemStatus.Active);
     }
 
     private string DatePart() => _clock.Now.Date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);

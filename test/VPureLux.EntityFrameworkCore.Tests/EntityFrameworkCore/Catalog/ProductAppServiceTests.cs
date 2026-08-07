@@ -111,6 +111,9 @@ public class ProductAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
         var deactivated = await _productAppService.GetAsync(product.Id);
 
         deactivated.Status.ShouldBe(CatalogItemStatus.Inactive);
+
+        await _productAppService.ActivateAsync(product.Id);
+        (await _productAppService.GetAsync(product.Id)).Status.ShouldBe(CatalogItemStatus.Active);
     }
 
 }

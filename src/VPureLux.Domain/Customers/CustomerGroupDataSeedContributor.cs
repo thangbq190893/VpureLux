@@ -18,21 +18,33 @@ public class CustomerGroupDataSeedContributor : IDataSeedContributor, ITransient
     [UnitOfWork]
     public virtual async Task SeedAsync(DataSeedContext context)
     {
-        await CreateIfMissingAsync(CustomerGroupSeedIds.Retail, "RETAIL", "Retail", 10);
-        await CreateIfMissingAsync(CustomerGroupSeedIds.Dealer, "DEALER", "Dealer", 20);
-        await CreateIfMissingAsync(CustomerGroupSeedIds.Distributor, "DISTRIBUTOR", "Distributor", 30);
-        await CreateIfMissingAsync(CustomerGroupSeedIds.Project, "PROJECT", "Project", 40);
+        await CreateOrNormalizeDefaultAsync(CustomerGroupSeedIds.Retail, "RETAIL", "Khách lẻ", "Retail", 10);
+        await CreateOrNormalizeDefaultAsync(CustomerGroupSeedIds.Dealer, "DEALER", "Đại lý", "Dealer", 20);
+        await CreateOrNormalizeDefaultAsync(CustomerGroupSeedIds.Distributor, "DISTRIBUTOR", "Nhà phân phối", "Distributor", 30);
+        await CreateOrNormalizeDefaultAsync(CustomerGroupSeedIds.Project, "PROJECT", "Khách dự án", "Project", 40);
     }
 
-    private async Task CreateIfMissingAsync(Guid id, string code, string name, int sortOrder)
+    private async Task CreateOrNormalizeDefaultAsync(
+        Guid id,
+        string code,
+        string vietnameseName,
+        string legacyName,
+        int sortOrder)
     {
-        if (await _customerGroupRepository.FindByCodeAsync(code) != null)
+        var existing = await _customerGroupRepository.FindByCodeAsync(code);
+        if (existing != null)
         {
+            if (existing.Name == legacyName)
+            {
+                existing.UpdateInfo(vietnameseName, existing.Description, existing.SortOrder);
+                await _customerGroupRepository.UpdateAsync(existing, autoSave: true);
+            }
+
             return;
         }
 
         await _customerGroupRepository.InsertAsync(
-            new CustomerGroup(id, code, name, description: null, sortOrder),
+            new CustomerGroup(id, code, vietnameseName, description: null, sortOrder),
             autoSave: true);
     }
 }

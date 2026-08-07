@@ -15,6 +15,10 @@ public interface ICustomerRepository : IRepository<Customer, Guid>
         Guid? excludedId = null,
         CancellationToken cancellationToken = default);
 
+    Task<int> GetMaxCodeSequenceAsync(
+        string codePrefix,
+        CancellationToken cancellationToken = default);
+
     Task<bool> HasCustomersInGroupAsync(
         Guid customerGroupId,
         CancellationToken cancellationToken = default);

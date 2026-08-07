@@ -1,33 +1,45 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using VPureLux.BusinessCodes;
 using VPureLux.Permissions;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Timing;
 
 namespace VPureLux.Customers;
 
 [Authorize(VPureLuxPermissions.Customers.Default)]
 public class CustomerAppService : ApplicationService, ICustomerAppService
 {
+    private const string CustomerSequenceName = "Customer";
+    private const string CustomerPrefix = "CUS";
+
     private readonly ICustomerRepository _customerRepository;
     private readonly ICustomerGroupRepository _customerGroupRepository;
     private readonly CustomerManager _customerManager;
     private readonly CustomerApplicationMapper _mapper;
+    private readonly IBusinessCodeGenerator _businessCodeGenerator;
+    private readonly IClock _clock;
 
     public CustomerAppService(
         ICustomerRepository customerRepository,
         ICustomerGroupRepository customerGroupRepository,
         CustomerManager customerManager,
-        CustomerApplicationMapper mapper)
+        CustomerApplicationMapper mapper,
+        IBusinessCodeGenerator businessCodeGenerator,
+        IClock clock)
     {
         _customerRepository = customerRepository;
         _customerGroupRepository = customerGroupRepository;
         _customerManager = customerManager;
         _mapper = mapper;
+        _businessCodeGenerator = businessCodeGenerator;
+        _clock = clock;
     }
 
     [Authorize(VPureLuxPermissions.Customers.View)]
@@ -63,8 +75,9 @@ public class CustomerAppService : ApplicationService, ICustomerAppService
     [Authorize(VPureLuxPermissions.Customers.Create)]
     public async Task<CustomerDto> CreateAsync(CreateCustomerDto input)
     {
+        var code = await ResolveCodeAsync(input.Code);
         var customer = await _customerManager.CreateAsync(
-            input.Code,
+            code,
             input.Name,
             input.CustomerGroupId,
             input.PhoneNumber,
@@ -75,6 +88,29 @@ public class CustomerAppService : ApplicationService, ICustomerAppService
 
         await _customerRepository.InsertAsync(customer, autoSave: true);
         return _mapper.ToDto(customer, await GetCustomerGroupAsync(customer.CustomerGroupId));
+    }
+
+    private async Task<string> ResolveCodeAsync(string? code)
+    {
+        if (!code.IsNullOrWhiteSpace())
+        {
+            return code;
+        }
+
+        var businessDate = _clock.Now.Date;
+        var datePart = businessDate.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+        var codePrefix = $"{CustomerPrefix}-{datePart}";
+
+        return await _businessCodeGenerator.GenerateAsync(new BusinessCodeGenerationContext
+        {
+            SequenceName = CustomerSequenceName,
+            Prefix = CustomerPrefix,
+            Date = businessDate,
+            ExistsAsync = (candidate, cancellationToken) =>
+                _customerRepository.CodeExistsAsync(candidate, cancellationToken: cancellationToken),
+            SeedMaxAsync = async cancellationToken =>
+                (int?)await _customerRepository.GetMaxCodeSequenceAsync(codePrefix, cancellationToken)
+        });
     }
 
     [Authorize(VPureLuxPermissions.Customers.Edit)]

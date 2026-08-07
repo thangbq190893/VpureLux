@@ -45,6 +45,22 @@ public class CustomerApiTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Should_Auto_Generate_Customer_Code_When_Blank()
+    {
+        var group = await CreateGroupAsync();
+        var createResponse = await Client.PostAsJsonAsync("/api/customers", new CreateCustomerDto
+        {
+            Code = " ",
+            Name = "API Auto Code Customer",
+            CustomerGroupId = group.Id
+        });
+
+        createResponse.StatusCode.ShouldBe(HttpStatusCode.OK, await createResponse.Content.ReadAsStringAsync());
+        var customer = (await createResponse.Content.ReadFromJsonAsync<CustomerDto>())!;
+        customer.Code.ShouldStartWith("CUS-");
+    }
+
+    [Fact]
     public async Task Should_Reject_Invalid_Customer_Request()
     {
         var response = await Client.PostAsJsonAsync("/api/customers", new CreateCustomerDto());

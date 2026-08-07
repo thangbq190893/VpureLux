@@ -1,9 +1,12 @@
 using System;
+using System.Globalization;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Distributed;
 using Shouldly;
 using VPureLux.Customers;
 using VPureLux.Customers.CustomerGroups;
 using Volo.Abp;
+using Volo.Abp.Timing;
 using Xunit;
 
 namespace VPureLux.EntityFrameworkCore.Customers;
@@ -13,11 +16,15 @@ public class CustomerAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
 {
     private readonly ICustomerAppService _customerService;
     private readonly ICustomerGroupAppService _groupService;
+    private readonly IDistributedCache _cache;
+    private readonly IClock _clock;
 
     public CustomerAppServiceTests()
     {
         _customerService = GetRequiredService<ICustomerAppService>();
         _groupService = GetRequiredService<ICustomerGroupAppService>();
+        _cache = GetRequiredService<IDistributedCache>();
+        _clock = GetRequiredService<IClock>();
     }
 
     [Fact]
@@ -59,6 +66,50 @@ public class CustomerAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     [Fact]
+    public async Task Should_Generate_Customer_Code_When_Blank()
+    {
+        await ResetCustomerSequenceAsync();
+        var group = await CreateGroupAsync();
+
+        var customer = await _customerService.CreateAsync(new CreateCustomerDto
+        {
+            Code = " ",
+            Name = "Auto Code Customer",
+            CustomerGroupId = group.Id
+        });
+
+        customer.Code.ShouldBe($"CUS-{DatePart()}0001");
+    }
+
+    [Fact]
+    public async Task Should_Seed_Customer_Code_From_Existing_Max_Suffix()
+    {
+        await ResetCustomerSequenceAsync();
+        var datePart = DatePart();
+        var group = await CreateGroupAsync();
+        await _customerService.CreateAsync(new CreateCustomerDto
+        {
+            Code = $"CUS-{datePart}0003",
+            Name = "Seed Customer 3",
+            CustomerGroupId = group.Id
+        });
+        await _customerService.CreateAsync(new CreateCustomerDto
+        {
+            Code = $"CUS-{datePart}0009",
+            Name = "Seed Customer 9",
+            CustomerGroupId = group.Id
+        });
+
+        var customer = await _customerService.CreateAsync(new CreateCustomerDto
+        {
+            Name = "Seeded Auto Customer",
+            CustomerGroupId = group.Id
+        });
+
+        customer.Code.ShouldBe($"CUS-{datePart}0010");
+    }
+
+    [Fact]
     public async Task Should_Reject_Missing_And_Inactive_Groups()
     {
         (await Should.ThrowAsync<BusinessException>(() => _customerService.CreateAsync(CreateInput(Guid.NewGuid()))))
@@ -94,6 +145,11 @@ public class CustomerAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
 
     private Task<CustomerGroupDto> CreateGroupAsync() =>
         _groupService.CreateAsync(new CreateCustomerGroupDto { Code = Unique("GRP"), Name = "Group", SortOrder = 1 });
+
+    private string DatePart() => _clock.Now.Date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+
+    private Task ResetCustomerSequenceAsync() =>
+        _cache.RemoveAsync($"Sequence:CUSTOMER:{DatePart()}");
 
     private static CreateCustomerDto CreateInput(Guid groupId) => new()
     {
