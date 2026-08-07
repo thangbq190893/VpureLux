@@ -1432,7 +1432,9 @@ public class InventoryPagesTests : VPureLuxWebTestBase
             $"/Inventory/Lots?WarehouseId={context.WarehouseId}&StockItemId={context.StockItemId}"));
         var lotRows = await GetLotsRowsAsync(context.WarehouseId, context.StockItemId);
         lotRows.Items.Any(x => x.UnitCost == expectedMoney).ShouldBeTrue();
+        lotRows.Items.Any(x => x.ReceivedQuantity == expectedQuantity).ShouldBeTrue();
         lotRows.Items.Any(x => x.AvailableQuantity == expectedQuantity).ShouldBeTrue();
+        lotRows.Items.Any(x => x.ReceiptValue == expectedInventoryValue).ShouldBeTrue();
         lotsHtml.ShouldNotContain("41000.000000");
         lotsHtml.ShouldNotContain("7.2500");
 
@@ -1458,6 +1460,75 @@ public class InventoryPagesTests : VPureLuxWebTestBase
 
         var ledgerSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Ledger.cshtml.cs"));
         ledgerSource.ShouldContain("FormatDateTime(row.PostedAt.Value)");
+    }
+
+    [Fact]
+    public async Task Lots_Page_Should_Show_Receipt_Price_And_Quantity_History()
+    {
+        var context = await CreateInquiryFilterContextAsync("LOT-HIST");
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var vi = CultureInfo.GetCultureInfo("vi-VN");
+
+        await GetRequiredService<IInventoryTransactionAppService>().PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 11,
+                    LotNo = Unique("LOT-HIST"),
+                    UnitCost = 12345,
+                    ReceivedAt = new DateTime(2026, 6, 18, 12, 0, 0, DateTimeKind.Utc)
+                }
+            ]
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync(
+            $"/Inventory/Lots?WarehouseId={context.WarehouseId}&StockItemId={context.StockItemId}"));
+        var rows = await GetLotsRowsAsync(context.WarehouseId, context.StockItemId);
+
+        html.ShouldContain(localizer["Inventory:ReceiptLotHistory"].Value);
+        html.ShouldContain(localizer["Inventory:ReceivedQuantity"].Value);
+        html.ShouldContain(localizer["Inventory:ReceiptValue"].Value);
+        rows.Items.Any(x => x.ReceivedQuantity == "11").ShouldBeTrue();
+        rows.Items.Any(x => x.UnitCost == 12345m.ToString("#,0", vi) + " ₫").ShouldBeTrue();
+        rows.Items.Any(x => x.ReceiptValue == (12345m * 11).ToString("#,0", vi) + " ₫").ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Balances_Page_Should_Link_To_Filtered_Receipt_Lot_History()
+    {
+        var context = await CreateInquiryFilterContextAsync("BAL-HIST");
+        await GetRequiredService<IInventoryTransactionAppService>().PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 3,
+                    LotNo = Unique("LOT-BAL-HIST"),
+                    UnitCost = 9000,
+                    ReceivedAt = new DateTime(2026, 6, 18, 12, 0, 0, DateTimeKind.Utc)
+                }
+            ]
+        });
+
+        var rows = await GetBalanceRowsAsync(context.WarehouseId, context.StockItemId);
+        rows.Items.Any(x => x.WarehouseId == context.WarehouseId && x.StockItemId == context.StockItemId)
+            .ShouldBeTrue();
+
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Balances.cshtml"));
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Balances.js"));
+
+        pageSource.ShouldContain("@L[\"Actions\"]");
+        scriptSource.ShouldContain("Inventory/Lots?WarehouseId=");
+        scriptSource.ShouldContain("Inventory:ViewReceiptLotHistory");
     }
 
     [Theory]

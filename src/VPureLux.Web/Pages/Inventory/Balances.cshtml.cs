@@ -56,6 +56,8 @@ public class BalancesModel : VPureLuxPageModel
     }
 
     private InventoryBalanceRow ToRow(InventoryBalanceDto item) => new(
+        item.WarehouseId,
+        item.StockItemId,
         GetWarehouseLabel(item.WarehouseId),
         GetStockItemLabel(item.StockItemId),
         FormatQuantity(item.QuantityOnHand),
@@ -127,6 +129,8 @@ public class BalancesModel : VPureLuxPageModel
     }
 
     public sealed record InventoryBalanceRow(
+        Guid WarehouseId,
+        Guid StockItemId,
         string Warehouse,
         string StockItem,
         string QuantityOnHand,

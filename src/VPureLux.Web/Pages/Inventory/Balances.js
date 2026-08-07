@@ -62,6 +62,18 @@
                 render: function (data) {
                     return encode(data);
                 }
+            },
+            {
+                data: null,
+                orderable: false,
+                className: 'text-end text-nowrap',
+                render: function (_data, _type, row) {
+                    const url = abp.appPath + 'Inventory/Lots?WarehouseId=' +
+                        encodeURIComponent(row.warehouseId) + '&StockItemId=' +
+                        encodeURIComponent(row.stockItemId);
+                    return '<a class="btn btn-sm btn-outline-secondary" href="' + url + '">' +
+                        encode(l('Inventory:ViewReceiptLotHistory')) + '</a>';
+                }
             }
         ]
     }));

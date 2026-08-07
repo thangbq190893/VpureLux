@@ -60,8 +60,10 @@ public class LotsModel : VPureLuxPageModel
         GetWarehouseLabel(item.WarehouseId),
         GetStockItemLabel(item.StockItemId),
         InventoryPostingUi.FormatDate(item.ReceivedAt),
+        FormatQuantity(item.ReceivedQuantity),
         FormatQuantity(item.AvailableQuantity),
-        FormatMoney(item.UnitCost));
+        FormatMoney(item.UnitCost),
+        FormatMoney(item.ReceivedQuantity * item.UnitCost));
 
     private string GetWarehouseLabel(Guid id) =>
         WarehouseLabels.TryGetValue(id, out var label) ? label : L["Inventory:UnknownWarehouse"];
@@ -133,6 +135,8 @@ public class LotsModel : VPureLuxPageModel
         string Warehouse,
         string StockItem,
         string ReceivedAt,
+        string ReceivedQuantity,
         string AvailableQuantity,
-        string UnitCost);
+        string UnitCost,
+        string ReceiptValue);
 }

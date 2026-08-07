@@ -63,6 +63,13 @@
                 }
             },
             {
+                data: 'receivedQuantity',
+                className: 'text-end text-nowrap',
+                render: function (data) {
+                    return encode(data);
+                }
+            },
+            {
                 data: 'availableQuantity',
                 className: 'text-end text-nowrap',
                 render: function (data) {
@@ -71,6 +78,13 @@
             },
             {
                 data: 'unitCost',
+                className: 'text-end text-nowrap',
+                render: function (data) {
+                    return encode(data);
+                }
+            },
+            {
+                data: 'receiptValue',
                 className: 'text-end text-nowrap',
                 render: function (data) {
                     return encode(data);
