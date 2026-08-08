@@ -1,24 +1,24 @@
 (function () {
     var localize = abp.localization.getResource('VPureLux');
-    const page = document.querySelector('[data-pricing-index]');
+    var page = document.querySelector('[data-pricing-index]');
 
     if (!page) {
         return;
     }
 
-    const canViewComponentHistory = page.dataset.canViewComponentHistory === 'true';
-    const canViewProductHistory = page.dataset.canViewProductHistory === 'true';
-    const canCreateComponentSuggestedPrice = page.dataset.canCreateComponentSuggestedPrice === 'true';
-    const canCreateProductSuggestedPrice = page.dataset.canCreateProductSuggestedPrice === 'true';
-    const $componentKeyword = $('#PricingComponentsKeyword');
-    const $productKeyword = $('#PricingProductsKeyword');
-    const createNewVersionText = localize('Pricing:CreateNewVersion');
-    const openHistoryText = localize('Pricing:OpenHistory');
-    const noComponentSuggestedPriceText = localize('Pricing:NoComponentSuggestedPrice');
-    const publishedBomText = localize('Pricing:PublishedBom');
-    const noPublishedBomText = localize('Pricing:NoPublishedBom');
-    const missingComponentPricesText = localize('Pricing:MissingComponentPrices');
-    const noProductSuggestedPriceText = localize('Pricing:NoProductSuggestedPrice');
+    var canViewComponentHistory = page.dataset.canViewComponentHistory === 'true';
+    var canViewProductHistory = page.dataset.canViewProductHistory === 'true';
+    var canCreateComponentSuggestedPrice = page.dataset.canCreateComponentSuggestedPrice === 'true';
+    var canCreateProductSuggestedPrice = page.dataset.canCreateProductSuggestedPrice === 'true';
+    var $componentKeyword = $('#PricingComponentsKeyword');
+    var $productKeyword = $('#PricingProductsKeyword');
+    var createNewVersionText = localize('Pricing:CreateNewVersion');
+    var openHistoryText = localize('Pricing:OpenHistory');
+    var noComponentSuggestedPriceText = localize('Pricing:NoComponentSuggestedPrice');
+    var publishedBomText = localize('Pricing:PublishedBom');
+    var noPublishedBomText = localize('Pricing:NoPublishedBom');
+    var missingComponentPricesText = localize('Pricing:MissingComponentPrices');
+    var noProductSuggestedPriceText = localize('Pricing:NoProductSuggestedPrice');
 
     function encode(value) {
         return $('<div/>').text(value || '').html();
@@ -44,7 +44,7 @@
     }
 
     function componentActions(row) {
-        const actions = [];
+        var actions = [];
 
         if (canCreateComponentSuggestedPrice && row.canCreateSuggestedPrice) {
             actions.push(actionLink(
@@ -54,7 +54,7 @@
                 'btn-primary'));
         }
 
-        const historyLink = actionLink(
+        var historyLink = actionLink(
             abp.appPath + 'Pricing/Components/' + encodeURIComponent(row.componentId),
             canViewComponentHistory,
             openHistoryText);
@@ -67,7 +67,7 @@
     }
 
     function productActions(row) {
-        const actions = [];
+        var actions = [];
 
         if (canCreateProductSuggestedPrice && row.canCreateSuggestedPrice) {
             actions.push(actionLink(
@@ -77,7 +77,7 @@
                 'btn-primary'));
         }
 
-        const historyLink = actionLink(
+        var historyLink = actionLink(
             abp.appPath + 'Pricing/Products/' + encodeURIComponent(row.productId),
             canViewProductHistory,
             openHistoryText);
@@ -95,7 +95,7 @@
             : '';
     }
 
-    const componentTable = $('#PricingComponentsTable').DataTable(abp.libs.datatables.normalizeConfiguration({
+    var componentTable = $('#PricingComponentsTable').DataTable(abp.libs.datatables.normalizeConfiguration({
         processing: true,
         serverSide: true,
         paging: true,
@@ -130,7 +130,7 @@
                 data: null,
                 className: 'text-end text-nowrap',
                 render: function (_data, _type, row) {
-                    const price = formatMoney(row.currentSuggestedSellingPrice, row.currency);
+                    var price = formatMoney(row.currentSuggestedSellingPrice, row.currency);
                     return price === null
                         ? '<span class="text-muted">' + encode(noComponentSuggestedPriceText) + '</span>'
                         : encode(price);
@@ -154,7 +154,7 @@
         ]
     }));
 
-    const productTable = $('#PricingProductsTable').DataTable(abp.libs.datatables.normalizeConfiguration({
+    var productTable = $('#PricingProductsTable').DataTable(abp.libs.datatables.normalizeConfiguration({
         processing: true,
         serverSide: true,
         paging: true,

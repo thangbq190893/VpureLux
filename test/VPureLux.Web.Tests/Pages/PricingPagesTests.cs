@@ -238,6 +238,8 @@ public class PricingPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("Pricing/Products/Create/");
         scriptSource.ShouldContain("Pricing:CreateNewVersion");
         scriptSource.ShouldNotContain("encode(l(");
+        scriptSource.ShouldNotContain("const ");
+        scriptSource.ShouldNotContain("let ");
         scriptSource.IndexOf("select2", StringComparison.OrdinalIgnoreCase).ShouldBe(-1);
     }
 
