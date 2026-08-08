@@ -54,6 +54,7 @@ public class BomPagesTests : VPureLuxWebTestBase
         var filteredHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom?SearchTerm={product.Code}"));
         var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/Index.cshtml"));
         var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/Index.js"));
+        var cssSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Bom/Index.css"));
         var model = new IndexModel(
             GetRequiredService<IBomAppService>(),
             GetRequiredService<IProductAppService>(),
@@ -71,6 +72,7 @@ public class BomPagesTests : VPureLuxWebTestBase
         html.ShouldContain("data-bom-search-form");
         html.ShouldContain("data-bom-summary-table");
         html.ShouldContain("id=\"BomProductsTable\"");
+        html.ShouldContain("bom-summary-table");
         html.ShouldContain("name=\"SearchTerm\"");
         html.ShouldContain(localizer["Bom:VersionCount"].Value);
         filteredHtml.ShouldNotContain(product.Name);
@@ -80,6 +82,11 @@ public class BomPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("Bom:OpenHistory");
         scriptSource.ShouldContain("Bom:CreateVersionForProduct");
         scriptSource.ShouldContain("Bom:ViewCurrentVersion");
+        scriptSource.ShouldContain("Bom:OpenHistoryShort");
+        scriptSource.ShouldContain("Bom:CreateVersionShort");
+        scriptSource.ShouldContain("Bom:ViewCurrentVersionShort");
+        scriptSource.ShouldContain("bom-action-group");
+        scriptSource.ShouldContain("bom-standard-cost-cell");
         scriptSource.ShouldContain("Bom/Product/");
         scriptSource.ShouldContain("Bom/Create/");
         scriptSource.ShouldContain("Bom/Details/");
@@ -89,6 +96,11 @@ public class BomPagesTests : VPureLuxWebTestBase
         pageSource.ShouldNotContain("foreach (var row in Model.Rows)");
         pageSource.ShouldNotContain("asp-for=\"ProductId\" asp-items=");
         pageSource.ShouldNotContain("Bom:SelectProduct");
+        pageSource.ShouldContain("/Pages/Bom/Index.css");
+        cssSource.ShouldContain("table-layout: fixed");
+        cssSource.ShouldContain("white-space: normal");
+        cssSource.ShouldContain(".bom-action-group");
+        cssSource.ShouldContain("flex-wrap: wrap");
         html.ShouldNotContain("type=\"text\" id=\"ProductId\"");
     }
 

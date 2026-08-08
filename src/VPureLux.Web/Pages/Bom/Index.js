@@ -15,6 +15,9 @@
     var openHistoryText = l('Bom:OpenHistory');
     var createVersionText = l('Bom:CreateVersionForProduct');
     var viewCurrentVersionText = l('Bom:ViewCurrentVersion');
+    var openHistoryShortText = l('Bom:OpenHistoryShort');
+    var createVersionShortText = l('Bom:CreateVersionShort');
+    var viewCurrentVersionShortText = l('Bom:ViewCurrentVersionShort');
     var activeStatusText = l('Status:Active');
     var inactiveStatusText = l('Status:Inactive');
 
@@ -23,8 +26,10 @@
     }
 
     function productHtml(row) {
-        return '<strong>' + encode(row.productCode) + '</strong>' +
-            '<div class="text-muted">' + encode(row.productName) + '</div>';
+        return '<div class="bom-product-cell">' +
+            '<strong class="bom-product-code">' + encode(row.productCode) + '</strong>' +
+            '<span class="text-muted bom-product-name">' + encode(row.productName) + '</span>' +
+            '</div>';
     }
 
     function currentVersionHtml(row) {
@@ -33,10 +38,10 @@
         }
 
         var url = abp.appPath + 'Bom/Details/' + encodeURIComponent(row.currentVersion.id);
-        return '<a href="' + url + '">' + encode(versionNoText) + ' ' +
+        return '<span class="bom-current-version-cell"><a href="' + url + '">' + encode(versionNoText) + ' ' +
             encode(row.currentVersion.versionNo) + '</a>' +
             '<span class="badge bg-success ms-1" data-bom-current-version>' +
-            encode(publishedText) + '</span>';
+            encode(publishedText) + '</span></span>';
     }
 
     function productStatusText(status) {
@@ -47,21 +52,24 @@
 
     function actionsHtml(row) {
         var buttons = [
-            '<a class="btn btn-sm btn-outline-secondary" href="' + abp.appPath + 'Bom/Product/' +
-            encodeURIComponent(row.productId) + '">' + encode(openHistoryText) + '</a>'
+            '<a class="btn btn-sm btn-outline-secondary" title="' + encode(openHistoryText) +
+            '" href="' + abp.appPath + 'Bom/Product/' +
+            encodeURIComponent(row.productId) + '">' + encode(openHistoryShortText) + '</a>'
         ];
 
         if (canCreate) {
-            buttons.push('<a class="btn btn-sm btn-outline-primary" href="' + abp.appPath + 'Bom/Create/' +
-                encodeURIComponent(row.productId) + '">' + encode(createVersionText) + '</a>');
+            buttons.push('<a class="btn btn-sm btn-outline-primary" title="' + encode(createVersionText) +
+                '" href="' + abp.appPath + 'Bom/Create/' +
+                encodeURIComponent(row.productId) + '">' + encode(createVersionShortText) + '</a>');
         }
 
         if (row.currentVersion) {
-            buttons.push('<a class="btn btn-sm btn-outline-secondary" href="' + abp.appPath + 'Bom/Details/' +
-                encodeURIComponent(row.currentVersion.id) + '">' + encode(viewCurrentVersionText) + '</a>');
+            buttons.push('<a class="btn btn-sm btn-outline-secondary" title="' + encode(viewCurrentVersionText) +
+                '" href="' + abp.appPath + 'Bom/Details/' +
+                encodeURIComponent(row.currentVersion.id) + '">' + encode(viewCurrentVersionShortText) + '</a>');
         }
 
-        return buttons.join(' ');
+        return '<div class="bom-action-group">' + buttons.join('') + '</div>';
     }
 
     var dataTable = $(tableSelector).DataTable(abp.libs.datatables.normalizeConfiguration({
@@ -85,22 +93,26 @@
         columnDefs: [
             {
                 data: null,
+                className: 'bom-product-column',
                 render: function (_data, _type, row) {
                     return productHtml(row);
                 }
             },
             {
                 data: 'productStatus',
+                className: 'bom-status-column',
                 render: function (data) {
                     return encode(productStatusText(data));
                 }
             },
             {
-                data: 'versionCount'
+                data: 'versionCount',
+                className: 'text-center bom-version-count-column'
             },
             {
                 data: null,
                 orderable: false,
+                className: 'bom-current-version-column',
                 render: function (_data, _type, row) {
                     return currentVersionHtml(row);
                 }
@@ -108,15 +120,15 @@
             {
                 data: 'standardCostRange',
                 orderable: false,
-                className: 'text-end text-nowrap',
+                className: 'text-end bom-standard-cost-column',
                 render: function (data) {
-                    return encode(data);
+                    return '<span class="bom-standard-cost-cell">' + encode(data) + '</span>';
                 }
             },
             {
                 data: null,
                 orderable: false,
-                className: 'text-end',
+                className: 'text-end bom-actions-column',
                 render: function (_data, _type, row) {
                     return actionsHtml(row);
                 }

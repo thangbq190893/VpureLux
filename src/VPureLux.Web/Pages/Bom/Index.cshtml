@@ -10,6 +10,10 @@
     <abp-script src="/Pages/Bom/Index.js" />
 }
 
+@section styles {
+    <abp-style src="/Pages/Bom/Index.css" />
+}
+
 <div data-bom-index
      data-can-create="@canCreate"></div>
 
@@ -31,7 +35,7 @@
                 </div>
             </form>
 
-            <abp-table id="BomProductsTable" striped-rows="true" class="vpl-table-dense" data-bom-summary-table>
+            <abp-table id="BomProductsTable" striped-rows="true" class="vpl-table-dense bom-summary-table" data-bom-summary-table>
                 <thead>
                 <tr>
                     <th>@L["Bom:Product"]</th>
