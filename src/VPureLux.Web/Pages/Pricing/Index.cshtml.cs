@@ -25,6 +25,7 @@ public class IndexModel : VPureLuxPageModel
 
     public bool CanViewComponentHistory { get; private set; }
     public bool CanViewProductHistory { get; private set; }
+    public bool CanCreateProductSuggestedPrice { get; private set; }
 
     public IndexModel(
         IComponentAppService componentAppService,
@@ -116,7 +117,8 @@ public class IndexModel : VPureLuxPageModel
                 context.HasMissingComponentSuggestedPrices,
                 context.ComponentBuildPrice,
                 context.CurrentProductSuggestedPrice,
-                context.Difference);
+                context.Difference,
+                product.Status == CatalogItemStatus.Active);
         }).ToList();
 
         return new JsonResult(new PagedResultDto<ProductPricingListRow>(products.TotalCount, rows));
@@ -132,6 +134,10 @@ public class IndexModel : VPureLuxPageModel
             User,
             null,
             VPureLuxPermissions.Pricing.History)).Succeeded;
+        CanCreateProductSuggestedPrice = (await _authorizationService.AuthorizeAsync(
+            User,
+            null,
+            VPureLuxPermissions.Pricing.ProductSuggestedPrices.Create)).Succeeded;
     }
 
     public sealed record ComponentPricingListRow(
@@ -151,5 +157,6 @@ public class IndexModel : VPureLuxPageModel
         bool HasMissingComponentSuggestedPrices,
         decimal? ComponentBuildPrice,
         decimal? CurrentProductSuggestedPrice,
-        decimal? Difference);
+        decimal? Difference,
+        bool CanCreateSuggestedPrice);
 }

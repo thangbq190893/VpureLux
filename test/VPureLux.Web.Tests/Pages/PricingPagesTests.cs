@@ -158,7 +158,8 @@ public class PricingPagesTests : VPureLuxWebTestBase
         rows.Items.ShouldContain(x =>
             x.ProductId == product.Id &&
             !x.HasPublishedBom &&
-            !x.CurrentProductSuggestedPrice.HasValue);
+            !x.CurrentProductSuggestedPrice.HasValue &&
+            x.CanCreateSuggestedPrice);
     }
 
     [Fact]
@@ -232,6 +233,8 @@ public class PricingPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("handler=ProductList");
         scriptSource.ShouldContain("PricingComponentsClearButton");
         scriptSource.ShouldContain("PricingProductsClearButton");
+        scriptSource.ShouldContain("Pricing/Products/Create/");
+        scriptSource.ShouldContain("Pricing:CreateNewVersion");
         scriptSource.IndexOf("select2", StringComparison.OrdinalIgnoreCase).ShouldBe(-1);
     }
 

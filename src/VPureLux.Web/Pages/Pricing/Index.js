@@ -8,6 +8,7 @@
 
     const canViewComponentHistory = page.dataset.canViewComponentHistory === 'true';
     const canViewProductHistory = page.dataset.canViewProductHistory === 'true';
+    const canCreateProductSuggestedPrice = page.dataset.canCreateProductSuggestedPrice === 'true';
     const $componentKeyword = $('#PricingComponentsKeyword');
     const $productKeyword = $('#PricingProductsKeyword');
 
@@ -32,6 +33,28 @@
 
         return '<a class="btn btn-sm btn-outline-secondary" href="' + url + '">' +
             encode(l('Pricing:OpenHistory')) + '</a>';
+    }
+
+    function productActions(row) {
+        const actions = [];
+
+        if (canCreateProductSuggestedPrice && row.canCreateSuggestedPrice) {
+            actions.push('<a class="btn btn-sm btn-primary" href="' +
+                abp.appPath + 'Pricing/Products/Create/' + encodeURIComponent(row.productId) + '">' +
+                encode(l('Pricing:CreateNewVersion')) + '</a>');
+        }
+
+        const historyLink = actionLink(
+            abp.appPath + 'Pricing/Products/' + encodeURIComponent(row.productId),
+            canViewProductHistory);
+
+        if (historyLink) {
+            actions.push(historyLink);
+        }
+
+        return actions.length
+            ? '<div class="d-inline-flex gap-1 justify-content-end">' + actions.join('') + '</div>'
+            : '';
     }
 
     const componentTable = $('#PricingComponentsTable').DataTable(abp.libs.datatables.normalizeConfiguration({
@@ -168,9 +191,7 @@
                 orderable: false,
                 className: 'text-end text-nowrap',
                 render: function (_data, _type, row) {
-                    return actionLink(
-                        abp.appPath + 'Pricing/Products/' + encodeURIComponent(row.productId),
-                        canViewProductHistory);
+                    return productActions(row);
                 }
             }
         ]
