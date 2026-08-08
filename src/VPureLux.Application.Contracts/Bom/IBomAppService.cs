@@ -20,4 +20,6 @@ public interface IBomAppService : IApplicationService
     Task ArchiveAsync(Guid id);
 
     Task<CloneBomVersionResultDto> CloneAsync(Guid id, CloneBomVersionDto input);
+
+    Task<CloneBomVersionResultDto> CreateEditableDraftFromCurrentAsync(Guid id);
 }

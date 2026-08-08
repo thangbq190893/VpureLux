@@ -120,6 +120,20 @@
                             {
                                 <a class="btn btn-sm btn-outline-primary" asp-page="/Bom/Edit" asp-route-id="@version.Id">@L["Edit"]</a>
                             }
+                            @if (Model.CanCreate &&
+                                 version.Status == VPureLux.Bom.BomStatus.Published &&
+                                 Model.CurrentPublishedVersionId == version.Id)
+                            {
+                                <form method="post"
+                                      asp-page-handler="EditCurrent"
+                                      asp-route-id="@version.Id"
+                                      class="d-inline"
+                                      data-bom-action-form
+                                      data-confirm-message="@L["Bom:ConfirmEditCurrentVersion"]"
+                                      data-error-message="@L["Bom:ActionFailed"]">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">@L["Bom:EditCurrentVersion"]</button>
+                                </form>
+                            }
                             @if (Model.CanCreate)
                             {
                                 <a class="btn btn-sm btn-outline-secondary" asp-page="/Bom/Clone" asp-route-id="@version.Id">@L["Bom:Clone"]</a>

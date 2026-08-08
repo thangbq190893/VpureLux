@@ -81,6 +81,21 @@ public class ProductModel : VPureLuxPageModel
         }
     }
 
+    public async Task<IActionResult> OnPostEditCurrentAsync(Guid id)
+    {
+        try
+        {
+            var result = await _bomAppService.CreateEditableDraftFromCurrentAsync(id);
+            return RedirectToPage("/Bom/Edit", new { id = result.NewBomVersionId });
+        }
+        catch (BusinessException exception)
+        {
+            AddBusinessError(exception);
+            await LoadPageAsync();
+            return Page();
+        }
+    }
+
     private async Task LoadPageAsync()
     {
         await LoadProductLabelAsync();

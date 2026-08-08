@@ -128,6 +128,40 @@ public class BomAppService : ApplicationService, IBomAppService
         };
     }
 
+    [Authorize(VPureLuxPermissions.Bom.Create)]
+    public async Task<CloneBomVersionResultDto> CreateEditableDraftFromCurrentAsync(Guid id)
+    {
+        var source = await GetBomVersionAsync(id);
+        if (source.Status != BomStatus.Published)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.ValidationFailed)
+                .WithData(nameof(id), id);
+        }
+
+        await _catalogValidator.ValidateActiveProductAsync(source.ProductId);
+        await _catalogValidator.ValidateActiveComponentsAsync(source.Items.Select(x => x.ComponentId));
+
+        var existingDraft = (await _bomVersionRepository.GetListByProductIdAsync(source.ProductId))
+            .Where(x => x.Status == BomStatus.Draft)
+            .OrderByDescending(x => x.VersionNo)
+            .FirstOrDefault();
+        if (existingDraft != null)
+        {
+            return new CloneBomVersionResultDto
+            {
+                NewBomVersionId = existingDraft.Id
+            };
+        }
+
+        var clone = await _bomManager.CloneAsync(source, source.EffectiveFrom);
+        await _bomVersionRepository.InsertAsync(clone, autoSave: true);
+
+        return new CloneBomVersionResultDto
+        {
+            NewBomVersionId = clone.Id
+        };
+    }
+
     private async Task<BomVersion> GetBomVersionAsync(Guid id)
     {
         var bomVersion = await _bomVersionRepository.FindAsync(id, includeDetails: true);

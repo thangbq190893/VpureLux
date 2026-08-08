@@ -98,6 +98,54 @@ public class BomAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     [Fact]
+    public async Task Should_Create_Editable_Draft_From_Current_And_Preserve_Item_Order()
+    {
+        var product = await CreateProductAsync();
+        var firstComponent = await CreateComponentAsync();
+        var secondComponent = await CreateComponentAsync();
+        var thirdComponent = await CreateComponentAsync();
+        var effectiveFrom = DateTime.UtcNow.Date.AddDays(-7);
+        var published = await _bomAppService.CreateAsync(product.Id, new CreateBomVersionDto
+        {
+            EffectiveFrom = effectiveFrom,
+            Items =
+            [
+                new CreateBomItemDto { ComponentId = thirdComponent.Id, Quantity = 3 },
+                new CreateBomItemDto { ComponentId = firstComponent.Id, Quantity = 1 },
+                new CreateBomItemDto { ComponentId = secondComponent.Id, Quantity = 2 }
+            ]
+        });
+        await _bomAppService.PublishAsync(published.Id);
+
+        var result = await _bomAppService.CreateEditableDraftFromCurrentAsync(published.Id);
+
+        var draft = await _bomAppService.GetAsync(result.NewBomVersionId);
+        draft.Status.ShouldBe(BomStatus.Draft);
+        draft.VersionNo.ShouldBe(published.VersionNo + 1);
+        draft.EffectiveFrom.ShouldBe(effectiveFrom);
+        draft.Items.Select(x => x.ComponentId).ShouldBe([thirdComponent.Id, firstComponent.Id, secondComponent.Id]);
+        draft.Items.Select(x => x.LineNo).ShouldBe([1, 2, 3]);
+        draft.Items.Select(x => x.Quantity).ShouldBe([3m, 1m, 2m]);
+        (await _bomAppService.GetAsync(published.Id)).Status.ShouldBe(BomStatus.Published);
+    }
+
+    [Fact]
+    public async Task Should_Reuse_Existing_Draft_When_Creating_Editable_Draft_From_Current()
+    {
+        var product = await CreateProductAsync();
+        var component = await CreateComponentAsync();
+        var published = await _bomAppService.CreateAsync(product.Id, CreateInput(component.Id));
+        await _bomAppService.PublishAsync(published.Id);
+        var existingDraft = await _bomAppService.CreateAsync(product.Id, CreateInput(component.Id, quantity: 2));
+
+        var result = await _bomAppService.CreateEditableDraftFromCurrentAsync(published.Id);
+
+        result.NewBomVersionId.ShouldBe(existingDraft.Id);
+        var versions = await _bomAppService.GetListAsync(product.Id);
+        versions.Count(x => x.Status == BomStatus.Draft).ShouldBe(1);
+    }
+
+    [Fact]
     public async Task Should_Reject_Published_Edit_With_Documented_Error()
     {
         var bom = await CreateBomAsync();

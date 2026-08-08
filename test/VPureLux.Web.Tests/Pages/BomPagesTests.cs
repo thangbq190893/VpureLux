@@ -195,6 +195,8 @@ public class BomPagesTests : VPureLuxWebTestBase
         await bomService.PublishAsync(draft.Id);
         var publishedHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom/Product/{product.Id}"));
         publishedHtml.ShouldContain(localizer["Bom:ConfirmArchive"].Value);
+        publishedHtml.ShouldContain(localizer["Bom:ConfirmEditCurrentVersion"].Value);
+        publishedHtml.ShouldContain(localizer["Bom:EditCurrentVersion"].Value);
         publishedHtml.ShouldContain(localizer["Bom:Status:Published"].Value);
         publishedHtml.ShouldContain(localizer["Bom:CurrentVersionBadge"].Value);
         publishedHtml.ShouldNotContain(localizer["Bom:ConfirmPublish"].Value);
@@ -246,6 +248,45 @@ public class BomPagesTests : VPureLuxWebTestBase
         productHtml.ShouldContain(localizer["Bom:Status:Published"].Value);
         productHtml.ShouldContain(localizer["Bom:CurrentVersionBadge"].Value);
         productHtml.ShouldNotContain(localizer["Bom:ConfirmPublish"].Value);
+    }
+
+    [Fact]
+    public async Task Bom_Product_OnPostEditCurrentAsync_Should_Create_Draft_And_Redirect_To_Edit()
+    {
+        var product = await CreateProductAsync("BOM-EDIT-CURRENT-P", "BOM Edit Current Product");
+        var firstComponent = await CreateComponentAsync("BOM-EDIT-CURRENT-C1", "BOM Edit Current Component 1");
+        var secondComponent = await CreateComponentAsync("BOM-EDIT-CURRENT-C2", "BOM Edit Current Component 2");
+        var bomService = GetRequiredService<IBomAppService>();
+        var published = await bomService.CreateAsync(product.Id, new CreateBomVersionDto
+        {
+            EffectiveFrom = DateTime.Today.AddDays(-3),
+            Items =
+            [
+                new CreateBomItemDto { ComponentId = secondComponent.Id, Quantity = 2 },
+                new CreateBomItemDto { ComponentId = firstComponent.Id, Quantity = 1 }
+            ]
+        });
+        await bomService.PublishAsync(published.Id);
+        var model = new ProductModel(
+            bomService,
+            GetRequiredService<IProductAppService>(),
+            GetRequiredService<IProductPricingContextLookupService>(),
+            GetRequiredService<IAuthorizationService>())
+        {
+            ProductId = product.Id
+        };
+        SetPageContext(model);
+
+        var result = await model.OnPostEditCurrentAsync(published.Id);
+
+        var redirect = result.ShouldBeOfType<RedirectToPageResult>();
+        redirect.PageName.ShouldBe("/Bom/Edit");
+        var draftId = redirect.RouteValues!["id"].ShouldBeOfType<Guid>();
+        var draft = await bomService.GetAsync(draftId);
+        draft.Status.ShouldBe(BomStatus.Draft);
+        draft.Items.Select(x => x.ComponentId).ShouldBe([secondComponent.Id, firstComponent.Id]);
+        draft.Items.Select(x => x.LineNo).ShouldBe([1, 2]);
+        (await bomService.GetAsync(published.Id)).Status.ShouldBe(BomStatus.Published);
     }
 
     [Fact]
