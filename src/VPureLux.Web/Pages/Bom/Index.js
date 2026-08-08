@@ -26,10 +26,32 @@
         return $('<div/>').text(value || '').html();
     }
 
+    function compactText(value, maxLength) {
+        var text = value || '';
+        var breakIndex;
+        var compacted;
+
+        if (text.length <= maxLength) {
+            return text;
+        }
+
+        compacted = text.substring(0, maxLength + 1);
+        breakIndex = compacted.lastIndexOf(' ');
+        if (breakIndex > 40) {
+            compacted = compacted.substring(0, breakIndex);
+        } else {
+            compacted = compacted.substring(0, maxLength);
+        }
+
+        return compacted.replace(/\s+$/, '') + '...';
+    }
+
     function productHtml(row) {
+        var productName = row.productName || '';
         return '<div class="bom-product-cell">' +
             '<strong class="bom-product-code">' + encode(row.productCode) + '</strong>' +
-            '<span class="text-muted bom-product-name">' + encode(row.productName) + '</span>' +
+            '<span class="text-muted bom-product-name" title="' + encode(productName) + '">' +
+            encode(compactText(productName, 76)) + '</span>' +
             '</div>';
     }
 
@@ -104,7 +126,7 @@
             {
                 data: null,
                 className: 'bom-product-column',
-                width: '54%',
+                width: '40%',
                 render: function (_data, _type, row) {
                     return productHtml(row);
                 }
@@ -113,7 +135,7 @@
                 data: null,
                 orderable: false,
                 className: 'bom-state-column',
-                width: '18%',
+                width: '20%',
                 render: function (_data, _type, row) {
                     return bomStateHtml(row);
                 }
@@ -122,7 +144,7 @@
                 data: 'standardCostRange',
                 orderable: false,
                 className: 'bom-standard-cost-column',
-                width: '16%',
+                width: '25%',
                 render: function (data) {
                     return '<span class="bom-standard-cost-cell">' + encode(data) + '</span>';
                 }
@@ -131,7 +153,7 @@
                 data: null,
                 orderable: false,
                 className: 'text-end bom-actions-column',
-                width: '12%',
+                width: '15%',
                 render: function (_data, _type, row) {
                     return actionsHtml(row);
                 }

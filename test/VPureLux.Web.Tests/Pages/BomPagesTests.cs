@@ -89,8 +89,10 @@ public class BomPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("bom-state-cell");
         scriptSource.ShouldContain("bom-action-group");
         scriptSource.ShouldContain("bom-standard-cost-cell");
-        scriptSource.ShouldContain("width: '54%'");
-        scriptSource.ShouldContain("width: '12%'");
+        scriptSource.ShouldContain("compactText(productName, 76)");
+        scriptSource.ShouldContain("title=\"");
+        scriptSource.ShouldContain("width: '40%'");
+        scriptSource.ShouldContain("width: '25%'");
         scriptSource.ShouldNotContain("text-end bom-standard-cost-column");
         scriptSource.ShouldContain("Bom/Product/");
         scriptSource.ShouldContain("Bom/Create/");
@@ -107,7 +109,9 @@ public class BomPagesTests : VPureLuxWebTestBase
         cssSource.ShouldContain("white-space: normal");
         cssSource.ShouldContain("white-space: normal !important");
         cssSource.ShouldContain("word-break: break-word");
-        cssSource.ShouldContain("width: 54%");
+        cssSource.ShouldContain("-webkit-line-clamp: 2");
+        cssSource.ShouldContain("text-overflow: ellipsis");
+        cssSource.ShouldContain("width: 40%");
         cssSource.ShouldContain(".bom-state-column");
         cssSource.ShouldContain(".bom-action-group");
         cssSource.ShouldContain("flex-wrap: wrap");

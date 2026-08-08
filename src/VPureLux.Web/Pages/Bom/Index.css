@@ -22,20 +22,20 @@
 }
 
 .bom-product-column {
-    width: 54%;
+    width: 40%;
 }
 
 .bom-state-column {
-    width: 18%;
+    width: 20%;
 }
 
 .bom-standard-cost-column {
-    width: 16%;
+    width: 25%;
     text-align: left !important;
 }
 
 .bom-actions-column {
-    width: 12%;
+    width: 15%;
 }
 
 .bom-product-cell {
@@ -54,11 +54,16 @@
 }
 
 .bom-product-name {
-    display: block;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    display: -webkit-box;
     line-height: 1.35;
-    overflow-wrap: anywhere;
-    white-space: normal !important;
-    word-break: break-word;
+    max-width: 100%;
+    overflow: hidden;
+    overflow-wrap: normal;
+    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: normal;
 }
 
 .bom-state-cell {
@@ -110,18 +115,18 @@
 
 @media (max-width: 1199.98px) {
     .bom-product-column {
-        width: 50%;
+        width: 42%;
     }
 
     .bom-state-column {
-        width: 20%;
+        width: 21%;
     }
 
     .bom-standard-cost-column {
-        width: 17%;
+        width: 22%;
     }
 
     .bom-actions-column {
-        width: 13%;
+        width: 15%;
     }
 }
