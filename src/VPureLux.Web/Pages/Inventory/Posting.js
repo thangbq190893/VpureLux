@@ -351,6 +351,18 @@
             input.value = formatVndValue(input.value);
         });
 
+        document.addEventListener('input', function (event) {
+            if (!event.target || !event.target.matches('[data-vnd-money]')) {
+                return;
+            }
+
+            var formatted = formatVndValue(event.target.value);
+
+            if (event.target.value !== formatted) {
+                event.target.value = formatted;
+            }
+        });
+
         document.addEventListener('blur', function (event) {
             if (!event.target || !event.target.matches('[data-vnd-money]')) {
                 return;
