@@ -1,5 +1,5 @@
 (function () {
-    const l = abp.localization.getResource('VPureLux');
+    var localize = abp.localization.getResource('VPureLux');
     const page = document.querySelector('[data-pricing-index]');
 
     if (!page) {
@@ -8,9 +8,17 @@
 
     const canViewComponentHistory = page.dataset.canViewComponentHistory === 'true';
     const canViewProductHistory = page.dataset.canViewProductHistory === 'true';
+    const canCreateComponentSuggestedPrice = page.dataset.canCreateComponentSuggestedPrice === 'true';
     const canCreateProductSuggestedPrice = page.dataset.canCreateProductSuggestedPrice === 'true';
     const $componentKeyword = $('#PricingComponentsKeyword');
     const $productKeyword = $('#PricingProductsKeyword');
+    const createNewVersionText = localize('Pricing:CreateNewVersion');
+    const openHistoryText = localize('Pricing:OpenHistory');
+    const noComponentSuggestedPriceText = localize('Pricing:NoComponentSuggestedPrice');
+    const publishedBomText = localize('Pricing:PublishedBom');
+    const noPublishedBomText = localize('Pricing:NoPublishedBom');
+    const missingComponentPricesText = localize('Pricing:MissingComponentPrices');
+    const noProductSuggestedPriceText = localize('Pricing:NoProductSuggestedPrice');
 
     function encode(value) {
         return $('<div/>').text(value || '').html();
@@ -26,32 +34,62 @@
         }).format(value) + ' ' + (currency || 'VND');
     }
 
-    function actionLink(url, visible) {
+    function actionLink(url, visible, text, buttonClass) {
         if (!visible) {
             return '';
         }
 
-        return '<a class="btn btn-sm btn-outline-secondary" href="' + url + '">' +
-            encode(l('Pricing:OpenHistory')) + '</a>';
+        return '<a class="btn btn-sm ' + encode(buttonClass || 'btn-outline-secondary') + '" href="' + url + '">' +
+            encode(text) + '</a>';
+    }
+
+    function componentActions(row) {
+        const actions = [];
+
+        if (canCreateComponentSuggestedPrice && row.canCreateSuggestedPrice) {
+            actions.push(actionLink(
+                abp.appPath + 'Pricing/Components/Create/' + encodeURIComponent(row.componentId),
+                true,
+                createNewVersionText,
+                'btn-primary'));
+        }
+
+        const historyLink = actionLink(
+            abp.appPath + 'Pricing/Components/' + encodeURIComponent(row.componentId),
+            canViewComponentHistory,
+            openHistoryText);
+
+        if (historyLink) {
+            actions.push(historyLink);
+        }
+
+        return renderActions(actions);
     }
 
     function productActions(row) {
         const actions = [];
 
         if (canCreateProductSuggestedPrice && row.canCreateSuggestedPrice) {
-            actions.push('<a class="btn btn-sm btn-primary" href="' +
-                abp.appPath + 'Pricing/Products/Create/' + encodeURIComponent(row.productId) + '">' +
-                encode(l('Pricing:CreateNewVersion')) + '</a>');
+            actions.push(actionLink(
+                abp.appPath + 'Pricing/Products/Create/' + encodeURIComponent(row.productId),
+                true,
+                createNewVersionText,
+                'btn-primary'));
         }
 
         const historyLink = actionLink(
             abp.appPath + 'Pricing/Products/' + encodeURIComponent(row.productId),
-            canViewProductHistory);
+            canViewProductHistory,
+            openHistoryText);
 
         if (historyLink) {
             actions.push(historyLink);
         }
 
+        return renderActions(actions);
+    }
+
+    function renderActions(actions) {
         return actions.length
             ? '<div class="d-inline-flex gap-1 justify-content-end">' + actions.join('') + '</div>'
             : '';
@@ -94,7 +132,7 @@
                 render: function (_data, _type, row) {
                     const price = formatMoney(row.currentSuggestedSellingPrice, row.currency);
                     return price === null
-                        ? '<span class="text-muted">' + encode(l('Pricing:NoComponentSuggestedPrice')) + '</span>'
+                        ? '<span class="text-muted">' + encode(noComponentSuggestedPriceText) + '</span>'
                         : encode(price);
                 }
             },
@@ -110,9 +148,7 @@
                 orderable: false,
                 className: 'text-end text-nowrap',
                 render: function (_data, _type, row) {
-                    return actionLink(
-                        abp.appPath + 'Pricing/Components/' + encodeURIComponent(row.componentId),
-                        canViewComponentHistory);
+                    return componentActions(row);
                 }
             }
         ]
@@ -153,8 +189,8 @@
                 data: 'hasPublishedBom',
                 render: function (data) {
                     return data
-                        ? '<span class="badge bg-success">' + encode(l('Pricing:PublishedBom')) + '</span>'
-                        : '<span class="badge bg-warning text-dark">' + encode(l('Pricing:NoPublishedBom')) + '</span>';
+                        ? '<span class="badge bg-success">' + encode(publishedBomText) + '</span>'
+                        : '<span class="badge bg-warning text-dark">' + encode(noPublishedBomText) + '</span>';
                 }
             },
             {
@@ -162,11 +198,11 @@
                 className: 'text-end text-nowrap',
                 render: function (_data, _type, row) {
                     if (!row.hasPublishedBom) {
-                        return '<span class="text-muted">' + encode(l('Pricing:NoPublishedBom')) + '</span>';
+                        return '<span class="text-muted">' + encode(noPublishedBomText) + '</span>';
                     }
 
                     if (row.hasMissingComponentSuggestedPrices) {
-                        return '<span class="text-warning">' + encode(l('Pricing:MissingComponentPrices')) + '</span>';
+                        return '<span class="text-warning">' + encode(missingComponentPricesText) + '</span>';
                     }
 
                     return encode(formatMoney(row.componentBuildPrice, 'VND') || '-');
@@ -176,7 +212,7 @@
                 data: 'currentProductSuggestedPrice',
                 className: 'text-end text-nowrap',
                 render: function (data) {
-                    return encode(formatMoney(data, 'VND') || l('Pricing:NoProductSuggestedPrice'));
+                    return encode(formatMoney(data, 'VND') || noProductSuggestedPriceText);
                 }
             },
             {

@@ -191,7 +191,8 @@ public class PricingPagesTests : VPureLuxWebTestBase
             x.EffectiveFrom == effectiveFrom.ToString("dd/MM/yyyy", CultureInfo.GetCultureInfo("vi-VN")));
         noPriceRows.Items.ShouldContain(x =>
             x.ComponentId == componentWithoutPrice.Id &&
-            !x.HasCurrentSuggestedSellingPrice);
+            !x.HasCurrentSuggestedSellingPrice &&
+            x.CanCreateSuggestedPrice);
         localizer["Pricing:NoComponentSuggestedPrice"].Value.ShouldNotBeNullOrWhiteSpace();
     }
 
@@ -233,8 +234,10 @@ public class PricingPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("handler=ProductList");
         scriptSource.ShouldContain("PricingComponentsClearButton");
         scriptSource.ShouldContain("PricingProductsClearButton");
+        scriptSource.ShouldContain("Pricing/Components/Create/");
         scriptSource.ShouldContain("Pricing/Products/Create/");
         scriptSource.ShouldContain("Pricing:CreateNewVersion");
+        scriptSource.ShouldNotContain("encode(l(");
         scriptSource.IndexOf("select2", StringComparison.OrdinalIgnoreCase).ShouldBe(-1);
     }
 

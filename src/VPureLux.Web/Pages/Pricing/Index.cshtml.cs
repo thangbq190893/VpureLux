@@ -25,6 +25,7 @@ public class IndexModel : VPureLuxPageModel
 
     public bool CanViewComponentHistory { get; private set; }
     public bool CanViewProductHistory { get; private set; }
+    public bool CanCreateComponentSuggestedPrice { get; private set; }
     public bool CanCreateProductSuggestedPrice { get; private set; }
 
     public IndexModel(
@@ -75,7 +76,8 @@ public class IndexModel : VPureLuxPageModel
                 price?.Price,
                 price?.Currency ?? PricingConsts.Currency,
                 price == null ? L["Pricing:NoVersion"].Value : PricingDateUi.Format(price.EffectiveFrom),
-                price != null);
+                price != null,
+                component.Status == CatalogItemStatus.Active);
         }).ToList();
 
         return new JsonResult(new PagedResultDto<ComponentPricingListRow>(components.TotalCount, rows));
@@ -134,6 +136,10 @@ public class IndexModel : VPureLuxPageModel
             User,
             null,
             VPureLuxPermissions.Pricing.History)).Succeeded;
+        CanCreateComponentSuggestedPrice = (await _authorizationService.AuthorizeAsync(
+            User,
+            null,
+            VPureLuxPermissions.Pricing.ComponentSuggestedSellingPrices.Create)).Succeeded;
         CanCreateProductSuggestedPrice = (await _authorizationService.AuthorizeAsync(
             User,
             null,
@@ -147,7 +153,8 @@ public class IndexModel : VPureLuxPageModel
         decimal? CurrentSuggestedSellingPrice,
         string Currency,
         string EffectiveFrom,
-        bool HasCurrentSuggestedSellingPrice);
+        bool HasCurrentSuggestedSellingPrice,
+        bool CanCreateSuggestedPrice);
 
     public sealed record ProductPricingListRow(
         Guid ProductId,
