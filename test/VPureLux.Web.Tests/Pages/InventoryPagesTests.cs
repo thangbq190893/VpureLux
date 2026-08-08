@@ -20,6 +20,7 @@ using VPureLux.Catalog.Components;
 using VPureLux.Catalog.Products;
 using VPureLux.Inventory;
 using VPureLux.Localization;
+using VPureLux.Permissions;
 using VPureLux.Suppliers;
 using VPureLux.Web.Pages.Inventory;
 using Volo.Abp.DependencyInjection;
@@ -1516,14 +1517,66 @@ public class InventoryPagesTests : VPureLuxWebTestBase
 
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync(
             $"/Inventory/Lots?WarehouseId={context.WarehouseId}&StockItemId={context.StockItemId}"));
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Lots.cshtml"));
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Lots.js"));
         var rows = await GetLotsRowsAsync(context.WarehouseId, context.StockItemId);
 
         html.ShouldContain(localizer["Inventory:ReceiptLotHistory"].Value);
         html.ShouldContain(localizer["Inventory:ReceivedQuantity"].Value);
         html.ShouldContain(localizer["Inventory:ReceiptValue"].Value);
+        html.ShouldContain(localizer["Inventory:UpdateLotSupplier"].Value);
+        html.ShouldContain("data-inventory-lots-page");
+        pageSource.ShouldContain("data-can-update-supplier");
+        scriptSource.ShouldContain("Inventory:UpdateSupplierShort");
+        scriptSource.ShouldContain("data-update-lot-supplier");
         rows.Items.Any(x => x.ReceivedQuantity == "11").ShouldBeTrue();
         rows.Items.Any(x => x.UnitCost == 12345m.ToString("#,0", vi) + " ₫").ShouldBeTrue();
         rows.Items.Any(x => x.ReceiptValue == (12345m * 11).ToString("#,0", vi) + " ₫").ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Lots_Page_Should_Update_Supplier_For_Existing_Lot()
+    {
+        var context = await CreateInquiryFilterContextAsync("LOT-SUP-UPD");
+        await GetRequiredService<IInventoryTransactionAppService>().PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 2,
+                    UnitCost = 1000,
+                    ReceivedAt = new DateTime(2026, 6, 18)
+                }
+            ]
+        });
+        var supplier = await GetRequiredService<ISupplierAppService>().CreateAsync(new CreateSupplierDto
+        {
+            Code = Unique("SUP-LOT"),
+            Name = "Lot Supplier"
+        });
+        var lotId = (await GetLotsRowsAsync(context.WarehouseId, context.StockItemId)).Items.Single().Id;
+        var authorization = Substitute.For<IAuthorizationService>();
+        authorization.AuthorizeAsync(Arg.Any<ClaimsPrincipal>(), Arg.Any<object?>(), VPureLuxPermissions.Inventory.Receive)
+            .Returns(AuthorizationResult.Success());
+        var model = new LotsModel(
+            GetRequiredService<IInventoryQueryAppService>(),
+            GetRequiredService<IInventoryLotAppService>(),
+            GetRequiredService<IWarehouseAppService>(),
+            GetRequiredService<IStockItemAppService>(),
+            GetRequiredService<ISupplierAppService>(),
+            authorization);
+        SetPageContext(model);
+
+        var result = await model.OnPostUpdateSupplierAsync(lotId, supplier.Id);
+
+        result.ShouldBeOfType<NoContentResult>();
+        var rows = await GetLotsRowsAsync(context.WarehouseId, context.StockItemId);
+        rows.Items.Single().Supplier.ShouldBe($"{supplier.Code} - {supplier.Name}");
+        rows.Items.Single().SupplierId.ShouldBe(supplier.Id);
     }
 
     [Fact]
@@ -1699,7 +1752,11 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         stockItems.GetListAsync(Arg.Any<GetInventoryListInput>())
             .Returns(new PagedResultDto<StockItemDto>());
 
-        var model = new LotsModel(query, warehouses, stockItems)
+        var lotAppService = Substitute.For<IInventoryLotAppService>();
+        var suppliers = Substitute.For<ISupplierAppService>();
+        var authorization = Substitute.For<IAuthorizationService>();
+
+        var model = new LotsModel(query, lotAppService, warehouses, stockItems, suppliers, authorization)
         {
             WarehouseId = warehouseId,
             StockItemId = stockItemId
@@ -1879,8 +1936,11 @@ public class InventoryPagesTests : VPureLuxWebTestBase
     {
         var model = new LotsModel(
             GetRequiredService<IInventoryQueryAppService>(),
+            GetRequiredService<IInventoryLotAppService>(),
             GetRequiredService<IWarehouseAppService>(),
-            GetRequiredService<IStockItemAppService>());
+            GetRequiredService<IStockItemAppService>(),
+            GetRequiredService<ISupplierAppService>(),
+            GetRequiredService<IAuthorizationService>());
         SetPageContext(model);
 
         var result = await model.OnGetListAsync(new LotsModel.InventoryInquiryListInput

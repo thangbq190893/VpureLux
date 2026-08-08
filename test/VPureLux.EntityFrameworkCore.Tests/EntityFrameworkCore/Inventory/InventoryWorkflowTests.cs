@@ -23,6 +23,7 @@ public class InventoryWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     private readonly IComponentRepository _componentRepository;
     private readonly IWarehouseAppService _warehouses;
     private readonly IInventoryTransactionAppService _transactions;
+    private readonly IInventoryLotAppService _lots;
     private readonly IInventoryQueryAppService _queries;
     private readonly ISupplierAppService _suppliers;
     private readonly IInventoryLotSupplierRepository _lotSuppliers;
@@ -36,6 +37,7 @@ public class InventoryWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         _componentRepository = GetRequiredService<IComponentRepository>();
         _warehouses = GetRequiredService<IWarehouseAppService>();
         _transactions = GetRequiredService<IInventoryTransactionAppService>();
+        _lots = GetRequiredService<IInventoryLotAppService>();
         _queries = GetRequiredService<IInventoryQueryAppService>();
         _suppliers = GetRequiredService<ISupplierAppService>();
         _lotSuppliers = GetRequiredService<IInventoryLotSupplierRepository>();
@@ -213,6 +215,29 @@ public class InventoryWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         links.Single().SupplierId.ShouldBe(supplier.Id);
         links.Single().SupplierCodeSnapshot.ShouldBe(supplier.Code);
         links.Single().SupplierNameSnapshot.ShouldBe(supplier.Name);
+    }
+
+    [Fact]
+    public async Task Existing_Receipt_Lot_Should_Allow_Supplier_Update()
+    {
+        var context = await CreateContextAsync();
+        await ReceiptAsync(context.WarehouseId, context.StockItemId, 3, 100, Unique("LOT-SUP-UPD"));
+        var supplier = await _suppliers.CreateAsync(new CreateSupplierDto
+        {
+            Code = Unique("SUP"),
+            Name = "Updated Lot Supplier"
+        });
+        var lot = (await _queries.GetLotsAsync(context.WarehouseId, context.StockItemId)).Single();
+
+        await _lots.UpdateSupplierAsync(lot.Id, new UpdateInventoryLotSupplierDto
+        {
+            SupplierId = supplier.Id
+        });
+
+        var updatedLot = (await _queries.GetLotsAsync(context.WarehouseId, context.StockItemId)).Single();
+        updatedLot.SupplierId.ShouldBe(supplier.Id);
+        updatedLot.SupplierCode.ShouldBe(supplier.Code);
+        updatedLot.SupplierName.ShouldBe(supplier.Name);
     }
 
     [Theory]

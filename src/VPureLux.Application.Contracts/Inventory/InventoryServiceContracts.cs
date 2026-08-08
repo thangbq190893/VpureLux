@@ -36,3 +36,8 @@ public interface IInventoryQueryAppService : IApplicationService
     Task<List<InventoryLotDto>> GetLotsAsync(Guid? warehouseId = null, Guid? stockItemId = null);
     Task<List<InventoryTransactionDto>> GetLedgerAsync(Guid? warehouseId = null, Guid? stockItemId = null);
 }
+
+public interface IInventoryLotAppService : IApplicationService
+{
+    Task<InventoryLotDto> UpdateSupplierAsync(Guid id, UpdateInventoryLotSupplierDto input);
+}

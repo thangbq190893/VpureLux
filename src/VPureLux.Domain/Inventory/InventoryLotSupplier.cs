@@ -1,4 +1,5 @@
 using System;
+using VPureLux.Suppliers;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
 
@@ -33,5 +34,18 @@ public class InventoryLotSupplier : FullAuditedEntity<Guid>
             supplierNameSnapshot,
             nameof(supplierNameSnapshot),
             Suppliers.SupplierConsts.MaxNameLength);
+    }
+
+    public void ChangeSupplier(Supplier supplier)
+    {
+        SupplierId = supplier.Id;
+        SupplierCodeSnapshot = Check.NotNullOrWhiteSpace(
+            supplier.Code,
+            nameof(supplier.Code),
+            SupplierConsts.MaxCodeLength);
+        SupplierNameSnapshot = Check.NotNullOrWhiteSpace(
+            supplier.Name,
+            nameof(supplier.Name),
+            SupplierConsts.MaxNameLength);
     }
 }

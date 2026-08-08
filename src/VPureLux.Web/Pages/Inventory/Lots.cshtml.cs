@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using VPureLux.Inventory;
 using VPureLux.Permissions;
+using VPureLux.Suppliers;
 using Volo.Abp.Application.Dtos;
 
 namespace VPureLux.Web.Pages.Inventory;
@@ -17,29 +18,41 @@ public class LotsModel : VPureLuxPageModel
     private static readonly System.Globalization.CultureInfo Vi = System.Globalization.CultureInfo.GetCultureInfo("vi-VN");
 
     private readonly IInventoryQueryAppService _service;
+    private readonly IInventoryLotAppService _lotAppService;
     private readonly IWarehouseAppService _warehouses;
     private readonly IStockItemAppService _stockItems;
+    private readonly ISupplierAppService _suppliers;
+    private readonly IAuthorizationService _authorizationService;
 
     [BindProperty(SupportsGet = true)] public Guid? WarehouseId { get; set; }
     [BindProperty(SupportsGet = true)] public Guid? StockItemId { get; set; }
 
     public List<SelectListItem> WarehouseOptions { get; private set; } = new();
     public List<SelectListItem> StockItemOptions { get; private set; } = new();
+    public List<SelectListItem> SupplierOptions { get; private set; } = new();
     public Dictionary<Guid, string> WarehouseLabels { get; private set; } = new();
     public Dictionary<Guid, string> StockItemLabels { get; private set; } = new();
+    public bool CanUpdateSupplier { get; private set; }
 
     public LotsModel(
         IInventoryQueryAppService service,
+        IInventoryLotAppService lotAppService,
         IWarehouseAppService warehouses,
-        IStockItemAppService stockItems)
+        IStockItemAppService stockItems,
+        ISupplierAppService suppliers,
+        IAuthorizationService authorizationService)
     {
         _service = service;
+        _lotAppService = lotAppService;
         _warehouses = warehouses;
         _stockItems = stockItems;
+        _suppliers = suppliers;
+        _authorizationService = authorizationService;
     }
 
     public async Task OnGetAsync()
     {
+        CanUpdateSupplier = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Inventory.Receive)).Succeeded;
         await LoadFilterOptionsAsync();
         await LoadLabelsAsync();
     }
@@ -56,17 +69,34 @@ public class LotsModel : VPureLuxPageModel
     }
 
     private InventoryLotRow ToRow(InventoryLotDto item) => new(
+        item.Id,
         item.LotNo,
         GetWarehouseLabel(item.WarehouseId),
         string.IsNullOrWhiteSpace(item.SupplierName)
             ? L["Inventory:NoSupplier"]
             : $"{item.SupplierCode} - {item.SupplierName}",
+        item.SupplierId,
         GetStockItemLabel(item.StockItemId),
         InventoryPostingUi.FormatDate(item.ReceivedAt),
         FormatQuantity(item.ReceivedQuantity),
         FormatQuantity(item.AvailableQuantity),
         FormatMoney(item.UnitCost),
         FormatMoney(item.ReceivedQuantity * item.UnitCost));
+
+    public async Task<IActionResult> OnPostUpdateSupplierAsync(Guid id, Guid supplierId)
+    {
+        if (!(await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Inventory.Receive)).Succeeded)
+        {
+            return Forbid();
+        }
+
+        await _lotAppService.UpdateSupplierAsync(id, new UpdateInventoryLotSupplierDto
+        {
+            SupplierId = supplierId
+        });
+
+        return new NoContentResult();
+    }
 
     private string GetWarehouseLabel(Guid id) =>
         WarehouseLabels.TryGetValue(id, out var label) ? label : L["Inventory:UnknownWarehouse"];
@@ -110,6 +140,15 @@ public class LotsModel : VPureLuxPageModel
             .OrderBy(x => x.CodeSnapshot)
             .Select(x => new SelectListItem($"{x.CodeSnapshot} - {x.NameSnapshot}", x.Id.ToString()))
             .ToList();
+
+        SupplierOptions = (await _suppliers.GetListAsync(new GetSupplierListInput
+            {
+                MaxResultCount = LimitedResultRequestDto.MaxMaxResultCount,
+                Sorting = "Code ASC"
+            })).Items
+            .OrderBy(x => x.Code)
+            .Select(x => new SelectListItem($"{x.Code} - {x.Name}", x.Id.ToString()))
+            .ToList();
     }
 
     private async Task LoadLabelsAsync()
@@ -134,9 +173,11 @@ public class LotsModel : VPureLuxPageModel
     }
 
     public sealed record InventoryLotRow(
+        Guid Id,
         string LotNo,
         string Warehouse,
         string Supplier,
+        Guid? SupplierId,
         string StockItem,
         string ReceivedAt,
         string ReceivedQuantity,

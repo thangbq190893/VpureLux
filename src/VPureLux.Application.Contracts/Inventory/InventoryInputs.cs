@@ -80,3 +80,8 @@ public class PostAdjustmentDto : PostInventoryTransactionInput
     public List<ReceiptLineInput> IncreaseLines { get; set; } = new();
     public List<IssueLineInput> DecreaseLines { get; set; } = new();
 }
+
+public class UpdateInventoryLotSupplierDto
+{
+    public Guid SupplierId { get; set; }
+}
