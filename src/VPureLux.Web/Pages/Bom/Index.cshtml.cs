@@ -9,6 +9,7 @@ using VPureLux.Bom;
 using VPureLux.Catalog;
 using VPureLux.Catalog.Products;
 using VPureLux.Permissions;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 
 namespace VPureLux.Web.Pages.Bom;
@@ -57,6 +58,21 @@ public class IndexModel : VPureLuxPageModel
         }
 
         return RedirectToPage("/Bom/Product", new { productId = ProductId.Value });
+    }
+
+    public async Task<IActionResult> OnPostEditCurrentAsync(Guid id)
+    {
+        try
+        {
+            var result = await _bomAppService.CreateEditableDraftFromCurrentAsync(id);
+            return RedirectToPage("/Bom/Edit", new { id = result.NewBomVersionId });
+        }
+        catch (BusinessException exception)
+        {
+            AddBusinessError(exception);
+            await SetPermissionsAsync();
+            return Page();
+        }
     }
 
     public async Task<JsonResult> OnGetListAsync(GetProductListInput input)

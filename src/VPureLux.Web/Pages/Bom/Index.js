@@ -2,6 +2,8 @@
     var l = abp.localization.getResource('VPureLux');
     var page = document.querySelector('[data-bom-index]');
     var tableSelector = '#BomProductsTable';
+    var editCurrentForm = document.querySelector('[data-bom-edit-current-form]');
+    var editCurrentId = document.getElementById('BomEditCurrentId');
 
     if (!page || !document.querySelector(tableSelector)) {
         return;
@@ -15,6 +17,8 @@
     var openHistoryText = l('Bom:OpenHistory');
     var createVersionText = l('Bom:CreateVersionForProduct');
     var viewCurrentVersionText = l('Bom:ViewCurrentVersion');
+    var editCurrentVersionText = l('Bom:EditCurrentVersion');
+    var editShortText = l('Edit');
     var openHistoryShortText = l('Bom:OpenHistoryShort');
     var createVersionShortText = l('Bom:CreateVersionShort');
     var viewCurrentVersionShortText = l('Bom:ViewCurrentVersionShort');
@@ -89,6 +93,12 @@
             encodeURIComponent(row.productId) + '">' + encode(openHistoryShortText) + '</a>'
         ];
 
+        if (canCreate && row.currentVersion) {
+            buttons.push('<button type="button" class="btn btn-sm btn-outline-primary" title="' +
+                encode(editCurrentVersionText) + '" data-bom-edit-current-id="' +
+                encode(row.currentVersion.id) + '">' + encode(editShortText) + '</button>');
+        }
+
         if (canCreate) {
             buttons.push('<a class="btn btn-sm btn-outline-primary" title="' + encode(createVersionText) +
                 '" href="' + abp.appPath + 'Bom/Create/' +
@@ -102,6 +112,26 @@
         }
 
         return '<div class="bom-action-group">' + buttons.join('') + '</div>';
+    }
+
+    function submitEditCurrent(versionId) {
+        if (!editCurrentForm || !editCurrentId || !versionId) {
+            abp.notify.error(page.dataset.editCurrentError);
+            return;
+        }
+
+        abp.message.confirm(page.dataset.confirmEditCurrent, page.dataset.confirmTitle).then(function (confirmed) {
+            if (!confirmed) {
+                return;
+            }
+
+            editCurrentId.value = versionId;
+            abp.ui.setBusy(editCurrentForm);
+            editCurrentForm.submit();
+        }).catch(function () {
+            abp.ui.clearBusy(editCurrentForm);
+            abp.notify.error(page.dataset.editCurrentError);
+        });
     }
 
     var dataTable = $(tableSelector).DataTable(abp.libs.datatables.normalizeConfiguration({
@@ -169,5 +199,9 @@
     $('#BomClearButton').on('click', function () {
         $searchTerm.val('');
         dataTable.ajax.reload();
+    });
+
+    $(tableSelector).on('click', '[data-bom-edit-current-id]', function () {
+        submitEditCurrent(this.getAttribute('data-bom-edit-current-id'));
     });
 })();

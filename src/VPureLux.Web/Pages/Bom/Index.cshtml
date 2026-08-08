@@ -15,7 +15,18 @@
 }
 
 <div data-bom-index
-     data-can-create="@canCreate"></div>
+     data-can-create="@canCreate"
+     data-confirm-title="@L["Confirm"]"
+     data-confirm-edit-current="@L["Bom:ConfirmEditCurrentVersion"]"
+     data-edit-current-error="@L["Bom:ActionFailed"]"></div>
+
+<form method="post"
+      asp-page-handler="EditCurrent"
+      id="BomEditCurrentForm"
+      class="d-none"
+      data-bom-edit-current-form>
+    <input type="hidden" name="id" id="BomEditCurrentId" />
+</form>
 
 <div class="vpl-page">
     <div class="vpl-page-header">
