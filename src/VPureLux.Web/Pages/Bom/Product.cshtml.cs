@@ -18,6 +18,7 @@ public class ProductModel : VPureLuxPageModel
     private readonly IBomAppService _bomAppService;
     private readonly IProductAppService _productAppService;
     private readonly IProductPricingContextLookupService _productPricingContextLookupService;
+    private readonly IBomStandardCostLookupService _standardCostLookupService;
     private readonly IAuthorizationService _authorizationService;
 
     [BindProperty(SupportsGet = true)]
@@ -26,6 +27,7 @@ public class ProductModel : VPureLuxPageModel
     public IReadOnlyList<BomVersionDto> Versions { get; private set; } = Array.Empty<BomVersionDto>();
     public string ProductLabel { get; private set; } = string.Empty;
     public ProductPricingContextDto? PricingContext { get; private set; }
+    public BomStandardCostRangeDto? CurrentStandardCost { get; private set; }
     public bool CanCreate { get; private set; }
     public bool CanPublish { get; private set; }
     public bool CanArchive { get; private set; }
@@ -36,11 +38,13 @@ public class ProductModel : VPureLuxPageModel
         IBomAppService bomAppService,
         IProductAppService productAppService,
         IProductPricingContextLookupService productPricingContextLookupService,
+        IBomStandardCostLookupService standardCostLookupService,
         IAuthorizationService authorizationService)
     {
         _bomAppService = bomAppService;
         _productAppService = productAppService;
         _productPricingContextLookupService = productPricingContextLookupService;
+        _standardCostLookupService = standardCostLookupService;
         _authorizationService = authorizationService;
     }
 
@@ -99,13 +103,14 @@ public class ProductModel : VPureLuxPageModel
     private async Task LoadPageAsync()
     {
         await LoadProductLabelAsync();
-        await LoadPricingContextAsync();
         Versions = await _bomAppService.GetListAsync(ProductId);
         CurrentPublishedVersionId = Versions
             .Where(x => x.Status == BomStatus.Published)
             .OrderByDescending(x => x.VersionNo)
             .Select(x => (Guid?)x.Id)
             .FirstOrDefault();
+        await LoadPricingContextAsync();
+        await LoadStandardCostAsync();
         await SetPermissionsAsync();
     }
 
@@ -126,5 +131,12 @@ public class ProductModel : VPureLuxPageModel
     {
         var contexts = await _productPricingContextLookupService.FindMapAsync([ProductId], Clock.Now);
         PricingContext = contexts.GetValueOrDefault(ProductId);
+    }
+
+    private async Task LoadStandardCostAsync()
+    {
+        CurrentStandardCost = CurrentPublishedVersionId.HasValue
+            ? await _standardCostLookupService.GetAsync(CurrentPublishedVersionId.Value)
+            : null;
     }
 }

@@ -33,4 +33,16 @@ public static class BomUi
     {
         return value.ToString("0", CultureInfo.InvariantCulture);
     }
+
+    public static string FormatMoney(decimal value)
+    {
+        return value.ToString("N0", VietnameseCulture) + " VND";
+    }
+
+    public static string FormatMoneyRange(decimal minValue, decimal maxValue)
+    {
+        return minValue == maxValue
+            ? FormatMoney(minValue)
+            : $"{FormatMoney(minValue)} - {FormatMoney(maxValue)}";
+    }
 }

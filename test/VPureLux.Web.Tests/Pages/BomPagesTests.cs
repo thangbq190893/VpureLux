@@ -13,6 +13,7 @@ using Shouldly;
 using VPureLux.Bom;
 using VPureLux.Catalog.Components;
 using VPureLux.Catalog.Products;
+using VPureLux.Inventory;
 using VPureLux.Localization;
 using VPureLux.Pricing;
 using VPureLux.Web.Pages.Bom;
@@ -56,6 +57,7 @@ public class BomPagesTests : VPureLuxWebTestBase
         var model = new IndexModel(
             GetRequiredService<IBomAppService>(),
             GetRequiredService<IProductAppService>(),
+            GetRequiredService<IBomStandardCostLookupService>(),
             GetRequiredService<IAuthorizationService>());
         SetPageContext(model);
         var listResult = await model.OnGetListAsync(new GetProductListInput
@@ -230,6 +232,7 @@ public class BomPagesTests : VPureLuxWebTestBase
             bomService,
             GetRequiredService<IProductAppService>(),
             GetRequiredService<IProductPricingContextLookupService>(),
+            GetRequiredService<IBomStandardCostLookupService>(),
             GetRequiredService<IAuthorizationService>())
         {
             ProductId = product.Id
@@ -271,6 +274,7 @@ public class BomPagesTests : VPureLuxWebTestBase
             bomService,
             GetRequiredService<IProductAppService>(),
             GetRequiredService<IProductPricingContextLookupService>(),
+            GetRequiredService<IBomStandardCostLookupService>(),
             GetRequiredService<IAuthorizationService>())
         {
             ProductId = product.Id
@@ -305,6 +309,7 @@ public class BomPagesTests : VPureLuxWebTestBase
         var model = new IndexModel(
             bomService,
             GetRequiredService<IProductAppService>(),
+            GetRequiredService<IBomStandardCostLookupService>(),
             GetRequiredService<IAuthorizationService>());
         SetPageContext(model);
         var listResult = await model.OnGetListAsync(new GetProductListInput
@@ -342,6 +347,9 @@ public class BomPagesTests : VPureLuxWebTestBase
                 Reason = "Giá sản phẩm cho ngữ cảnh BOM",
                 EffectiveFrom = DateTime.Today
             });
+        var warehouse = await CreateWarehouseAsync("BOM-CTX-WH");
+        await PostReceiptForComponentAsync(warehouse.Id, component.Id, 5, 40000m, "BOM-CTX-L1");
+        await PostReceiptForComponentAsync(warehouse.Id, component.Id, 5, 50000m, "BOM-CTX-L2");
 
         var bom = await GetRequiredService<IBomAppService>().CreateAsync(
             product.Id,
@@ -352,9 +360,9 @@ public class BomPagesTests : VPureLuxWebTestBase
 
         html.ShouldContain($"Sản phẩm: {product.Code} - {product.Name}");
         html.ShouldContain("Giá bán đề xuất hiện tại");
-        html.ShouldContain("Giá cấu thành vật tư");
+        html.ShouldContain("Giá thành định mức");
         html.ShouldContain("120.000 VND");
-        html.ShouldContain("100.000 VND");
+        html.ShouldContain("80.000 VND - 100.000 VND");
         html.ShouldContain("Đã có định mức công bố");
     }
 
@@ -428,6 +436,59 @@ public class BomPagesTests : VPureLuxWebTestBase
         html.ShouldContain("<td class=\"text-center text-muted\">1</td>");
         html.ShouldContain("<td class=\"text-center text-muted\">2</td>");
         html.ShouldContain("<td class=\"text-center text-muted\">3</td>");
+    }
+
+    [Fact]
+    public async Task Bom_Should_Render_Standard_Cost_Range_From_Available_Inventory_Lots()
+    {
+        var product = await CreateProductAsync("BOM-COST-P", "BOM Cost Product");
+        var firstComponent = await CreateComponentAsync("BOM-COST-C1", "BOM Cost Component 1");
+        var secondComponent = await CreateComponentAsync("BOM-COST-C2", "BOM Cost Component 2");
+        var warehouse = await CreateWarehouseAsync("BOM-COST-WH");
+        await PostReceiptForComponentAsync(warehouse.Id, firstComponent.Id, 1, 1m, "BOM-COST-DEP");
+        await PostIssueForComponentAsync(warehouse.Id, firstComponent.Id, 1);
+        await PostReceiptForComponentAsync(warehouse.Id, firstComponent.Id, 5, 10000m, "BOM-COST-C1A");
+        await PostReceiptForComponentAsync(warehouse.Id, firstComponent.Id, 5, 12000m, "BOM-COST-C1B");
+        await PostReceiptForComponentAsync(warehouse.Id, secondComponent.Id, 5, 5000m, "BOM-COST-C2A");
+        await PostReceiptForComponentAsync(warehouse.Id, secondComponent.Id, 5, 8000m, "BOM-COST-C2B");
+        var bomService = GetRequiredService<IBomAppService>();
+        var bom = await bomService.CreateAsync(product.Id, new CreateBomVersionDto
+        {
+            EffectiveFrom = DateTime.Today,
+            Items =
+            [
+                new CreateBomItemDto { ComponentId = firstComponent.Id, Quantity = 2 },
+                new CreateBomItemDto { ComponentId = secondComponent.Id, Quantity = 3 }
+            ]
+        });
+        await bomService.PublishAsync(bom.Id);
+
+        var detailsHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom/Details/{bom.Id}"));
+        var productHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom/Product/{product.Id}"));
+        var model = new IndexModel(
+            bomService,
+            GetRequiredService<IProductAppService>(),
+            GetRequiredService<IBomStandardCostLookupService>(),
+            GetRequiredService<IAuthorizationService>());
+        SetPageContext(model);
+        var listResult = await model.OnGetListAsync(new GetProductListInput
+        {
+            Keyword = product.Code,
+            MaxResultCount = 10
+        });
+        var rows = listResult.Value.ShouldBeOfType<Volo.Abp.Application.Dtos.PagedResultDto<IndexModel.BomProductSummaryRow>>();
+
+        detailsHtml.ShouldContain("Giá thành định mức");
+        detailsHtml.ShouldContain("35.000 VND - 48.000 VND");
+        detailsHtml.ShouldContain("10.000 VND");
+        detailsHtml.ShouldContain("12.000 VND");
+        detailsHtml.ShouldContain("5.000 VND");
+        detailsHtml.ShouldContain("8.000 VND");
+        detailsHtml.ShouldNotContain(">1 VND<");
+        productHtml.ShouldContain("35.000 VND - 48.000 VND");
+        rows.Items.ShouldContain(x =>
+            x.ProductCode == product.Code &&
+            x.StandardCostRange == "35.000 VND - 48.000 VND");
     }
 
     [Fact]
@@ -570,6 +631,7 @@ public class BomPagesTests : VPureLuxWebTestBase
             bomService,
             GetRequiredService<IProductAppService>(),
             GetRequiredService<IProductPricingContextLookupService>(),
+            GetRequiredService<IBomStandardCostLookupService>(),
             GetRequiredService<IAuthorizationService>())
         {
             ProductId = product.Id
@@ -644,6 +706,65 @@ public class BomPagesTests : VPureLuxWebTestBase
             Name = name,
             Unit = "pcs"
         });
+    }
+
+    private async Task<WarehouseDto> CreateWarehouseAsync(string prefix)
+    {
+        return await GetRequiredService<IWarehouseAppService>().CreateAsync(new CreateWarehouseDto
+        {
+            Code = prefix + Guid.NewGuid().ToString("N")[..8],
+            Name = prefix + " Warehouse"
+        });
+    }
+
+    private async Task PostReceiptForComponentAsync(
+        Guid warehouseId,
+        Guid componentId,
+        decimal quantity,
+        decimal unitCost,
+        string lotPrefix)
+    {
+        var stockItem = await GetComponentStockItemAsync(componentId);
+        await GetRequiredService<IInventoryTransactionAppService>().PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = warehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = stockItem.Id,
+                    Quantity = quantity,
+                    UnitCost = unitCost,
+                    LotNo = lotPrefix + Guid.NewGuid().ToString("N")[..8],
+                    ReceivedAt = DateTime.UtcNow
+                }
+            ]
+        });
+    }
+
+    private async Task PostIssueForComponentAsync(Guid warehouseId, Guid componentId, decimal quantity)
+    {
+        var stockItem = await GetComponentStockItemAsync(componentId);
+        await GetRequiredService<IInventoryTransactionAppService>().PostIssueAsync(new PostIssueDto
+        {
+            WarehouseId = warehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new IssueLineInput
+                {
+                    StockItemId = stockItem.Id,
+                    Quantity = quantity
+                }
+            ]
+        });
+    }
+
+    private async Task<StockItem> GetComponentStockItemAsync(Guid componentId)
+    {
+        return (await GetRequiredService<IStockItemRepository>()
+            .FindByCatalogItemAsync(StockItemType.Component, componentId))!;
     }
 
     private static CreateBomVersionDto BomInput(Guid componentId, DateTime effectiveFrom, decimal quantity = 1) => new()

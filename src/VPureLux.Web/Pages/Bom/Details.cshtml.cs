@@ -17,6 +17,7 @@ public class DetailsModel : VPureLuxPageModel
     private readonly IBomAppService _bomAppService;
     private readonly IProductAppService _productAppService;
     private readonly IComponentAppService _componentAppService;
+    private readonly IBomStandardCostLookupService _standardCostLookupService;
     private readonly IAuthorizationService _authorizationService;
 
     [BindProperty(SupportsGet = true)]
@@ -25,23 +26,27 @@ public class DetailsModel : VPureLuxPageModel
     public BomVersionDto BomVersion { get; private set; } = new();
     public string ProductLabel { get; private set; } = string.Empty;
     public Dictionary<Guid, string> ComponentLabels { get; private set; } = new();
+    public BomStandardCostRangeDto StandardCost { get; private set; } = new();
     public bool CanEdit { get; private set; }
 
     public DetailsModel(
         IBomAppService bomAppService,
         IProductAppService productAppService,
         IComponentAppService componentAppService,
+        IBomStandardCostLookupService standardCostLookupService,
         IAuthorizationService authorizationService)
     {
         _bomAppService = bomAppService;
         _productAppService = productAppService;
         _componentAppService = componentAppService;
+        _standardCostLookupService = standardCostLookupService;
         _authorizationService = authorizationService;
     }
 
     public async Task OnGetAsync()
     {
         BomVersion = await _bomAppService.GetAsync(Id);
+        StandardCost = await _standardCostLookupService.GetAsync(Id);
         await LoadCatalogLabelsAsync();
         CanEdit = BomVersion.Status == BomStatus.Draft &&
                   (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Bom.Create)).Succeeded;
@@ -52,6 +57,11 @@ public class DetailsModel : VPureLuxPageModel
         return ComponentLabels.TryGetValue(componentId, out var label)
             ? label
             : L["Bom:UnknownComponent"];
+    }
+
+    public BomStandardCostItemDto? GetStandardCostItem(Guid bomItemId)
+    {
+        return StandardCost.Items.FirstOrDefault(x => x.BomItemId == bomItemId);
     }
 
     private async Task LoadCatalogLabelsAsync()

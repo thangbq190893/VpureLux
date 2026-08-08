@@ -18,6 +18,7 @@ public class IndexModel : VPureLuxPageModel
 {
     private readonly IBomAppService _bomAppService;
     private readonly IProductAppService _productAppService;
+    private readonly IBomStandardCostLookupService _standardCostLookupService;
     private readonly IAuthorizationService _authorizationService;
 
     [BindProperty]
@@ -32,10 +33,12 @@ public class IndexModel : VPureLuxPageModel
     public IndexModel(
         IBomAppService bomAppService,
         IProductAppService productAppService,
+        IBomStandardCostLookupService standardCostLookupService,
         IAuthorizationService authorizationService)
     {
         _bomAppService = bomAppService;
         _productAppService = productAppService;
+        _standardCostLookupService = standardCostLookupService;
         _authorizationService = authorizationService;
     }
 
@@ -66,7 +69,7 @@ public class IndexModel : VPureLuxPageModel
             Sorting = input.Sorting
         });
 
-        var rows = new List<BomProductSummaryRow>();
+        var summaries = new List<BomProductSummary>();
 
         foreach (var product in products.Items)
         {
@@ -76,7 +79,7 @@ public class IndexModel : VPureLuxPageModel
                 .OrderByDescending(x => x.VersionNo)
                 .FirstOrDefault();
 
-            rows.Add(new BomProductSummaryRow(
+            summaries.Add(new BomProductSummary(
                 product.Id,
                 product.Code,
                 product.Name,
@@ -85,7 +88,39 @@ public class IndexModel : VPureLuxPageModel
                 currentVersion));
         }
 
+        var costMap = await _standardCostLookupService.FindMapAsync(
+            summaries
+                .Where(x => x.CurrentVersion != null)
+                .Select(x => x.CurrentVersion!.Id)
+                .ToArray());
+        var rows = summaries.Select(summary => new BomProductSummaryRow(
+                summary.ProductId,
+                summary.ProductCode,
+                summary.ProductName,
+                summary.ProductStatus,
+                summary.VersionCount,
+                summary.CurrentVersion,
+                FormatStandardCost(summary.CurrentVersion, costMap)))
+            .ToList();
+
         return new JsonResult(new PagedResultDto<BomProductSummaryRow>(products.TotalCount, rows));
+    }
+
+    private string FormatStandardCost(
+        BomVersionDto? currentVersion,
+        IReadOnlyDictionary<Guid, BomStandardCostRangeDto> costMap)
+    {
+        if (currentVersion == null)
+        {
+            return L["Bom:NoPublishedBom"].Value;
+        }
+
+        if (!costMap.TryGetValue(currentVersion.Id, out var cost) || !cost.HasCompleteCost)
+        {
+            return L["Bom:MissingInventoryCost", cost?.MissingComponentCount ?? 0].Value;
+        }
+
+        return BomUi.FormatMoneyRange(cost.MinTotalCost!.Value, cost.MaxTotalCost!.Value);
     }
 
     private async Task SetPermissionsAsync()
@@ -93,11 +128,20 @@ public class IndexModel : VPureLuxPageModel
         CanCreate = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Bom.Create)).Succeeded;
     }
 
-    public sealed record BomProductSummaryRow(
+    private sealed record BomProductSummary(
         Guid ProductId,
         string ProductCode,
         string ProductName,
         string ProductStatus,
         int VersionCount,
         BomVersionDto? CurrentVersion);
+
+    public sealed record BomProductSummaryRow(
+        Guid ProductId,
+        string ProductCode,
+        string ProductName,
+        string ProductStatus,
+        int VersionCount,
+        BomVersionDto? CurrentVersion,
+        string StandardCostRange);
 }

@@ -34,13 +34,50 @@
             </dd>
             <dt class="col-sm-3">@L["Bom:EffectiveFrom"]</dt><dd class="col-sm-9">@VPureLux.Web.Pages.Bom.BomUi.FormatDate(Model.BomVersion.EffectiveFrom)</dd>
             <dt class="col-sm-3">@L["Bom:EffectiveTo"]</dt><dd class="col-sm-9">@VPureLux.Web.Pages.Bom.BomUi.FormatDate(Model.BomVersion.EffectiveTo)</dd>
+            <dt class="col-sm-3">@L["Bom:StandardCostRange"]</dt>
+            <dd class="col-sm-9">
+                @if (Model.StandardCost.HasCompleteCost)
+                {
+                    @VPureLux.Web.Pages.Bom.BomUi.FormatMoneyRange(Model.StandardCost.MinTotalCost!.Value, Model.StandardCost.MaxTotalCost!.Value)
+                }
+                else
+                {
+                    <span class="text-warning">@L["Bom:MissingInventoryCost", Model.StandardCost.MissingComponentCount]</span>
+                }
+            </dd>
         </dl>
         <abp-table striped-rows="true">
-            <thead><tr><th class="text-center" style="width: 56px;">#</th><th>@L["Bom:Component"]</th><th>@L["Bom:Quantity"]</th></tr></thead>
+            <thead>
+            <tr>
+                <th class="text-center" style="width: 56px;">#</th>
+                <th>@L["Bom:Component"]</th>
+                <th>@L["Bom:Quantity"]</th>
+                <th class="text-end">@L["Bom:MinUnitCost"]</th>
+                <th class="text-end">@L["Bom:MaxUnitCost"]</th>
+                <th class="text-end">@L["Bom:MinLineCost"]</th>
+                <th class="text-end">@L["Bom:MaxLineCost"]</th>
+            </tr>
+            </thead>
             <tbody>
             @foreach (var item in Model.BomVersion.Items)
             {
-                <tr><td class="text-center text-muted">@item.LineNo</td><td>@Model.GetComponentLabel(item.ComponentId)</td><td>@VPureLux.Web.Pages.Bom.BomUi.FormatQuantity(item.Quantity)</td></tr>
+                var costItem = Model.GetStandardCostItem(item.Id);
+                <tr>
+                    <td class="text-center text-muted">@item.LineNo</td>
+                    <td>@Model.GetComponentLabel(item.ComponentId)</td>
+                    <td>@VPureLux.Web.Pages.Bom.BomUi.FormatQuantity(item.Quantity)</td>
+                    @if (costItem?.HasAvailableInventoryCost == true)
+                    {
+                        <td class="text-end">@VPureLux.Web.Pages.Bom.BomUi.FormatMoney(costItem.MinUnitCost!.Value)</td>
+                        <td class="text-end">@VPureLux.Web.Pages.Bom.BomUi.FormatMoney(costItem.MaxUnitCost!.Value)</td>
+                        <td class="text-end">@VPureLux.Web.Pages.Bom.BomUi.FormatMoney(costItem.MinLineCost!.Value)</td>
+                        <td class="text-end">@VPureLux.Web.Pages.Bom.BomUi.FormatMoney(costItem.MaxLineCost!.Value)</td>
+                    }
+                    else
+                    {
+                        <td colspan="4" class="text-warning text-end">@L["Bom:NoAvailableInventoryCost"]</td>
+                    }
+                </tr>
             }
             </tbody>
         </abp-table>

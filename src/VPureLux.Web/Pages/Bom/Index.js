@@ -1,14 +1,22 @@
 (function () {
-    const l = abp.localization.getResource('VPureLux');
-    const page = document.querySelector('[data-bom-index]');
-    const tableSelector = '#BomProductsTable';
+    var l = abp.localization.getResource('VPureLux');
+    var page = document.querySelector('[data-bom-index]');
+    var tableSelector = '#BomProductsTable';
 
     if (!page || !document.querySelector(tableSelector)) {
         return;
     }
 
-    const canCreate = page.dataset.canCreate === 'true';
-    const $searchTerm = $('#BomSearchTerm');
+    var canCreate = page.dataset.canCreate === 'true';
+    var $searchTerm = $('#BomSearchTerm');
+    var noCurrentVersionText = l('Bom:NoCurrentVersion');
+    var versionNoText = l('Bom:VersionNo');
+    var publishedText = l('Bom:Status:Published');
+    var openHistoryText = l('Bom:OpenHistory');
+    var createVersionText = l('Bom:CreateVersionForProduct');
+    var viewCurrentVersionText = l('Bom:ViewCurrentVersion');
+    var activeStatusText = l('Status:Active');
+    var inactiveStatusText = l('Status:Inactive');
 
     function encode(value) {
         return $('<div/>').text(value || '').html();
@@ -21,36 +29,42 @@
 
     function currentVersionHtml(row) {
         if (!row.currentVersion) {
-            return '<span class="text-muted">' + encode(l('Bom:NoCurrentVersion')) + '</span>';
+            return '<span class="text-muted">' + encode(noCurrentVersionText) + '</span>';
         }
 
-        const url = abp.appPath + 'Bom/Details/' + encodeURIComponent(row.currentVersion.id);
-        return '<a href="' + url + '">' + encode(l('Bom:VersionNo')) + ' ' +
+        var url = abp.appPath + 'Bom/Details/' + encodeURIComponent(row.currentVersion.id);
+        return '<a href="' + url + '">' + encode(versionNoText) + ' ' +
             encode(row.currentVersion.versionNo) + '</a>' +
             '<span class="badge bg-success ms-1" data-bom-current-version>' +
-            encode(l('Bom:Status:Published')) + '</span>';
+            encode(publishedText) + '</span>';
+    }
+
+    function productStatusText(status) {
+        return status === 'Active'
+            ? activeStatusText
+            : inactiveStatusText;
     }
 
     function actionsHtml(row) {
-        const buttons = [
+        var buttons = [
             '<a class="btn btn-sm btn-outline-secondary" href="' + abp.appPath + 'Bom/Product/' +
-            encodeURIComponent(row.productId) + '">' + encode(l('Bom:OpenHistory')) + '</a>'
+            encodeURIComponent(row.productId) + '">' + encode(openHistoryText) + '</a>'
         ];
 
         if (canCreate) {
             buttons.push('<a class="btn btn-sm btn-outline-primary" href="' + abp.appPath + 'Bom/Create/' +
-                encodeURIComponent(row.productId) + '">' + encode(l('Bom:CreateVersionForProduct')) + '</a>');
+                encodeURIComponent(row.productId) + '">' + encode(createVersionText) + '</a>');
         }
 
         if (row.currentVersion) {
             buttons.push('<a class="btn btn-sm btn-outline-secondary" href="' + abp.appPath + 'Bom/Details/' +
-                encodeURIComponent(row.currentVersion.id) + '">' + encode(l('Bom:ViewCurrentVersion')) + '</a>');
+                encodeURIComponent(row.currentVersion.id) + '">' + encode(viewCurrentVersionText) + '</a>');
         }
 
         return buttons.join(' ');
     }
 
-    const dataTable = $(tableSelector).DataTable(abp.libs.datatables.normalizeConfiguration({
+    var dataTable = $(tableSelector).DataTable(abp.libs.datatables.normalizeConfiguration({
         processing: true,
         serverSide: true,
         paging: true,
@@ -78,7 +92,7 @@
             {
                 data: 'productStatus',
                 render: function (data) {
-                    return encode(l('Status:' + data));
+                    return encode(productStatusText(data));
                 }
             },
             {
@@ -89,6 +103,14 @@
                 orderable: false,
                 render: function (_data, _type, row) {
                     return currentVersionHtml(row);
+                }
+            },
+            {
+                data: 'standardCostRange',
+                orderable: false,
+                className: 'text-end text-nowrap',
+                render: function (data) {
+                    return encode(data);
                 }
             },
             {

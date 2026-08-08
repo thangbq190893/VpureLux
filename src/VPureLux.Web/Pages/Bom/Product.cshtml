@@ -50,23 +50,21 @@
                             </strong>
                         </abp-column>
                         <abp-column size-md="_3">
-                            <div class="text-muted">@L["Bom:ComponentBuildPrice"]</div>
+                            <div class="text-muted">@L["Bom:StandardCostRange"]</div>
                             <strong>
-                                @if (!Model.PricingContext.HasPublishedBom)
+                                @if (!Model.CurrentPublishedVersionId.HasValue)
                                 {
                                     @L["Bom:NoPublishedBom"]
                                 }
-                                else if (Model.PricingContext.HasMissingComponentSuggestedPrices)
+                                else if (Model.CurrentStandardCost?.HasCompleteCost == true)
                                 {
-                                    @L["Bom:MissingComponentPrices"]
-                                }
-                                else if (Model.PricingContext.ComponentBuildPrice.HasValue)
-                                {
-                                    @($"{Model.PricingContext.ComponentBuildPrice.Value:N0} {VPureLux.Pricing.PricingConsts.Currency}")
+                                    @VPureLux.Web.Pages.Bom.BomUi.FormatMoneyRange(
+                                        Model.CurrentStandardCost.MinTotalCost!.Value,
+                                        Model.CurrentStandardCost.MaxTotalCost!.Value)
                                 }
                                 else
                                 {
-                                    @L["Bom:NoPriceContext"]
+                                    <span class="text-warning">@L["Bom:MissingInventoryCost", Model.CurrentStandardCost?.MissingComponentCount ?? 0]</span>
                                 }
                             </strong>
                         </abp-column>
