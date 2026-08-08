@@ -74,7 +74,7 @@ public class BomPagesTests : VPureLuxWebTestBase
         html.ShouldContain("id=\"BomProductsTable\"");
         html.ShouldContain("bom-summary-table");
         html.ShouldContain("name=\"SearchTerm\"");
-        html.ShouldContain(localizer["Bom:VersionCount"].Value);
+        html.ShouldContain(localizer["Bom:BomState"].Value);
         filteredHtml.ShouldNotContain(product.Name);
         rows.Items.Count.ShouldBeGreaterThan(0);
         rows.Items.Any(x => x.ProductCode == product.Code && x.ProductName == product.Name).ShouldBeTrue();
@@ -85,6 +85,8 @@ public class BomPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("Bom:OpenHistoryShort");
         scriptSource.ShouldContain("Bom:CreateVersionShort");
         scriptSource.ShouldContain("Bom:ViewCurrentVersionShort");
+        scriptSource.ShouldContain("Bom:VersionCountSuffix");
+        scriptSource.ShouldContain("bom-state-cell");
         scriptSource.ShouldContain("bom-action-group");
         scriptSource.ShouldContain("bom-standard-cost-cell");
         scriptSource.ShouldContain("Bom/Product/");
@@ -98,7 +100,9 @@ public class BomPagesTests : VPureLuxWebTestBase
         pageSource.ShouldNotContain("Bom:SelectProduct");
         pageSource.ShouldContain("/Pages/Bom/Index.css");
         cssSource.ShouldContain("table-layout: fixed");
+        cssSource.ShouldContain("min-width: 0");
         cssSource.ShouldContain("white-space: normal");
+        cssSource.ShouldContain(".bom-state-column");
         cssSource.ShouldContain(".bom-action-group");
         cssSource.ShouldContain("flex-wrap: wrap");
         html.ShouldNotContain("type=\"text\" id=\"ProductId\"");

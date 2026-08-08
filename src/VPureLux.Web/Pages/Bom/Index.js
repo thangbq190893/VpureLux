@@ -18,6 +18,7 @@
     var openHistoryShortText = l('Bom:OpenHistoryShort');
     var createVersionShortText = l('Bom:CreateVersionShort');
     var viewCurrentVersionShortText = l('Bom:ViewCurrentVersionShort');
+    var versionCountSuffixText = l('Bom:VersionCountSuffix');
     var activeStatusText = l('Status:Active');
     var inactiveStatusText = l('Status:Inactive');
 
@@ -42,6 +43,15 @@
             encode(row.currentVersion.versionNo) + '</a>' +
             '<span class="badge bg-success ms-1" data-bom-current-version>' +
             encode(publishedText) + '</span></span>';
+    }
+
+    function bomStateHtml(row) {
+        return '<div class="bom-state-cell">' +
+            '<span class="bom-state-line">' + encode(productStatusText(row.productStatus)) + '</span>' +
+            '<span class="bom-state-line bom-version-count">' + encode(row.versionCount) + ' ' +
+            encode(versionCountSuffixText) + '</span>' +
+            '<span class="bom-state-line">' + currentVersionHtml(row) + '</span>' +
+            '</div>';
     }
 
     function productStatusText(status) {
@@ -94,33 +104,25 @@
             {
                 data: null,
                 className: 'bom-product-column',
+                width: '40%',
                 render: function (_data, _type, row) {
                     return productHtml(row);
                 }
             },
             {
-                data: 'productStatus',
-                className: 'bom-status-column',
-                render: function (data) {
-                    return encode(productStatusText(data));
-                }
-            },
-            {
-                data: 'versionCount',
-                className: 'text-center bom-version-count-column'
-            },
-            {
                 data: null,
                 orderable: false,
-                className: 'bom-current-version-column',
+                className: 'bom-state-column',
+                width: '25%',
                 render: function (_data, _type, row) {
-                    return currentVersionHtml(row);
+                    return bomStateHtml(row);
                 }
             },
             {
                 data: 'standardCostRange',
                 orderable: false,
                 className: 'text-end bom-standard-cost-column',
+                width: '19%',
                 render: function (data) {
                     return '<span class="bom-standard-cost-cell">' + encode(data) + '</span>';
                 }
@@ -129,6 +131,7 @@
                 data: null,
                 orderable: false,
                 className: 'text-end bom-actions-column',
+                width: '16%',
                 render: function (_data, _type, row) {
                     return actionsHtml(row);
                 }

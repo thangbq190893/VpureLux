@@ -38,12 +38,10 @@
             <abp-table id="BomProductsTable" striped-rows="true" class="vpl-table-dense bom-summary-table" data-bom-summary-table>
                 <thead>
                 <tr>
-                    <th>@L["Bom:Product"]</th>
-                    <th>@L["Bom:Status"]</th>
-                    <th>@L["Bom:VersionCount"]</th>
-                    <th>@L["Bom:CurrentVersion"]</th>
-                    <th class="text-end">@L["Bom:StandardCostRange"]</th>
-                    <th class="text-end">@L["Actions"]</th>
+                    <th class="bom-product-column">@L["Bom:Product"]</th>
+                    <th class="bom-state-column">@L["Bom:BomState"]</th>
+                    <th class="bom-standard-cost-column text-end">@L["Bom:StandardCostRange"]</th>
+                    <th class="bom-actions-column text-end">@L["Actions"]</th>
                 </tr>
                 </thead>
             </abp-table>
