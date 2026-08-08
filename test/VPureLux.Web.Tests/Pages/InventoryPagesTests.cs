@@ -20,6 +20,7 @@ using VPureLux.Catalog.Components;
 using VPureLux.Catalog.Products;
 using VPureLux.Inventory;
 using VPureLux.Localization;
+using VPureLux.Suppliers;
 using VPureLux.Web.Pages.Inventory;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Application.Dtos;
@@ -101,11 +102,18 @@ public class InventoryPagesTests : VPureLuxWebTestBase
             Name = "Receipt Component",
             Unit = "pcs"
         });
+        var supplier = await GetRequiredService<ISupplierAppService>().CreateAsync(new CreateSupplierDto
+        {
+            Code = Unique("SUP-R"),
+            Name = "Receipt Supplier"
+        });
 
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/Inventory/Receipt"));
 
         html.ShouldContain($"{warehouse.Code} - {warehouse.Name}");
         html.ShouldContain($"{component.Code} - {component.Name}");
+        html.ShouldContain($"{supplier.Code} - {supplier.Name}");
+        html.ShouldContain("name=\"Input.SupplierId\"");
         html.ShouldContain("name=\"Input.IdempotencyKey\"");
         html.ShouldContain("type=\"hidden\"");
         html.ShouldNotContain("type=\"text\" id=\"Input_IdempotencyKey\"");
@@ -1642,9 +1650,26 @@ public class InventoryPagesTests : VPureLuxWebTestBase
     [Fact]
     public async Task LotsModel_Should_Pass_Selected_Filters_To_GetLotsAsync()
     {
+        var warehouseId = Guid.NewGuid();
+        var stockItemId = Guid.NewGuid();
         var query = Substitute.For<IInventoryQueryAppService>();
         query.GetLotsAsync(Arg.Any<Guid?>(), Arg.Any<Guid?>())
-            .Returns(new List<InventoryLotDto>());
+            .Returns(new List<InventoryLotDto>
+            {
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    WarehouseId = warehouseId,
+                    StockItemId = stockItemId,
+                    LotNo = "LOT-1",
+                    ReceivedAt = DateTime.Today,
+                    ReceivedQuantity = 1,
+                    AvailableQuantity = 1,
+                    UnitCost = 100,
+                    SupplierCode = "SUP",
+                    SupplierName = "Supplier"
+                }
+            });
 
         var warehouses = Substitute.For<IWarehouseAppService>();
         warehouses.GetListAsync(Arg.Any<GetInventoryListInput>())
@@ -1654,25 +1679,22 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         stockItems.GetListAsync(Arg.Any<GetInventoryListInput>())
             .Returns(new PagedResultDto<StockItemDto>());
 
-        var warehouseId = Guid.NewGuid();
-        var stockItemId = Guid.NewGuid();
         var model = new LotsModel(query, warehouses, stockItems)
         {
             WarehouseId = warehouseId,
-            StockItemId = stockItemId,
-            PageContext = new PageContext
-            {
-                HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) }
-            }
+            StockItemId = stockItemId
         };
+        SetPageContext(model);
 
-        await model.OnGetListAsync(new LotsModel.InventoryInquiryListInput
+        var result = await model.OnGetListAsync(new LotsModel.InventoryInquiryListInput
         {
             WarehouseId = warehouseId,
             StockItemId = stockItemId,
             MaxResultCount = 10
         });
 
+        result.Value.ShouldBeOfType<PagedResultDto<LotsModel.InventoryLotRow>>()
+            .Items.Single().Supplier.ShouldBe("SUP - Supplier");
         await query.Received(1).GetLotsAsync(warehouseId, stockItemId);
     }
 

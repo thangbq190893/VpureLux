@@ -58,6 +58,9 @@ public class LotsModel : VPureLuxPageModel
     private InventoryLotRow ToRow(InventoryLotDto item) => new(
         item.LotNo,
         GetWarehouseLabel(item.WarehouseId),
+        string.IsNullOrWhiteSpace(item.SupplierName)
+            ? L["Inventory:NoSupplier"]
+            : $"{item.SupplierCode} - {item.SupplierName}",
         GetStockItemLabel(item.StockItemId),
         InventoryPostingUi.FormatDate(item.ReceivedAt),
         FormatQuantity(item.ReceivedQuantity),
@@ -133,6 +136,7 @@ public class LotsModel : VPureLuxPageModel
     public sealed record InventoryLotRow(
         string LotNo,
         string Warehouse,
+        string Supplier,
         string StockItem,
         string ReceivedAt,
         string ReceivedQuantity,

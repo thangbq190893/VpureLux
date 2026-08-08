@@ -56,6 +56,8 @@ public abstract class PostInventoryTransactionInput
 
 public class PostReceiptDto : PostInventoryTransactionInput
 {
+    public Guid? SupplierId { get; set; }
+
     [Required, MinLength(1)]
     public List<ReceiptLineInput> Lines { get; set; } = new();
 }

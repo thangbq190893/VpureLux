@@ -32,6 +32,13 @@ public interface IInventoryLotRepository : IRepository<InventoryLot, Guid>
         CancellationToken cancellationToken = default);
 }
 
+public interface IInventoryLotSupplierRepository : IRepository<InventoryLotSupplier, Guid>
+{
+    Task<List<InventoryLotSupplier>> GetListByLotIdsAsync(
+        IReadOnlyCollection<Guid> inventoryLotIds,
+        CancellationToken cancellationToken = default);
+}
+
 public interface IInventoryTransactionRepository : IRepository<InventoryTransaction, Guid>
 {
     Task<InventoryTransaction?> FindByIdempotencyKeyAsync(

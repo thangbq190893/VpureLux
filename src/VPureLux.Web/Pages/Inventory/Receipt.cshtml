@@ -16,12 +16,21 @@
             <input asp-for="Input.IdempotencyKey" type="hidden" />
             <div asp-validation-summary="All" class="text-danger"></div>
 
-            <div class="mb-3">
-                <label asp-for="Input.WarehouseId" class="form-label">@L["Inventory:Warehouse"]</label>
-                <select asp-for="Input.WarehouseId" asp-items="Model.WarehouseOptions" class="form-select">
-                    <option value="">@L["Select"]</option>
-                </select>
-                <span asp-validation-for="Input.WarehouseId" class="text-danger"></span>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.WarehouseId" class="form-label">@L["Inventory:Warehouse"]</label>
+                    <select asp-for="Input.WarehouseId" asp-items="Model.WarehouseOptions" class="form-select">
+                        <option value="">@L["Select"]</option>
+                    </select>
+                    <span asp-validation-for="Input.WarehouseId" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.SupplierId" class="form-label">@L["Inventory:Supplier"]</label>
+                    <select asp-for="Input.SupplierId" asp-items="Model.SupplierOptions" class="form-select">
+                        <option value="">@L["Inventory:NoSupplierSelected"]</option>
+                    </select>
+                    <span asp-validation-for="Input.SupplierId" class="text-danger"></span>
+                </div>
             </div>
 
             <h5 class="mt-4">@L["Inventory:Lines"]</h5>

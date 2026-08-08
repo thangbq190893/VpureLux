@@ -84,6 +84,13 @@ public class VPureLuxMenuContributor : IMenuContributor
             icon: "fa fa-filter"
         ).RequirePermissions(VPureLuxPermissions.Catalog.Products.View));
 
+        catalog.AddItem(new ApplicationMenuItem(
+            VPureLuxMenus.Suppliers,
+            l["Menu:Suppliers"],
+            "~/Suppliers",
+            icon: "fa fa-truck"
+        ).RequirePermissions(VPureLuxPermissions.Suppliers.View));
+
         context.Menu.AddItem(catalog);
 
         context.Menu.AddItem(new ApplicationMenuItem(

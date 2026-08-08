@@ -59,6 +59,15 @@ public static class VPureLuxPermissions
         public const string ManageStatus = Default + ".ManageStatus";
     }
 
+    public static class Suppliers
+    {
+        public const string Default = GroupName + ".Suppliers";
+        public const string View = Default + ".View";
+        public const string Create = Default + ".Create";
+        public const string Edit = Default + ".Edit";
+        public const string Delete = Default + ".Delete";
+    }
+
     public static class Pricing
     {
         public const string Default = GroupName + ".Pricing";

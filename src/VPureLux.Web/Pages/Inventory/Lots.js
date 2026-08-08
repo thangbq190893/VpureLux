@@ -1,19 +1,19 @@
 (function () {
-    const l = abp.localization.getResource('VPureLux');
-    const tableSelector = '#InventoryLotsTable';
+    var l = abp.localization.getResource('VPureLux');
+    var tableSelector = '#InventoryLotsTable';
 
     if (!document.querySelector(tableSelector)) {
         return;
     }
 
-    const $warehouseId = $('#InventoryLotsWarehouseId');
-    const $stockItemId = $('#InventoryLotsStockItemId');
+    var $warehouseId = $('#InventoryLotsWarehouseId');
+    var $stockItemId = $('#InventoryLotsStockItemId');
 
     function encode(value) {
         return $('<div/>').text(value || '').html();
     }
 
-    const dataTable = $(tableSelector).DataTable(abp.libs.datatables.normalizeConfiguration({
+    var dataTable = $(tableSelector).DataTable(abp.libs.datatables.normalizeConfiguration({
         processing: true,
         serverSide: true,
         paging: true,
@@ -45,6 +45,12 @@
             },
             {
                 data: 'warehouse',
+                render: function (data) {
+                    return encode(data);
+                }
+            },
+            {
+                data: 'supplier',
                 render: function (data) {
                     return encode(data);
                 }

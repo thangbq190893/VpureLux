@@ -13,6 +13,7 @@ public class VPureLuxMenus
     public const string Catalog = Prefix + ".Catalog";
     public const string CatalogComponents = Catalog + ".Components";
     public const string CatalogProducts = Catalog + ".Products";
+    public const string Suppliers = Prefix + ".Suppliers";
 
     public const string Bom = Prefix + ".Bom";
 

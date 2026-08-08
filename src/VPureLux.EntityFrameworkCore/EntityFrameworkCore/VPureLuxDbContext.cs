@@ -31,6 +31,7 @@ using VPureLux.Pricing;
 using VPureLux.Inventory;
 using VPureLux.Sales;
 using VPureLux.Audit;
+using VPureLux.Suppliers;
 
 namespace VPureLux.EntityFrameworkCore;
 
@@ -54,12 +55,14 @@ public class VPureLuxDbContext :
     public DbSet<StockItem> StockItems { get; set; }
     public DbSet<Warehouse> Warehouses { get; set; }
     public DbSet<InventoryLot> InventoryLots { get; set; }
+    public DbSet<InventoryLotSupplier> InventoryLotSuppliers { get; set; }
     public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
     public DbSet<InventoryBalance> InventoryBalances { get; set; }
     public DbSet<SalesOrder> SalesOrders { get; set; }
     public DbSet<SalesOrderPayment> SalesOrderPayments { get; set; }
     public DbSet<NumberSequence> NumberSequences { get; set; }
     public DbSet<BusinessAuditLog> BusinessAuditLogs { get; set; }
+    public DbSet<Supplier> Suppliers { get; set; }
 
     #region Entities from the modules
 
@@ -136,6 +139,7 @@ public class VPureLuxDbContext :
         builder.ApplyConfiguration(new StockItemConfiguration());
         builder.ApplyConfiguration(new WarehouseConfiguration());
         builder.ApplyConfiguration(new InventoryLotConfiguration());
+        builder.ApplyConfiguration(new InventoryLotSupplierConfiguration());
         builder.ApplyConfiguration(new InventoryTransactionConfiguration());
         builder.ApplyConfiguration(new InventoryBalanceConfiguration());
         builder.Ignore<SalesOrderLine>();
@@ -144,6 +148,7 @@ public class VPureLuxDbContext :
         builder.ApplyConfiguration(new SalesOrderPaymentConfiguration());
         builder.ApplyConfiguration(new NumberSequenceConfiguration());
         builder.ApplyConfiguration(new BusinessAuditLogConfiguration());
+        builder.ApplyConfiguration(new SupplierConfiguration());
 
         if (Database.ProviderName?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true)
         {

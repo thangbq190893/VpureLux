@@ -1,0 +1,55 @@
+@page
+@model VPureLux.Web.Pages.Suppliers.IndexModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{
+    ViewData["Title"] = L["Suppliers:Title"];
+}
+
+@section scripts {
+    <abp-script src="/Pages/Suppliers/Index.js" />
+}
+
+<div data-suppliers-index
+     data-can-edit="@Model.CanEdit.ToString().ToLowerInvariant()"
+     data-can-delete="@Model.CanDelete.ToString().ToLowerInvariant()"
+     data-status-success="@(string.IsNullOrWhiteSpace(Model.StatusMessageKey) ? string.Empty : L[Model.StatusMessageKey].Value)"></div>
+
+<div class="vpl-page">
+    <div class="vpl-page-header">
+        <h2 class="vpl-page-title mb-0">@L["Suppliers:Title"]</h2>
+        <div class="vpl-btn-toolbar">
+            @if (Model.CanCreate)
+            {
+                <a class="btn btn-primary" asp-page="/Suppliers/Create">@L["Suppliers:Create"]</a>
+            }
+        </div>
+    </div>
+
+    <abp-card class="vpl-card-dense">
+        <abp-card-body>
+            <form id="SuppliersSearchForm" class="mb-3">
+                <abp-row>
+                    <abp-column size-md="_5">
+                        <input asp-for="SearchText" id="SuppliersSearchText" class="form-control" placeholder="@L["Suppliers:SearchPlaceholder"]" />
+                    </abp-column>
+                    <abp-column size-md="_4">
+                        <button class="btn btn-secondary" type="submit">@L["Search"]</button>
+                        <button class="btn btn-light" type="button" id="SuppliersClearButton">@L["Clear"]</button>
+                    </abp-column>
+                </abp-row>
+            </form>
+            <abp-table id="SuppliersTable" striped-rows="true" class="vpl-table-dense">
+                <thead>
+                <tr>
+                    <th>@L["Suppliers:Code"]</th>
+                    <th>@L["Suppliers:Name"]</th>
+                    <th>@L["Suppliers:Phone"]</th>
+                    <th>@L["Suppliers:TaxCode"]</th>
+                    <th>@L["Suppliers:Address"]</th>
+                    <th class="text-end">@L["Actions"]</th>
+                </tr>
+                </thead>
+            </abp-table>
+        </abp-card-body>
+    </abp-card>
+</div>

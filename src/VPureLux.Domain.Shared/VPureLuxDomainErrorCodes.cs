@@ -27,6 +27,9 @@ public static class VPureLuxDomainErrorCodes
     public const string CustomerGroupCodeAlreadyExists = "CUSTOMER_006";
     public const string CustomerGroupIsInUse = "CUSTOMER_007";
 
+    public const string SupplierCodeAlreadyExists = "SUPPLIER_001";
+    public const string SupplierNotFound = "SUPPLIER_002";
+
     public const string ActivePriceVersionAlreadyExists = "PRICE_001";
     public const string PriceMustBeGreaterThanZero = "PRICE_002";
     public const string PriceVersionNotFound = "PRICE_003";

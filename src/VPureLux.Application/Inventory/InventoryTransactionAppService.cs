@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using VPureLux.BusinessCodes;
 using VPureLux.Permissions;
+using VPureLux.Suppliers;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
 
@@ -21,7 +22,9 @@ public class InventoryTransactionAppService : ApplicationService, IInventoryTran
 
     private readonly IInventoryTransactionRepository _transactionRepository;
     private readonly IInventoryLotRepository _lotRepository;
+    private readonly IInventoryLotSupplierRepository _lotSupplierRepository;
     private readonly IInventoryBalanceRepository _balanceRepository;
+    private readonly ISupplierRepository _supplierRepository;
     private readonly InventoryManager _manager;
     private readonly InventoryApplicationMapper _mapper;
     private readonly IBusinessCodeGenerator _businessCodeGenerator;
@@ -29,14 +32,18 @@ public class InventoryTransactionAppService : ApplicationService, IInventoryTran
     public InventoryTransactionAppService(
         IInventoryTransactionRepository transactionRepository,
         IInventoryLotRepository lotRepository,
+        IInventoryLotSupplierRepository lotSupplierRepository,
         IInventoryBalanceRepository balanceRepository,
+        ISupplierRepository supplierRepository,
         InventoryManager manager,
         InventoryApplicationMapper mapper,
         IBusinessCodeGenerator businessCodeGenerator)
     {
         _transactionRepository = transactionRepository;
         _lotRepository = lotRepository;
+        _lotSupplierRepository = lotSupplierRepository;
         _balanceRepository = balanceRepository;
+        _supplierRepository = supplierRepository;
         _manager = manager;
         _mapper = mapper;
         _businessCodeGenerator = businessCodeGenerator;
@@ -60,6 +67,9 @@ public class InventoryTransactionAppService : ApplicationService, IInventoryTran
             return _mapper.ToDto(existing);
         }
 
+        var supplier = input.SupplierId.HasValue
+            ? await GetSupplierAsync(input.SupplierId.Value)
+            : null;
         var receiptLines = await ResolveReceiptLotNumbersAsync(input.Lines);
 
         var transaction = _manager.CreateTransaction(
@@ -90,6 +100,11 @@ public class InventoryTransactionAppService : ApplicationService, IInventoryTran
         foreach (var lot in lots)
         {
             await _lotRepository.InsertAsync(lot);
+            if (supplier != null)
+            {
+                await _lotSupplierRepository.InsertAsync(_manager.CreateLotSupplier(lot, supplier));
+            }
+
             await _balanceRepository.ApplyMovementAsync(
                 lot.WarehouseId,
                 lot.StockItemId,
@@ -264,6 +279,13 @@ public class InventoryTransactionAppService : ApplicationService, IInventoryTran
         return existing;
     }
 
+    private async Task<Supplier> GetSupplierAsync(Guid supplierId)
+    {
+        return await _supplierRepository.FindAsync(supplierId)
+            ?? throw new BusinessException(VPureLuxDomainErrorCodes.SupplierNotFound)
+                .WithData(nameof(supplierId), supplierId);
+    }
+
     private IssueCostResultDto ToIssueResult(InventoryTransaction transaction)
     {
         var allocations = transaction.Lines.SelectMany(x => x.Allocations).Select(_mapper.ToDto).ToList();
@@ -330,7 +352,7 @@ public class InventoryTransactionAppService : ApplicationService, IInventoryTran
     }
 
     private static string HashReceipt(PostReceiptDto input) =>
-        Hash($"{input.WarehouseId}|{input.ReferenceType}|{input.ReferenceId}|{input.BomVersionId}|" +
+        Hash($"{input.WarehouseId}|{input.SupplierId}|{input.ReferenceType}|{input.ReferenceId}|{input.BomVersionId}|" +
              string.Join(";", input.Lines.OrderBy(x => x.StockItemId).ThenBy(x => x.LotNo)
                  .Select(x => $"{x.StockItemId}:{x.Quantity}:{x.LotNo}:{x.ReceivedAt:O}:{x.UnitCost}")));
 

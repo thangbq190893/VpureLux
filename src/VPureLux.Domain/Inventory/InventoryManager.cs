@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using VPureLux.Suppliers;
 using Volo.Abp;
 using Volo.Abp.Domain.Services;
 using Volo.Abp.Guids;
@@ -101,6 +102,16 @@ public class InventoryManager : DomainService
             line.ReceivedAt ?? _clock.Now,
             line.Quantity,
             line.UnitCost!.Value);
+    }
+
+    public InventoryLotSupplier CreateLotSupplier(InventoryLot lot, Supplier supplier)
+    {
+        return new InventoryLotSupplier(
+            _guidGenerator.Create(),
+            lot.Id,
+            supplier.Id,
+            supplier.Code,
+            supplier.Name);
     }
 
     public async Task<IReadOnlyList<FifoAllocation>> AllocateFifoAsync(

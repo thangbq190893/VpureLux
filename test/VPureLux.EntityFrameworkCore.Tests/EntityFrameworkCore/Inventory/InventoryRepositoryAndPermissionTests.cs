@@ -9,6 +9,7 @@ using Shouldly;
 using VPureLux.Catalog.Components;
 using VPureLux.Inventory;
 using VPureLux.Permissions;
+using VPureLux.Suppliers;
 using Volo.Abp.Authorization.Permissions;
 using Volo.Abp.EntityFrameworkCore;
 using Xunit;
@@ -52,6 +53,8 @@ public class InventoryRepositoryAndPermissionTests : VPureLuxEntityFrameworkCore
             UniqueIndex<StockItem>(db, "UX_StockItems_ItemType_CatalogItemId");
             UniqueIndex<Warehouse>(db, "UX_Warehouses_Code");
             UniqueIndex<InventoryLot>(db, "UX_InventoryLots_WarehouseId_StockItemId_LotNo");
+            UniqueIndex<InventoryLotSupplier>(db, "UX_InventoryLotSuppliers_InventoryLotId");
+            UniqueIndex<Supplier>(db, "UX_Suppliers_Code");
             UniqueIndex<InventoryTransaction>(db, "UX_InventoryTransactions_IdempotencyKey");
             UniqueIndex<InventoryBalance>(db, "UX_InventoryBalances_WarehouseId_StockItemId");
 

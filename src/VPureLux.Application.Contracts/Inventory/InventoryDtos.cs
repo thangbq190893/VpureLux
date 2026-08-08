@@ -80,6 +80,9 @@ public class InventoryLotDto : EntityDto<Guid>
     public decimal UnitCost { get; set; }
     public string Currency { get; set; } = string.Empty;
     public InventoryLotStatus Status { get; set; }
+    public Guid? SupplierId { get; set; }
+    public string? SupplierCode { get; set; }
+    public string? SupplierName { get; set; }
 }
 
 public class IssueCostResultDto

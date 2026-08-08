@@ -8,7 +8,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using VPureLux.Inventory;
 using VPureLux.Permissions;
+using VPureLux.Suppliers;
 using Volo.Abp;
+using Volo.Abp.Application.Dtos;
 
 namespace VPureLux.Web.Pages.Inventory;
 
@@ -18,6 +20,7 @@ public class ReceiptModel : VPureLuxPageModel
     private readonly IInventoryTransactionAppService _service;
     private readonly IWarehouseAppService _warehouseAppService;
     private readonly IStockItemAppService _stockItemAppService;
+    private readonly ISupplierRepository _supplierRepository;
 
     [BindProperty]
     public PostReceiptDto Input { get; set; } = new()
@@ -29,16 +32,19 @@ public class ReceiptModel : VPureLuxPageModel
     [BindProperty] public List<string> ReceivedAtTexts { get; set; } = new();
     public List<SelectListItem> WarehouseOptions { get; private set; } = new();
     public List<SelectListItem> StockItemOptions { get; private set; } = new();
+    public List<SelectListItem> SupplierOptions { get; private set; } = new();
     public string DefaultDateText => InventoryPostingUi.FormatDate(Clock.Now.Date);
 
     public ReceiptModel(
         IInventoryTransactionAppService service,
         IWarehouseAppService warehouseAppService,
-        IStockItemAppService stockItemAppService)
+        IStockItemAppService stockItemAppService,
+        ISupplierRepository supplierRepository)
     {
         _service = service;
         _warehouseAppService = warehouseAppService;
         _stockItemAppService = stockItemAppService;
+        _supplierRepository = supplierRepository;
     }
 
     public async Task OnGetAsync()
@@ -92,6 +98,12 @@ public class ReceiptModel : VPureLuxPageModel
         (WarehouseOptions, StockItemOptions) = await InventoryPostingUi.LoadSelectorOptionsAsync(
             _warehouseAppService,
             _stockItemAppService);
+
+        SupplierOptions = (await _supplierRepository.GetListAsync(
+                maxResultCount: LimitedResultRequestDto.MaxMaxResultCount,
+                sorting: "Code ASC"))
+            .Select(x => new SelectListItem($"{x.Code} - {x.Name}", x.Id.ToString()))
+            .ToList();
     }
 
     private void EnsureReceiptLine()

@@ -7,6 +7,7 @@ using Shouldly;
 using VPureLux.Catalog;
 using VPureLux.Catalog.Components;
 using VPureLux.Inventory;
+using VPureLux.Suppliers;
 using Volo.Abp;
 using Volo.Abp.Validation;
 using Volo.Abp.Timing;
@@ -23,6 +24,8 @@ public class InventoryWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     private readonly IWarehouseAppService _warehouses;
     private readonly IInventoryTransactionAppService _transactions;
     private readonly IInventoryQueryAppService _queries;
+    private readonly ISupplierAppService _suppliers;
+    private readonly IInventoryLotSupplierRepository _lotSuppliers;
     private readonly IDistributedCache _cache;
     private readonly IClock _clock;
 
@@ -34,6 +37,8 @@ public class InventoryWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         _warehouses = GetRequiredService<IWarehouseAppService>();
         _transactions = GetRequiredService<IInventoryTransactionAppService>();
         _queries = GetRequiredService<IInventoryQueryAppService>();
+        _suppliers = GetRequiredService<ISupplierAppService>();
+        _lotSuppliers = GetRequiredService<IInventoryLotSupplierRepository>();
         _cache = GetRequiredService<IDistributedCache>();
         _clock = GetRequiredService<IClock>();
     }
@@ -142,6 +147,45 @@ public class InventoryWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         receipt.Lines.Single().LotNo.ShouldBe($"LOT-{DatePart()}0001");
     }
 
+    [Fact]
+    public async Task Receipt_With_Supplier_Should_Create_Lot_Supplier_Link_And_Query_Snapshot()
+    {
+        var context = await CreateContextAsync();
+        var supplier = await _suppliers.CreateAsync(new CreateSupplierDto
+        {
+            Code = Unique("SUP"),
+            Name = "Receipt Supplier"
+        });
+
+        await _transactions.PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            SupplierId = supplier.Id,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 3,
+                    UnitCost = 100,
+                    LotNo = Unique("SUP-LOT"),
+                    ReceivedAt = DateTime.UtcNow
+                }
+            ]
+        });
+
+        var lot = (await _queries.GetLotsAsync(context.WarehouseId, context.StockItemId)).Single();
+        lot.SupplierId.ShouldBe(supplier.Id);
+        lot.SupplierCode.ShouldBe(supplier.Code);
+        lot.SupplierName.ShouldBe(supplier.Name);
+
+        var links = await _lotSuppliers.GetListByLotIdsAsync([lot.Id]);
+        links.Single().SupplierId.ShouldBe(supplier.Id);
+        links.Single().SupplierCodeSnapshot.ShouldBe(supplier.Code);
+        links.Single().SupplierNameSnapshot.ShouldBe(supplier.Name);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
@@ -153,6 +197,7 @@ public class InventoryWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         await Should.ThrowAsync<AbpValidationException>(() => _transactions.PostReceiptAsync(new PostReceiptDto
         {
             WarehouseId = context.WarehouseId,
+            SupplierId = null,
             IdempotencyKey = Guid.NewGuid().ToString("N"),
             Lines =
             [

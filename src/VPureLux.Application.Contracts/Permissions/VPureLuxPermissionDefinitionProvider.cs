@@ -48,6 +48,12 @@ public class VPureLuxPermissionDefinitionProvider : PermissionDefinitionProvider
             VPureLuxPermissions.CustomerGroups.ManageStatus,
             L("Permission:CustomerGroups.ManageStatus"));
 
+        var suppliers = myGroup.AddPermission(VPureLuxPermissions.Suppliers.Default, L("Permission:Suppliers"));
+        suppliers.AddChild(VPureLuxPermissions.Suppliers.View, L("Permission:Suppliers.View"));
+        suppliers.AddChild(VPureLuxPermissions.Suppliers.Create, L("Permission:Suppliers.Create"));
+        suppliers.AddChild(VPureLuxPermissions.Suppliers.Edit, L("Permission:Suppliers.Edit"));
+        suppliers.AddChild(VPureLuxPermissions.Suppliers.Delete, L("Permission:Suppliers.Delete"));
+
         var pricing = myGroup.AddPermission(VPureLuxPermissions.Pricing.Default, L("Permission:Pricing"));
         pricing.AddChild(VPureLuxPermissions.Pricing.View, L("Permission:Pricing.View"));
         pricing.AddChild(VPureLuxPermissions.Pricing.History, L("Permission:Pricing.History"));
