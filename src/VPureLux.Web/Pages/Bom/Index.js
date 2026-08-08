@@ -104,7 +104,7 @@
             {
                 data: null,
                 className: 'bom-product-column',
-                width: '40%',
+                width: '54%',
                 render: function (_data, _type, row) {
                     return productHtml(row);
                 }
@@ -113,7 +113,7 @@
                 data: null,
                 orderable: false,
                 className: 'bom-state-column',
-                width: '25%',
+                width: '18%',
                 render: function (_data, _type, row) {
                     return bomStateHtml(row);
                 }
@@ -121,8 +121,8 @@
             {
                 data: 'standardCostRange',
                 orderable: false,
-                className: 'text-end bom-standard-cost-column',
-                width: '19%',
+                className: 'bom-standard-cost-column',
+                width: '16%',
                 render: function (data) {
                     return '<span class="bom-standard-cost-cell">' + encode(data) + '</span>';
                 }
@@ -131,7 +131,7 @@
                 data: null,
                 orderable: false,
                 className: 'text-end bom-actions-column',
-                width: '16%',
+                width: '12%',
                 render: function (_data, _type, row) {
                     return actionsHtml(row);
                 }
