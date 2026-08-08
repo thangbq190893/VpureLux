@@ -57,6 +57,9 @@ public abstract class PostInventoryTransactionInput
 public class PostReceiptDto : PostInventoryTransactionInput
 {
     public Guid? SupplierId { get; set; }
+    [StringLength(InventoryConsts.MaxLotNoLength)]
+    public string? LotNo { get; set; }
+    public DateTime ReceivedAt { get; set; }
 
     [Required, MinLength(1)]
     public List<ReceiptLineInput> Lines { get; set; } = new();

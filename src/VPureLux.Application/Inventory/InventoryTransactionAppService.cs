@@ -70,7 +70,7 @@ public class InventoryTransactionAppService : ApplicationService, IInventoryTran
         var supplier = input.SupplierId.HasValue
             ? await GetSupplierAsync(input.SupplierId.Value)
             : null;
-        var receiptLines = await ResolveReceiptLotNumbersAsync(input.Lines);
+        var receiptLines = await ResolvePurchaseReceiptLinesAsync(input);
 
         var transaction = _manager.CreateTransaction(
             input.WarehouseId,
@@ -190,7 +190,7 @@ public class InventoryTransactionAppService : ApplicationService, IInventoryTran
             return _mapper.ToDto(existing);
         }
 
-        var increaseLines = await ResolveReceiptLotNumbersAsync(input.IncreaseLines);
+        var increaseLines = await ResolveAdjustmentIncreaseLotNumbersAsync(input.IncreaseLines);
 
         var transaction = _manager.CreateTransaction(
             input.WarehouseId,
@@ -304,7 +304,25 @@ public class InventoryTransactionAppService : ApplicationService, IInventoryTran
             .Select(x => new IssueLineInput { StockItemId = x.Key, Quantity = x.Sum(y => y.Quantity) })
             .ToList();
 
-    private async Task<List<ReceiptLineInput>> ResolveReceiptLotNumbersAsync(IEnumerable<ReceiptLineInput> lines)
+    private async Task<List<ReceiptLineInput>> ResolvePurchaseReceiptLinesAsync(PostReceiptDto input)
+    {
+        var requestedLotNo = GetRequestedReceiptLotNo(input);
+        var lotNo = string.IsNullOrWhiteSpace(requestedLotNo)
+            ? await GenerateLotNoAsync()
+            : requestedLotNo;
+        var receivedAt = GetRequestedReceiptReceivedAt(input) ?? Clock.Now.Date;
+
+        return input.Lines.Select(line => new ReceiptLineInput
+        {
+            StockItemId = line.StockItemId,
+            Quantity = line.Quantity,
+            LotNo = lotNo,
+            ReceivedAt = receivedAt,
+            UnitCost = line.UnitCost
+        }).ToList();
+    }
+
+    private async Task<List<ReceiptLineInput>> ResolveAdjustmentIncreaseLotNumbersAsync(IEnumerable<ReceiptLineInput> lines)
     {
         var result = new List<ReceiptLineInput>();
 
@@ -323,6 +341,40 @@ public class InventoryTransactionAppService : ApplicationService, IInventoryTran
         }
 
         return result;
+    }
+
+    private static string? GetRequestedReceiptLotNo(PostReceiptDto input)
+    {
+        if (!string.IsNullOrWhiteSpace(input.LotNo))
+        {
+            return input.LotNo.Trim();
+        }
+
+        var lineLotNos = input.Lines
+            .Select(x => x.LotNo?.Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(2)
+            .ToList();
+
+        return lineLotNos.Count == 1 ? lineLotNos[0] : null;
+    }
+
+    private static DateTime? GetRequestedReceiptReceivedAt(PostReceiptDto input)
+    {
+        if (input.ReceivedAt != default)
+        {
+            return input.ReceivedAt;
+        }
+
+        var lineReceivedDates = input.Lines
+            .Select(x => x.ReceivedAt)
+            .Where(x => x != default)
+            .Distinct()
+            .Take(2)
+            .ToList();
+
+        return lineReceivedDates.Count == 1 ? lineReceivedDates[0] : null;
     }
 
     private static void ValidateReceiptInput(PostReceiptDto input)
@@ -352,9 +404,9 @@ public class InventoryTransactionAppService : ApplicationService, IInventoryTran
     }
 
     private static string HashReceipt(PostReceiptDto input) =>
-        Hash($"{input.WarehouseId}|{input.SupplierId}|{input.ReferenceType}|{input.ReferenceId}|{input.BomVersionId}|" +
-             string.Join(";", input.Lines.OrderBy(x => x.StockItemId).ThenBy(x => x.LotNo)
-                 .Select(x => $"{x.StockItemId}:{x.Quantity}:{x.LotNo}:{x.ReceivedAt:O}:{x.UnitCost}")));
+        Hash($"{input.WarehouseId}|{input.SupplierId}|{GetRequestedReceiptLotNo(input)}|{GetRequestedReceiptReceivedAt(input):O}|{input.ReferenceType}|{input.ReferenceId}|{input.BomVersionId}|" +
+             string.Join(";", input.Lines.OrderBy(x => x.StockItemId)
+                 .Select(x => $"{x.StockItemId}:{x.Quantity}:{x.UnitCost}")));
 
     private static string HashIssue(PostIssueDto input) =>
         Hash($"{input.WarehouseId}|{input.Type}|{input.ReferenceType}|{input.ReferenceId}|{input.BomVersionId}|" +

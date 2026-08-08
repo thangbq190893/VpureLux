@@ -29,7 +29,8 @@ public class ReceiptModel : VPureLuxPageModel
         Lines = [new ReceiptLineInput()]
     };
 
-    [BindProperty] public List<string> ReceivedAtTexts { get; set; } = new();
+    [BindProperty] public string ReceivedAtText { get; set; } = string.Empty;
+    [BindProperty] public List<string> UnitCostTexts { get; set; } = new();
     public List<SelectListItem> WarehouseOptions { get; private set; } = new();
     public List<SelectListItem> StockItemOptions { get; private set; } = new();
     public List<SelectListItem> SupplierOptions { get; private set; } = new();
@@ -57,7 +58,8 @@ public class ReceiptModel : VPureLuxPageModel
     public async Task<IActionResult> OnPostAsync()
     {
         EnsureReceiptLine();
-        ParseReceiptDates();
+        ParseReceiptDate();
+        ParseUnitCosts();
         ValidateReceiptLines();
         if (!ModelState.IsValid)
         {
@@ -93,6 +95,19 @@ public class ReceiptModel : VPureLuxPageModel
             : value.ToString("0.####", CultureInfo.InvariantCulture);
     }
 
+    public string GetPostedMoneyFieldValue(string key, decimal value)
+    {
+        if (ModelState.TryGetValue(key, out var state) &&
+            state.RawValue is string attemptedValue)
+        {
+            return attemptedValue;
+        }
+
+        return value == 0
+            ? string.Empty
+            : value.ToString("#,0.##", CultureInfo.GetCultureInfo("vi-VN"));
+    }
+
     private async Task LoadOptionsAsync()
     {
         (WarehouseOptions, StockItemOptions) = await InventoryPostingUi.LoadSelectorOptionsAsync(
@@ -110,7 +125,17 @@ public class ReceiptModel : VPureLuxPageModel
     {
         if (Input.Lines.Count == 0)
         {
-            Input.Lines.Add(new ReceiptLineInput { ReceivedAt = Clock.Now.Date });
+            Input.Lines.Add(new ReceiptLineInput());
+        }
+
+        if (Input.ReceivedAt == default)
+        {
+            Input.ReceivedAt = Clock.Now.Date;
+        }
+
+        if (string.IsNullOrWhiteSpace(ReceivedAtText))
+        {
+            ReceivedAtText = InventoryPostingUi.FormatDate(Input.ReceivedAt);
         }
 
         if (string.IsNullOrWhiteSpace(Input.IdempotencyKey))
@@ -118,34 +143,93 @@ public class ReceiptModel : VPureLuxPageModel
             Input.IdempotencyKey = Guid.NewGuid().ToString("N");
         }
 
-        while (ReceivedAtTexts.Count < Input.Lines.Count)
+        while (UnitCostTexts.Count < Input.Lines.Count)
         {
-            var line = Input.Lines[ReceivedAtTexts.Count];
-            var date = line.ReceivedAt == default ? Clock.Now.Date : line.ReceivedAt;
-            ReceivedAtTexts.Add(InventoryPostingUi.FormatDate(date));
+            var line = Input.Lines[UnitCostTexts.Count];
+            UnitCostTexts.Add(line.UnitCost == 0 ? string.Empty : line.UnitCost.ToString("#,0.##", CultureInfo.GetCultureInfo("vi-VN")));
+        }
+
+        if (UnitCostTexts.Count > Input.Lines.Count)
+        {
+            UnitCostTexts = UnitCostTexts.Take(Input.Lines.Count).ToList();
         }
     }
 
     private void SyncReceiptDateTextFromInput()
     {
-        ReceivedAtTexts = Input.Lines
-            .Select(x => InventoryPostingUi.FormatDate(x.ReceivedAt == default ? Clock.Now.Date : x.ReceivedAt))
-            .ToList();
+        ReceivedAtText = InventoryPostingUi.FormatDate(Input.ReceivedAt == default ? Clock.Now.Date : Input.ReceivedAt);
     }
 
-    private void ParseReceiptDates()
+    private void ParseReceiptDate()
+    {
+        if (!InventoryPostingUi.TryParseDate(ReceivedAtText, out var receivedAt))
+        {
+            ModelState.AddModelError(nameof(ReceivedAtText), L["Inventory:InvalidDateFormat"]);
+            return;
+        }
+
+        Input.ReceivedAt = receivedAt;
+    }
+
+    private void ParseUnitCosts()
     {
         for (var i = 0; i < Input.Lines.Count; i++)
         {
-            var text = i < ReceivedAtTexts.Count ? ReceivedAtTexts[i] : null;
-            if (!InventoryPostingUi.TryParseDate(text, out var receivedAt))
+            var key = $"{nameof(UnitCostTexts)}[{i}]";
+            var dtoKey = $"{nameof(Input)}.{nameof(Input.Lines)}[{i}].{nameof(ReceiptLineInput.UnitCost)}";
+            var text = i < UnitCostTexts.Count ? UnitCostTexts[i] : null;
+            ModelState.Remove(dtoKey);
+
+            if (!TryParseVndAmount(text, out var unitCost) || unitCost <= 0)
             {
-                ModelState.AddModelError($"{nameof(ReceivedAtTexts)}[{i}]", L["Inventory:InvalidDateFormat"]);
+                ModelState.AddModelError(key, L["Inventory:UnitCostPositive"]);
                 continue;
             }
 
-            Input.Lines[i].ReceivedAt = receivedAt;
+            Input.Lines[i].UnitCost = unitCost;
         }
+    }
+
+    private static bool TryParseVndAmount(string? text, out decimal value)
+    {
+        value = 0;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        var normalized = text.Trim()
+            .Replace("₫", string.Empty)
+            .Replace("VNĐ", string.Empty, StringComparison.OrdinalIgnoreCase)
+            .Replace("VND", string.Empty, StringComparison.OrdinalIgnoreCase)
+            .Replace(" ", string.Empty);
+
+        if (normalized.Contains('.') && normalized.Contains(','))
+        {
+            normalized = normalized.LastIndexOf(',') > normalized.LastIndexOf('.')
+                ? normalized.Replace(".", string.Empty).Replace(",", ".")
+                : normalized.Replace(",", string.Empty);
+        }
+        else if (normalized.Contains('.'))
+        {
+            normalized = LooksLikeThousandGroups(normalized, '.') ? normalized.Replace(".", string.Empty) : normalized;
+        }
+        else if (normalized.Contains(','))
+        {
+            normalized = LooksLikeThousandGroups(normalized, ',')
+                ? normalized.Replace(",", string.Empty)
+                : normalized.Replace(",", ".");
+        }
+
+        return decimal.TryParse(normalized, NumberStyles.Number, CultureInfo.InvariantCulture, out value);
+    }
+
+    private static bool LooksLikeThousandGroups(string value, char separator)
+    {
+        var parts = value.Split(separator);
+        return parts.Length > 1 &&
+               parts[0].Length is >= 1 and <= 3 &&
+               parts.Skip(1).All(x => x.Length == 3 && x.All(char.IsDigit));
     }
 
     private void ValidateReceiptLines()

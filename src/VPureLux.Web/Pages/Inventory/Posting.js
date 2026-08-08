@@ -332,8 +332,37 @@
         updateAllRows();
     }
 
+    function normalizeVndDigits(value) {
+        return String(value || '').replace(/[^\d]/g, '');
+    }
+
+    function formatVndValue(value) {
+        var digits = normalizeVndDigits(value);
+
+        if (!digits) {
+            return '';
+        }
+
+        return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+
+    function initializeVndMoneyInputs() {
+        document.querySelectorAll('[data-vnd-money]').forEach(function (input) {
+            input.value = formatVndValue(input.value);
+        });
+
+        document.addEventListener('blur', function (event) {
+            if (!event.target || !event.target.matches('[data-vnd-money]')) {
+                return;
+            }
+
+            event.target.value = formatVndValue(event.target.value);
+        }, true);
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('[data-inventory-line-container]').forEach(initializeLineCollection);
+        initializeVndMoneyInputs();
 
         document.querySelectorAll('[data-inventory-posting-page]').forEach(function (page) {
             if (page.dataset.postSuccess) {
