@@ -84,13 +84,6 @@ public class VPureLuxMenuContributor : IMenuContributor
             icon: "fa fa-filter"
         ).RequirePermissions(VPureLuxPermissions.Catalog.Products.View));
 
-        catalog.AddItem(new ApplicationMenuItem(
-            VPureLuxMenus.Suppliers,
-            l["Menu:Suppliers"],
-            "~/Suppliers",
-            icon: "fa fa-truck"
-        ).RequirePermissions(VPureLuxPermissions.Suppliers.View));
-
         context.Menu.AddItem(catalog);
 
         context.Menu.AddItem(new ApplicationMenuItem(
@@ -118,18 +111,26 @@ public class VPureLuxMenuContributor : IMenuContributor
         ).RequirePermissions(VPureLuxPermissions.CustomerGroups.View));
 
         context.Menu.AddItem(new ApplicationMenuItem(
+            VPureLuxMenus.Suppliers,
+            l["Menu:Suppliers"],
+            "~/Suppliers",
+            icon: "fa fa-truck",
+            order: 7
+        ).RequirePermissions(VPureLuxPermissions.Suppliers.View));
+
+        context.Menu.AddItem(new ApplicationMenuItem(
             VPureLuxMenus.Pricing,
             l["Menu:Pricing"],
             "~/Pricing",
             icon: "fa fa-money",
-            order: 7
+            order: 8
         ).RequirePermissions(VPureLuxPermissions.Pricing.View));
 
         var inventory = new ApplicationMenuItem(
             VPureLuxMenus.Inventory,
             l["Menu:Inventory"],
             icon: "fa fa-warehouse",
-            order: 8
+            order: 9
         ).RequirePermissions(VPureLuxPermissions.Inventory.View);
 
         inventory.AddItem(new ApplicationMenuItem(
@@ -181,14 +182,14 @@ public class VPureLuxMenuContributor : IMenuContributor
             l["Menu:Sales"],
             "~/Sales",
             icon: "fa fa-shopping-cart",
-            order: 9
+            order: 10
         ).RequirePermissions(VPureLuxPermissions.Sales.View));
 
         var reports = new ApplicationMenuItem(
             VPureLuxMenus.Reports,
             l["Menu:Reports"],
             icon: "fa fa-chart-bar",
-            order: 10
+            order: 11
         );
 
         reports.AddItem(new ApplicationMenuItem(
@@ -212,7 +213,7 @@ public class VPureLuxMenuContributor : IMenuContributor
             l["Menu:Audit"],
             "~/Audit",
             icon: "fa fa-history",
-            order: 11
+            order: 12
         ).RequirePermissions(VPureLuxPermissions.Audit.View));
 
         //Saas

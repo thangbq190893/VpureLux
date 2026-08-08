@@ -29,6 +29,8 @@ public class SupplierPagesTests : VPureLuxWebTestBase
         menuConstantsSource.ShouldContain("Suppliers");
         menuSource.ShouldContain("VPureLuxMenus.Suppliers");
         menuSource.ShouldContain("\"~/Suppliers\"");
+        menuSource.ShouldContain("order: 7");
+        menuSource.ShouldNotContain("catalog.AddItem(new ApplicationMenuItem(\r\n            VPureLuxMenus.Suppliers");
         indexSource.ShouldContain("SuppliersTable");
         scriptSource.ShouldContain("serverSide: true");
         scriptSource.ShouldContain("Suppliers?handler=List");
