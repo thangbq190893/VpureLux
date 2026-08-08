@@ -99,18 +99,23 @@
     word-break: break-word;
 }
 
-.bom-action-group {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 0.25rem;
+.bom-action-menu {
+    display: inline-block;
 }
 
-.bom-action-group .btn {
-    padding: 0.2rem 0.45rem;
-    font-size: 0.75rem;
+.bom-action-menu .btn {
+    min-width: 2.25rem;
+    padding: 0.2rem 0.55rem;
+    font-size: 0.8125rem;
     line-height: 1.2;
-    white-space: normal;
+}
+
+.bom-action-menu .dropdown-menu {
+    min-width: 9rem;
+}
+
+.bom-action-menu .dropdown-item {
+    font-size: 0.8125rem;
 }
 
 @media (max-width: 1199.98px) {

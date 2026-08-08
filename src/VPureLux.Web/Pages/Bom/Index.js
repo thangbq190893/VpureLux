@@ -19,6 +19,7 @@
     var viewCurrentVersionText = l('Bom:ViewCurrentVersion');
     var editCurrentVersionText = l('Bom:EditCurrentVersion');
     var editShortText = l('Edit');
+    var actionsText = l('Actions');
     var openHistoryShortText = l('Bom:OpenHistoryShort');
     var createVersionShortText = l('Bom:CreateVersionShort');
     var viewCurrentVersionShortText = l('Bom:ViewCurrentVersionShort');
@@ -87,31 +88,35 @@
     }
 
     function actionsHtml(row) {
-        var buttons = [
-            '<a class="btn btn-sm btn-outline-secondary" title="' + encode(openHistoryText) +
+        var items = [
+            '<a class="dropdown-item" title="' + encode(openHistoryText) +
             '" href="' + abp.appPath + 'Bom/Product/' +
             encodeURIComponent(row.productId) + '">' + encode(openHistoryShortText) + '</a>'
         ];
 
         if (canCreate && row.currentVersion) {
-            buttons.push('<button type="button" class="btn btn-sm btn-outline-primary" title="' +
+            items.push('<button type="button" class="dropdown-item" title="' +
                 encode(editCurrentVersionText) + '" data-bom-edit-current-id="' +
                 encode(row.currentVersion.id) + '">' + encode(editShortText) + '</button>');
         }
 
         if (canCreate) {
-            buttons.push('<a class="btn btn-sm btn-outline-primary" title="' + encode(createVersionText) +
+            items.push('<a class="dropdown-item" title="' + encode(createVersionText) +
                 '" href="' + abp.appPath + 'Bom/Create/' +
                 encodeURIComponent(row.productId) + '">' + encode(createVersionShortText) + '</a>');
         }
 
         if (row.currentVersion) {
-            buttons.push('<a class="btn btn-sm btn-outline-secondary" title="' + encode(viewCurrentVersionText) +
+            items.push('<a class="dropdown-item" title="' + encode(viewCurrentVersionText) +
                 '" href="' + abp.appPath + 'Bom/Details/' +
                 encodeURIComponent(row.currentVersion.id) + '">' + encode(viewCurrentVersionShortText) + '</a>');
         }
 
-        return '<div class="bom-action-group">' + buttons.join('') + '</div>';
+        return '<div class="dropdown bom-action-menu">' +
+            '<button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown" ' +
+            'aria-expanded="false" aria-label="' + encode(actionsText) + '" title="' + encode(actionsText) + '">...</button>' +
+            '<div class="dropdown-menu dropdown-menu-end">' + items.join('') + '</div>' +
+            '</div>';
     }
 
     function submitEditCurrent(versionId) {

@@ -92,7 +92,9 @@ public class BomPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("submitEditCurrent");
         scriptSource.ShouldContain("Bom:VersionCountSuffix");
         scriptSource.ShouldContain("bom-state-cell");
-        scriptSource.ShouldContain("bom-action-group");
+        scriptSource.ShouldContain("bom-action-menu");
+        scriptSource.ShouldContain("dropdown-menu dropdown-menu-end");
+        scriptSource.ShouldContain("data-bs-toggle=\"dropdown\"");
         scriptSource.ShouldContain("bom-standard-cost-cell");
         scriptSource.ShouldContain("compactText(productName, 76)");
         scriptSource.ShouldContain("title=\"");
@@ -121,8 +123,8 @@ public class BomPagesTests : VPureLuxWebTestBase
         cssSource.ShouldContain("text-overflow: ellipsis");
         cssSource.ShouldContain("width: 40%");
         cssSource.ShouldContain(".bom-state-column");
-        cssSource.ShouldContain(".bom-action-group");
-        cssSource.ShouldContain("flex-wrap: wrap");
+        cssSource.ShouldContain(".bom-action-menu");
+        cssSource.ShouldContain(".dropdown-item");
         html.ShouldNotContain("type=\"text\" id=\"ProductId\"");
     }
 
