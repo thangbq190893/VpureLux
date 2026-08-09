@@ -1565,6 +1565,7 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         html.ShouldContain(localizer["Inventory:ReceiptValue"].Value);
         html.ShouldContain(localizer["Inventory:UpdateLotSupplier"].Value);
         html.ShouldContain(localizer["Inventory:UpdateLotUnitCost"].Value);
+        html.ShouldContain("__RequestVerificationToken");
         html.ShouldContain("data-inventory-lots-page");
         pageSource.ShouldContain("data-can-update-supplier");
         pageSource.ShouldContain("data-can-update-lot-info");
@@ -1572,6 +1573,10 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("Inventory:UpdateUnitCostShort");
         scriptSource.ShouldContain("data-update-lot-supplier");
         scriptSource.ShouldContain("data-update-lot-unit-cost");
+        scriptSource.ShouldContain("formTokenData");
+        scriptSource.ShouldContain("__RequestVerificationToken");
+        scriptSource.ShouldContain("handler=UpdateUnitCost");
+        scriptSource.ShouldContain("data: data");
         rows.Items.Any(x => x.ReceivedQuantity == "11").ShouldBeTrue();
         rows.Items.Any(x => x.UnitCostValue == 12345m).ShouldBeTrue();
         rows.Items.Any(x => x.UnitCost == 12345m.ToString("#,0", vi) + " ₫").ShouldBeTrue();

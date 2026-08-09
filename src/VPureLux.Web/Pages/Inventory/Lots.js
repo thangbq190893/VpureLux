@@ -60,6 +60,14 @@
         });
     }
 
+    function formTokenData($form) {
+        var token = $form.find('input[name="__RequestVerificationToken"]').val();
+
+        return token
+            ? { __RequestVerificationToken: token }
+            : {};
+    }
+
     function showSupplierModal() {
         if (supplierModal) {
             supplierModal.show();
@@ -239,16 +247,21 @@
             return;
         }
 
+        var data = formTokenData($supplierForm);
+        data.id = $lotId.val();
+        data.supplierId = $supplierId.val();
+
+        abp.ui.setBusy($supplierForm);
         abp.ajax({
-            url: abp.appPath + 'Inventory/Lots?handler=UpdateSupplier&id=' +
-                encodeURIComponent($lotId.val()) +
-                '&supplierId=' +
-                encodeURIComponent($supplierId.val()),
-            type: 'POST'
+            url: abp.appPath + 'Inventory/Lots?handler=UpdateSupplier',
+            type: 'POST',
+            data: data
         }).then(function () {
             abp.notify.success(l('Inventory:LotSupplierUpdatedSuccessfully'));
             hideSupplierModal();
             dataTable.ajax.reload(null, false);
+        }).always(function () {
+            abp.ui.clearBusy($supplierForm);
         });
     });
 
@@ -263,16 +276,21 @@
             return;
         }
 
+        var data = formTokenData($unitCostForm);
+        data.id = $unitCostLotId.val();
+        data.unitCost = normalized;
+
+        abp.ui.setBusy($unitCostForm);
         abp.ajax({
-            url: abp.appPath + 'Inventory/Lots?handler=UpdateUnitCost&id=' +
-                encodeURIComponent($unitCostLotId.val()) +
-                '&unitCost=' +
-                encodeURIComponent(normalized),
-            type: 'POST'
+            url: abp.appPath + 'Inventory/Lots?handler=UpdateUnitCost',
+            type: 'POST',
+            data: data
         }).then(function () {
             abp.notify.success(l('Inventory:LotUnitCostUpdatedSuccessfully'));
             hideUnitCostModal();
             dataTable.ajax.reload(null, false);
+        }).always(function () {
+            abp.ui.clearBusy($unitCostForm);
         });
     });
 

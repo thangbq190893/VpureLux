@@ -71,6 +71,7 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <form id="InventoryLotSupplierForm">
+                        @Html.AntiForgeryToken()
                         <div class="modal-header">
                             <h5 class="modal-title" id="InventoryLotSupplierModalLabel">@L["Inventory:UpdateLotSupplier"]</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["Close"]"></button>
@@ -105,6 +106,7 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <form id="InventoryLotUnitCostForm">
+                        @Html.AntiForgeryToken()
                         <div class="modal-header">
                             <h5 class="modal-title" id="InventoryLotUnitCostModalLabel">@L["Inventory:UpdateLotUnitCost"]</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["Close"]"></button>
