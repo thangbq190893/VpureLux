@@ -41,4 +41,5 @@ public interface IInventoryLotAppService : IApplicationService
 {
     Task<InventoryLotDto> UpdateSupplierAsync(Guid id, UpdateInventoryLotSupplierDto input);
     Task<InventoryLotDto> UpdateUnitCostAsync(Guid id, UpdateInventoryLotUnitCostDto input);
+    Task DeleteUnusedReceiptAsync(Guid id);
 }

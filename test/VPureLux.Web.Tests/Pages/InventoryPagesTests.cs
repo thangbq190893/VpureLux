@@ -1574,13 +1574,17 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("asp-for=\"LotNo\"");
         scriptSource.ShouldContain("Inventory:UpdateSupplierShort");
         scriptSource.ShouldContain("Inventory:UpdateUnitCostShort");
+        scriptSource.ShouldContain("Inventory:DeleteUnusedReceiptShort");
+        scriptSource.ShouldContain("Inventory:ConfirmDeleteUnusedReceipt");
         scriptSource.ShouldContain("lotNo: $lotNo.val()");
         scriptSource.ShouldContain("data-update-lot-supplier");
         scriptSource.ShouldContain("data-update-lot-unit-cost");
+        scriptSource.ShouldContain("data-delete-unused-receipt");
         scriptSource.ShouldContain("formTokenHeaders");
         scriptSource.ShouldContain("__RequestVerificationToken");
         scriptSource.ShouldContain("RequestVerificationToken");
         scriptSource.ShouldContain("handler=UpdateUnitCost");
+        scriptSource.ShouldContain("handler=DeleteReceipt");
         scriptSource.ShouldContain("headers: formTokenHeaders");
         rows.Items.Any(x => x.ReceivedQuantity == "11").ShouldBeTrue();
         rows.Items.Any(x => x.UnitCostValue == 12345m).ShouldBeTrue();
@@ -1675,6 +1679,48 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         rows.Items.Single().ReceiptValue.ShouldBe(5000m.ToString("#,0", vi) + " ₫");
         (await GetRequiredService<IInventoryQueryAppService>()
             .GetBalancesAsync(context.WarehouseId, context.StockItemId)).Single().InventoryValue.ShouldBe(5000);
+    }
+
+    [Fact]
+    public async Task Lots_Page_Should_Delete_Unused_Receipt_For_Existing_Lot()
+    {
+        var context = await CreateInquiryFilterContextAsync("LOT-DEL");
+        await GetRequiredService<IInventoryTransactionAppService>().PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 2,
+                    UnitCost = 1000,
+                    ReceivedAt = new DateTime(2026, 6, 18)
+                }
+            ]
+        });
+        var lotId = (await GetLotsRowsAsync(context.WarehouseId, context.StockItemId)).Items.Single().Id;
+        var authorization = Substitute.For<IAuthorizationService>();
+        authorization.AuthorizeAsync(Arg.Any<ClaimsPrincipal>(), Arg.Any<object?>(), VPureLuxPermissions.Inventory.Receive)
+            .Returns(AuthorizationResult.Success());
+        var model = new LotsModel(
+            GetRequiredService<IInventoryQueryAppService>(),
+            GetRequiredService<IInventoryLotAppService>(),
+            GetRequiredService<IWarehouseAppService>(),
+            GetRequiredService<IStockItemAppService>(),
+            GetRequiredService<ISupplierAppService>(),
+            authorization);
+        SetPageContext(model);
+
+        var result = await model.OnPostDeleteReceiptAsync(lotId);
+
+        result.ShouldBeOfType<NoContentResult>();
+        (await GetLotsRowsAsync(context.WarehouseId, context.StockItemId)).Items.ShouldBeEmpty();
+        (await GetRequiredService<IInventoryQueryAppService>()
+            .GetLedgerAsync(context.WarehouseId, context.StockItemId)).ShouldBeEmpty();
+        (await GetRequiredService<IInventoryQueryAppService>()
+            .GetBalancesAsync(context.WarehouseId, context.StockItemId)).Single().QuantityOnHand.ShouldBe(0);
     }
 
     [Fact]

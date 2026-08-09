@@ -31,6 +31,9 @@ public interface IInventoryLotRepository : IRepository<InventoryLot, Guid>
         Guid? stockItemId = null,
         string? lotNo = null,
         CancellationToken cancellationToken = default);
+    Task<List<InventoryLot>> GetListByReceiptLineIdsAsync(
+        IReadOnlyCollection<Guid> receiptTransactionLineIds,
+        CancellationToken cancellationToken = default);
 }
 
 public interface IInventoryLotSupplierRepository : IRepository<InventoryLotSupplier, Guid>
@@ -44,6 +47,9 @@ public interface IInventoryTransactionRepository : IRepository<InventoryTransact
 {
     Task<InventoryTransaction?> FindByIdempotencyKeyAsync(
         string idempotencyKey,
+        CancellationToken cancellationToken = default);
+    Task<InventoryTransaction?> FindByReceiptLineIdAsync(
+        Guid receiptTransactionLineId,
         CancellationToken cancellationToken = default);
     Task<List<InventoryTransaction>> GetLedgerAsync(
         Guid? warehouseId = null,

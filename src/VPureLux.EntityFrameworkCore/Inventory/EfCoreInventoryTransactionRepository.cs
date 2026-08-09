@@ -19,6 +19,10 @@ public class EfCoreInventoryTransactionRepository : EfCoreRepository<VPureLuxDbC
         await (await GetDbSetAsync()).Include(x => x.Lines).ThenInclude(x => x.Allocations)
             .FirstOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, GetCancellationToken(cancellationToken));
 
+    public async Task<InventoryTransaction?> FindByReceiptLineIdAsync(Guid receiptTransactionLineId, CancellationToken cancellationToken = default) =>
+        await (await GetDbSetAsync()).Include(x => x.Lines).ThenInclude(x => x.Allocations)
+            .FirstOrDefaultAsync(x => x.Lines.Any(line => line.Id == receiptTransactionLineId), GetCancellationToken(cancellationToken));
+
     public async Task<List<InventoryTransaction>> GetLedgerAsync(Guid? warehouseId = null, Guid? stockItemId = null, CancellationToken cancellationToken = default) =>
         await (await GetDbSetAsync()).Include(x => x.Lines).ThenInclude(x => x.Allocations)
             .Where(x => x.Status == InventoryTransactionStatus.Posted &&

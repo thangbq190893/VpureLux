@@ -342,6 +342,92 @@ public class InventoryWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         (await _queries.GetBalancesAsync(warehouse.Id, secondItem.Id)).Single().InventoryValue.ShouldBe(1200);
     }
 
+    [Fact]
+    public async Task Unused_Receipt_Should_Be_Deleted_With_Lots_Suppliers_Ledger_And_Balance_Adjustment()
+    {
+        var context = await CreateContextAsync();
+        var supplier = await _suppliers.CreateAsync(new CreateSupplierDto
+        {
+            Code = Unique("SUP"),
+            Name = "Delete Receipt Supplier"
+        });
+
+        await _transactions.PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            SupplierId = supplier.Id,
+            LotNo = Unique("LOT-DEL"),
+            ReceivedAt = DateTime.UtcNow,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput { StockItemId = context.StockItemId, Quantity = 3, UnitCost = 100 }
+            ]
+        });
+        var lot = (await _queries.GetLotsAsync(context.WarehouseId, context.StockItemId)).Single();
+
+        await _lots.DeleteUnusedReceiptAsync(lot.Id);
+
+        (await _queries.GetLotsAsync(context.WarehouseId, context.StockItemId)).ShouldBeEmpty();
+        (await _queries.GetLedgerAsync(context.WarehouseId, context.StockItemId)).ShouldBeEmpty();
+        var balance = (await _queries.GetBalancesAsync(context.WarehouseId, context.StockItemId)).Single();
+        balance.QuantityOnHand.ShouldBe(0);
+        balance.InventoryValue.ShouldBe(0);
+        (await _lotSuppliers.GetListByLotIdsAsync([lot.Id])).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Unused_Multi_Item_Receipt_Should_Delete_All_Lots_From_Selected_Row()
+    {
+        var warehouse = await CreateWarehouseAsync();
+        var firstComponent = await CreateComponentAsync();
+        var secondComponent = await CreateComponentAsync();
+        var firstItem = (await _stockItems.FindByCatalogItemAsync(StockItemType.Component, firstComponent.Id))!;
+        var secondItem = (await _stockItems.FindByCatalogItemAsync(StockItemType.Component, secondComponent.Id))!;
+        var sharedLotNo = Unique("LOT-DEL-MULTI");
+
+        await _transactions.PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = warehouse.Id,
+            LotNo = sharedLotNo,
+            ReceivedAt = DateTime.UtcNow,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput { StockItemId = firstItem.Id, Quantity = 3, UnitCost = 100 },
+                new ReceiptLineInput { StockItemId = secondItem.Id, Quantity = 4, UnitCost = 200 }
+            ]
+        });
+        var selectedLot = (await _queries.GetLotsAsync(warehouse.Id, secondItem.Id, sharedLotNo)).Single();
+
+        await _lots.DeleteUnusedReceiptAsync(selectedLot.Id);
+
+        (await _queries.GetLotsAsync(warehouse.Id, firstItem.Id, sharedLotNo)).ShouldBeEmpty();
+        (await _queries.GetLotsAsync(warehouse.Id, secondItem.Id, sharedLotNo)).ShouldBeEmpty();
+        (await _queries.GetLedgerAsync(warehouse.Id, firstItem.Id)).ShouldBeEmpty();
+        (await _queries.GetLedgerAsync(warehouse.Id, secondItem.Id)).ShouldBeEmpty();
+        (await _queries.GetBalancesAsync(warehouse.Id, firstItem.Id)).Single().QuantityOnHand.ShouldBe(0);
+        (await _queries.GetBalancesAsync(warehouse.Id, secondItem.Id)).Single().QuantityOnHand.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task Used_Receipt_Should_Reject_Delete_And_Keep_Lots_Ledger_And_Balance()
+    {
+        var context = await CreateContextAsync();
+        await ReceiptAsync(context.WarehouseId, context.StockItemId, 5, 100, Unique("LOT-DEL-USED"));
+        await IssueAsync(context.WarehouseId, context.StockItemId, 2);
+        var lot = (await _queries.GetLotsAsync(context.WarehouseId, context.StockItemId)).Single();
+
+        (await Should.ThrowAsync<BusinessException>(() => _lots.DeleteUnusedReceiptAsync(lot.Id)))
+            .Code.ShouldBe(VPureLuxDomainErrorCodes.InventoryReceiptCannotBeDeletedAfterUse);
+
+        (await _queries.GetLotsAsync(context.WarehouseId, context.StockItemId)).ShouldHaveSingleItem();
+        (await _queries.GetLedgerAsync(context.WarehouseId, context.StockItemId)).Count.ShouldBe(2);
+        var balance = (await _queries.GetBalancesAsync(context.WarehouseId, context.StockItemId)).Single();
+        balance.QuantityOnHand.ShouldBe(3);
+        balance.InventoryValue.ShouldBe(300);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]

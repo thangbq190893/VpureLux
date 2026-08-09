@@ -117,6 +117,18 @@ public class LotsModel : VPureLuxPageModel
         return new NoContentResult();
     }
 
+    public async Task<IActionResult> OnPostDeleteReceiptAsync(Guid id)
+    {
+        if (!(await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Inventory.Receive)).Succeeded)
+        {
+            return Forbid();
+        }
+
+        await _lotAppService.DeleteUnusedReceiptAsync(id);
+
+        return new NoContentResult();
+    }
+
     private string GetWarehouseLabel(Guid id) =>
         WarehouseLabels.TryGetValue(id, out var label) ? label : L["Inventory:UnknownWarehouse"];
 

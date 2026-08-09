@@ -195,6 +195,9 @@
                     encode(l('Inventory:UpdateSupplierShort')) + '</button>' +
                     '<button type="button" class="dropdown-item" data-update-lot-unit-cost>' +
                     encode(l('Inventory:UpdateUnitCostShort')) + '</button>' +
+                    '<div class="dropdown-divider"></div>' +
+                    '<button type="button" class="dropdown-item text-danger" data-delete-unused-receipt>' +
+                    encode(l('Inventory:DeleteUnusedReceiptShort')) + '</button>' +
                     '</div></div>';
             }
         });
@@ -239,6 +242,32 @@
         if (record) {
             openUnitCostModal(record);
         }
+    });
+
+    $(tableSelector).on('click', '[data-delete-unused-receipt]', function () {
+        var record = dataTable.row($(this).closest('tr')).data();
+        if (!record) {
+            return;
+        }
+
+        abp.message.confirm(l('Inventory:ConfirmDeleteUnusedReceipt'), l('Confirm'), function (confirmed) {
+            if (!confirmed) {
+                return;
+            }
+
+            abp.ui.setBusy($(tableSelector));
+            abp.ajax({
+                url: abp.appPath + 'Inventory/Lots?handler=DeleteReceipt&id=' +
+                    encodeURIComponent(record.id),
+                type: 'POST',
+                headers: formTokenHeaders($unitCostForm)
+            }).then(function () {
+                abp.notify.success(l('Inventory:ReceiptDeletedSuccessfully'));
+                dataTable.ajax.reload(null, false);
+            }).always(function () {
+                abp.ui.clearBusy($(tableSelector));
+            });
+        });
     });
 
     $supplierForm.on('submit', function (event) {

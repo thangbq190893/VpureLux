@@ -53,6 +53,21 @@ public class EfCoreInventoryLotRepository : EfCoreRepository<VPureLuxDbContext, 
             .ToListAsync(GetCancellationToken(cancellationToken));
     }
 
+    public async Task<List<InventoryLot>> GetListByReceiptLineIdsAsync(
+        IReadOnlyCollection<Guid> receiptTransactionLineIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (receiptTransactionLineIds.Count == 0)
+        {
+            return new List<InventoryLot>();
+        }
+
+        return await (await GetDbSetAsync())
+            .Where(x => receiptTransactionLineIds.Contains(x.ReceiptTransactionLineId))
+            .OrderBy(x => x.ReceivedAt).ThenBy(x => x.CreationTime).ThenBy(x => x.Id)
+            .ToListAsync(GetCancellationToken(cancellationToken));
+    }
+
     private static bool TryParseSequence(string lotNo, string lotNoPrefix, out int sequence)
     {
         sequence = 0;
