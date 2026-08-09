@@ -240,6 +240,48 @@ public class InventoryWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         updatedLot.SupplierName.ShouldBe(supplier.Name);
     }
 
+    [Fact]
+    public async Task Existing_Receipt_Lot_Should_Allow_Unit_Cost_Update_And_Adjust_Current_Balance_Value()
+    {
+        var context = await CreateContextAsync();
+        await ReceiptAsync(context.WarehouseId, context.StockItemId, 10, 100, Unique("LOT-COST-UPD"));
+        await IssueAsync(context.WarehouseId, context.StockItemId, 4);
+        var lot = (await _queries.GetLotsAsync(context.WarehouseId, context.StockItemId)).Single();
+
+        await _lots.UpdateUnitCostAsync(lot.Id, new UpdateInventoryLotUnitCostDto
+        {
+            UnitCost = 200
+        });
+
+        var updatedLot = (await _queries.GetLotsAsync(context.WarehouseId, context.StockItemId)).Single();
+        var balance = (await _queries.GetBalancesAsync(context.WarehouseId, context.StockItemId)).Single();
+        updatedLot.UnitCost.ShouldBe(200);
+        updatedLot.AvailableQuantity.ShouldBe(6);
+        balance.QuantityOnHand.ShouldBe(6);
+        balance.InventoryValue.ShouldBe(1200);
+
+        var futureIssue = await IssueAsync(context.WarehouseId, context.StockItemId, 1);
+        futureIssue.TotalIssueCost.ShouldBe(200);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task Existing_Receipt_Lot_Should_Reject_Non_Positive_Unit_Cost_Update(decimal unitCost)
+    {
+        var context = await CreateContextAsync();
+        await ReceiptAsync(context.WarehouseId, context.StockItemId, 3, 100, Unique("LOT-COST-BAD"));
+        var lot = (await _queries.GetLotsAsync(context.WarehouseId, context.StockItemId)).Single();
+
+        await Should.ThrowAsync<AbpValidationException>(() => _lots.UpdateUnitCostAsync(lot.Id, new UpdateInventoryLotUnitCostDto
+        {
+            UnitCost = unitCost
+        }));
+
+        (await _queries.GetLotsAsync(context.WarehouseId, context.StockItemId)).Single().UnitCost.ShouldBe(100);
+        (await _queries.GetBalancesAsync(context.WarehouseId, context.StockItemId)).Single().InventoryValue.ShouldBe(300);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]

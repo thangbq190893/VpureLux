@@ -51,8 +51,9 @@
                 <tr>
                     <th>@L["Inventory:Code"]</th>
                     <th>@L["Inventory:Name"]</th>
+                    <th>@L["Inventory:Address"]</th>
                     <th>@L["Inventory:Status"]</th>
-                    <th></th>
+                    <th class="text-end">@L["Actions"]</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -61,11 +62,21 @@
                     <tr>
                         <td>@x.Code</td>
                         <td>@x.Name</td>
+                        <td>@x.Address</td>
                         <td>@L[$"Status:{x.Status}"]</td>
-                        <td>
+                        <td class="text-end">
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-primary"
+                                    data-warehouse-edit-button
+                                    data-id="@x.Id"
+                                    data-name="@x.Name"
+                                    data-address="@x.Address">
+                                @L["Edit"]
+                            </button>
                             <form method="post"
                                   asp-page-handler="@(x.Status == VPureLux.Inventory.InventoryEntityStatus.Active ? "Deactivate" : "Activate")"
                                   asp-route-id="@x.Id"
+                                  class="d-inline"
                                   data-warehouse-status-form
                                   data-confirm-message="@(x.Status == VPureLux.Inventory.InventoryEntityStatus.Active ? L["Inventory:ConfirmDeactivateWarehouse"].Value : L["Inventory:ConfirmActivateWarehouse"].Value)">
                                 <button type="submit" class="btn btn-sm btn-outline-secondary">
@@ -79,4 +90,34 @@
             </abp-table>
         </abp-card-body>
     </abp-card>
+
+    <div class="modal fade" id="WarehouseEditModal" tabindex="-1" aria-labelledby="WarehouseEditModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" asp-page-handler="Update" data-warehouse-edit-form>
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="WarehouseEditModalLabel">@L["Inventory:UpdateWarehouse"]</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["Close"]"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input asp-for="EditWarehouse.Id" type="hidden" data-warehouse-edit-id />
+                        <div class="mb-3">
+                            <label asp-for="EditWarehouse.Name" class="form-label">@L["Inventory:Name"]</label>
+                            <input asp-for="EditWarehouse.Name" class="form-control" autocomplete="off" data-warehouse-edit-name />
+                            <span asp-validation-for="EditWarehouse.Name"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="EditWarehouse.Address" class="form-label">@L["Inventory:Address"]</label>
+                            <input asp-for="EditWarehouse.Address" class="form-control" autocomplete="off" data-warehouse-edit-address />
+                            <span asp-validation-for="EditWarehouse.Address"></span>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["Cancel"]</button>
+                        <button type="submit" class="btn btn-primary">@L["Save"]</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>

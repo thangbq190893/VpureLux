@@ -6,7 +6,10 @@
     <abp-script src="/Pages/Inventory/Lots.js" />
 }
 
-<div class="vpl-page vpl-inquiry-page" data-inventory-lots-page data-can-update-supplier="@Model.CanUpdateSupplier.ToString().ToLowerInvariant()">
+<div class="vpl-page vpl-inquiry-page"
+     data-inventory-lots-page
+     data-can-update-supplier="@Model.CanUpdateSupplier.ToString().ToLowerInvariant()"
+     data-can-update-lot-info="@Model.CanUpdateLotInfo.ToString().ToLowerInvariant()">
     <div class="vpl-page-header">
         <h2 class="vpl-page-title mb-0">@L["Inventory:ReceiptLotHistory"]</h2>
     </div>
@@ -52,7 +55,7 @@
                         <th>@L["Inventory:Available"]</th>
                         <th>@L["Inventory:UnitCost"]</th>
                         <th>@L["Inventory:ReceiptValue"]</th>
-                        @if (Model.CanUpdateSupplier)
+                        @if (Model.CanUpdateLotInfo)
                         {
                             <th class="text-end">@L["Actions"]</th>
                         }
@@ -62,7 +65,7 @@
         </abp-card-body>
     </abp-card>
 
-    @if (Model.CanUpdateSupplier)
+    @if (Model.CanUpdateLotInfo)
     {
         <div class="modal fade" id="InventoryLotSupplierModal" tabindex="-1" aria-labelledby="InventoryLotSupplierModalLabel" aria-hidden="true">
             <div class="modal-dialog">
@@ -87,6 +90,34 @@
                                         <option value="@option.Value">@option.Text</option>
                                     }
                                 </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["Cancel"]</button>
+                            <button type="submit" class="btn btn-primary">@L["Save"]</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="InventoryLotUnitCostModal" tabindex="-1" aria-labelledby="InventoryLotUnitCostModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form id="InventoryLotUnitCostForm">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="InventoryLotUnitCostModalLabel">@L["Inventory:UpdateLotUnitCost"]</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["Close"]"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="InventoryLotUnitCostLotId" />
+                            <div class="mb-3">
+                                <label class="form-label">@L["Inventory:LotNo"]</label>
+                                <div class="form-control bg-light" id="InventoryLotUnitCostLotLabel"></div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="InventoryLotUnitCost" class="form-label">@L["Inventory:UnitCostVnd"]</label>
+                                <input id="InventoryLotUnitCost" class="form-control" inputmode="numeric" autocomplete="off" required data-vnd-money />
                             </div>
                         </div>
                         <div class="modal-footer">

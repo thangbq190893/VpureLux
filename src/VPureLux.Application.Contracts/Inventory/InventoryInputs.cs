@@ -85,3 +85,9 @@ public class UpdateInventoryLotSupplierDto
 {
     public Guid SupplierId { get; set; }
 }
+
+public class UpdateInventoryLotUnitCostDto
+{
+    [Range(typeof(decimal), "0.01", "9999999999999999.99", ParseLimitsInInvariantCulture = true)]
+    public decimal UnitCost { get; set; }
+}

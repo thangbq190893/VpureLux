@@ -14,6 +14,7 @@ public class InventoryLotAppService : ApplicationService, IInventoryLotAppServic
 {
     private readonly IInventoryLotRepository _lotRepository;
     private readonly IInventoryLotSupplierRepository _lotSupplierRepository;
+    private readonly IInventoryBalanceRepository _balanceRepository;
     private readonly ISupplierRepository _supplierRepository;
     private readonly InventoryManager _manager;
     private readonly InventoryApplicationMapper _mapper;
@@ -21,12 +22,14 @@ public class InventoryLotAppService : ApplicationService, IInventoryLotAppServic
     public InventoryLotAppService(
         IInventoryLotRepository lotRepository,
         IInventoryLotSupplierRepository lotSupplierRepository,
+        IInventoryBalanceRepository balanceRepository,
         ISupplierRepository supplierRepository,
         InventoryManager manager,
         InventoryApplicationMapper mapper)
     {
         _lotRepository = lotRepository;
         _lotSupplierRepository = lotSupplierRepository;
+        _balanceRepository = balanceRepository;
         _supplierRepository = supplierRepository;
         _manager = manager;
         _mapper = mapper;
@@ -57,5 +60,29 @@ public class InventoryLotAppService : ApplicationService, IInventoryLotAppServic
         dto.SupplierCode = supplier.Code;
         dto.SupplierName = supplier.Name;
         return dto;
+    }
+
+    public async Task<InventoryLotDto> UpdateUnitCostAsync(Guid id, UpdateInventoryLotUnitCostDto input)
+    {
+        var lot = await _lotRepository.FindAsync(id)
+            ?? throw new BusinessException(VPureLuxDomainErrorCodes.InventoryLotNotFound)
+                .WithData(nameof(id), id);
+        var previousUnitCost = lot.UnitCost;
+
+        lot.UpdateUnitCost(input.UnitCost);
+        await _lotRepository.UpdateAsync(lot);
+
+        var valueDelta = lot.AvailableQuantity * (lot.UnitCost - previousUnitCost);
+        if (valueDelta != 0)
+        {
+            await _balanceRepository.ApplyMovementAsync(
+                lot.WarehouseId,
+                lot.StockItemId,
+                0,
+                valueDelta,
+                Clock.Now);
+        }
+
+        return _mapper.ToDto(lot);
     }
 }

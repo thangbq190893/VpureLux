@@ -15,6 +15,7 @@ public class WarehousesModel : VPureLuxPageModel
     private readonly IWarehouseAppService _service;
 
     [BindProperty] public CreateWarehouseDto NewWarehouse { get; set; } = new();
+    [BindProperty] public EditWarehouseInput EditWarehouse { get; set; } = new();
     public IReadOnlyList<WarehouseDto> Warehouses { get; private set; } = [];
     [TempData] public string? StatusMessageKey { get; set; }
 
@@ -42,6 +43,47 @@ public class WarehousesModel : VPureLuxPageModel
         }
 
         StatusMessageKey = "Inventory:WarehouseCreatedSuccessfully";
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostUpdateAsync()
+    {
+        ModelState.Remove($"{nameof(NewWarehouse)}.{nameof(CreateWarehouseDto.Code)}");
+        ModelState.Remove($"{nameof(NewWarehouse)}.{nameof(CreateWarehouseDto.Name)}");
+        ModelState.Remove($"{nameof(NewWarehouse)}.{nameof(CreateWarehouseDto.Address)}");
+
+        if (EditWarehouse.Id == Guid.Empty)
+        {
+            ModelState.AddModelError(nameof(EditWarehouse.Id), L["Inventory:UnknownWarehouse"]);
+        }
+
+        if (EditWarehouse.Name.IsNullOrWhiteSpace())
+        {
+            ModelState.AddModelError(nameof(EditWarehouse.Name), L["Inventory:WarehouseNameRequired"]);
+        }
+
+        if (!ModelState.IsValid)
+        {
+            await LoadWarehousesAsync();
+            return Page();
+        }
+
+        try
+        {
+            await _service.UpdateAsync(EditWarehouse.Id, new UpdateWarehouseDto
+            {
+                Name = EditWarehouse.Name,
+                Address = EditWarehouse.Address
+            });
+        }
+        catch (BusinessException exception)
+        {
+            AddBusinessError(exception);
+            await LoadWarehousesAsync();
+            return Page();
+        }
+
+        StatusMessageKey = "Inventory:WarehouseUpdatedSuccessfully";
         return RedirectToPage();
     }
 
@@ -82,5 +124,12 @@ public class WarehousesModel : VPureLuxPageModel
     private async Task LoadWarehousesAsync()
     {
         Warehouses = (await _service.GetListAsync(new GetInventoryListInput { MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount })).Items;
+    }
+
+    public class EditWarehouseInput
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Address { get; set; }
     }
 }

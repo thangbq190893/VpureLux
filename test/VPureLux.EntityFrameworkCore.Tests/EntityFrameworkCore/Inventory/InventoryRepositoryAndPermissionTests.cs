@@ -42,6 +42,7 @@ public class InventoryRepositoryAndPermissionTests : VPureLuxEntityFrameworkCore
         Permission(nameof(InventoryTransactionAppService.PostIssueAsync)).ShouldBe(VPureLuxPermissions.Inventory.Issue);
         Permission(nameof(InventoryTransactionAppService.PostAdjustmentAsync)).ShouldBe(VPureLuxPermissions.Inventory.Adjust);
         Permission(typeof(InventoryQueryAppService).GetMethod(nameof(InventoryQueryAppService.GetLedgerAsync))!).ShouldBe(VPureLuxPermissions.Inventory.ViewLedger);
+        Permission(typeof(InventoryLotAppService)).ShouldBe(VPureLuxPermissions.Inventory.Receive);
     }
 
     [Fact]

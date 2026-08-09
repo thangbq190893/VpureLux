@@ -45,7 +45,20 @@ public class InventoryDomainTests
         typeof(InventoryLot).GetMethods()
             .Where(x => x.DeclaringType == typeof(InventoryLot) && !x.IsSpecialName)
             .Select(x => x.Name)
-            .ShouldBe(new[] { nameof(InventoryLot.Allocate) });
+            .OrderBy(x => x)
+            .ShouldBe(new[] { nameof(InventoryLot.Allocate), nameof(InventoryLot.UpdateUnitCost) });
+    }
+
+    [Fact]
+    public void Lot_Should_Allow_Positive_Unit_Cost_Update()
+    {
+        var lot = Lot(10);
+
+        lot.UpdateUnitCost(45000);
+
+        lot.UnitCost.ShouldBe(45000);
+        Should.Throw<BusinessException>(() => lot.UpdateUnitCost(0))
+            .Code.ShouldBe(VPureLuxDomainErrorCodes.ValidationFailed);
     }
 
     [Fact]

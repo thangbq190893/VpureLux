@@ -33,6 +33,7 @@ public class LotsModel : VPureLuxPageModel
     public Dictionary<Guid, string> WarehouseLabels { get; private set; } = new();
     public Dictionary<Guid, string> StockItemLabels { get; private set; } = new();
     public bool CanUpdateSupplier { get; private set; }
+    public bool CanUpdateLotInfo { get; private set; }
 
     public LotsModel(
         IInventoryQueryAppService service,
@@ -52,7 +53,8 @@ public class LotsModel : VPureLuxPageModel
 
     public async Task OnGetAsync()
     {
-        CanUpdateSupplier = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Inventory.Receive)).Succeeded;
+        CanUpdateLotInfo = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Inventory.Receive)).Succeeded;
+        CanUpdateSupplier = CanUpdateLotInfo;
         await LoadFilterOptionsAsync();
         await LoadLabelsAsync();
     }
@@ -80,6 +82,7 @@ public class LotsModel : VPureLuxPageModel
         InventoryPostingUi.FormatDate(item.ReceivedAt),
         FormatQuantity(item.ReceivedQuantity),
         FormatQuantity(item.AvailableQuantity),
+        item.UnitCost,
         FormatMoney(item.UnitCost),
         FormatMoney(item.ReceivedQuantity * item.UnitCost));
 
@@ -93,6 +96,21 @@ public class LotsModel : VPureLuxPageModel
         await _lotAppService.UpdateSupplierAsync(id, new UpdateInventoryLotSupplierDto
         {
             SupplierId = supplierId
+        });
+
+        return new NoContentResult();
+    }
+
+    public async Task<IActionResult> OnPostUpdateUnitCostAsync(Guid id, decimal unitCost)
+    {
+        if (!(await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Inventory.Receive)).Succeeded)
+        {
+            return Forbid();
+        }
+
+        await _lotAppService.UpdateUnitCostAsync(id, new UpdateInventoryLotUnitCostDto
+        {
+            UnitCost = unitCost
         });
 
         return new NoContentResult();
@@ -182,6 +200,7 @@ public class LotsModel : VPureLuxPageModel
         string ReceivedAt,
         string ReceivedQuantity,
         string AvailableQuantity,
+        decimal UnitCostValue,
         string UnitCost,
         string ReceiptValue);
 }

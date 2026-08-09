@@ -8,19 +8,56 @@
     }
 
     var canUpdateSupplier = page.dataset.canUpdateSupplier === 'true';
+    var canUpdateLotInfo = page.dataset.canUpdateLotInfo === 'true' || canUpdateSupplier;
     var $warehouseId = $('#InventoryLotsWarehouseId');
     var $stockItemId = $('#InventoryLotsStockItemId');
     var supplierModalElement = document.getElementById('InventoryLotSupplierModal');
     var supplierModal = supplierModalElement && window.bootstrap
         ? new bootstrap.Modal(supplierModalElement)
         : null;
+    var unitCostModalElement = document.getElementById('InventoryLotUnitCostModal');
+    var unitCostModal = unitCostModalElement && window.bootstrap
+        ? new bootstrap.Modal(unitCostModalElement)
+        : null;
     var $supplierForm = $('#InventoryLotSupplierForm');
     var $lotId = $('#InventoryLotSupplierLotId');
     var $lotLabel = $('#InventoryLotSupplierLotLabel');
     var $supplierId = $('#InventoryLotSupplierId');
+    var $unitCostForm = $('#InventoryLotUnitCostForm');
+    var $unitCostLotId = $('#InventoryLotUnitCostLotId');
+    var $unitCostLotLabel = $('#InventoryLotUnitCostLotLabel');
+    var $unitCost = $('#InventoryLotUnitCost');
 
     function encode(value) {
         return $('<div/>').text(value || '').html();
+    }
+
+    function normalizeVndDigits(value) {
+        return String(value || '').replace(/[^\d]/g, '');
+    }
+
+    function formatVndValue(value) {
+        var digits = normalizeVndDigits(value);
+
+        if (!digits) {
+            return '';
+        }
+
+        return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+
+    function initializeVndMoneyInput(input) {
+        input.value = formatVndValue(input.value);
+        input.addEventListener('input', function () {
+            var formatted = formatVndValue(input.value);
+
+            if (input.value !== formatted) {
+                input.value = formatted;
+            }
+        });
+        input.addEventListener('blur', function () {
+            input.value = formatVndValue(input.value);
+        });
     }
 
     function showSupplierModal() {
@@ -41,11 +78,36 @@
         $(supplierModalElement).modal('hide');
     }
 
+    function showUnitCostModal() {
+        if (unitCostModal) {
+            unitCostModal.show();
+            return;
+        }
+
+        $(unitCostModalElement).modal('show');
+    }
+
+    function hideUnitCostModal() {
+        if (unitCostModal) {
+            unitCostModal.hide();
+            return;
+        }
+
+        $(unitCostModalElement).modal('hide');
+    }
+
     function openSupplierModal(record) {
         $lotId.val(record.id);
         $lotLabel.text(record.lotNo + ' - ' + record.stockItem);
         $supplierId.val(record.supplierId || '');
         showSupplierModal();
+    }
+
+    function openUnitCostModal(record) {
+        $unitCostLotId.val(record.id);
+        $unitCostLotLabel.text(record.lotNo + ' - ' + record.stockItem);
+        $unitCost.val(formatVndValue(record.unitCostValue || ''));
+        showUnitCostModal();
     }
 
     var columnDefs = [
@@ -110,15 +172,21 @@
         }
     ];
 
-    if (canUpdateSupplier) {
+    if (canUpdateLotInfo) {
         columnDefs.push({
             data: null,
             orderable: false,
             className: 'text-end text-nowrap',
             render: function () {
-                return '<button type="button" class="btn btn-outline-primary btn-sm" data-update-lot-supplier>' +
-                    encode(l('Inventory:UpdateSupplierShort')) +
-                    '</button>';
+                return '<div class="dropdown">' +
+                    '<button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="dropdown" ' +
+                    'aria-expanded="false" aria-label="' + encode(l('Actions')) + '">...</button>' +
+                    '<div class="dropdown-menu dropdown-menu-end">' +
+                    '<button type="button" class="dropdown-item" data-update-lot-supplier>' +
+                    encode(l('Inventory:UpdateSupplierShort')) + '</button>' +
+                    '<button type="button" class="dropdown-item" data-update-lot-unit-cost>' +
+                    encode(l('Inventory:UpdateUnitCostShort')) + '</button>' +
+                    '</div></div>';
             }
         });
     }
@@ -156,6 +224,13 @@
         }
     });
 
+    $(tableSelector).on('click', '[data-update-lot-unit-cost]', function () {
+        var record = dataTable.row($(this).closest('tr')).data();
+        if (record) {
+            openUnitCostModal(record);
+        }
+    });
+
     $supplierForm.on('submit', function (event) {
         event.preventDefault();
 
@@ -177,8 +252,34 @@
         });
     });
 
+    $unitCostForm.on('submit', function (event) {
+        event.preventDefault();
+
+        var normalized = normalizeVndDigits($unitCost.val());
+        var amount = Number(normalized);
+
+        if (!normalized || !Number.isFinite(amount) || amount <= 0) {
+            abp.notify.warn(l('Inventory:UnitCostPositive'));
+            return;
+        }
+
+        abp.ajax({
+            url: abp.appPath + 'Inventory/Lots?handler=UpdateUnitCost&id=' +
+                encodeURIComponent($unitCostLotId.val()) +
+                '&unitCost=' +
+                encodeURIComponent(normalized),
+            type: 'POST'
+        }).then(function () {
+            abp.notify.success(l('Inventory:LotUnitCostUpdatedSuccessfully'));
+            hideUnitCostModal();
+            dataTable.ajax.reload(null, false);
+        });
+    });
+
     $('#InventoryLotsSearchForm').on('submit', function (event) {
         event.preventDefault();
         dataTable.ajax.reload();
     });
+
+    document.querySelectorAll('[data-vnd-money]').forEach(initializeVndMoneyInput);
 })();

@@ -63,6 +63,11 @@ public class InventoryLot : FullAuditedAggregateRoot<Guid>
         }
     }
 
+    public void UpdateUnitCost(decimal unitCost)
+    {
+        UnitCost = EnsurePositive(unitCost, nameof(unitCost), InventoryConsts.CostScale);
+    }
+
     private static decimal EnsurePositive(decimal value, string name, int scale)
     {
         value = decimal.Round(value, scale, MidpointRounding.AwayFromZero);

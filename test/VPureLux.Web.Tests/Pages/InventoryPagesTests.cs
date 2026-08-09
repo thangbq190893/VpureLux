@@ -968,11 +968,15 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         html.ShouldContain("name=\"NewWarehouse.Code\"");
         html.ShouldContain("name=\"NewWarehouse.Name\"");
         html.ShouldContain("name=\"NewWarehouse.Address\"");
+        html.ShouldContain("data-warehouse-edit-form");
+        html.ShouldContain("name=\"EditWarehouse.Name\"");
+        html.ShouldContain("name=\"EditWarehouse.Address\"");
         html.ShouldContain("type=\"text\"");
         html.ShouldContain("form-label");
         html.ShouldContain(localizer["Inventory:Code"].Value);
         html.ShouldContain(localizer["Inventory:Name"].Value);
         html.ShouldContain(localizer["Inventory:Address"].Value);
+        html.ShouldContain(localizer["Inventory:UpdateWarehouse"].Value);
         html.ShouldContain(localizer["Create"].Value);
     }
 
@@ -997,6 +1001,36 @@ public class InventoryPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task WarehousesModel_OnPostUpdateAsync_Should_Update_Warehouse_Info()
+    {
+        var service = GetRequiredService<IWarehouseAppService>();
+        var warehouse = await service.CreateAsync(new CreateWarehouseDto
+        {
+            Code = Unique("WH-ED"),
+            Name = "Warehouse Before",
+            Address = "Old address"
+        });
+        var model = new WarehousesModel(service)
+        {
+            EditWarehouse = new WarehousesModel.EditWarehouseInput
+            {
+                Id = warehouse.Id,
+                Name = "Warehouse After",
+                Address = "New address"
+            }
+        };
+        SetPageContext(model);
+
+        var result = await model.OnPostUpdateAsync();
+
+        result.ShouldBeOfType<RedirectToPageResult>();
+        model.StatusMessageKey.ShouldBe("Inventory:WarehouseUpdatedSuccessfully");
+        var updated = await service.GetAsync(warehouse.Id);
+        updated.Name.ShouldBe("Warehouse After");
+        updated.Address.ShouldBe("New address");
+    }
+
+    [Fact]
     public async Task Warehouses_Page_Should_Register_External_Script_And_Action_Safety_Hooks()
     {
         var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Warehouses.cshtml"));
@@ -1008,8 +1042,11 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("asp-validation-summary");
         pageSource.ShouldContain("data-warehouses-page");
         pageSource.ShouldContain("data-status-success");
+        pageSource.ShouldContain("data-warehouse-edit-button");
+        pageSource.ShouldContain("data-warehouse-edit-form");
         pageSource.ShouldContain("data-warehouse-status-form");
         pageSource.ShouldContain("data-confirm-message");
+        pageSource.ShouldContain("Inventory:UpdateWarehouse");
         pageSource.ShouldContain("Inventory:ConfirmActivateWarehouse");
         pageSource.ShouldContain("Inventory:ConfirmDeactivateWarehouse");
         pageSource.ShouldNotContain("<script>");
@@ -1022,6 +1059,8 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("abp.notify.success");
         scriptSource.ShouldContain("abp.ui.setBusy");
         scriptSource.ShouldContain("dataset.statusSuccess");
+        scriptSource.ShouldContain("WarehouseEditModal");
+        scriptSource.ShouldContain("data-warehouse-edit-button");
         scriptSource.ShouldContain("data-warehouse-status-form");
     }
 
@@ -1525,11 +1564,16 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         html.ShouldContain(localizer["Inventory:ReceivedQuantity"].Value);
         html.ShouldContain(localizer["Inventory:ReceiptValue"].Value);
         html.ShouldContain(localizer["Inventory:UpdateLotSupplier"].Value);
+        html.ShouldContain(localizer["Inventory:UpdateLotUnitCost"].Value);
         html.ShouldContain("data-inventory-lots-page");
         pageSource.ShouldContain("data-can-update-supplier");
+        pageSource.ShouldContain("data-can-update-lot-info");
         scriptSource.ShouldContain("Inventory:UpdateSupplierShort");
+        scriptSource.ShouldContain("Inventory:UpdateUnitCostShort");
         scriptSource.ShouldContain("data-update-lot-supplier");
+        scriptSource.ShouldContain("data-update-lot-unit-cost");
         rows.Items.Any(x => x.ReceivedQuantity == "11").ShouldBeTrue();
+        rows.Items.Any(x => x.UnitCostValue == 12345m).ShouldBeTrue();
         rows.Items.Any(x => x.UnitCost == 12345m.ToString("#,0", vi) + " ₫").ShouldBeTrue();
         rows.Items.Any(x => x.ReceiptValue == (12345m * 11).ToString("#,0", vi) + " ₫").ShouldBeTrue();
     }
@@ -1577,6 +1621,50 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         var rows = await GetLotsRowsAsync(context.WarehouseId, context.StockItemId);
         rows.Items.Single().Supplier.ShouldBe($"{supplier.Code} - {supplier.Name}");
         rows.Items.Single().SupplierId.ShouldBe(supplier.Id);
+    }
+
+    [Fact]
+    public async Task Lots_Page_Should_Update_Unit_Cost_For_Existing_Lot()
+    {
+        var vi = CultureInfo.GetCultureInfo("vi-VN");
+        var context = await CreateInquiryFilterContextAsync("LOT-COST-UPD");
+        await GetRequiredService<IInventoryTransactionAppService>().PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = context.WarehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = context.StockItemId,
+                    Quantity = 2,
+                    UnitCost = 1000,
+                    ReceivedAt = new DateTime(2026, 6, 18)
+                }
+            ]
+        });
+        var lotId = (await GetLotsRowsAsync(context.WarehouseId, context.StockItemId)).Items.Single().Id;
+        var authorization = Substitute.For<IAuthorizationService>();
+        authorization.AuthorizeAsync(Arg.Any<ClaimsPrincipal>(), Arg.Any<object?>(), VPureLuxPermissions.Inventory.Receive)
+            .Returns(AuthorizationResult.Success());
+        var model = new LotsModel(
+            GetRequiredService<IInventoryQueryAppService>(),
+            GetRequiredService<IInventoryLotAppService>(),
+            GetRequiredService<IWarehouseAppService>(),
+            GetRequiredService<IStockItemAppService>(),
+            GetRequiredService<ISupplierAppService>(),
+            authorization);
+        SetPageContext(model);
+
+        var result = await model.OnPostUpdateUnitCostAsync(lotId, 2500);
+
+        result.ShouldBeOfType<NoContentResult>();
+        var rows = await GetLotsRowsAsync(context.WarehouseId, context.StockItemId);
+        rows.Items.Single().UnitCostValue.ShouldBe(2500);
+        rows.Items.Single().UnitCost.ShouldBe(2500m.ToString("#,0", vi) + " ₫");
+        rows.Items.Single().ReceiptValue.ShouldBe(5000m.ToString("#,0", vi) + " ₫");
+        (await GetRequiredService<IInventoryQueryAppService>()
+            .GetBalancesAsync(context.WarehouseId, context.StockItemId)).Single().InventoryValue.ShouldBe(5000);
     }
 
     [Fact]

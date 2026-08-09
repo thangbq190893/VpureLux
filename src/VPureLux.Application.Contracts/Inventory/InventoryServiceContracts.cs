@@ -40,4 +40,5 @@ public interface IInventoryQueryAppService : IApplicationService
 public interface IInventoryLotAppService : IApplicationService
 {
     Task<InventoryLotDto> UpdateSupplierAsync(Guid id, UpdateInventoryLotSupplierDto input);
+    Task<InventoryLotDto> UpdateUnitCostAsync(Guid id, UpdateInventoryLotUnitCostDto input);
 }
