@@ -218,6 +218,21 @@ public class InventoryWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     [Fact]
+    public async Task Lots_Query_Should_Filter_By_LotNo()
+    {
+        var context = await CreateContextAsync();
+        var firstLotNo = Unique("LOT-FIND-A");
+        var secondLotNo = Unique("LOT-FIND-B");
+        await ReceiptAsync(context.WarehouseId, context.StockItemId, 3, 100, firstLotNo);
+        await ReceiptAsync(context.WarehouseId, context.StockItemId, 4, 200, secondLotNo);
+
+        var filtered = await _queries.GetLotsAsync(context.WarehouseId, context.StockItemId, firstLotNo[^6..]);
+
+        filtered.ShouldHaveSingleItem();
+        filtered.Single().LotNo.ShouldBe(firstLotNo);
+    }
+
+    [Fact]
     public async Task Existing_Receipt_Lot_Should_Allow_Supplier_Update()
     {
         var context = await CreateContextAsync();

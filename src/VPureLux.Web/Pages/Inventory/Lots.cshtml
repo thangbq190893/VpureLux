@@ -20,19 +20,23 @@
         </abp-card-header>
         <abp-card-body>
             <form method="get" id="InventoryLotsSearchForm" class="row g-2 mb-0">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label asp-for="WarehouseId" class="form-label">@L["Inventory:Warehouse"]</label>
                     <select asp-for="WarehouseId" asp-items="Model.WarehouseOptions" id="InventoryLotsWarehouseId" class="form-select">
                         <option value="">@L["Select"]</option>
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label asp-for="StockItemId" class="form-label">@L["Inventory:StockItem"]</label>
                     <select asp-for="StockItemId" asp-items="Model.StockItemOptions" id="InventoryLotsStockItemId" class="form-select">
                         <option value="">@L["Select"]</option>
                     </select>
                 </div>
-                <div class="col-md-4 d-flex align-items-end gap-2">
+                <div class="col-md-3">
+                    <label asp-for="LotNo" class="form-label">@L["Inventory:LotNo"]</label>
+                    <input asp-for="LotNo" id="InventoryLotsLotNo" class="form-control" autocomplete="off" />
+                </div>
+                <div class="col-md-3 d-flex align-items-end gap-2">
                     <button type="submit" class="btn btn-primary">@L["Inventory:ApplyFilter"]</button>
                     <a class="btn btn-outline-secondary" asp-page="/Inventory/Lots">@L["Inventory:ClearFilter"]</a>
                 </div>

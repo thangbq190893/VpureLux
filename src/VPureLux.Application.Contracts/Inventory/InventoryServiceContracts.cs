@@ -33,7 +33,7 @@ public interface IInventoryTransactionAppService : IApplicationService
 public interface IInventoryQueryAppService : IApplicationService
 {
     Task<List<InventoryBalanceDto>> GetBalancesAsync(Guid? warehouseId = null, Guid? stockItemId = null);
-    Task<List<InventoryLotDto>> GetLotsAsync(Guid? warehouseId = null, Guid? stockItemId = null);
+    Task<List<InventoryLotDto>> GetLotsAsync(Guid? warehouseId = null, Guid? stockItemId = null, string? lotNo = null);
     Task<List<InventoryTransactionDto>> GetLedgerAsync(Guid? warehouseId = null, Guid? stockItemId = null);
 }
 

@@ -34,9 +34,9 @@ public class InventoryQueryAppService : ApplicationService, IInventoryQueryAppSe
     public async Task<List<InventoryBalanceDto>> GetBalancesAsync(Guid? warehouseId = null, Guid? stockItemId = null) =>
         (await _repository.GetListAsync(warehouseId, stockItemId)).Select(_mapper.ToDto).ToList();
 
-    public async Task<List<InventoryLotDto>> GetLotsAsync(Guid? warehouseId = null, Guid? stockItemId = null)
+    public async Task<List<InventoryLotDto>> GetLotsAsync(Guid? warehouseId = null, Guid? stockItemId = null, string? lotNo = null)
     {
-        var lots = await _lotRepository.GetListAsync(warehouseId, stockItemId);
+        var lots = await _lotRepository.GetListAsync(warehouseId, stockItemId, lotNo);
         var supplierMap = (await _lotSupplierRepository.GetListByLotIdsAsync(lots.Select(x => x.Id).ToList()))
             .ToDictionary(x => x.InventoryLotId);
 

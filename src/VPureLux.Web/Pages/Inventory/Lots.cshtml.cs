@@ -26,6 +26,7 @@ public class LotsModel : VPureLuxPageModel
 
     [BindProperty(SupportsGet = true)] public Guid? WarehouseId { get; set; }
     [BindProperty(SupportsGet = true)] public Guid? StockItemId { get; set; }
+    [BindProperty(SupportsGet = true)] public string? LotNo { get; set; }
 
     public List<SelectListItem> WarehouseOptions { get; private set; } = new();
     public List<SelectListItem> StockItemOptions { get; private set; } = new();
@@ -61,7 +62,7 @@ public class LotsModel : VPureLuxPageModel
 
     public async Task<JsonResult> OnGetListAsync(InventoryInquiryListInput input)
     {
-        var items = await _service.GetLotsAsync(input.WarehouseId, input.StockItemId);
+        var items = await _service.GetLotsAsync(input.WarehouseId, input.StockItemId, input.LotNo);
         await LoadLabelsAsync();
         var rows = items.Select(ToRow).ToList();
 
@@ -188,6 +189,7 @@ public class LotsModel : VPureLuxPageModel
     {
         public Guid? WarehouseId { get; set; }
         public Guid? StockItemId { get; set; }
+        public string? LotNo { get; set; }
     }
 
     public sealed record InventoryLotRow(

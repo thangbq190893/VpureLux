@@ -37,10 +37,18 @@ public class EfCoreInventoryLotRepository : EfCoreRepository<VPureLuxDbContext, 
             .OrderBy(x => x.ReceivedAt).ThenBy(x => x.CreationTime).ThenBy(x => x.Id)
             .ToListAsync(GetCancellationToken(cancellationToken));
 
-    public async Task<List<InventoryLot>> GetListAsync(Guid? warehouseId = null, Guid? stockItemId = null, CancellationToken cancellationToken = default)
+    public async Task<List<InventoryLot>> GetListAsync(
+        Guid? warehouseId = null,
+        Guid? stockItemId = null,
+        string? lotNo = null,
+        CancellationToken cancellationToken = default)
     {
         var query = await GetDbSetAsync();
-        return await query.Where(x => (!warehouseId.HasValue || x.WarehouseId == warehouseId) && (!stockItemId.HasValue || x.StockItemId == stockItemId))
+        var normalizedLotNo = lotNo?.Trim();
+        return await query.Where(x =>
+                (!warehouseId.HasValue || x.WarehouseId == warehouseId) &&
+                (!stockItemId.HasValue || x.StockItemId == stockItemId) &&
+                (string.IsNullOrWhiteSpace(normalizedLotNo) || x.LotNo.Contains(normalizedLotNo)))
             .OrderBy(x => x.ReceivedAt).ThenBy(x => x.CreationTime).ThenBy(x => x.Id)
             .ToListAsync(GetCancellationToken(cancellationToken));
     }

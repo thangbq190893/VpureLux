@@ -1563,14 +1563,18 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         html.ShouldContain(localizer["Inventory:ReceiptLotHistory"].Value);
         html.ShouldContain(localizer["Inventory:ReceivedQuantity"].Value);
         html.ShouldContain(localizer["Inventory:ReceiptValue"].Value);
+        html.ShouldContain("id=\"InventoryLotsLotNo\"");
+        html.ShouldContain("name=\"LotNo\"");
         html.ShouldContain(localizer["Inventory:UpdateLotSupplier"].Value);
         html.ShouldContain(localizer["Inventory:UpdateLotUnitCost"].Value);
         html.ShouldContain("__RequestVerificationToken");
         html.ShouldContain("data-inventory-lots-page");
         pageSource.ShouldContain("data-can-update-supplier");
         pageSource.ShouldContain("data-can-update-lot-info");
+        pageSource.ShouldContain("asp-for=\"LotNo\"");
         scriptSource.ShouldContain("Inventory:UpdateSupplierShort");
         scriptSource.ShouldContain("Inventory:UpdateUnitCostShort");
+        scriptSource.ShouldContain("lotNo: $lotNo.val()");
         scriptSource.ShouldContain("data-update-lot-supplier");
         scriptSource.ShouldContain("data-update-lot-unit-cost");
         scriptSource.ShouldContain("formTokenHeaders");
@@ -1820,7 +1824,7 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         var warehouseId = Guid.NewGuid();
         var stockItemId = Guid.NewGuid();
         var query = Substitute.For<IInventoryQueryAppService>();
-        query.GetLotsAsync(Arg.Any<Guid?>(), Arg.Any<Guid?>())
+        query.GetLotsAsync(Arg.Any<Guid?>(), Arg.Any<Guid?>(), Arg.Any<string?>())
             .Returns(new List<InventoryLotDto>
             {
                 new()
@@ -1853,7 +1857,8 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         var model = new LotsModel(query, lotAppService, warehouses, stockItems, suppliers, authorization)
         {
             WarehouseId = warehouseId,
-            StockItemId = stockItemId
+            StockItemId = stockItemId,
+            LotNo = "LOT-1"
         };
         SetPageContext(model);
 
@@ -1861,12 +1866,13 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         {
             WarehouseId = warehouseId,
             StockItemId = stockItemId,
+            LotNo = "LOT-1",
             MaxResultCount = 10
         });
 
         result.Value.ShouldBeOfType<PagedResultDto<LotsModel.InventoryLotRow>>()
             .Items.Single().Supplier.ShouldBe("SUP - Supplier");
-        await query.Received(1).GetLotsAsync(warehouseId, stockItemId);
+        await query.Received(1).GetLotsAsync(warehouseId, stockItemId, "LOT-1");
     }
 
     [Fact]

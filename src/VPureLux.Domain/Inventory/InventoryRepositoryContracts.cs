@@ -29,6 +29,7 @@ public interface IInventoryLotRepository : IRepository<InventoryLot, Guid>
     Task<List<InventoryLot>> GetListAsync(
         Guid? warehouseId = null,
         Guid? stockItemId = null,
+        string? lotNo = null,
         CancellationToken cancellationToken = default);
 }
 

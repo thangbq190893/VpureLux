@@ -11,6 +11,7 @@
     var canUpdateLotInfo = page.dataset.canUpdateLotInfo === 'true' || canUpdateSupplier;
     var $warehouseId = $('#InventoryLotsWarehouseId');
     var $stockItemId = $('#InventoryLotsStockItemId');
+    var $lotNo = $('#InventoryLotsLotNo');
     var supplierModalElement = document.getElementById('InventoryLotSupplierModal');
     var supplierModal = supplierModalElement && window.bootstrap
         ? new bootstrap.Modal(supplierModalElement)
@@ -219,7 +220,8 @@
         }, function () {
             return {
                 warehouseId: $warehouseId.val(),
-                stockItemId: $stockItemId.val()
+                stockItemId: $stockItemId.val(),
+                lotNo: $lotNo.val()
             };
         }),
         columnDefs: columnDefs
