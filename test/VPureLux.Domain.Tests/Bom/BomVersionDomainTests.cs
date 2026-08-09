@@ -116,15 +116,19 @@ public class BomVersionDomainTests
     }
 
     [Fact]
-    public void Should_Reject_Published_Modification()
+    public void Should_Allow_Published_Modification()
     {
         var bom = CreateBomWithItem();
         bom.Publish();
+        var existingItem = bom.Items.Single();
+        var newComponentId = Guid.NewGuid();
 
-        var exception = Should.Throw<BusinessException>(
-            () => bom.AddItem(Guid.NewGuid(), Guid.NewGuid(), 1));
+        bom.UpdateItem(existingItem.Id, newComponentId, 2);
+        bom.AddItem(Guid.NewGuid(), Guid.NewGuid(), 1);
 
-        exception.Code.ShouldBe(VPureLuxDomainErrorCodes.PublishedBomCannotBeModified);
+        bom.Status.ShouldBe(BomStatus.Published);
+        bom.Items.ShouldContain(x => x.Id == existingItem.Id && x.ComponentId == newComponentId && x.Quantity == 2);
+        bom.Items.Count.ShouldBe(2);
     }
 
     [Fact]

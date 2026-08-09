@@ -97,7 +97,15 @@ public class BomVersion : FullAuditedAggregateRoot<Guid>
 
     public void Publish()
     {
-        EnsureModifiable();
+        if (Status == BomStatus.Published)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.PublishedBomCannotBeModified);
+        }
+
+        if (Status == BomStatus.Archived)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.ArchivedBomCannotBeModified);
+        }
 
         if (_items.Count == 0)
         {
@@ -167,11 +175,6 @@ public class BomVersion : FullAuditedAggregateRoot<Guid>
 
     private void EnsureModifiable()
     {
-        if (Status == BomStatus.Published)
-        {
-            throw new BusinessException(VPureLuxDomainErrorCodes.PublishedBomCannotBeModified);
-        }
-
         if (Status == BomStatus.Archived)
         {
             throw new BusinessException(VPureLuxDomainErrorCodes.ArchivedBomCannotBeModified);

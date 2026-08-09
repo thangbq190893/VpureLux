@@ -2,8 +2,6 @@
     var l = abp.localization.getResource('VPureLux');
     var page = document.querySelector('[data-bom-index]');
     var tableSelector = '#BomProductsTable';
-    var editCurrentForm = document.querySelector('[data-bom-edit-current-form]');
-    var editCurrentId = document.getElementById('BomEditCurrentId');
 
     if (!page || !document.querySelector(tableSelector)) {
         return;
@@ -95,9 +93,9 @@
         ];
 
         if (canCreate && row.currentVersion) {
-            items.push('<button type="button" class="dropdown-item" title="' +
-                encode(editCurrentVersionText) + '" data-bom-edit-current-id="' +
-                encode(row.currentVersion.id) + '">' + encode(editShortText) + '</button>');
+            items.push('<a class="dropdown-item" title="' +
+                encode(editCurrentVersionText) + '" href="' + abp.appPath + 'Bom/Edit/' +
+                encodeURIComponent(row.currentVersion.id) + '">' + encode(editShortText) + '</a>');
         }
 
         if (canCreate) {
@@ -117,26 +115,6 @@
             'aria-expanded="false" aria-label="' + encode(actionsText) + '" title="' + encode(actionsText) + '">...</button>' +
             '<div class="dropdown-menu dropdown-menu-end">' + items.join('') + '</div>' +
             '</div>';
-    }
-
-    function submitEditCurrent(versionId) {
-        if (!editCurrentForm || !editCurrentId || !versionId) {
-            abp.notify.error(page.dataset.editCurrentError);
-            return;
-        }
-
-        abp.message.confirm(page.dataset.confirmEditCurrent, page.dataset.confirmTitle).then(function (confirmed) {
-            if (!confirmed) {
-                return;
-            }
-
-            editCurrentId.value = versionId;
-            abp.ui.setBusy(editCurrentForm);
-            editCurrentForm.submit();
-        }).catch(function () {
-            abp.ui.clearBusy(editCurrentForm);
-            abp.notify.error(page.dataset.editCurrentError);
-        });
     }
 
     var dataTable = $(tableSelector).DataTable(abp.libs.datatables.normalizeConfiguration({
@@ -206,7 +184,4 @@
         dataTable.ajax.reload();
     });
 
-    $(tableSelector).on('click', '[data-bom-edit-current-id]', function () {
-        submitEditCurrent(this.getAttribute('data-bom-edit-current-id'));
-    });
 })();

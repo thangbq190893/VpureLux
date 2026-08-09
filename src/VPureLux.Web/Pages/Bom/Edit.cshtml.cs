@@ -42,7 +42,7 @@ public class EditModel : VPureLuxPageModel
         await LoadComponentOptionsAsync();
 
         var bomVersion = await _bomAppService.GetAsync(Id);
-        if (bomVersion.Status != BomStatus.Draft)
+        if (bomVersion.Status == BomStatus.Archived)
         {
             return RedirectToPage("/Bom/Details", new { id = Id });
         }

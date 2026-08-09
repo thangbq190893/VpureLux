@@ -141,24 +141,9 @@ public class BomAppService : ApplicationService, IBomAppService
         await _catalogValidator.ValidateActiveProductAsync(source.ProductId);
         await _catalogValidator.ValidateActiveComponentsAsync(source.Items.Select(x => x.ComponentId));
 
-        var existingDraft = (await _bomVersionRepository.GetListByProductIdAsync(source.ProductId))
-            .Where(x => x.Status == BomStatus.Draft)
-            .OrderByDescending(x => x.VersionNo)
-            .FirstOrDefault();
-        if (existingDraft != null)
-        {
-            return new CloneBomVersionResultDto
-            {
-                NewBomVersionId = existingDraft.Id
-            };
-        }
-
-        var clone = await _bomManager.CloneAsync(source, source.EffectiveFrom);
-        await _bomVersionRepository.InsertAsync(clone, autoSave: true);
-
         return new CloneBomVersionResultDto
         {
-            NewBomVersionId = clone.Id
+            NewBomVersionId = source.Id
         };
     }
 

@@ -73,8 +73,8 @@ public class BomPagesTests : VPureLuxWebTestBase
         html.ShouldContain("data-bom-summary-table");
         html.ShouldContain("id=\"BomProductsTable\"");
         html.ShouldContain("bom-summary-table");
-        html.ShouldContain("data-bom-edit-current-form");
-        html.ShouldContain(localizer["Bom:ConfirmEditCurrentVersion"].Value);
+        html.ShouldNotContain("data-bom-edit-current-form");
+        html.ShouldNotContain(localizer["Bom:ConfirmEditCurrentVersion"].Value);
         html.ShouldContain("name=\"SearchTerm\"");
         html.ShouldContain(localizer["Bom:BomState"].Value);
         filteredHtml.ShouldNotContain(product.Name);
@@ -88,8 +88,8 @@ public class BomPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("Bom:OpenHistoryShort");
         scriptSource.ShouldContain("Bom:CreateVersionShort");
         scriptSource.ShouldContain("Bom:ViewCurrentVersionShort");
-        scriptSource.ShouldContain("data-bom-edit-current-id");
-        scriptSource.ShouldContain("submitEditCurrent");
+        scriptSource.ShouldNotContain("data-bom-edit-current-id");
+        scriptSource.ShouldNotContain("submitEditCurrent");
         scriptSource.ShouldContain("Bom:VersionCountSuffix");
         scriptSource.ShouldContain("bom-state-cell");
         scriptSource.ShouldContain("bom-action-menu");
@@ -104,6 +104,7 @@ public class BomPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("Bom/Product/");
         scriptSource.ShouldContain("Bom/Create/");
         scriptSource.ShouldContain("Bom/Details/");
+        scriptSource.ShouldContain("Bom/Edit/");
         scriptSource.ShouldContain("DataTable");
         scriptSource.ShouldContain("serverSide: true");
         scriptSource.ShouldContain("handler=List");
@@ -112,7 +113,7 @@ public class BomPagesTests : VPureLuxWebTestBase
         pageSource.ShouldNotContain("foreach (var row in Model.Rows)");
         pageSource.ShouldNotContain("asp-for=\"ProductId\" asp-items=");
         pageSource.ShouldNotContain("Bom:SelectProduct");
-        pageSource.ShouldContain("asp-page-handler=\"EditCurrent\"");
+        pageSource.ShouldNotContain("asp-page-handler=\"EditCurrent\"");
         pageSource.ShouldContain("/Pages/Bom/Index.css");
         cssSource.ShouldContain("table-layout: fixed");
         cssSource.ShouldContain("min-width: 0");
@@ -233,7 +234,7 @@ public class BomPagesTests : VPureLuxWebTestBase
         await bomService.PublishAsync(draft.Id);
         var publishedHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom/Product/{product.Id}"));
         publishedHtml.ShouldContain(localizer["Bom:ConfirmArchive"].Value);
-        publishedHtml.ShouldContain(localizer["Bom:ConfirmEditCurrentVersion"].Value);
+        publishedHtml.ShouldNotContain(localizer["Bom:ConfirmEditCurrentVersion"].Value);
         publishedHtml.ShouldContain(localizer["Bom:EditCurrentVersion"].Value);
         publishedHtml.ShouldContain(localizer["Bom:Status:Published"].Value);
         publishedHtml.ShouldContain(localizer["Bom:CurrentVersionBadge"].Value);
@@ -290,7 +291,7 @@ public class BomPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
-    public async Task Bom_Product_OnPostEditCurrentAsync_Should_Create_Draft_And_Redirect_To_Edit()
+    public async Task Bom_Product_OnPostEditCurrentAsync_Should_Redirect_To_Current_Edit_Without_Draft()
     {
         var product = await CreateProductAsync("BOM-EDIT-CURRENT-P", "BOM Edit Current Product");
         var firstComponent = await CreateComponentAsync("BOM-EDIT-CURRENT-C1", "BOM Edit Current Component 1");
@@ -321,16 +322,13 @@ public class BomPagesTests : VPureLuxWebTestBase
 
         var redirect = result.ShouldBeOfType<RedirectToPageResult>();
         redirect.PageName.ShouldBe("/Bom/Edit");
-        var draftId = redirect.RouteValues!["id"].ShouldBeOfType<Guid>();
-        var draft = await bomService.GetAsync(draftId);
-        draft.Status.ShouldBe(BomStatus.Draft);
-        draft.Items.Select(x => x.ComponentId).ShouldBe([secondComponent.Id, firstComponent.Id]);
-        draft.Items.Select(x => x.LineNo).ShouldBe([1, 2]);
+        redirect.RouteValues!["id"].ShouldBe(published.Id);
         (await bomService.GetAsync(published.Id)).Status.ShouldBe(BomStatus.Published);
+        (await bomService.GetListAsync(product.Id)).Count.ShouldBe(1);
     }
 
     [Fact]
-    public async Task Bom_Index_OnPostEditCurrentAsync_Should_Create_Draft_And_Redirect_To_Edit()
+    public async Task Bom_Index_OnPostEditCurrentAsync_Should_Redirect_To_Current_Edit_Without_Draft()
     {
         var product = await CreateProductAsync("BOM-IDX-EDIT-P", "BOM Index Edit Current Product");
         var component = await CreateComponentAsync("BOM-IDX-EDIT-C", "BOM Index Edit Current Component");
@@ -348,12 +346,9 @@ public class BomPagesTests : VPureLuxWebTestBase
 
         var redirect = result.ShouldBeOfType<RedirectToPageResult>();
         redirect.PageName.ShouldBe("/Bom/Edit");
-        var draftId = redirect.RouteValues!["id"].ShouldBeOfType<Guid>();
-        var draft = await bomService.GetAsync(draftId);
-        draft.Status.ShouldBe(BomStatus.Draft);
-        draft.Items.Single().ComponentId.ShouldBe(component.Id);
-        draft.Items.Single().Quantity.ShouldBe(3);
+        redirect.RouteValues!["id"].ShouldBe(published.Id);
         (await bomService.GetAsync(published.Id)).Status.ShouldBe(BomStatus.Published);
+        (await bomService.GetListAsync(product.Id)).Count.ShouldBe(1);
     }
 
     [Fact]
@@ -652,6 +647,46 @@ public class BomPagesTests : VPureLuxWebTestBase
         updated.Items.Count.ShouldBe(2);
         updated.Items.ShouldContain(x => x.ComponentId == firstComponent.Id && x.Quantity == 2);
         updated.Items.ShouldContain(x => x.ComponentId == secondComponent.Id && x.Quantity == 3);
+    }
+
+    [Fact]
+    public async Task Bom_Edit_Should_Save_Published_Version_Directly_Without_New_Version()
+    {
+        var product = await CreateProductAsync("BOM-EDIT-PUB-P", "BOM Edit Published Product");
+        var firstComponent = await CreateComponentAsync("BOM-EDIT-PUB-C1", "BOM Edit Published Component 1");
+        var secondComponent = await CreateComponentAsync("BOM-EDIT-PUB-C2", "BOM Edit Published Component 2");
+        var bomService = GetRequiredService<IBomAppService>();
+        var bom = await bomService.CreateAsync(product.Id, new CreateBomVersionDto
+        {
+            EffectiveFrom = DateTime.Today,
+            Items = [new CreateBomItemDto { ComponentId = firstComponent.Id, Quantity = 1 }]
+        });
+        await bomService.PublishAsync(bom.Id);
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom/Edit/{bom.Id}"));
+        html.ShouldContain("name=\"Items[0].ComponentId\"");
+
+        var model = new global::VPureLux.Web.Pages.Bom.EditModel(bomService, GetRequiredService<IComponentAppService>())
+        {
+            Id = bom.Id,
+            Items =
+            [
+                new BomItemSelectionModel { ComponentId = firstComponent.Id, Quantity = 4 },
+                new BomItemSelectionModel { ComponentId = secondComponent.Id, Quantity = 5 }
+            ]
+        };
+        SetPageContext(model);
+
+        var result = await model.OnPostAsync();
+
+        result.ShouldBeOfType<RedirectToPageResult>();
+        var updated = await bomService.GetAsync(bom.Id);
+        updated.Status.ShouldBe(BomStatus.Published);
+        updated.VersionNo.ShouldBe(bom.VersionNo);
+        updated.Items.Count.ShouldBe(2);
+        updated.Items.ShouldContain(x => x.ComponentId == firstComponent.Id && x.Quantity == 4);
+        updated.Items.ShouldContain(x => x.ComponentId == secondComponent.Id && x.Quantity == 5);
+        (await bomService.GetListAsync(product.Id)).Count.ShouldBe(1);
     }
 
     [Fact]

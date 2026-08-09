@@ -98,7 +98,7 @@ public class BomAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     [Fact]
-    public async Task Should_Create_Editable_Draft_From_Current_And_Preserve_Item_Order()
+    public async Task Should_Return_Current_Bom_When_Editing_Current_And_Not_Create_Draft()
     {
         var product = await CreateProductAsync();
         var firstComponent = await CreateComponentAsync();
@@ -119,18 +119,20 @@ public class BomAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
 
         var result = await _bomAppService.CreateEditableDraftFromCurrentAsync(published.Id);
 
-        var draft = await _bomAppService.GetAsync(result.NewBomVersionId);
-        draft.Status.ShouldBe(BomStatus.Draft);
-        draft.VersionNo.ShouldBe(published.VersionNo + 1);
-        draft.EffectiveFrom.ShouldBe(effectiveFrom);
-        draft.Items.Select(x => x.ComponentId).ShouldBe([thirdComponent.Id, firstComponent.Id, secondComponent.Id]);
-        draft.Items.Select(x => x.LineNo).ShouldBe([1, 2, 3]);
-        draft.Items.Select(x => x.Quantity).ShouldBe([3m, 1m, 2m]);
-        (await _bomAppService.GetAsync(published.Id)).Status.ShouldBe(BomStatus.Published);
+        result.NewBomVersionId.ShouldBe(published.Id);
+        var versions = await _bomAppService.GetListAsync(product.Id);
+        versions.Count.ShouldBe(1);
+        var current = await _bomAppService.GetAsync(result.NewBomVersionId);
+        current.Status.ShouldBe(BomStatus.Published);
+        current.VersionNo.ShouldBe(published.VersionNo);
+        current.EffectiveFrom.ShouldBe(effectiveFrom);
+        current.Items.Select(x => x.ComponentId).ShouldBe([thirdComponent.Id, firstComponent.Id, secondComponent.Id]);
+        current.Items.Select(x => x.LineNo).ShouldBe([1, 2, 3]);
+        current.Items.Select(x => x.Quantity).ShouldBe([3m, 1m, 2m]);
     }
 
     [Fact]
-    public async Task Should_Reuse_Existing_Draft_When_Creating_Editable_Draft_From_Current()
+    public async Task Should_Not_Reuse_Existing_Draft_When_Editing_Current_Directly()
     {
         var product = await CreateProductAsync();
         var component = await CreateComponentAsync();
@@ -140,28 +142,31 @@ public class BomAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
 
         var result = await _bomAppService.CreateEditableDraftFromCurrentAsync(published.Id);
 
-        result.NewBomVersionId.ShouldBe(existingDraft.Id);
+        result.NewBomVersionId.ShouldBe(published.Id);
         var versions = await _bomAppService.GetListAsync(product.Id);
         versions.Count(x => x.Status == BomStatus.Draft).ShouldBe(1);
+        versions.Single(x => x.Status == BomStatus.Draft).Id.ShouldBe(existingDraft.Id);
     }
 
     [Fact]
-    public async Task Should_Reject_Published_Edit_With_Documented_Error()
+    public async Task Should_Update_Published_Bom_Directly()
     {
         var bom = await CreateBomAsync();
         await _bomAppService.PublishAsync(bom.Id);
 
-        var exception = await Should.ThrowAsync<BusinessException>(
-            () => _bomAppService.UpdateAsync(bom.Id, new UpdateBomVersionDto
+        await _bomAppService.UpdateAsync(bom.Id, new UpdateBomVersionDto
+        {
+            Items = bom.Items.ConvertAll(x => new CreateBomItemDto
             {
-                Items = bom.Items.ConvertAll(x => new CreateBomItemDto
-                {
-                    ComponentId = x.ComponentId,
-                    Quantity = x.Quantity + 1
-                })
-            }));
+                ComponentId = x.ComponentId,
+                Quantity = x.Quantity + 1
+            })
+        });
 
-        exception.Code.ShouldBe(VPureLuxDomainErrorCodes.PublishedBomCannotBeModified);
+        var updated = await _bomAppService.GetAsync(bom.Id);
+        updated.Status.ShouldBe(BomStatus.Published);
+        updated.VersionNo.ShouldBe(bom.VersionNo);
+        updated.Items.Single().Quantity.ShouldBe(bom.Items.Single().Quantity + 1);
     }
 
     [Fact]

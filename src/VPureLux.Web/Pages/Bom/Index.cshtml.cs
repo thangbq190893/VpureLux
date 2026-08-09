@@ -64,8 +64,8 @@ public class IndexModel : VPureLuxPageModel
     {
         try
         {
-            var result = await _bomAppService.CreateEditableDraftFromCurrentAsync(id);
-            return RedirectToPage("/Bom/Edit", new { id = result.NewBomVersionId });
+            await _bomAppService.CreateEditableDraftFromCurrentAsync(id);
+            return RedirectToPage("/Bom/Edit", new { id });
         }
         catch (BusinessException exception)
         {

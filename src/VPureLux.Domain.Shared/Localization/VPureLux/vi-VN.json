@@ -181,7 +181,7 @@
     "Bom:NoPriceContext": "Chưa có dữ liệu ngữ cảnh giá.",
     "Bom:ConfirmPublish": "Bạn có chắc muốn công bố phiên bản định mức này?",
     "Bom:ConfirmArchive": "Bạn có chắc muốn lưu trữ phiên bản định mức này?",
-    "Bom:ConfirmEditCurrentVersion": "Hệ thống sẽ tạo bản nháp từ phiên bản hiện tại để chỉnh sửa. Tiếp tục?",
+    "Bom:ConfirmEditCurrentVersion": "Bạn sẽ chỉnh sửa trực tiếp phiên bản định mức hiện tại. Tiếp tục?",
     "Bom:PublishedSuccessfully": "Đã công bố phiên bản định mức.",
     "Bom:ArchivedSuccessfully": "Đã lưu trữ phiên bản định mức.",
     "Bom:ActionFailed": "Không thể thực hiện thao tác định mức. Vui lòng thử lại.",
