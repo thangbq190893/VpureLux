@@ -60,11 +60,11 @@
         });
     }
 
-    function formTokenData($form) {
+    function formTokenHeaders($form) {
         var token = $form.find('input[name="__RequestVerificationToken"]').val();
 
         return token
-            ? { __RequestVerificationToken: token }
+            ? { RequestVerificationToken: token }
             : {};
     }
 
@@ -247,15 +247,14 @@
             return;
         }
 
-        var data = formTokenData($supplierForm);
-        data.id = $lotId.val();
-        data.supplierId = $supplierId.val();
-
         abp.ui.setBusy($supplierForm);
         abp.ajax({
-            url: abp.appPath + 'Inventory/Lots?handler=UpdateSupplier',
+            url: abp.appPath + 'Inventory/Lots?handler=UpdateSupplier&id=' +
+                encodeURIComponent($lotId.val()) +
+                '&supplierId=' +
+                encodeURIComponent($supplierId.val()),
             type: 'POST',
-            data: data
+            headers: formTokenHeaders($supplierForm)
         }).then(function () {
             abp.notify.success(l('Inventory:LotSupplierUpdatedSuccessfully'));
             hideSupplierModal();
@@ -276,15 +275,14 @@
             return;
         }
 
-        var data = formTokenData($unitCostForm);
-        data.id = $unitCostLotId.val();
-        data.unitCost = normalized;
-
         abp.ui.setBusy($unitCostForm);
         abp.ajax({
-            url: abp.appPath + 'Inventory/Lots?handler=UpdateUnitCost',
+            url: abp.appPath + 'Inventory/Lots?handler=UpdateUnitCost&id=' +
+                encodeURIComponent($unitCostLotId.val()) +
+                '&unitCost=' +
+                encodeURIComponent(normalized),
             type: 'POST',
-            data: data
+            headers: formTokenHeaders($unitCostForm)
         }).then(function () {
             abp.notify.success(l('Inventory:LotUnitCostUpdatedSuccessfully'));
             hideUnitCostModal();
