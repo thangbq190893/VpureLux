@@ -480,6 +480,7 @@
     "INV_010": "Không tìm thấy giao dịch kho.",
     "INV_011": "Khóa chống trùng giao dịch kho bị trùng với giao dịch đã có.",
     "INV_012": "Mã kho đã tồn tại.",
+    "INV_013": "Vật tư nhập trong lô này đã phát sinh xuất kho, không thể sửa đơn giá nhập.",
 
     "Permission:Sales": "Bán hàng",
     "Permission:Sales.View": "Xem đơn bán hàng",

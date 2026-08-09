@@ -49,6 +49,7 @@ public static class VPureLuxDomainErrorCodes
     public const string InventoryTransactionNotFound = "INV_010";
     public const string InventoryIdempotencyConflict = "INV_011";
     public const string WarehouseCodeAlreadyExists = "INV_012";
+    public const string InventoryLotUnitCostCannotBeChangedAfterIssue = "INV_013";
 
     public const string DuplicateOrderNo = "SALES_001";
     public const string DuplicateConfirmationKey = "SALES_002";

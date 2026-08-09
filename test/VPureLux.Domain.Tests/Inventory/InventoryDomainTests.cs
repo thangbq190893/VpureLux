@@ -62,6 +62,18 @@ public class InventoryDomainTests
     }
 
     [Fact]
+    public void Lot_Should_Reject_Unit_Cost_Update_When_This_Item_Has_Been_Allocated()
+    {
+        var lot = Lot(10);
+
+        lot.Allocate(1);
+
+        Should.Throw<BusinessException>(() => lot.UpdateUnitCost(45000))
+            .Code.ShouldBe(VPureLuxDomainErrorCodes.InventoryLotUnitCostCannotBeChangedAfterIssue);
+        lot.UnitCost.ShouldBe(30000);
+    }
+
+    [Fact]
     public void Adjustment_Should_Require_Reason()
     {
         Should.Throw<BusinessException>(() => Transaction(InventoryTransactionType.AdjustmentIncrease, null))

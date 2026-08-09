@@ -65,6 +65,14 @@ public class InventoryLot : FullAuditedAggregateRoot<Guid>
 
     public void UpdateUnitCost(decimal unitCost)
     {
+        if (AvailableQuantity != ReceivedQuantity)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.InventoryLotUnitCostCannotBeChangedAfterIssue)
+                .WithData(nameof(Id), Id)
+                .WithData(nameof(LotNo), LotNo)
+                .WithData(nameof(StockItemId), StockItemId);
+        }
+
         UnitCost = EnsurePositive(unitCost, nameof(unitCost), InventoryConsts.CostScale);
     }
 

@@ -260,7 +260,6 @@ public class InventoryWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     {
         var context = await CreateContextAsync();
         await ReceiptAsync(context.WarehouseId, context.StockItemId, 10, 100, Unique("LOT-COST-UPD"));
-        await IssueAsync(context.WarehouseId, context.StockItemId, 4);
         var lot = (await _queries.GetLotsAsync(context.WarehouseId, context.StockItemId)).Single();
 
         await _lots.UpdateUnitCostAsync(lot.Id, new UpdateInventoryLotUnitCostDto
@@ -271,12 +270,76 @@ public class InventoryWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         var updatedLot = (await _queries.GetLotsAsync(context.WarehouseId, context.StockItemId)).Single();
         var balance = (await _queries.GetBalancesAsync(context.WarehouseId, context.StockItemId)).Single();
         updatedLot.UnitCost.ShouldBe(200);
-        updatedLot.AvailableQuantity.ShouldBe(6);
-        balance.QuantityOnHand.ShouldBe(6);
-        balance.InventoryValue.ShouldBe(1200);
+        updatedLot.AvailableQuantity.ShouldBe(10);
+        balance.QuantityOnHand.ShouldBe(10);
+        balance.InventoryValue.ShouldBe(2000);
 
         var futureIssue = await IssueAsync(context.WarehouseId, context.StockItemId, 1);
         futureIssue.TotalIssueCost.ShouldBe(200);
+    }
+
+    [Fact]
+    public async Task Existing_Receipt_Lot_Should_Reject_Unit_Cost_Update_After_Same_Item_Issue()
+    {
+        var context = await CreateContextAsync();
+        await ReceiptAsync(context.WarehouseId, context.StockItemId, 10, 100, Unique("LOT-COST-USED"));
+        await IssueAsync(context.WarehouseId, context.StockItemId, 4);
+        var lot = (await _queries.GetLotsAsync(context.WarehouseId, context.StockItemId)).Single();
+
+        (await Should.ThrowAsync<BusinessException>(() => _lots.UpdateUnitCostAsync(lot.Id, new UpdateInventoryLotUnitCostDto
+        {
+            UnitCost = 200
+        }))).Code.ShouldBe(VPureLuxDomainErrorCodes.InventoryLotUnitCostCannotBeChangedAfterIssue);
+
+        var unchangedLot = (await _queries.GetLotsAsync(context.WarehouseId, context.StockItemId)).Single();
+        var balance = (await _queries.GetBalancesAsync(context.WarehouseId, context.StockItemId)).Single();
+        unchangedLot.UnitCost.ShouldBe(100);
+        unchangedLot.AvailableQuantity.ShouldBe(6);
+        balance.QuantityOnHand.ShouldBe(6);
+        balance.InventoryValue.ShouldBe(600);
+    }
+
+    [Fact]
+    public async Task Existing_Receipt_Lot_Should_Check_Unit_Cost_Update_By_Item_Not_Shared_LotNo()
+    {
+        var warehouse = await CreateWarehouseAsync();
+        var firstComponent = await CreateComponentAsync();
+        var secondComponent = await CreateComponentAsync();
+        var firstItem = (await _stockItems.FindByCatalogItemAsync(StockItemType.Component, firstComponent.Id))!;
+        var secondItem = (await _stockItems.FindByCatalogItemAsync(StockItemType.Component, secondComponent.Id))!;
+        var sharedLotNo = Unique("LOT-SHARED");
+
+        await _transactions.PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = warehouse.Id,
+            LotNo = sharedLotNo,
+            ReceivedAt = DateTime.UtcNow,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput { StockItemId = firstItem.Id, Quantity = 3, UnitCost = 100 },
+                new ReceiptLineInput { StockItemId = secondItem.Id, Quantity = 4, UnitCost = 200 }
+            ]
+        });
+        await IssueAsync(warehouse.Id, firstItem.Id, 1);
+
+        var firstLot = (await _queries.GetLotsAsync(warehouse.Id, firstItem.Id, sharedLotNo)).Single();
+        var secondLot = (await _queries.GetLotsAsync(warehouse.Id, secondItem.Id, sharedLotNo)).Single();
+
+        (await Should.ThrowAsync<BusinessException>(() => _lots.UpdateUnitCostAsync(firstLot.Id, new UpdateInventoryLotUnitCostDto
+        {
+            UnitCost = 150
+        }))).Code.ShouldBe(VPureLuxDomainErrorCodes.InventoryLotUnitCostCannotBeChangedAfterIssue);
+
+        await _lots.UpdateUnitCostAsync(secondLot.Id, new UpdateInventoryLotUnitCostDto
+        {
+            UnitCost = 300
+        });
+
+        (await _queries.GetLotsAsync(warehouse.Id, firstItem.Id, sharedLotNo)).Single().UnitCost.ShouldBe(100);
+        (await _queries.GetLotsAsync(warehouse.Id, secondItem.Id, sharedLotNo)).Single().UnitCost.ShouldBe(300);
+        (await _queries.GetBalancesAsync(warehouse.Id, firstItem.Id)).Single().InventoryValue.ShouldBe(200);
+        (await _queries.GetBalancesAsync(warehouse.Id, secondItem.Id)).Single().InventoryValue.ShouldBe(1200);
     }
 
     [Theory]
