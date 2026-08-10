@@ -1,4 +1,6 @@
 using System;
+using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,28 +17,39 @@ public class CreateModel : VPureLuxPageModel
 {
     private readonly IProductSuggestedPriceAppService _appService;
     private readonly IProductAppService _productAppService;
+    private readonly IProductPricingContextLookupService _productPricingContextLookupService;
 
     [BindProperty(SupportsGet = true)] public Guid ProductId { get; set; }
     [BindProperty] public CreateProductSuggestedPriceVersionDto Input { get; set; } = new();
     [BindProperty] public string EffectiveFromText { get; set; } = string.Empty;
     public string ProductLabel { get; private set; } = string.Empty;
+    public decimal? ComponentBuildPrice { get; private set; }
+    public bool HasPublishedBom { get; private set; }
+    public bool HasMissingComponentSuggestedPrices { get; private set; }
+    public string ComponentBuildPriceText => ComponentBuildPrice.HasValue
+        ? $"{ComponentBuildPrice.Value.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))} {PricingConsts.Currency}"
+        : string.Empty;
 
-    public CreateModel(IProductSuggestedPriceAppService appService, IProductAppService productAppService)
+    public CreateModel(
+        IProductSuggestedPriceAppService appService,
+        IProductAppService productAppService,
+        IProductPricingContextLookupService productPricingContextLookupService)
     {
         _appService = appService;
         _productAppService = productAppService;
+        _productPricingContextLookupService = productPricingContextLookupService;
     }
 
     public async Task OnGetAsync()
     {
-        await LoadProductLabelAsync();
+        await LoadProductContextAsync();
         Input.EffectiveFrom = Clock.Now.Date;
         EffectiveFromText = PricingDateUi.Format(Input.EffectiveFrom);
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
-        await LoadProductLabelAsync();
+        await LoadProductContextAsync();
         if (!PricingDateUi.TryParse(EffectiveFromText, out var effectiveFrom))
         {
             ModelState.AddModelError(nameof(EffectiveFromText), L["Pricing:InvalidDateFormat"]);
@@ -56,9 +69,21 @@ public class CreateModel : VPureLuxPageModel
         }
     }
 
-    private async Task LoadProductLabelAsync()
+    private async Task LoadProductContextAsync()
     {
         var product = await _productAppService.GetAsync(ProductId);
         ProductLabel = $"{product.Code} - {product.Name}";
+
+        var context = (await _productPricingContextLookupService.FindMapAsync([ProductId], Clock.Now))
+            .Values
+            .FirstOrDefault();
+        if (context == null)
+        {
+            return;
+        }
+
+        HasPublishedBom = context.HasPublishedBom;
+        HasMissingComponentSuggestedPrices = context.HasMissingComponentSuggestedPrices;
+        ComponentBuildPrice = context.ComponentBuildPrice;
     }
 }

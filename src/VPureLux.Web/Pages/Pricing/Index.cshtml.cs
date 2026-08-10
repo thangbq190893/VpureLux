@@ -75,7 +75,7 @@ public class IndexModel : VPureLuxPageModel
                 component.Name,
                 price?.Price,
                 price?.Currency ?? PricingConsts.Currency,
-                price == null ? L["Pricing:NoVersion"].Value : PricingDateUi.Format(price.EffectiveFrom),
+                price == null ? string.Empty : PricingDateUi.Format(price.EffectiveFrom),
                 price != null,
                 component.Status == CatalogItemStatus.Active);
         }).ToList();

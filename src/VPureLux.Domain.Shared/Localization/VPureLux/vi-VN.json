@@ -321,6 +321,7 @@
     "Pricing:InvalidDateFormat": "Ngày phải nhập theo định dạng dd/MM/yyyy.",
     "Pricing:BomStatus": "Trạng thái định mức",
     "Pricing:ComponentBuildPrice": "Giá tổng vật tư tham khảo",
+    "Pricing:ComponentBuildPriceHint": "Dùng để tham khảo khi nhập giá niêm yết sản phẩm.",
     "Pricing:CurrentComponentSuggestedPrice": "Giá bán đề xuất hiện tại",
     "Pricing:CurrentProductSuggestedPrice": "Giá niêm yết hiện tại",
     "Pricing:Difference": "Chênh lệch niêm yết - vật tư",

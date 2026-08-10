@@ -125,7 +125,8 @@ public class PricingPagesTests : VPureLuxWebTestBase
         };
         var productModel = new ProductCreateModel(
             GetRequiredService<IProductSuggestedPriceAppService>(),
-            GetRequiredService<IProductAppService>())
+            GetRequiredService<IProductAppService>(),
+            GetRequiredService<IProductPricingContextLookupService>())
         {
             ProductId = product.Id,
             EffectiveFromText = today,
@@ -135,9 +136,39 @@ public class PricingPagesTests : VPureLuxWebTestBase
                 Reason = "Điều chỉnh giá niêm yết sản phẩm"
             }
         };
+        SetPageContext(productModel);
 
         (await componentModel.OnPostAsync()).ShouldBeOfType<RedirectToPageResult>();
         (await productModel.OnPostAsync()).ShouldBeOfType<RedirectToPageResult>();
+    }
+
+    [Fact]
+    public async Task Product_Price_Create_Should_Show_Component_Total_Reference_When_Available()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var component = await GetRequiredService<IComponentAppService>()
+            .CreateAsync(ComponentInput("PRICE-FORM-C", "Form Reference Component"));
+        var product = await GetRequiredService<IProductAppService>()
+            .CreateAsync(ProductInput("PRICE-FORM-P", "Form Reference Product"));
+        var bom = await GetRequiredService<IBomAppService>().CreateAsync(product.Id, new CreateBomVersionDto
+        {
+            EffectiveFrom = DateTime.Now.Date,
+            Items = [new CreateBomItemDto { ComponentId = component.Id, Quantity = 3 }]
+        });
+        await GetRequiredService<IBomAppService>().PublishAsync(bom.Id);
+        await GetRequiredService<IComponentSuggestedSellingPriceAppService>()
+            .CreateAsync(component.Id, new CreateComponentSuggestedSellingPriceVersionDto
+            {
+                EffectiveFrom = DateTime.Now.Date,
+                Price = 25_000m,
+                Reason = "Giá vật tư tham khảo"
+            });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Pricing/Products/Create/{product.Id}"));
+
+        html.ShouldContain(localizer["Pricing:ComponentBuildPrice"].Value);
+        html.ShouldContain(localizer["Pricing:ComponentBuildPriceHint"].Value);
+        html.ShouldContain("75.000 VND");
     }
 
     [Fact]
@@ -231,6 +262,7 @@ public class PricingPagesTests : VPureLuxWebTestBase
         noPriceRows.Items.ShouldContain(x =>
             x.ComponentId == componentWithoutPrice.Id &&
             !x.HasCurrentSuggestedSellingPrice &&
+            x.EffectiveFrom == string.Empty &&
             x.CanCreateSuggestedPrice);
         localizer["Pricing:NoComponentSuggestedPrice"].Value.ShouldNotBeNullOrWhiteSpace();
     }
@@ -246,6 +278,7 @@ public class PricingPagesTests : VPureLuxWebTestBase
 
         rows.Items.ShouldContain(x => x.ComponentId == component.Id && !x.CurrentSuggestedSellingPrice.HasValue);
         localizer["Pricing:NoComponentSuggestedPrice"].Value.ShouldNotBeNullOrWhiteSpace();
+        rows.Items.ShouldContain(x => x.ComponentId == component.Id && x.EffectiveFrom == string.Empty);
     }
 
     [Fact]

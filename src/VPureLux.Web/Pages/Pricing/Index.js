@@ -140,7 +140,9 @@
                 data: 'effectiveFrom',
                 className: 'text-nowrap',
                 render: function (data) {
-                    return encode(data);
+                    return data
+                        ? encode(data)
+                        : '<span class="text-muted">-</span>';
                 }
             },
             {

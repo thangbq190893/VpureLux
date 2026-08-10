@@ -9,6 +9,26 @@
         <form method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <p class="text-muted">@L["Pricing:ProductContext", Model.ProductLabel]</p>
+            <div class="border rounded p-3 mb-3">
+                <div class="text-muted small">@L["Pricing:ComponentBuildPrice"]</div>
+                @if (Model.ComponentBuildPrice.HasValue)
+                {
+                    <div class="fs-5 fw-semibold">@Model.ComponentBuildPriceText</div>
+                    <div class="text-muted small">@L["Pricing:ComponentBuildPriceHint"]</div>
+                }
+                else if (!Model.HasPublishedBom)
+                {
+                    <div class="text-muted">@L["Pricing:NoPublishedBom"]</div>
+                }
+                else if (Model.HasMissingComponentSuggestedPrices)
+                {
+                    <div class="text-warning">@L["Pricing:MissingComponentPrices"]</div>
+                }
+                else
+                {
+                    <div class="text-muted">-</div>
+                }
+            </div>
             <div class="mb-3">
                 <label asp-for="Input.Price" class="form-label">@L["Pricing:ProductListPrice"]</label>
                 <input asp-for="Input.Price" class="form-control" />
