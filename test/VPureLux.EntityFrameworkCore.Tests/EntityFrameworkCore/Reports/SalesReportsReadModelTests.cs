@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Shouldly;
 using VPureLux.Bom;
 using VPureLux.Catalog.Components;
@@ -8,6 +9,7 @@ using VPureLux.Catalog.Products;
 using VPureLux.Customers;
 using VPureLux.Customers.CustomerGroups;
 using VPureLux.Inventory;
+using VPureLux.Migrations;
 using VPureLux.Permissions;
 using VPureLux.Reports;
 using VPureLux.Sales;
@@ -55,6 +57,17 @@ public class SalesReportsReadModelTests : VPureLuxEntityFrameworkCoreTestBase
         (await manager.GetAsync(VPureLuxPermissions.Reports.Sales.View)).ShouldNotBeNull();
         (await manager.GetAsync(VPureLuxPermissions.Reports.Profit.View)).ShouldNotBeNull();
         (await manager.GetAsync(VPureLuxPermissions.Reports.Export)).ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Sales_Report_Stored_Procedure_Migration_Should_Be_Discoverable()
+    {
+        var attribute = typeof(AddSalesReportStoredProcedures)
+            .GetCustomAttributes(typeof(MigrationAttribute), false)
+            .Single()
+            .ShouldBeOfType<MigrationAttribute>();
+
+        attribute.Id.ShouldBe("20260803090000_AddSalesReportStoredProcedures");
     }
 
     [Fact]

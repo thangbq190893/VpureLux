@@ -1,10 +1,14 @@
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using VPureLux.EntityFrameworkCore;
 
 #nullable disable
 
 namespace VPureLux.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(VPureLuxDbContext))]
+    [Migration("20260803090000_AddSalesReportStoredProcedures")]
     public partial class AddSalesReportStoredProcedures : Migration
     {
         /// <inheritdoc />

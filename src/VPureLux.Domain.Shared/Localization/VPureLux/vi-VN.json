@@ -526,6 +526,7 @@
     "Reports:Reset": "Đặt lại",
     "Reports:ExportCsv": "Xuất CSV",
     "Reports:DateRangeInvalid": "Khoảng thời gian báo cáo không hợp lệ.",
+    "Reports:DateInvalid": "Ngày lọc báo cáo không hợp lệ. Vui lòng nhập theo định dạng ngày hợp lệ.",
     "Reports:LoadFailed": "Không thể tải báo cáo. Vui lòng thử lại sau.",
     "Reports:TotalRevenue": "Tổng doanh số",
     "Reports:ConfirmedOrderCount": "Số đơn đã xác nhận",

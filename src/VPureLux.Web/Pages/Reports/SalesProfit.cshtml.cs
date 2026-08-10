@@ -23,8 +23,10 @@ public class SalesProfitModel : VPureLuxPageModel
     private readonly IWarehouseAppService _warehouses;
     private readonly IAuthorizationService _authorizationService;
 
-    [BindProperty(SupportsGet = true)] public DateTime? FromDate { get; set; }
-    [BindProperty(SupportsGet = true)] public DateTime? ToDate { get; set; }
+    [BindProperty(Name = "FromDate", SupportsGet = true)] public string? FromDateInput { get; set; }
+    [BindProperty(Name = "ToDate", SupportsGet = true)] public string? ToDateInput { get; set; }
+    public DateTime? FromDate { get; set; }
+    public DateTime? ToDate { get; set; }
     [BindProperty(SupportsGet = true)] public ReportPeriodGroup GroupBy { get; set; } = ReportPeriodGroup.Day;
     [BindProperty(SupportsGet = true)] public Guid? ProductId { get; set; }
     [BindProperty(SupportsGet = true)] public Guid? CustomerId { get; set; }
@@ -69,6 +71,11 @@ public class SalesProfitModel : VPureLuxPageModel
         await LoadFilterOptionsAsync();
         await SetExportPermissionAsync();
 
+        if (!ModelState.IsValid)
+        {
+            return;
+        }
+
         if (FromDate > ToDate)
         {
             ModelState.AddModelError(string.Empty, L["Reports:DateRangeInvalid"]);
@@ -89,6 +96,13 @@ public class SalesProfitModel : VPureLuxPageModel
     public async Task<IActionResult> OnGetExportAsync()
     {
         NormalizeDefaults();
+        if (!ModelState.IsValid)
+        {
+            await LoadFilterOptionsAsync();
+            await SetExportPermissionAsync();
+            return Page();
+        }
+
         if (FromDate > ToDate)
         {
             await LoadFilterOptionsAsync();
@@ -110,6 +124,15 @@ public class SalesProfitModel : VPureLuxPageModel
 
     private void NormalizeDefaults()
     {
+        if (!ReportDateParser.TryParseRange(FromDateInput, ToDateInput, out var parsedFromDate, out var parsedToDate))
+        {
+            ModelState.AddModelError(string.Empty, L["Reports:DateInvalid"]);
+            return;
+        }
+
+        FromDate ??= parsedFromDate;
+        ToDate ??= parsedToDate;
+
         if (!Enum.IsDefined(GroupBy) || GroupBy == 0)
         {
             GroupBy = ReportPeriodGroup.Day;
@@ -119,12 +142,20 @@ public class SalesProfitModel : VPureLuxPageModel
         {
             FromDate = (FromDate ?? ToDate)!.Value.Date;
             ToDate = (ToDate ?? FromDate)!.Value.Date;
+            SyncDateInputs();
             return;
         }
 
         var today = Clock.Now.Date;
         FromDate = new DateTime(today.Year, today.Month, 1);
         ToDate = FromDate.Value.AddMonths(1).AddDays(-1);
+        SyncDateInputs();
+    }
+
+    private void SyncDateInputs()
+    {
+        FromDateInput = ReportDateParser.ToInputValue(FromDate);
+        ToDateInput = ReportDateParser.ToInputValue(ToDate);
     }
 
     private async Task LoadFilterOptionsAsync()

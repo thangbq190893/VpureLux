@@ -62,12 +62,12 @@
             <form method="get" class="row g-2 align-items-end mb-0">
                 <div asp-validation-summary="All" class="text-danger"></div>
                 <div class="col-md-2">
-                    <label asp-for="FromDate" class="form-label">@L["Reports:FromDate"]</label>
-                    <input asp-for="FromDate" type="date" class="form-control" />
+                    <label for="ReportsSalesRevenueFromDate" class="form-label">@L["Reports:FromDate"]</label>
+                    <input id="ReportsSalesRevenueFromDate" name="FromDate" type="date" class="form-control" value="@Model.FromDateInput" />
                 </div>
                 <div class="col-md-2">
-                    <label asp-for="ToDate" class="form-label">@L["Reports:ToDate"]</label>
-                    <input asp-for="ToDate" type="date" class="form-control" />
+                    <label for="ReportsSalesRevenueToDate" class="form-label">@L["Reports:ToDate"]</label>
+                    <input id="ReportsSalesRevenueToDate" name="ToDate" type="date" class="form-control" value="@Model.ToDateInput" />
                 </div>
                 <div class="col-md-2">
                     <label asp-for="GroupBy" class="form-label">@L["Reports:GroupBy"]</label>
