@@ -3,6 +3,8 @@
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
 
 @section scripts {
+    <abp-script src="/Pages/Shared/DynamicRowSelects.js" />
+    <abp-script src="/Pages/Inventory/InventoryFilterSelects.js" />
     <abp-script src="/Pages/Inventory/Ledger.js" />
 }
 
@@ -25,7 +27,9 @@
                 </div>
                 <div class="col-md-3">
                     <label asp-for="StockItemId" class="form-label">@L["Inventory:StockItem"]</label>
-                    <select asp-for="StockItemId" asp-items="Model.StockItemOptions" id="InventoryLedgerStockItemId" class="form-select">
+                    <select asp-for="StockItemId" asp-items="Model.StockItemOptions" id="InventoryLedgerStockItemId"
+                            class="vpl-select2-target inventory-filter-stock-item js-select2"
+                            data-use-select2="true">
                         <option value="">@L["Select"]</option>
                     </select>
                 </div>

@@ -42,6 +42,27 @@ public class InventoryPagesTests : VPureLuxWebTestBase
         }
     }
 
+    [Theory]
+    [InlineData("/Inventory/Balances", "Balances")]
+    [InlineData("/Inventory/Lots", "Lots")]
+    [InlineData("/Inventory/Ledger", "Ledger")]
+    public async Task Inventory_Inquiry_StockItem_Filters_Should_Use_Searchable_Select2(string route, string pageName)
+    {
+        var html = await GetResponseAsStringAsync(route);
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath($"src/VPureLux.Web/Pages/Inventory/{pageName}.cshtml"));
+        var filterScriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/InventoryFilterSelects.js"));
+
+        html.ShouldContain("inventory-filter-stock-item js-select2");
+        html.ShouldContain("data-use-select2=\"true\"");
+        html.ShouldNotContain("select2-container");
+        pageSource.ShouldContain("<abp-script src=\"/Pages/Shared/DynamicRowSelects.js\" />");
+        pageSource.ShouldContain("<abp-script src=\"/Pages/Inventory/InventoryFilterSelects.js\" />");
+        pageSource.ShouldContain("class=\"vpl-select2-target inventory-filter-stock-item js-select2\"");
+        pageSource.ShouldContain("data-use-select2=\"true\"");
+        pageSource.ShouldNotContain("data-dynamic-select2=\"disabled\"");
+        filterScriptSource.ShouldContain("vplDynamicRowSelects.initializeSelects(document, '.inventory-filter-stock-item')");
+    }
+
     [Fact]
     public async Task Inventory_Menu_Should_Expose_Direct_Submenu_Items()
     {
