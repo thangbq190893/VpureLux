@@ -1,4 +1,4 @@
-@page "{id:guid}"
+@page "{id:guid?}"
 @model VPureLux.Web.Pages.Customers.EditModalModel
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
 @using Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Modal
@@ -6,7 +6,8 @@
     Layout = null;
 }
 
-<form method="post" asp-page="/Customers/EditModal" asp-route-id="@Model.Id">
+<form method="post" asp-page="/Customers/EditModal">
+    <input type="hidden" asp-for="Id" />
     <abp-modal>
         <abp-modal-header title="@L["Customers:Edit"]"></abp-modal-header>
         <abp-modal-body>

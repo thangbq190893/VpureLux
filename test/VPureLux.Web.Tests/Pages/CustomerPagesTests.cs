@@ -94,6 +94,29 @@ public class CustomerPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Customer_And_Group_Modals_Should_Accept_Query_String_Id_For_Abp_ModalManager()
+    {
+        var groupService = GetRequiredService<ICustomerGroupAppService>();
+        var customerService = GetRequiredService<ICustomerAppService>();
+        var group = await groupService.CreateAsync(new CreateCustomerGroupDto { Code = Unique("MODAL-G"), Name = "Modal Group" });
+        var customer = await customerService.CreateAsync(new CreateCustomerDto { Code = Unique("MODAL-C"), Name = "Modal Customer", CustomerGroupId = group.Id });
+
+        foreach (var (route, expectedText) in new[]
+        {
+            ($"/Customers/EditModal?id={customer.Id}", "Modal Customer"),
+            ($"/Customers/DetailsModal?id={customer.Id}", "Modal Customer"),
+            ($"/CustomerGroups/EditModal?id={group.Id}", "Modal Group"),
+            ($"/CustomerGroups/DetailsModal?id={group.Id}", "Modal Group")
+        })
+        {
+            var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync(route));
+
+            html.ShouldContain(expectedText);
+            html.ShouldNotContain("<!DOCTYPE", Case.Insensitive);
+        }
+    }
+
+    [Fact]
     public async Task Customer_And_Group_Pages_Should_Render_Localized_Action_Labels()
     {
         var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
