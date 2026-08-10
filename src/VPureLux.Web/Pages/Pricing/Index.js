@@ -18,7 +18,7 @@
     var publishedBomText = localize('Pricing:PublishedBom');
     var noPublishedBomText = localize('Pricing:NoPublishedBom');
     var missingComponentPricesText = localize('Pricing:MissingComponentPrices');
-    var noProductSuggestedPriceText = localize('Pricing:NoProductSuggestedPrice');
+    var noProductListPriceText = localize('Pricing:NoProductSuggestedPrice');
 
     function encode(value) {
         return $('<div/>').text(value || '').html();
@@ -212,7 +212,7 @@
                 data: 'currentProductSuggestedPrice',
                 className: 'text-end text-nowrap',
                 render: function (data) {
-                    return encode(formatMoney(data, 'VND') || noProductSuggestedPriceText);
+                    return encode(formatMoney(data, 'VND') || noProductListPriceText);
                 }
             },
             {

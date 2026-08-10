@@ -541,7 +541,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("return getNoSuggestedPriceManualMessage();");
         scriptSource.ShouldContain("if (suggestedPrice === null)");
         localizer["Sales:NoSuggestedPriceManualPriceRequired"].Value
-            .ShouldBe("Chưa có giá bán đề xuất, cần nhập giá bán thực tế.");
+            .ShouldBe("Chưa có giá niêm yết, cần nhập giá bán thực tế.");
         localizer["Sales:NoSuggestedPriceManualPriceRequired"].Value.ShouldNotContain("không thể bán");
     }
 

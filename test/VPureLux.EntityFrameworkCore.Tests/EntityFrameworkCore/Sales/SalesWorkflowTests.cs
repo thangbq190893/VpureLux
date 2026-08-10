@@ -252,11 +252,17 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
             Items = [new CreateBomItemDto { ComponentId = component.Id, Quantity = 2 }]
         });
         await _boms.PublishAsync(bom.Id);
+        await _componentPrices.CreateAsync(component.Id, new CreateComponentSuggestedSellingPriceVersionDto
+        {
+            EffectiveFrom = DateTime.Now.Date,
+            Price = 40_000,
+            Reason = "Reference component price"
+        });
         var price = await _prices.CreateAsync(product.Id, new CreateProductSuggestedPriceVersionDto
         {
             EffectiveFrom = DateTime.Now.Date,
             Price = 100_000,
-            Reason = "Initial price"
+            Reason = "Product list price"
         });
 
         var order = await _sales.CreateAsync(Input(context, product.Id, 3, null));

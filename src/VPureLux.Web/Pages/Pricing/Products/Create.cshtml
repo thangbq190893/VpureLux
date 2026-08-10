@@ -10,7 +10,7 @@
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <p class="text-muted">@L["Pricing:ProductContext", Model.ProductLabel]</p>
             <div class="mb-3">
-                <label asp-for="Input.Price" class="form-label">@L["Pricing:SuggestedSellingPrice"]</label>
+                <label asp-for="Input.Price" class="form-label">@L["Pricing:ProductListPrice"]</label>
                 <input asp-for="Input.Price" class="form-control" />
                 <span asp-validation-for="Input.Price" class="text-danger"></span>
             </div>

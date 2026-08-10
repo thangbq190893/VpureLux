@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Localization;
 using Shouldly;
+using VPureLux.Bom;
 using VPureLux.Catalog.Components;
 using VPureLux.Catalog.Products;
 using VPureLux.Localization;
@@ -81,7 +82,7 @@ public class PricingPagesTests : VPureLuxWebTestBase
 
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Pricing/Products/Create/{product.Id}"));
 
-        html.ShouldContain(localizer["Pricing:SuggestedSellingPrice"].Value);
+        html.ShouldContain(localizer["Pricing:ProductListPrice"].Value);
         html.ShouldContain(localizer["Pricing:EffectiveFrom"].Value);
         html.ShouldContain($"Sản phẩm: {product.Code} - {product.Name}");
         html.ShouldContain($"value=\"{today}\"");
@@ -131,7 +132,7 @@ public class PricingPagesTests : VPureLuxWebTestBase
             Input = new CreateProductSuggestedPriceVersionDto
             {
                 Price = 100000m,
-                Reason = "Điều chỉnh giá bán đề xuất sản phẩm"
+                Reason = "Điều chỉnh giá niêm yết sản phẩm"
             }
         };
 
@@ -160,6 +161,44 @@ public class PricingPagesTests : VPureLuxWebTestBase
             !x.HasPublishedBom &&
             !x.CurrentProductSuggestedPrice.HasValue &&
             x.CanCreateSuggestedPrice);
+    }
+
+    [Fact]
+    public async Task Pricing_Index_Product_Tab_Should_Show_Component_Total_As_Reference_And_Product_List_Price()
+    {
+        var component = await GetRequiredService<IComponentAppService>()
+            .CreateAsync(ComponentInput("PRICE-REF-C", "Reference Component"));
+        var product = await GetRequiredService<IProductAppService>()
+            .CreateAsync(ProductInput("PRICE-REF-P", "Reference Product"));
+        var bom = await GetRequiredService<IBomAppService>().CreateAsync(product.Id, new CreateBomVersionDto
+        {
+            EffectiveFrom = DateTime.Now.Date,
+            Items = [new CreateBomItemDto { ComponentId = component.Id, Quantity = 2 }]
+        });
+        await GetRequiredService<IBomAppService>().PublishAsync(bom.Id);
+        await GetRequiredService<IComponentSuggestedSellingPriceAppService>()
+            .CreateAsync(component.Id, new CreateComponentSuggestedSellingPriceVersionDto
+            {
+                EffectiveFrom = DateTime.Now.Date,
+                Price = 40_000m,
+                Reason = "Giá vật tư tham khảo"
+            });
+        await GetRequiredService<IProductSuggestedPriceAppService>()
+            .CreateAsync(product.Id, new CreateProductSuggestedPriceVersionDto
+            {
+                EffectiveFrom = DateTime.Now.Date,
+                Price = 150_000m,
+                Reason = "Giá niêm yết sản phẩm"
+            });
+
+        var rows = await GetProductPricingRowsAsync(product.Code);
+
+        rows.Items.ShouldContain(x =>
+            x.ProductId == product.Id &&
+            x.HasPublishedBom &&
+            x.ComponentBuildPrice == 80_000m &&
+            x.CurrentProductSuggestedPrice == 150_000m &&
+            x.Difference == 70_000m);
     }
 
     [Fact]
