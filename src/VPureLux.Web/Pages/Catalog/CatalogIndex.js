@@ -33,10 +33,13 @@
     createModal.onResult(refreshAfterModal);
     editModal.onResult(refreshAfterModal);
 
-    document.querySelector('[data-catalog-create]')?.addEventListener('click', function (event) {
-        event.preventDefault();
-        createModal.open();
-    });
+    var createButton = document.querySelector('[data-catalog-create]');
+    if (createButton) {
+        createButton.addEventListener('click', function (event) {
+            event.preventDefault();
+            createModal.open();
+        });
+    }
 
     document.querySelectorAll('[data-catalog-edit]').forEach(function (link) {
         link.addEventListener('click', function (event) {

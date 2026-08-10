@@ -1,19 +1,19 @@
 (function () {
-    const l = abp.localization.getResource('VPureLux');
-    const page = document.querySelector('[data-customer-groups-index]');
-    const tableSelector = '#CustomerGroupsTable';
+    var localize = abp.localization.getResource('VPureLux');
+    var page = document.querySelector('[data-customer-groups-index]');
+    var tableSelector = '#CustomerGroupsTable';
 
     if (!page || !document.querySelector(tableSelector)) {
         return;
     }
 
-    const createModal = new abp.ModalManager({ viewUrl: abp.appPath + 'CustomerGroups/CreateModal' });
-    const editModal = new abp.ModalManager({ viewUrl: abp.appPath + 'CustomerGroups/EditModal' });
-    const detailsModal = new abp.ModalManager({ viewUrl: abp.appPath + 'CustomerGroups/DetailsModal' });
-    const canEdit = page.dataset.canEdit === 'true';
-    const canManageStatus = page.dataset.canManageStatus === 'true';
-    const $searchText = $('#CustomerGroupsSearchText');
-    const $status = $('#CustomerGroupsStatus');
+    var createModal = new abp.ModalManager({ viewUrl: abp.appPath + 'CustomerGroups/CreateModal' });
+    var editModal = new abp.ModalManager({ viewUrl: abp.appPath + 'CustomerGroups/EditModal' });
+    var detailsModal = new abp.ModalManager({ viewUrl: abp.appPath + 'CustomerGroups/DetailsModal' });
+    var canEdit = page.dataset.canEdit === 'true';
+    var canManageStatus = page.dataset.canManageStatus === 'true';
+    var $searchText = $('#CustomerGroupsSearchText');
+    var $status = $('#CustomerGroupsStatus');
 
     if (page.dataset.statusSuccess) {
         abp.notify.success(page.dataset.statusSuccess);
@@ -24,16 +24,16 @@
     }
 
     function recordOf(data) {
-        return data?.record || data || {};
+        return data && data.record ? data.record : (data || {});
     }
 
     function reloadAfterModal() {
-        abp.notify.success(l('CustomerGroups:SavedSuccessfully'));
+        abp.notify.success(localize('CustomerGroups:SavedSuccessfully'));
         dataTable.ajax.reload(null, false);
     }
 
     function postStatus(record, handler, confirmMessage, successMessageKey) {
-        abp.message.confirm(confirmMessage, l('Confirm')).then(function (confirmed) {
+        abp.message.confirm(confirmMessage, localize('Confirm')).then(function (confirmed) {
             if (!confirmed) {
                 return;
             }
@@ -42,13 +42,13 @@
                 url: abp.appPath + 'CustomerGroups?handler=' + handler + '&id=' + encodeURIComponent(record.id),
                 type: 'POST'
             }).then(function () {
-                abp.notify.success(l(successMessageKey));
+                abp.notify.success(localize(successMessageKey));
                 dataTable.ajax.reload(null, false);
             });
         });
     }
 
-    const dataTable = $(tableSelector).DataTable(abp.libs.datatables.normalizeConfiguration({
+    var dataTable = $(tableSelector).DataTable(abp.libs.datatables.normalizeConfiguration({
         processing: true,
         serverSide: true,
         paging: true,
@@ -83,7 +83,7 @@
             {
                 data: 'status',
                 render: function (data) {
-                    return encode(l('Status:' + data));
+                    return encode(localize('Status:' + data));
                 }
             },
             {
@@ -96,13 +96,13 @@
                 rowAction: {
                     items: [
                         {
-                            text: l('Details'),
+                            text: localize('Details'),
                             action: function (data) {
                                 detailsModal.open({ id: recordOf(data).id });
                             }
                         },
                         {
-                            text: l('Edit'),
+                            text: localize('Edit'),
                             visible: function () {
                                 return canEdit;
                             },
@@ -111,7 +111,7 @@
                             }
                         },
                         {
-                            text: l('Deactivate'),
+                            text: localize('Deactivate'),
                             visible: function (data) {
                                 return canManageStatus && recordOf(data).status === 'Active';
                             },
@@ -119,12 +119,12 @@
                                 postStatus(
                                     recordOf(data),
                                     'Deactivate',
-                                    l('CustomerGroups:ConfirmDeactivate'),
+                                    localize('CustomerGroups:ConfirmDeactivate'),
                                     'CustomerGroups:DeactivatedSuccessfully');
                             }
                         },
                         {
-                            text: l('Activate'),
+                            text: localize('Activate'),
                             visible: function (data) {
                                 return canManageStatus && recordOf(data).status !== 'Active';
                             },
@@ -132,7 +132,7 @@
                                 postStatus(
                                     recordOf(data),
                                     'Activate',
-                                    l('CustomerGroups:ConfirmActivate'),
+                                    localize('CustomerGroups:ConfirmActivate'),
                                     'CustomerGroups:ActivatedSuccessfully');
                             }
                         }
@@ -145,10 +145,13 @@
     createModal.onResult(reloadAfterModal);
     editModal.onResult(reloadAfterModal);
 
-    document.querySelector('[data-customer-group-create]')?.addEventListener('click', function (event) {
-        event.preventDefault();
-        createModal.open();
-    });
+    var createButton = document.querySelector('[data-customer-group-create]');
+    if (createButton) {
+        createButton.addEventListener('click', function (event) {
+            event.preventDefault();
+            createModal.open();
+        });
+    }
 
     $('#CustomerGroupsSearchForm').on('submit', function (event) {
         event.preventDefault();

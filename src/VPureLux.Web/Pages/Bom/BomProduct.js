@@ -2,7 +2,7 @@
     const l = abp.localization.getResource('VPureLux');
     const page = document.querySelector('[data-bom-product]');
 
-    if (page?.dataset.statusSuccess) {
+    if (page && page.dataset.statusSuccess) {
         abp.notify.success(page.dataset.statusSuccess);
     }
 

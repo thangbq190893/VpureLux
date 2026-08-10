@@ -23,7 +23,7 @@
 
     function getValue(data, key) {
         var camelKey = key.charAt(0).toLowerCase() + key.slice(1);
-        return data[key] ?? data[camelKey];
+        return data[key] !== null && data[key] !== undefined ? data[key] : data[camelKey];
     }
 
     function escapeHtml(value) {
@@ -419,7 +419,7 @@
     function formatQuantity(value) {
         var numberValue = Number(value);
         if (!Number.isFinite(numberValue)) {
-            return String(value ?? '');
+            return String(value !== null && value !== undefined ? value : '');
         }
 
         return String(Math.round(numberValue * 10000) / 10000);

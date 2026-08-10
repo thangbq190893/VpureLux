@@ -16,7 +16,7 @@
     }
 
     function recordOf(data) {
-        return data?.record || data || {};
+        return data && data.record ? data.record : (data || {});
     }
 
     function formatMoney(value) {

@@ -242,6 +242,8 @@ public class CustomerPagesTests : VPureLuxWebTestBase
             scriptSource.ShouldContain("event.preventDefault()");
             scriptSource.ShouldContain("ClearButton");
             scriptSource.ShouldContain("function recordOf(data)");
+            scriptSource.ShouldContain("data && data.record ? data.record : (data || {})");
+            scriptSource.ShouldNotContain("data?.record");
             scriptSource.IndexOf("select2", StringComparison.OrdinalIgnoreCase).ShouldBe(-1);
         }
     }
