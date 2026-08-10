@@ -63,6 +63,24 @@ public class InventoryLot : FullAuditedAggregateRoot<Guid>
         }
     }
 
+    public void Restore(decimal quantity)
+    {
+        quantity = EnsurePositive(quantity, nameof(quantity), InventoryConsts.QuantityScale);
+        if (AvailableQuantity + quantity > ReceivedQuantity)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.ValidationFailed)
+                .WithData(nameof(Id), Id)
+                .WithData(nameof(AvailableQuantity), AvailableQuantity)
+                .WithData(nameof(ReceivedQuantity), ReceivedQuantity);
+        }
+
+        AvailableQuantity += quantity;
+        if (AvailableQuantity > 0)
+        {
+            Status = InventoryLotStatus.Available;
+        }
+    }
+
     public void UpdateUnitCost(decimal unitCost)
     {
         if (AvailableQuantity != ReceivedQuantity)

@@ -384,6 +384,70 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     [Fact]
+    public async Task Confirmed_Unpaid_Cancel_Should_Rollback_Inventory_To_Original_Lots()
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 500);
+        var stockItem = await GetComponentStockItemAsync(component.Id);
+        var (product, _) = await CreateProductForComponentAsync(component);
+        var order = await _sales.CreateAsync(Input(context, product.Id, 2, 1_000));
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var confirmed = await _sales.GetAsync(order.Id);
+        var line = confirmed.Lines.Single();
+        (await _inventoryQuery.GetBalancesAsync(context.Warehouse.Id, stockItem.Id)).Single().QuantityOnHand.ShouldBe(8);
+        var issuedLot = await GetSingleLotAsync(stockItem.Id);
+        issuedLot.AvailableQuantity.ShouldBe(8);
+
+        await _sales.CancelAsync(order.Id);
+
+        var cancelled = await _sales.GetAsync(order.Id);
+        cancelled.Status.ShouldBe(SalesOrderStatus.Cancelled);
+        cancelled.PaymentSummary.PaymentStatus.ShouldBe(SalesOrderReceivableStatus.NotApplicable);
+        var balance = (await _inventoryQuery.GetBalancesAsync(context.Warehouse.Id, stockItem.Id)).Single();
+        balance.QuantityOnHand.ShouldBe(10);
+        balance.InventoryValue.ShouldBe(5_000);
+        var restoredLot = await GetSingleLotAsync(stockItem.Id);
+        restoredLot.AvailableQuantity.ShouldBe(10);
+        restoredLot.Status.ShouldBe(InventoryLotStatus.Available);
+
+        var ledger = await _inventoryQuery.GetLedgerAsync(context.Warehouse.Id, stockItem.Id);
+        ledger.Count(x => x.Type == InventoryTransactionType.SalesIssue && x.ReferenceId == line.Id).ShouldBe(1);
+        var rollback = ledger.Single(x => x.Type == InventoryTransactionType.AdjustmentIncrease && x.ReferenceId == line.Id);
+        rollback.ReferenceType.ShouldBe("SalesOrderLine");
+        rollback.Lines.Single().LotNo.ShouldBe(restoredLot.LotNo);
+        rollback.Lines.Single().Quantity.ShouldBe(2);
+        rollback.Lines.Single().UnitCost.ShouldBe(500);
+    }
+
+    [Fact]
+    public async Task Confirmed_Paid_Cancel_Should_Be_Blocked_And_Leave_Inventory_Unchanged()
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 500);
+        var stockItem = await GetComponentStockItemAsync(component.Id);
+        var (product, _) = await CreateProductForComponentAsync(component);
+        var order = await _sales.CreateAsync(Input(context, product.Id, 2, 1_000));
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        await _sales.AddPaymentAsync(order.Id, new CreateSalesOrderPaymentDto
+        {
+            Amount = 500,
+            PaymentDate = DateTime.UtcNow,
+            PaymentMethod = SalesPaymentMethod.Cash,
+            ReferenceNo = "CANCEL-BLOCKED",
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+
+        var exception = await Should.ThrowAsync<BusinessException>(() => _sales.CancelAsync(order.Id));
+
+        exception.Code.ShouldBe(VPureLuxDomainErrorCodes.SalesConfirmedOrderCancelRequiresUnpaid);
+        (await _sales.GetAsync(order.Id)).Status.ShouldBe(SalesOrderStatus.Confirmed);
+        var balance = (await _inventoryQuery.GetBalancesAsync(context.Warehouse.Id, stockItem.Id)).Single();
+        balance.QuantityOnHand.ShouldBe(8);
+        balance.InventoryValue.ShouldBe(4_000);
+        (await GetSingleLotAsync(stockItem.Id)).AvailableQuantity.ShouldBe(8);
+    }
+
+    [Fact]
     public async Task Inventory_Failure_Should_Leave_Order_Draft_Without_Snapshot()
     {
         var context = await CreateBaseAsync();
@@ -546,6 +610,13 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     private async Task<StockItem> GetComponentStockItemAsync(Guid componentId) =>
         await _stockItems.FindByCatalogItemAsync(StockItemType.Component, componentId)
         ?? throw new InvalidOperationException($"Component StockItem was not synchronized for {componentId}.");
+
+    private async Task<InventoryLot> GetSingleLotAsync(Guid stockItemId) =>
+        await WithUnitOfWorkAsync(async () =>
+        {
+            var db = await GetRequiredService<IDbContextProvider<VPureLuxDbContext>>().GetDbContextAsync();
+            return await db.InventoryLots.AsNoTracking().SingleAsync(x => x.StockItemId == stockItemId);
+        });
 
     private async Task PostReceiptAsync(Guid warehouseId, Guid stockItemId, decimal quantity, decimal unitCost, string lotNo)
     {

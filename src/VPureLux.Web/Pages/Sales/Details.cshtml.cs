@@ -200,9 +200,12 @@ public class DetailsModel : VPureLuxPageModel
             .ToDictionary(x => x.Id, x => $"{x.Code} - {x.Name}");
         await LoadProductContextsAsync();
         var draft = Order.Status == SalesOrderStatus.Draft;
+        var confirmedUnpaid = Order.Status == SalesOrderStatus.Confirmed &&
+            Order.PaymentSummary.PaymentStatus == SalesOrderReceivableStatus.Unpaid;
+        var canCancelPermission = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.Cancel)).Succeeded;
         CanEdit = draft && (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.Edit)).Succeeded;
         CanConfirm = draft && (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.Confirm)).Succeeded;
-        CanCancel = draft && (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.Cancel)).Succeeded;
+        CanCancel = (draft || confirmedUnpaid) && canCancelPermission;
         CanAddPayment = Order.Status == SalesOrderStatus.Confirmed &&
             (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.Payments.Manage)).Succeeded;
         PaymentMethodOptions = BuildPaymentMethodOptions();
@@ -346,6 +349,11 @@ public class DetailsModel : VPureLuxPageModel
         exception.Code is
             VPureLuxDomainErrorCodes.SalesOrderAlreadyConfirmed or
             VPureLuxDomainErrorCodes.SalesOrderAlreadyCancelled or
+            VPureLuxDomainErrorCodes.SalesConfirmedOrderCancelRequiresUnpaid or
+            VPureLuxDomainErrorCodes.SalesInventoryValidationFailed or
+            VPureLuxDomainErrorCodes.SalesOrderCannotBeModified or
+            VPureLuxDomainErrorCodes.InventoryTransactionNotFound or
+            VPureLuxDomainErrorCodes.InventoryIdempotencyConflict or
             VPureLuxDomainErrorCodes.SalesOrderNotFound or
             VPureLuxDomainErrorCodes.SalesConcurrentModification or
             VPureLuxDomainErrorCodes.AccessDenied or

@@ -242,7 +242,26 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
     public async Task CancelAsync(Guid id)
     {
         var order = await GetOrderAsync(id);
-        order.CancelDraft(Clock.Now);
+        if (order.Status == SalesOrderStatus.Draft)
+        {
+            order.CancelDraft(Clock.Now);
+        }
+        else if (order.Status == SalesOrderStatus.Confirmed)
+        {
+            var summary = await GetPaymentSummaryAsync(order);
+            if (summary.PaymentStatus != SalesOrderReceivableStatus.Unpaid || summary.PaidAmount != 0)
+            {
+                throw new BusinessException(VPureLuxDomainErrorCodes.SalesConfirmedOrderCancelRequiresUnpaid);
+            }
+
+            await RollbackConfirmedOrderInventoryAsync(order);
+            order.CancelConfirmedUnpaid(Clock.Now);
+        }
+        else
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.SalesOrderAlreadyCancelled);
+        }
+
         await _salesOrders.UpdateAsync(order, autoSave: true);
     }
 
@@ -436,6 +455,102 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
         transaction.Post(Clock.Now);
         await _inventoryTransactions.InsertAsync(transaction);
         return (transaction.Id, transaction.TotalIssueCost);
+    }
+
+    private async Task RollbackConfirmedOrderInventoryAsync(SalesOrder order)
+    {
+        foreach (var line in order.Lines.OrderBy(x => x.LineNo))
+        {
+            if (!line.InventoryTransactionId.HasValue)
+            {
+                throw new BusinessException(VPureLuxDomainErrorCodes.SalesOrderCannotBeModified);
+            }
+
+            var issue = await _inventoryTransactions.FindAsync(line.InventoryTransactionId.Value, includeDetails: true)
+                ?? throw new BusinessException(VPureLuxDomainErrorCodes.InventoryTransactionNotFound);
+            if (issue.Type != InventoryTransactionType.SalesIssue ||
+                issue.ReferenceType != "SalesOrderLine" ||
+                issue.ReferenceId != line.Id)
+            {
+                throw new BusinessException(VPureLuxDomainErrorCodes.SalesOrderCannotBeModified);
+            }
+
+            await RollbackSalesIssueAsync(order, line.Id, issue);
+        }
+    }
+
+    private async Task RollbackSalesIssueAsync(SalesOrder order, Guid salesLineId, InventoryTransaction issue)
+    {
+        var allocations = issue.Lines
+            .SelectMany(line => line.Allocations.Select(allocation => new
+            {
+                line.StockItemId,
+                allocation.InventoryLotId,
+                allocation.Quantity,
+                allocation.UnitCost,
+                allocation.TotalCost
+            }))
+            .OrderBy(x => x.InventoryLotId)
+            .ThenBy(x => x.StockItemId)
+            .ToList();
+        if (allocations.Count == 0)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.SalesOrderCannotBeModified);
+        }
+
+        var idempotencyKey = $"sales-cancel:{order.Id}:line:{salesLineId}";
+        var hash = Hash($"{order.Id}|{salesLineId}|{issue.Id}|" +
+                        string.Join(";", allocations.Select(x =>
+                            $"{x.StockItemId}:{x.InventoryLotId}:{x.Quantity}:{x.UnitCost}")));
+        var existing = await _inventoryManager.FindExistingTransactionAsync(idempotencyKey);
+        if (existing != null)
+        {
+            if (existing.RequestHash != hash)
+            {
+                throw new BusinessException(VPureLuxDomainErrorCodes.InventoryIdempotencyConflict);
+            }
+
+            return;
+        }
+
+        var transaction = _inventoryManager.CreateTransaction(
+            order.WarehouseId,
+            InventoryTransactionType.AdjustmentIncrease,
+            idempotencyKey,
+            hash,
+            "SalesOrderLine",
+            salesLineId,
+            issue.BomVersionId,
+            "Hủy đơn bán hàng chưa thanh toán");
+        var postedAt = Clock.Now;
+
+        foreach (var allocation in allocations)
+        {
+            var lot = await _lots.GetAsync(allocation.InventoryLotId);
+            if (lot.WarehouseId != order.WarehouseId || lot.StockItemId != allocation.StockItemId)
+            {
+                throw new BusinessException(VPureLuxDomainErrorCodes.SalesOrderCannotBeModified);
+            }
+
+            lot.Restore(allocation.Quantity);
+            await _lots.UpdateAsync(lot);
+            transaction.AddReceiptLine(
+                GuidGenerator.Create(),
+                allocation.StockItemId,
+                allocation.Quantity,
+                lot.LotNo,
+                postedAt,
+                allocation.UnitCost);
+            await _balances.ApplyMovementAsync(
+                order.WarehouseId,
+                allocation.StockItemId,
+                allocation.Quantity,
+                allocation.TotalCost,
+                postedAt);
+        }
+
+        transaction.Post(postedAt);
+        await _inventoryTransactions.InsertAsync(transaction);
     }
 
     private async Task<Customer> EnsureActiveCustomerAsync(Guid id)

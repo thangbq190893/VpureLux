@@ -157,6 +157,22 @@ public class SalesOrder : FullAuditedAggregateRoot<Guid>
         AddLocalEvent(new SalesOrderCancelledEvent(Id, OrderNo, CustomerId));
     }
 
+    public void CancelConfirmedUnpaid(DateTime cancelledAt)
+    {
+        if (Status == SalesOrderStatus.Cancelled)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.SalesOrderAlreadyCancelled);
+        }
+        if (Status != SalesOrderStatus.Confirmed)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.ValidationFailed);
+        }
+
+        Status = SalesOrderStatus.Cancelled;
+        CancelledAt = cancelledAt;
+        AddLocalEvent(new SalesOrderCancelledEvent(Id, OrderNo, CustomerId));
+    }
+
     private SalesOrderLine FindLine(Guid lineId) =>
         _lines.SingleOrDefault(x => x.Id == lineId)
         ?? throw new BusinessException(VPureLuxDomainErrorCodes.EntityNotFound);

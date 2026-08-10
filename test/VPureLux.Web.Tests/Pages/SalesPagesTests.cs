@@ -188,6 +188,56 @@ public class SalesPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Sales_Index_Should_Expose_Cancel_For_Confirmed_Unpaid_Only()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-IDX-CAN");
+        var salesService = GetRequiredService<ISalesOrderAppService>();
+        var unpaid = await salesService.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 }]
+        });
+        var partial = await salesService.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 }]
+        });
+        await salesService.ConfirmAsync(unpaid.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        await salesService.ConfirmAsync(partial.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        await salesService.AddPaymentAsync(partial.Id, new CreateSalesOrderPaymentDto
+        {
+            Amount = 50,
+            PaymentDate = DateTime.UtcNow,
+            PaymentMethod = SalesPaymentMethod.Cash,
+            ReferenceNo = "IDX-CAN-PARTIAL",
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+        var model = new IndexModel(
+            salesService,
+            GetRequiredService<IAuthorizationService>(),
+            localizer);
+        SetPageContext(model, GetRequiredService<IServiceProvider>());
+
+        var listResult = await model.OnGetListAsync(new GetSalesOrderListInput
+        {
+            CustomerId = context.CustomerId,
+            MaxResultCount = 10
+        });
+        var rows = listResult.Value.ShouldBeOfType<PagedResultDto<IndexModel.SalesOrderRow>>();
+
+        rows.Items.Single(x => x.Id == unpaid.Id).CanCancel.ShouldBeTrue();
+        rows.Items.Single(x => x.Id == unpaid.Id).CancelConfirmationMessage
+            .ShouldBe(localizer["Sales:CancelConfirmedUnpaidOrderMessage"].Value);
+        rows.Items.Single(x => x.Id == partial.Id).CanCancel.ShouldBeFalse();
+        var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Index.js"));
+        scriptSource.ShouldContain("handler=Cancel");
+        scriptSource.ShouldContain("js-sales-cancel");
+    }
+
+    [Fact]
     public async Task Sales_Index_Should_Render_Chua_Xac_Nhan_For_Draft_Orders()
     {
         var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
@@ -1918,6 +1968,43 @@ public class SalesPagesTests : VPureLuxWebTestBase
         draftHtml.ShouldNotContain("name=\"Payment.Amount\"");
         cancelledHtml.ShouldContain(localizer["Sales:PaymentSummary"].Value);
         cancelledHtml.ShouldNotContain("name=\"Payment.Amount\"");
+    }
+
+    [Fact]
+    public async Task Sales_Details_Should_Allow_Cancel_For_Confirmed_Unpaid_And_Hide_For_Partially_Paid()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-CAN-UI");
+        var salesService = GetRequiredService<ISalesOrderAppService>();
+        var unpaid = await salesService.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 }]
+        });
+        var partial = await salesService.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 }]
+        });
+        await salesService.ConfirmAsync(unpaid.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        await salesService.ConfirmAsync(partial.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        await salesService.AddPaymentAsync(partial.Id, new CreateSalesOrderPaymentDto
+        {
+            Amount = 50,
+            PaymentDate = DateTime.UtcNow,
+            PaymentMethod = SalesPaymentMethod.Cash,
+            ReferenceNo = "DETAIL-CAN-PARTIAL",
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+
+        var unpaidHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Sales/Details/{unpaid.Id}"));
+        var partialHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Sales/Details/{partial.Id}"));
+
+        unpaidHtml.ShouldContain("handler=Cancel");
+        unpaidHtml.ShouldContain(localizer["Sales:CancelConfirmedUnpaidOrderMessage"].Value);
+        partialHtml.ShouldNotContain(localizer["Sales:CancelConfirmedUnpaidOrderMessage"].Value);
     }
 
     [Fact]

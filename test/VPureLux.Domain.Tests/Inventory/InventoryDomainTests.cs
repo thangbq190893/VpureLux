@@ -46,7 +46,22 @@ public class InventoryDomainTests
             .Where(x => x.DeclaringType == typeof(InventoryLot) && !x.IsSpecialName)
             .Select(x => x.Name)
             .OrderBy(x => x)
-            .ShouldBe(new[] { nameof(InventoryLot.Allocate), nameof(InventoryLot.UpdateUnitCost) });
+            .ShouldBe(new[] { nameof(InventoryLot.Allocate), nameof(InventoryLot.Restore), nameof(InventoryLot.UpdateUnitCost) });
+    }
+
+    [Fact]
+    public void Lot_Should_Restore_Previously_Allocated_Quantity_Without_Exceeding_Receipt()
+    {
+        var lot = Lot(10);
+        lot.Allocate(10);
+        lot.Status.ShouldBe(InventoryLotStatus.Depleted);
+
+        lot.Restore(3);
+
+        lot.AvailableQuantity.ShouldBe(3);
+        lot.Status.ShouldBe(InventoryLotStatus.Available);
+        Should.Throw<BusinessException>(() => lot.Restore(8))
+            .Code.ShouldBe(VPureLuxDomainErrorCodes.ValidationFailed);
     }
 
     [Fact]

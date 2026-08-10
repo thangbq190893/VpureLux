@@ -66,7 +66,7 @@
                       asp-page-handler="Cancel"
                       class="d-inline"
                       data-sales-action-form
-                      data-confirm-message="@L["Sales:CancelOrderMessage"]">
+                      data-confirm-message="@(Model.IsConfirmed ? L["Sales:CancelConfirmedUnpaidOrderMessage"] : L["Sales:CancelOrderMessage"])">
                     <button class="btn btn-sm btn-danger">@L["Sales:Cancel"]</button>
                 </form>
             }

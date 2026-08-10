@@ -14,6 +14,23 @@
         return $('<div/>').text(value || '').html();
     }
 
+    function cancelOrder(row) {
+        const message = row.cancelConfirmationMessage || l('Sales:CancelOrderMessage');
+        abp.message.confirm(message, l('Confirm')).then(function (confirmed) {
+            if (!confirmed) {
+                return;
+            }
+
+            abp.ajax({
+                url: abp.appPath + 'Sales?handler=Cancel&id=' + encodeURIComponent(row.id),
+                type: 'POST'
+            }).then(function () {
+                abp.notify.success(l('Sales:CancelledSuccessfully'));
+                dataTable.ajax.reload(null, false);
+            });
+        });
+    }
+
     const dataTable = $(tableSelector).DataTable(abp.libs.datatables.normalizeConfiguration({
         processing: true,
         serverSide: true,
@@ -40,9 +57,16 @@
                 orderable: false,
                 className: 'text-start',
                 render: function (_data, _type, row) {
-                    return '<a class="btn btn-sm btn-outline-secondary" href="' +
+                    let html = '<div class="btn-group btn-group-sm" role="group">' +
+                        '<a class="btn btn-outline-secondary" href="' +
                         abp.appPath + 'Sales/Details/' + encodeURIComponent(row.id) + '">' +
                         encode(l('Details')) + '</a>';
+                    if (row.canCancel) {
+                        html += '<button type="button" class="btn btn-outline-danger js-sales-cancel" data-order-id="' +
+                            encode(row.id) + '">' + encode(l('Sales:Cancel')) + '</button>';
+                    }
+
+                    return html + '</div>';
                 }
             },
             {
@@ -109,6 +133,13 @@
             }
         ]
     }));
+
+    $(tableSelector).on('click', '.js-sales-cancel', function () {
+        const row = dataTable.row($(this).closest('tr')).data();
+        if (row) {
+            cancelOrder(row);
+        }
+    });
 
     $('#SalesSearchForm').on('submit', function (event) {
         event.preventDefault();

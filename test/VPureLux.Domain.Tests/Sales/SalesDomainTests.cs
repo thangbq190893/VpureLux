@@ -60,6 +60,20 @@ public class SalesDomainTests
     }
 
     [Fact]
+    public void Should_Cancel_Confirmed_Unpaid_Order()
+    {
+        var order = ConfirmedOrder();
+
+        order.CancelConfirmedUnpaid(DateTime.UtcNow);
+
+        order.Status.ShouldBe(SalesOrderStatus.Cancelled);
+        order.CancelledAt.ShouldNotBeNull();
+        order.GetLocalEvents().Select(x => x.EventData).ShouldContain(x => x is SalesOrderCancelledEvent);
+        Should.Throw<BusinessException>(() => order.CancelConfirmedUnpaid(DateTime.UtcNow))
+            .Code.ShouldBe(VPureLuxDomainErrorCodes.SalesOrderAlreadyCancelled);
+    }
+
+    [Fact]
     public void Should_Cancel_Draft_And_Reject_Further_Editing()
     {
         var order = Order();

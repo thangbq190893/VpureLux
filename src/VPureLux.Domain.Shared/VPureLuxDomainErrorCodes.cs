@@ -65,6 +65,7 @@ public static class VPureLuxDomainErrorCodes
     public const string SalesPaymentRequiresConfirmedOrder = "SALES_011";
     public const string SalesPaymentOverpaymentNotAllowed = "SALES_012";
     public const string SalesPaymentIdempotencyConflict = "SALES_013";
+    public const string SalesConfirmedOrderCancelRequiresUnpaid = "SALES_014";
     public const string SalesConfirmationIdempotencyConflict = DuplicateConfirmationKey;
 
     public const string AuditPayloadTooLarge = "AUDIT_001";

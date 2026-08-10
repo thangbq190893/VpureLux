@@ -3,11 +3,13 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using VPureLux.Localization;
 using VPureLux.Permissions;
 using VPureLux.Sales;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 
 namespace VPureLux.Web.Pages.Sales;
@@ -25,6 +27,7 @@ public class IndexModel : VPureLuxPageModel
     [BindProperty(SupportsGet = true)] public SalesOrderReceivableStatus? PaymentStatus { get; set; }
     public bool CanCreate { get; private set; }
     public bool CanViewHistory { get; private set; }
+    public bool CanCancel { get; private set; }
 
     public IndexModel(
         ISalesOrderAppService service,
@@ -43,6 +46,7 @@ public class IndexModel : VPureLuxPageModel
 
     public async Task<JsonResult> OnGetListAsync(GetSalesOrderListInput input)
     {
+        var canCancel = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.Cancel)).Succeeded;
         var result = await _service.GetListAsync(new GetSalesOrderListInput
         {
             CustomerId = input.CustomerId,
@@ -55,18 +59,47 @@ public class IndexModel : VPureLuxPageModel
 
         return new JsonResult(new PagedResultDto<SalesOrderRow>(
             result.TotalCount,
-            result.Items.Select(ToRow).ToList()));
+            result.Items.Select(order => ToRow(order, canCancel)).ToList()));
+    }
+
+    public async Task<JsonResult> OnPostCancelAsync(Guid id)
+    {
+        try
+        {
+            await _service.CancelAsync(id);
+            return new JsonResult(new { success = true });
+        }
+        catch (BusinessException exception) when (IsKnownCancelException(exception))
+        {
+            Response.StatusCode = StatusCodes.Status400BadRequest;
+            return new JsonResult(new
+            {
+                error = new
+                {
+                    message = SalesUiFormatter.GetFriendlyErrorMessage(_localizer, exception)
+                }
+            });
+        }
     }
 
     private async Task SetPermissionsAsync()
     {
         CanCreate = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.Create)).Succeeded;
         CanViewHistory = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.ViewCustomerHistory)).Succeeded;
+        CanCancel = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.Cancel)).Succeeded;
     }
 
-    private SalesOrderRow ToRow(SalesOrderDto order)
+    private SalesOrderRow ToRow(SalesOrderDto order, bool canCancel)
     {
         var payment = order.PaymentSummary;
+        var rowCanCancel = canCancel &&
+            (order.Status == SalesOrderStatus.Draft ||
+             (order.Status == SalesOrderStatus.Confirmed &&
+              payment.PaymentStatus == SalesOrderReceivableStatus.Unpaid &&
+              payment.PaidAmount == 0));
+        var cancelConfirmationMessage = order.Status == SalesOrderStatus.Confirmed
+            ? _localizer["Sales:CancelConfirmedUnpaidOrderMessage"].Value
+            : _localizer["Sales:CancelOrderMessage"].Value;
         return new SalesOrderRow(
             order.Id,
             order.OrderNo,
@@ -80,7 +113,9 @@ public class IndexModel : VPureLuxPageModel
             FormatPaymentAmount(payment.PaymentStatus, payment.PaidAmount),
             FormatPaymentAmount(payment.PaymentStatus, payment.RemainingAmount),
             _localizer[$"Sales:PaymentStatus:{payment.PaymentStatus}"].Value,
-            GetPaymentStatusBadgeClass(payment.PaymentStatus));
+            GetPaymentStatusBadgeClass(payment.PaymentStatus),
+            rowCanCancel,
+            cancelConfirmationMessage);
     }
 
     private static string FormatMoney(decimal value)
@@ -108,6 +143,20 @@ public class IndexModel : VPureLuxPageModel
         _ => "text-bg-secondary"
     };
 
+    private static bool IsKnownCancelException(BusinessException exception) =>
+        exception.Code is
+            VPureLuxDomainErrorCodes.SalesOrderAlreadyConfirmed or
+            VPureLuxDomainErrorCodes.SalesOrderAlreadyCancelled or
+            VPureLuxDomainErrorCodes.SalesConfirmedOrderCancelRequiresUnpaid or
+            VPureLuxDomainErrorCodes.SalesInventoryValidationFailed or
+            VPureLuxDomainErrorCodes.SalesOrderCannotBeModified or
+            VPureLuxDomainErrorCodes.InventoryTransactionNotFound or
+            VPureLuxDomainErrorCodes.InventoryIdempotencyConflict or
+            VPureLuxDomainErrorCodes.SalesOrderNotFound or
+            VPureLuxDomainErrorCodes.SalesConcurrentModification or
+            VPureLuxDomainErrorCodes.AccessDenied or
+            VPureLuxDomainErrorCodes.ValidationFailed;
+
     public sealed record SalesOrderRow(
         Guid Id,
         string OrderNo,
@@ -119,5 +168,7 @@ public class IndexModel : VPureLuxPageModel
         string PaymentPaidAmount,
         string PaymentRemainingAmount,
         string PaymentStatusLabel,
-        string PaymentStatusBadgeClass);
+        string PaymentStatusBadgeClass,
+        bool CanCancel,
+        string CancelConfirmationMessage);
 }
