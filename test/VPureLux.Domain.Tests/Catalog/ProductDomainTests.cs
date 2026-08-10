@@ -27,8 +27,9 @@ public class ProductDomainTests
     {
         var product = new Product(Guid.NewGuid(), "RO8", "RO 8 Stage", null);
 
-        product.UpdateInfo("RO 8 Stage Premium", "Updated");
+        product.UpdateInfo("RO8-PREMIUM", "RO 8 Stage Premium", "Updated");
 
+        product.Code.ShouldBe("RO8-PREMIUM");
         product.Name.ShouldBe("RO 8 Stage Premium");
         product.Description.ShouldBe("Updated");
     }
@@ -58,7 +59,7 @@ public class ProductDomainTests
     public void Should_Raise_Product_Domain_Events()
     {
         var product = new Product(Guid.NewGuid(), "RO8", "RO 8 Stage", null);
-        product.UpdateInfo("RO 8 Stage Updated", null);
+        product.UpdateInfo("RO8", "RO 8 Stage Updated", null);
         product.Deactivate();
 
         var events = product.GetLocalEvents().Select(x => x.EventData).ToList();

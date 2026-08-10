@@ -775,6 +775,10 @@
     };
 
     document.addEventListener('DOMContentLoaded', function () {
+        if (window.vplDynamicRowSelects) {
+            window.vplDynamicRowSelects.initializeSelects(page);
+        }
+
         captureDefaultContextHtml();
         getProductContextMap();
 

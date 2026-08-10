@@ -50,9 +50,14 @@ public class CatalogManager : DomainService
         return new Product(_guidGenerator.Create(), code, name, description);
     }
 
-    public async Task UpdateProductAsync(Product product, string name, string? description)
+    public async Task UpdateProductAsync(Product product, string code, string name, string? description)
     {
-        await Task.CompletedTask;
-        product.UpdateInfo(name, description);
+        if (await _productRepository.CodeExistsAsync(code, product.Id))
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.ProductCodeAlreadyExists)
+                .WithData("Code", code);
+        }
+
+        product.UpdateInfo(code, name, description);
     }
 }

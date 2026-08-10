@@ -541,7 +541,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("return getNoSuggestedPriceManualMessage();");
         scriptSource.ShouldContain("if (suggestedPrice === null)");
         localizer["Sales:NoSuggestedPriceManualPriceRequired"].Value
-            .ShouldBe("Chưa có giá niêm yết, cần nhập giá bán thực tế.");
+            .ShouldBe("Chưa có giá đề xuất, cần nhập giá bán thực tế.");
         localizer["Sales:NoSuggestedPriceManualPriceRequired"].Value.ShouldNotContain("không thể bán");
     }
 
@@ -1128,7 +1128,8 @@ public class SalesPagesTests : VPureLuxWebTestBase
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Sales/Edit/{order.Id}"));
 
         html.ShouldContain($"{context.ProductCode} - {context.ProductName}");
-        html.ShouldContain("name=\"UpdateLine.ProductId\"");
+        html.ShouldContain("name=\"UpdateLines.Lines[0].ProductId\"");
+        html.ShouldContain(localizer["Sales:SaveAllLines"].Value);
         html.ShouldContain("badge");
         html.ShouldContain(localizer["Sales:PublishedBomAvailable"].Value);
         html.ShouldContain("data-sales-product-context");
@@ -1165,22 +1166,29 @@ public class SalesPagesTests : VPureLuxWebTestBase
         html.ShouldContain("data-sales-override-validation");
         html.ShouldContain("data-sales-availability-endpoint");
         html.ShouldContain("data-sales-warehouse-id");
-        html.ShouldContain("name=\"LineId\"");
+        html.ShouldContain("name=\"UpdateLines.Lines[0].LineId\"");
+        html.ShouldContain("name=\"UpdateLines.Lines[1].LineId\"");
         html.ShouldContain("name=\"lineId\"");
-        html.ShouldContain("name=\"UpdateLine.ProductId\"");
-        html.ShouldContain("name=\"UpdateLine.Quantity\"");
-        html.ShouldContain("name=\"UpdateLine.ActualSellingPrice\"");
-        html.ShouldContain("name=\"UpdateLine.OverrideReason\"");
+        html.ShouldContain("name=\"UpdateLines.Lines[0].ProductId\"");
+        html.ShouldContain("name=\"UpdateLines.Lines[0].Quantity\"");
+        html.ShouldContain("name=\"UpdateLines.Lines[0].ActualSellingPrice\"");
+        html.ShouldContain("name=\"UpdateLines.Lines[0].OverrideReason\"");
+        html.ShouldContain("name=\"UpdateLines.Lines[1].ProductId\"");
+        html.ShouldContain("name=\"UpdateLines.Lines[1].Quantity\"");
+        html.ShouldContain("name=\"UpdateLines.Lines[1].ActualSellingPrice\"");
+        html.ShouldContain("name=\"UpdateLines.Lines[1].OverrideReason\"");
         html.ShouldContain("name=\"NewLine.ProductId\"");
         html.ShouldContain("name=\"NewLine.Quantity\"");
         html.ShouldContain("name=\"NewLine.ActualSellingPrice\"");
         html.ShouldContain("name=\"NewLine.OverrideReason\"");
         pageSource.ShouldContain("asp-page-handler=\"Add\"");
         pageSource.ShouldContain("asp-page-handler=\"Remove\"");
-        pageSource.ShouldContain("asp-page-handler=\"Update\"");
-        pageSource.ShouldContain("form=\"@updateFormId\"");
+        pageSource.ShouldContain("asp-page-handler=\"SaveLines\"");
+        pageSource.ShouldContain("form=\"@updateLinesFormId\"");
         pageSource.ShouldContain("form=\"@addFormId\"");
-        pageSource.ShouldContain("name=\"UpdateLine.ProductId\"");
+        pageSource.ShouldContain("name=\"UpdateLines.Lines[@i].ProductId\"");
+        pageSource.ShouldContain("name=\"UpdateLines.Lines[@i].LineId\"");
+        pageSource.ShouldContain("Sales:SaveAllLines");
         pageSource.ShouldContain("data-sales-product-select");
         pageSource.ShouldContain("data-sales-product-context");
         pageSource.ShouldContain("sales-product-context-data");
@@ -1188,9 +1196,11 @@ public class SalesPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("<abp-style src=\"/Pages/Sales/Create.css\" />");
         pageModelSource.ShouldContain("OnPostAddAsync");
         pageModelSource.ShouldContain("OnPostRemoveAsync");
+        pageModelSource.ShouldContain("OnPostSaveLinesAsync");
         pageModelSource.ShouldContain("OnPostUpdateAsync");
         pageModelSource.ShouldContain("OnGetStockAvailabilityAsync");
         pageModelSource.ShouldContain("ValidateNewLineStockAvailabilityAsync");
+        pageModelSource.ShouldContain("ValidateUpdateLinesStockAvailabilityAsync");
         pageModelSource.ShouldContain("ValidateUpdateLineStockAvailabilityAsync");
     }
 
@@ -1333,7 +1343,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
         await GetRequiredService<IProductSuggestedPriceAppService>().CreateAsync(secondProduct.Id, new CreateProductSuggestedPriceVersionDto
         {
             Price = 250,
-            Reason = "Giá niêm yết sản phẩm đổi",
+            Reason = "Giá đề xuất sản phẩm đổi",
             EffectiveFrom = DateTime.Now.Date
         });
         var service = GetRequiredService<ISalesOrderAppService>();

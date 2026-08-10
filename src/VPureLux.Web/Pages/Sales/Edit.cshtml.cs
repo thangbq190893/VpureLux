@@ -38,6 +38,7 @@ public class EditModel : VPureLuxPageModel
     [BindProperty(SupportsGet = true)] public Guid Id { get; set; }
     [BindProperty] public CreateSalesOrderLineDto NewLine { get; set; } = new() { Quantity = 1 };
     [BindProperty] public UpdateSalesOrderLineDto UpdateLine { get; set; } = new();
+    [BindProperty] public UpdateSalesOrderLinesDto UpdateLines { get; set; } = new();
     [BindProperty] public Guid LineId { get; set; }
     public SalesOrderDto Order { get; private set; } = new();
     public List<SelectListItem> Products { get; private set; } = new();
@@ -122,6 +123,33 @@ public class EditModel : VPureLuxPageModel
         catch (BusinessException exception)
         {
             AddUpdateLineBusinessError(exception);
+            await LoadAsync();
+            return Page();
+        }
+    }
+
+    public async Task<IActionResult> OnPostSaveLinesAsync()
+    {
+        await LoadAsync();
+        NormalizeUpdateLines();
+
+        var isValid = ValidateUpdateLinesEligibility();
+        isValid = ValidateUpdateLinesPricingOverrides() && isValid;
+        isValid = await ValidateUpdateLinesStockAvailabilityAsync() && isValid;
+
+        if (!isValid)
+        {
+            return Page();
+        }
+
+        try
+        {
+            await _service.UpdateLinesAsync(Id, UpdateLines);
+            return RedirectToPage(new { id = Id });
+        }
+        catch (BusinessException exception)
+        {
+            AddUpdateLinesBusinessError(exception);
             await LoadAsync();
             return Page();
         }
@@ -314,6 +342,29 @@ public class EditModel : VPureLuxPageModel
             nameof(UpdateLine) + "." + nameof(UpdateLine.OverrideReason));
     }
 
+    private bool ValidateUpdateLinesPricingOverrides()
+    {
+        var isValid = true;
+        for (var index = 0; index < UpdateLines.Lines.Count; index++)
+        {
+            var line = UpdateLines.Lines[index];
+            if (line.ProductId == Guid.Empty ||
+                !ProductContexts.TryGetValue(line.ProductId, out var context) ||
+                !context.SuggestedPrice.HasValue)
+            {
+                continue;
+            }
+
+            isValid = ValidateOverrideReason(
+                context.SuggestedPrice.Value,
+                line.ActualSellingPrice,
+                line.OverrideReason,
+                $"{nameof(UpdateLines)}.{nameof(UpdateLines.Lines)}[{index}].{nameof(UpdateSalesOrderLineItemDto.OverrideReason)}") && isValid;
+        }
+
+        return isValid;
+    }
+
     private bool ValidateUpdateLineEligibility()
     {
         if (UpdateLine.ProductId == Guid.Empty)
@@ -328,6 +379,40 @@ public class EditModel : VPureLuxPageModel
 
         ModelState.AddModelError(nameof(UpdateLine) + "." + nameof(UpdateLine.ProductId), L["Sales:ProductStockSaleNotSupported"].Value);
         return false;
+    }
+
+    private bool ValidateUpdateLinesEligibility()
+    {
+        var isValid = true;
+        for (var index = 0; index < UpdateLines.Lines.Count; index++)
+        {
+            var line = UpdateLines.Lines[index];
+            if (line.LineId == Guid.Empty)
+            {
+                ModelState.AddModelError(
+                    $"{nameof(UpdateLines)}.{nameof(UpdateLines.Lines)}[{index}].{nameof(UpdateSalesOrderLineItemDto.LineId)}",
+                    L[VPureLuxDomainErrorCodes.ValidationFailed].Value);
+                isValid = false;
+                continue;
+            }
+
+            if (line.ProductId == Guid.Empty)
+            {
+                continue;
+            }
+
+            if (ProductContexts.TryGetValue(line.ProductId, out var context) && context.HasPublishedBom)
+            {
+                continue;
+            }
+
+            ModelState.AddModelError(
+                $"{nameof(UpdateLines)}.{nameof(UpdateLines.Lines)}[{index}].{nameof(UpdateSalesOrderLineItemDto.ProductId)}",
+                L["Sales:ProductStockSaleNotSupported"].Value);
+            isValid = false;
+        }
+
+        return isValid;
     }
 
     private bool ValidateOverrideReason(decimal suggestedPrice, decimal actualPrice, string? overrideReason, string modelStateKey)
@@ -406,6 +491,55 @@ public class EditModel : VPureLuxPageModel
         return false;
     }
 
+    private async Task<bool> ValidateUpdateLinesStockAvailabilityAsync()
+    {
+        if (UpdateLines.Lines.Count == 0)
+        {
+            return true;
+        }
+
+        var updateByLineId = UpdateLines.Lines
+            .Where(x => x.LineId != Guid.Empty)
+            .GroupBy(x => x.LineId)
+            .ToDictionary(x => x.Key, x => x.First());
+        var requestLines = Order.Lines
+            .Select((line, index) =>
+            {
+                updateByLineId.TryGetValue(line.Id, out var update);
+                return new SalesStockAvailabilityLineRequest
+                {
+                    LineIndex = index,
+                    ProductId = update?.ProductId == Guid.Empty ? line.ProductId : update?.ProductId ?? line.ProductId,
+                    Quantity = update?.Quantity ?? line.Quantity
+                };
+            })
+            .ToList();
+        var availability = await CalculateStockAvailabilityAsync(Order.WarehouseId, requestLines);
+        var isValid = true;
+
+        foreach (var line in availability.Lines.Where(x => x.IsShortage))
+        {
+            var orderLine = Order.Lines.ElementAtOrDefault(line.LineIndex);
+            if (orderLine == null || !updateByLineId.TryGetValue(orderLine.Id, out var update))
+            {
+                continue;
+            }
+
+            var updateIndex = UpdateLines.Lines.IndexOf(update);
+            ModelState.AddModelError(
+                $"{nameof(UpdateLines)}.{nameof(UpdateLines.Lines)}[{updateIndex}].{nameof(UpdateSalesOrderLineItemDto.Quantity)}",
+                FormatStockShortageMessage(line));
+            isValid = false;
+        }
+
+        if (!isValid)
+        {
+            ModelState.AddModelError(string.Empty, L["Sales:StockIssueGlobal"].Value);
+        }
+
+        return isValid;
+    }
+
     private void AddNewLineBusinessError(BusinessException exception)
     {
         if (exception.Code == VPureLuxDomainErrorCodes.SalesBomMustBePublished)
@@ -438,6 +572,38 @@ public class EditModel : VPureLuxPageModel
         }
 
         ModelState.AddModelError(string.Empty, SalesUiFormatter.GetFriendlyErrorMessage(L, exception));
+    }
+
+    private void AddUpdateLinesBusinessError(BusinessException exception)
+    {
+        ModelState.AddModelError(string.Empty, SalesUiFormatter.GetFriendlyErrorMessage(L, exception));
+    }
+
+    private void NormalizeUpdateLines()
+    {
+        if (UpdateLines.Lines.Count == 0)
+        {
+            UpdateLines.Lines = Order.Lines
+                .Select(line => new UpdateSalesOrderLineItemDto
+                {
+                    LineId = line.Id,
+                    ProductId = line.ProductId,
+                    Quantity = line.Quantity,
+                    ActualSellingPrice = line.ActualSellingPrice,
+                    OverrideReason = line.OverrideReason
+                })
+                .ToList();
+            return;
+        }
+
+        foreach (var line in UpdateLines.Lines)
+        {
+            var current = Order.Lines.SingleOrDefault(x => x.Id == line.LineId);
+            if (current != null && line.ProductId == Guid.Empty)
+            {
+                line.ProductId = current.ProductId;
+            }
+        }
     }
 
     private async Task<SalesStockAvailabilityResponse> CalculateStockAvailabilityAsync(

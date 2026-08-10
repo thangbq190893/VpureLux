@@ -12,6 +12,7 @@ using Shouldly;
 using VPureLux.Bom;
 using VPureLux.Catalog.Components;
 using VPureLux.Catalog.Products;
+using VPureLux.Inventory;
 using VPureLux.Localization;
 using VPureLux.Pricing;
 using Volo.Abp.Application.Dtos;
@@ -126,7 +127,9 @@ public class PricingPagesTests : VPureLuxWebTestBase
         var productModel = new ProductCreateModel(
             GetRequiredService<IProductSuggestedPriceAppService>(),
             GetRequiredService<IProductAppService>(),
-            GetRequiredService<IProductPricingContextLookupService>())
+            GetRequiredService<IProductPricingContextLookupService>(),
+            GetRequiredService<IBomVersionRepository>(),
+            GetRequiredService<IBomStandardCostLookupService>())
         {
             ProductId = product.Id,
             EffectiveFromText = today,
@@ -156,18 +159,14 @@ public class PricingPagesTests : VPureLuxWebTestBase
             Items = [new CreateBomItemDto { ComponentId = component.Id, Quantity = 3 }]
         });
         await GetRequiredService<IBomAppService>().PublishAsync(bom.Id);
-        await GetRequiredService<IComponentSuggestedSellingPriceAppService>()
-            .CreateAsync(component.Id, new CreateComponentSuggestedSellingPriceVersionDto
-            {
-                EffectiveFrom = DateTime.Now.Date,
-                Price = 25_000m,
-                Reason = "Giá vật tư tham khảo"
-            });
+        var warehouse = await GetRequiredService<IWarehouseAppService>()
+            .CreateAsync(new CreateWarehouseDto { Code = "PRICE-W" + Guid.NewGuid().ToString("N")[..8], Name = "Pricing Warehouse" });
+        await PostReceiptForComponentAsync(warehouse.Id, component.Id, 10, 25_000m);
 
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Pricing/Products/Create/{product.Id}"));
 
-        html.ShouldContain(localizer["Pricing:ComponentBuildPrice"].Value);
-        html.ShouldContain(localizer["Pricing:ComponentBuildPriceHint"].Value);
+        html.ShouldContain(localizer["Bom:StandardCostRange"].Value);
+        html.ShouldContain(localizer["Pricing:BomStandardCostRangeHint"].Value);
         html.ShouldContain("75.000 VND");
     }
 
@@ -184,9 +183,9 @@ public class PricingPagesTests : VPureLuxWebTestBase
         html.ShouldNotContain(product.Name);
         html.ShouldContain("id=\"PricingProductsTable\"");
         html.ShouldContain(localizer["Pricing:BomStatus"].Value);
-        html.ShouldContain(localizer["Pricing:ComponentBuildPrice"].Value);
+        html.ShouldContain(localizer["Bom:StandardCostRange"].Value);
         html.ShouldContain(localizer["Pricing:CurrentProductSuggestedPrice"].Value);
-        html.ShouldContain(localizer["Pricing:Difference"].Value);
+        html.ShouldNotContain(localizer["Pricing:Difference"].Value);
         rows.Items.ShouldContain(x =>
             x.ProductId == product.Id &&
             !x.HasPublishedBom &&
@@ -207,13 +206,9 @@ public class PricingPagesTests : VPureLuxWebTestBase
             Items = [new CreateBomItemDto { ComponentId = component.Id, Quantity = 2 }]
         });
         await GetRequiredService<IBomAppService>().PublishAsync(bom.Id);
-        await GetRequiredService<IComponentSuggestedSellingPriceAppService>()
-            .CreateAsync(component.Id, new CreateComponentSuggestedSellingPriceVersionDto
-            {
-                EffectiveFrom = DateTime.Now.Date,
-                Price = 40_000m,
-                Reason = "Giá vật tư tham khảo"
-            });
+        var warehouse = await GetRequiredService<IWarehouseAppService>()
+            .CreateAsync(new CreateWarehouseDto { Code = "PRICE-RW" + Guid.NewGuid().ToString("N")[..8], Name = "Reference Warehouse" });
+        await PostReceiptForComponentAsync(warehouse.Id, component.Id, 10, 40_000m);
         await GetRequiredService<IProductSuggestedPriceAppService>()
             .CreateAsync(product.Id, new CreateProductSuggestedPriceVersionDto
             {
@@ -227,9 +222,8 @@ public class PricingPagesTests : VPureLuxWebTestBase
         rows.Items.ShouldContain(x =>
             x.ProductId == product.Id &&
             x.HasPublishedBom &&
-            x.ComponentBuildPrice == 80_000m &&
-            x.CurrentProductSuggestedPrice == 150_000m &&
-            x.Difference == 70_000m);
+            !string.IsNullOrWhiteSpace(x.StandardCostRange) &&
+            x.CurrentProductSuggestedPrice == 150_000m);
     }
 
     [Fact]
@@ -254,7 +248,7 @@ public class PricingPagesTests : VPureLuxWebTestBase
         var noPriceRows = await GetComponentPricingRowsAsync(componentWithoutPrice.Code);
 
         html.ShouldNotContain(component.Code);
-        html.ShouldContain("id=\"PricingComponentsTable\"");
+        html.ShouldNotContain("id=\"PricingComponentsTable\"");
         currentRows.Items.ShouldContain(x =>
             x.ComponentId == component.Id &&
             x.CurrentSuggestedSellingPrice == 123456m &&
@@ -289,7 +283,7 @@ public class PricingPagesTests : VPureLuxWebTestBase
         var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Pricing/Index.js"));
 
         pageSource.ShouldContain("<abp-script src=\"/Pages/Pricing/Index.js\" />");
-        pageSource.ShouldContain("id=\"PricingComponentsTable\"");
+        pageSource.ShouldNotContain("id=\"PricingComponentsTable\"");
         pageSource.ShouldContain("id=\"PricingProductsTable\"");
         pageSource.ShouldNotContain("@foreach");
         pageSource.ShouldNotContain("Model.Components");
@@ -302,11 +296,11 @@ public class PricingPagesTests : VPureLuxWebTestBase
 
         scriptSource.ShouldContain("DataTable");
         scriptSource.ShouldContain("serverSide: true");
-        scriptSource.ShouldContain("handler=ComponentList");
+        scriptSource.ShouldNotContain("handler=ComponentList");
         scriptSource.ShouldContain("handler=ProductList");
-        scriptSource.ShouldContain("PricingComponentsClearButton");
+        scriptSource.ShouldNotContain("PricingComponentsClearButton");
         scriptSource.ShouldContain("PricingProductsClearButton");
-        scriptSource.ShouldContain("Pricing/Components/Create/");
+        scriptSource.ShouldNotContain("Pricing/Components/Create/");
         scriptSource.ShouldContain("Pricing/Products/Create/");
         scriptSource.ShouldContain("Pricing:CreateNewVersion");
         scriptSource.ShouldNotContain("encode(l(");
@@ -407,6 +401,30 @@ public class PricingPagesTests : VPureLuxWebTestBase
         return result.Value.ShouldBeOfType<PagedResultDto<PricingIndexModel.ProductPricingListRow>>();
     }
 
+    private async Task PostReceiptForComponentAsync(Guid warehouseId, Guid componentId, decimal quantity, decimal unitCost)
+    {
+        var stockItem = await GetRequiredService<IStockItemRepository>()
+            .FindByCatalogItemAsync(StockItemType.Component, componentId);
+        stockItem.ShouldNotBeNull();
+
+        await GetRequiredService<IInventoryTransactionAppService>().PostReceiptAsync(new PostReceiptDto
+        {
+            WarehouseId = warehouseId,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines =
+            [
+                new ReceiptLineInput
+                {
+                    StockItemId = stockItem.Id,
+                    Quantity = quantity,
+                    UnitCost = unitCost,
+                    LotNo = "PRICE-" + Guid.NewGuid().ToString("N")[..8],
+                    ReceivedAt = DateTime.UtcNow
+                }
+            ]
+        });
+    }
+
     private PricingIndexModel CreatePricingIndexModel()
     {
         var model = new PricingIndexModel(
@@ -414,6 +432,8 @@ public class PricingPagesTests : VPureLuxWebTestBase
             GetRequiredService<IComponentSuggestedSellingPriceLookupService>(),
             GetRequiredService<IProductAppService>(),
             GetRequiredService<IProductPricingContextLookupService>(),
+            GetRequiredService<IBomVersionRepository>(),
+            GetRequiredService<IBomStandardCostLookupService>(),
             GetRequiredService<IAuthorizationService>());
         SetPageContext(model);
         return model;

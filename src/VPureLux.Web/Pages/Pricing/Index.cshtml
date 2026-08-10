@@ -11,9 +11,7 @@
 
 <div class="vpl-page"
      data-pricing-index
-     data-can-view-component-history="@Model.CanViewComponentHistory.ToString().ToLowerInvariant()"
      data-can-view-product-history="@Model.CanViewProductHistory.ToString().ToLowerInvariant()"
-     data-can-create-component-suggested-price="@Model.CanCreateComponentSuggestedPrice.ToString().ToLowerInvariant()"
      data-can-create-product-suggested-price="@Model.CanCreateProductSuggestedPrice.ToString().ToLowerInvariant()">
     <div class="vpl-page-header">
         <h2 class="vpl-page-title mb-0">@L["Pricing:Title"]</h2>
@@ -22,28 +20,6 @@
     <abp-card class="vpl-card-dense">
         <abp-card-body>
             <abp-tabs>
-                <abp-tab title="@L["Pricing:ComponentSuggestedSellingPrices"]">
-                    <form id="PricingComponentsSearchForm" class="row g-2 mb-3">
-                        <div class="col-md-6 col-lg-4">
-                            <input id="PricingComponentsKeyword" class="form-control" placeholder="@L["Search"]" />
-                        </div>
-                        <div class="col-md-auto d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">@L["Search"]</button>
-                            <button type="button" id="PricingComponentsClearButton" class="btn btn-outline-secondary">@L["Clear"]</button>
-                        </div>
-                    </form>
-                    <abp-table id="PricingComponentsTable" striped-rows="true" class="vpl-table-dense">
-                        <thead>
-                        <tr>
-                            <th>@L["Pricing:Code"]</th>
-                            <th>@L["Pricing:Name"]</th>
-                            <th class="text-end">@L["Pricing:CurrentComponentSuggestedPrice"]</th>
-                            <th>@L["Pricing:EffectiveFrom"]</th>
-                            <th class="text-end">@L["Actions"]</th>
-                        </tr>
-                        </thead>
-                    </abp-table>
-                </abp-tab>
                 <abp-tab title="@L["Pricing:ProductSuggestedPrices"]">
                     <form id="PricingProductsSearchForm" class="row g-2 mb-3">
                         <div class="col-md-6 col-lg-4">
@@ -60,9 +36,8 @@
                             <th>@L["Pricing:Code"]</th>
                             <th>@L["Pricing:Name"]</th>
                             <th>@L["Pricing:BomStatus"]</th>
-                            <th class="text-end">@L["Pricing:ComponentBuildPrice"]</th>
+                            <th class="text-end">@L["Bom:StandardCostRange"]</th>
                             <th class="text-end">@L["Pricing:CurrentProductSuggestedPrice"]</th>
-                            <th class="text-end">@L["Pricing:Difference"]</th>
                             <th class="text-end">@L["Actions"]</th>
                         </tr>
                         </thead>

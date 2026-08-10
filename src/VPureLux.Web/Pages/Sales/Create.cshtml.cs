@@ -480,7 +480,7 @@ public class CreateModel : VPureLuxPageModel
     private async Task LoadSelectionsAsync()
     {
         Customers = (await _customers.GetListAsync(new GetCustomerListInput { MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount })).Items
-            .Select(x => new SelectListItem($"{x.Code} - {x.Name}", x.Id.ToString())).ToList();
+            .Select(x => new SelectListItem(FormatCustomerOption(x), x.Id.ToString())).ToList();
         Warehouses = (await _warehouses.GetListAsync(new GetInventoryListInput { MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount })).Items
             .Select(x => new SelectListItem($"{x.Code} - {x.Name}", x.Id.ToString())).ToList();
         var productItems = (await _products.GetListAsync(new GetProductListInput { MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount })).Items;
@@ -530,6 +530,14 @@ public class CreateModel : VPureLuxPageModel
                 ? L["Sales:PublishedBomAvailable"]
                 : L["Sales:NoPublishedBom"]
         };
+
+    private static string FormatCustomerOption(CustomerDto customer)
+    {
+        var parts = new[] { customer.Name, customer.PhoneNumber, customer.Address }
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!.Trim());
+        return string.Join(" - ", parts);
+    }
 }
 
 public static class SalesStockAvailabilityStatus

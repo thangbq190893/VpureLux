@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using VPureLux.Bom;
 using VPureLux.Catalog;
 using VPureLux.Catalog.Components;
 using VPureLux.Catalog.Products;
@@ -21,6 +23,8 @@ public class IndexModel : VPureLuxPageModel
     private readonly IComponentSuggestedSellingPriceLookupService _componentPriceLookupService;
     private readonly IProductAppService _productAppService;
     private readonly IProductPricingContextLookupService _productPricingContextLookupService;
+    private readonly IBomVersionRepository _bomVersionRepository;
+    private readonly IBomStandardCostLookupService _standardCostLookupService;
     private readonly IAuthorizationService _authorizationService;
 
     public bool CanViewComponentHistory { get; private set; }
@@ -33,12 +37,16 @@ public class IndexModel : VPureLuxPageModel
         IComponentSuggestedSellingPriceLookupService componentPriceLookupService,
         IProductAppService productAppService,
         IProductPricingContextLookupService productPricingContextLookupService,
+        IBomVersionRepository bomVersionRepository,
+        IBomStandardCostLookupService standardCostLookupService,
         IAuthorizationService authorizationService)
     {
         _componentAppService = componentAppService;
         _componentPriceLookupService = componentPriceLookupService;
         _productAppService = productAppService;
         _productPricingContextLookupService = productPricingContextLookupService;
+        _bomVersionRepository = bomVersionRepository;
+        _standardCostLookupService = standardCostLookupService;
         _authorizationService = authorizationService;
     }
 
@@ -100,10 +108,15 @@ public class IndexModel : VPureLuxPageModel
         var contexts = await _productPricingContextLookupService.FindMapAsync(
             products.Items.Select(x => x.Id).ToArray(),
             Clock.Now);
+        var publishedBomMap = await _bomVersionRepository.GetPublishedMapByProductIdsAsync(
+            products.Items.Select(x => x.Id).ToArray());
+        var costMap = await _standardCostLookupService.FindMapAsync(publishedBomMap.Values.Select(x => x.Id).ToArray());
 
         var rows = products.Items.Select(product =>
         {
             contexts.TryGetValue(product.Id, out var context);
+            publishedBomMap.TryGetValue(product.Id, out var bom);
+            var standardCostRange = FormatStandardCost(bom, costMap);
             context ??= new ProductPricingContextDto
             {
                 ProductId = product.Id,
@@ -117,9 +130,8 @@ public class IndexModel : VPureLuxPageModel
                 context.ProductName,
                 context.HasPublishedBom,
                 context.HasMissingComponentSuggestedPrices,
-                context.ComponentBuildPrice,
+                standardCostRange,
                 context.CurrentProductSuggestedPrice,
-                context.Difference,
                 product.Status == CatalogItemStatus.Active);
         }).ToList();
 
@@ -146,6 +158,24 @@ public class IndexModel : VPureLuxPageModel
             VPureLuxPermissions.Pricing.ProductSuggestedPrices.Create)).Succeeded;
     }
 
+    private string FormatStandardCost(
+        BomVersion? bom,
+        IReadOnlyDictionary<Guid, BomStandardCostRangeDto> costMap)
+    {
+        if (bom == null)
+        {
+            return L["Bom:NoPublishedBom"].Value;
+        }
+
+        costMap.TryGetValue(bom.Id, out var cost);
+        if (cost?.HasCompleteCost != true)
+        {
+            return L["Bom:MissingInventoryCost", cost?.MissingComponentCount ?? 0].Value;
+        }
+
+        return VPureLux.Web.Pages.Bom.BomUi.FormatMoneyRange(cost.MinTotalCost!.Value, cost.MaxTotalCost!.Value);
+    }
+
     public sealed record ComponentPricingListRow(
         Guid ComponentId,
         string Code,
@@ -162,8 +192,7 @@ public class IndexModel : VPureLuxPageModel
         string ProductName,
         bool HasPublishedBom,
         bool HasMissingComponentSuggestedPrices,
-        decimal? ComponentBuildPrice,
+        string StandardCostRange,
         decimal? CurrentProductSuggestedPrice,
-        decimal? Difference,
         bool CanCreateSuggestedPrice);
 }

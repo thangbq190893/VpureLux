@@ -97,7 +97,8 @@ public class ProductAppService : ApplicationService, IProductAppService
     {
         var product = await GetProductAsync(id);
 
-        await _catalogManager.UpdateProductAsync(product, input.Name, input.Description);
+        var code = ResolveManualCode(input.Code);
+        await _catalogManager.UpdateProductAsync(product, code, input.Name, input.Description);
         await _productRepository.UpdateAsync(product, autoSave: true);
 
         return _mapper.ToDto(product);

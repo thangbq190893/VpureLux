@@ -13,7 +13,6 @@ public class EditModalModel : VPureLuxPageModel
     private readonly IProductAppService _productAppService;
 
     [BindProperty(SupportsGet = true)] public Guid Id { get; set; }
-    public string Code { get; set; } = string.Empty;
     [BindProperty] public UpdateProductDto Input { get; set; } = new();
 
     public EditModalModel(IProductAppService productAppService)
@@ -24,9 +23,9 @@ public class EditModalModel : VPureLuxPageModel
     public async Task OnGetAsync()
     {
         var product = await _productAppService.GetAsync(Id);
-        Code = product.Code;
         Input = new UpdateProductDto
         {
+            Code = product.Code,
             Name = product.Name,
             Description = product.Description
         };

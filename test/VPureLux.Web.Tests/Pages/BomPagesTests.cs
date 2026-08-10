@@ -417,7 +417,7 @@ public class BomPagesTests : VPureLuxWebTestBase
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Bom/Product/{product.Id}"));
 
         html.ShouldContain($"Sản phẩm: {product.Code} - {product.Name}");
-        html.ShouldContain("Giá niêm yết hiện tại");
+        html.ShouldContain("Giá đề xuất sản phẩm hiện tại");
         html.ShouldContain("Giá thành định mức");
         html.ShouldContain("120.000 VND");
         html.ShouldContain("80.000 VND - 100.000 VND");

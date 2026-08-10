@@ -19,7 +19,10 @@
                 <div class="alert alert-danger d-none" role="alert" data-sales-create-alert></div>
 
                 <label asp-for="Input.CustomerId">@L["Sales:Customer"]</label>
-                <select asp-for="Input.CustomerId" asp-items="Model.Customers" class="form-select mb-3"></select>
+                <select asp-for="Input.CustomerId"
+                        asp-items="Model.Customers"
+                        class="w-100 mb-3 vpl-select2-target js-select2"
+                        data-use-select2="true"></select>
 
                 <label asp-for="Input.WarehouseId">@L["Sales:Warehouse"]</label>
                 <select asp-for="Input.WarehouseId" asp-items="Model.Warehouses" class="form-select mb-3"></select>

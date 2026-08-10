@@ -4,7 +4,10 @@
 @inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @using VPureLux.Permissions
 @using System.Globalization
-@{ ViewData["Title"] = Model.Order.OrderNo; }
+@{
+    ViewData["Title"] = Model.Order.OrderNo;
+    var isPrintMode = string.Equals(Request.Query["handler"], "Print", StringComparison.OrdinalIgnoreCase);
+}
 @{ var canViewCost = (await AuthorizationService.AuthorizeAsync(User, null, VPureLuxPermissions.Sales.ViewCost)).Succeeded; }
 @{ var canViewProfit = (await AuthorizationService.AuthorizeAsync(User, null, VPureLuxPermissions.Sales.ViewProfit)).Succeeded; }
 
@@ -35,10 +38,13 @@
     private static string FormatDate(DateTime value) => value.ToString("dd/MM/yyyy", Vi);
 }
 
-<div id="SalesDetailsPage" class="vpl-page" data-sales-success-message="@Model.SuccessMessage">
+<div id="SalesDetailsPage"
+     class="vpl-page @(isPrintMode ? "sales-print-page" : string.Empty)"
+     data-sales-success-message="@Model.SuccessMessage"
+     data-sales-print-mode="@isPrintMode.ToString().ToLowerInvariant()">
     <div class="vpl-page-header">
         <h2 class="vpl-page-title mb-0">@Model.Order.OrderNo</h2>
-        <div class="vpl-btn-toolbar">
+        <div class="vpl-btn-toolbar sales-screen-only">
             @if (Model.CanEdit)
             {
                 <a class="btn btn-sm btn-primary" asp-page="/Sales/Edit" asp-route-id="@Model.Order.Id">@L["Edit"]</a>
@@ -64,6 +70,10 @@
                     <button class="btn btn-sm btn-danger">@L["Sales:Cancel"]</button>
                 </form>
             }
+            <a class="btn btn-sm btn-outline-secondary"
+               asp-page-handler="Print"
+               asp-route-id="@Model.Order.Id"
+               target="_blank">@L["Sales:PrintForTechnician"]</a>
         </div>
     </div>
 
@@ -89,6 +99,10 @@
                 <dd class="col-sm-9">@L[$"Sales:Status:{Model.Order.Status}"]</dd>
                 <dt class="col-sm-3">@L["Sales:Customer"]</dt>
                 <dd class="col-sm-9">@Model.CustomerDisplay</dd>
+                <dt class="col-sm-3">@L["Customers:PhoneNumber"]</dt>
+                <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.CustomerPhoneDisplay) ? "-" : Model.CustomerPhoneDisplay)</dd>
+                <dt class="col-sm-3">@L["Customers:Address"]</dt>
+                <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.CustomerAddressDisplay) ? "-" : Model.CustomerAddressDisplay)</dd>
                 @if (Model.IsDraft)
                 {
                     <dt class="col-sm-3">@L["Sales:DraftEstimatedRevenue"]</dt>
@@ -303,8 +317,29 @@
         </abp-card-body>
     </abp-card>
 
-    <a class="btn btn-sm btn-secondary" asp-page="/Sales/Index">@L["Back"]</a>
+    <a class="btn btn-sm btn-secondary sales-screen-only" asp-page="/Sales/Index">@L["Back"]</a>
 </div>
+
+@section styles {
+    <style>
+        @@media print {
+            .lpx-sidebar-container,
+            .lpx-toolbar,
+            .sales-screen-only,
+            footer {
+                display: none !important;
+            }
+
+            body {
+                background: #fff !important;
+            }
+
+            .sales-print-page {
+                margin: 0;
+            }
+        }
+    </style>
+}
 
 @section scripts {
     <abp-script src="/Pages/Sales/Details.js" />

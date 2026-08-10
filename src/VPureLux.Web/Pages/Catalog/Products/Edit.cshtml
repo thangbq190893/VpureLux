@@ -13,7 +13,7 @@
     </abp-card-header>
     <abp-card-body>
         <form method="post" enctype="multipart/form-data">
-            <abp-input asp-for="Code" disabled="true" />
+            <abp-input asp-for="Input.Code" />
             <abp-input asp-for="Input.Name" />
             <abp-input asp-for="Input.Description" />
             @if (Model.HasImage)

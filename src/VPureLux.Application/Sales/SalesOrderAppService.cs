@@ -148,6 +148,56 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
     }
 
     [Authorize(VPureLuxPermissions.Sales.Edit)]
+    public async Task<SalesOrderDto> UpdateLinesAsync(Guid id, UpdateSalesOrderLinesDto input)
+    {
+        var order = await GetOrderAsync(id);
+        var seenLineIds = new HashSet<Guid>();
+        var preparedLines = new List<PreparedDraftLineUpdate>();
+
+        foreach (var inputLine in input.Lines)
+        {
+            if (inputLine.LineId == Guid.Empty || !seenLineIds.Add(inputLine.LineId))
+            {
+                throw new BusinessException(VPureLuxDomainErrorCodes.ValidationFailed);
+            }
+
+            var line = order.Lines.SingleOrDefault(x => x.Id == inputLine.LineId)
+                ?? throw new BusinessException(VPureLuxDomainErrorCodes.EntityNotFound);
+            var productId = inputLine.ProductId == Guid.Empty ? line.ProductId : inputLine.ProductId;
+            var product = await EnsureActiveProductAsync(productId);
+            var bom = await EnsurePublishedBomAsync(product.Id);
+            var price = await _suggestedPrices.FindAtDateAsync(product.Id, order.OrderDate);
+            var suggestedPrice = price?.Price.Amount;
+            await EnsureOverridePermissionAsync(suggestedPrice, inputLine.ActualSellingPrice);
+            preparedLines.Add(new PreparedDraftLineUpdate(
+                inputLine.LineId,
+                product.Id,
+                bom.Id,
+                inputLine.Quantity,
+                price?.Id,
+                suggestedPrice,
+                inputLine.ActualSellingPrice,
+                inputLine.OverrideReason));
+        }
+
+        foreach (var line in preparedLines)
+        {
+            order.UpdateLine(
+                line.LineId,
+                line.ProductId,
+                line.BomVersionId,
+                line.Quantity,
+                line.SuggestedPriceVersionId,
+                line.SuggestedPrice,
+                line.ActualSellingPrice,
+                line.OverrideReason);
+        }
+
+        await _salesOrders.UpdateAsync(order, autoSave: true);
+        return _mapper.ToDto(order, includeCost: false, includeProfit: false);
+    }
+
+    [Authorize(VPureLuxPermissions.Sales.Edit)]
     public async Task<SalesOrderDto> RemoveLineAsync(Guid id, Guid lineId)
     {
         var order = await GetOrderAsync(id);
@@ -526,4 +576,14 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
 
     private static string Hash(string value) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
+
+    private sealed record PreparedDraftLineUpdate(
+        Guid LineId,
+        Guid ProductId,
+        Guid BomVersionId,
+        decimal Quantity,
+        Guid? SuggestedPriceVersionId,
+        decimal? SuggestedPrice,
+        decimal ActualSellingPrice,
+        string? OverrideReason);
 }

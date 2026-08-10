@@ -4,6 +4,10 @@ namespace VPureLux.Catalog.Products;
 
 public class UpdateProductDto
 {
+    [Required(ErrorMessage = "Vui lòng nhập mã sản phẩm.")]
+    [StringLength(CatalogConsts.MaxCodeLength)]
+    public string? Code { get; set; }
+
     [Required]
     [StringLength(CatalogConsts.MaxNameLength)]
     public string Name { get; set; } = string.Empty;

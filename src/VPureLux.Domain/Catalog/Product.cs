@@ -26,8 +26,9 @@ public class Product : FullAuditedAggregateRoot<Guid>
         AddLocalEvent(new ProductCreatedEvent(Id, Code, Name));
     }
 
-    public void UpdateInfo(string name, string? description)
+    public void UpdateInfo(string code, string name, string? description)
     {
+        Code = Check.NotNullOrWhiteSpace(code, nameof(code), CatalogConsts.MaxCodeLength);
         SetInfo(name, description);
         AddLocalEvent(new ProductUpdatedEvent(Id, Code, Name));
     }

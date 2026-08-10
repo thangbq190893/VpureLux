@@ -37,6 +37,11 @@
     <abp-validation-summary />
     <div class="alert alert-danger d-none" role="alert" data-sales-edit-alert></div>
 
+    @{
+        var updateLinesFormId = "sales-update-lines-form";
+    }
+    <form id="@updateLinesFormId" method="post" asp-page-handler="SaveLines"></form>
+
     <div id="sales-edit-lines" class="sales-edit-lines-editor table-responsive mb-3">
         <table class="table table-sm table-bordered align-middle mb-0 sales-create-lines-table sales-edit-lines-table">
             <thead class="table-light">
@@ -53,12 +58,15 @@
                 @for (var i = 0; i < Model.Order.Lines.Count; i++)
                 {
                     var line = Model.Order.Lines[i];
-                    var updateFormId = $"sales-update-line-{line.Id:N}";
                     var removeFormId = $"sales-remove-line-{line.Id:N}";
                     <tr class="sales-line-row" data-sales-line-row data-sales-line-index="@i">
                         <td class="sales-line-col-product">
-                            <select name="UpdateLine.ProductId"
-                                    form="@updateFormId"
+                            <input type="hidden"
+                                   name="UpdateLines.Lines[@i].LineId"
+                                   value="@line.Id"
+                                   form="@updateLinesFormId" />
+                            <select name="UpdateLines.Lines[@i].ProductId"
+                                    form="@updateLinesFormId"
                                     class="w-100 sales-line-product vpl-select2-target js-select2"
                                     data-use-select2="true"
                                     data-sales-product-select
@@ -69,10 +77,7 @@
                                     <option value="@product.Value" selected="@(product.Value == line.ProductId.ToString())">@product.Text</option>
                                 }
                             </select>
-                            @if (line.Id == Model.LineId)
-                            {
-                                <span class="text-danger d-block small" asp-validation-for="UpdateLine.ProductId"></span>
-                            }
+                            <span class="text-danger d-block small" asp-validation-for="UpdateLines.Lines[i].ProductId"></span>
                         </td>
                         <td class="sales-line-col-status">
                             <div class="small text-muted sales-line-context" data-sales-product-context>
@@ -86,49 +91,36 @@
                             <input type="number"
                                    step="any"
                                    min="0.0001"
-                                   name="UpdateLine.Quantity"
-                                   form="@updateFormId"
+                                   name="UpdateLines.Lines[@i].Quantity"
+                                   form="@updateLinesFormId"
                                    class="form-control form-control-sm sales-line-quantity"
                                    aria-label="@L["Sales:Quantity"]"
                                    value="@FormatNumber(line.Quantity)" />
-                            @if (line.Id == Model.LineId)
-                            {
-                                <span class="text-danger small" asp-validation-for="UpdateLine.Quantity"></span>
-                            }
+                            <span class="text-danger small" asp-validation-for="UpdateLines.Lines[i].Quantity"></span>
                         </td>
                         <td class="sales-line-col-price">
                             <input type="number"
                                    step="any"
                                    min="0"
-                                   name="UpdateLine.ActualSellingPrice"
-                                   form="@updateFormId"
+                                   name="UpdateLines.Lines[@i].ActualSellingPrice"
+                                   form="@updateLinesFormId"
                                    class="form-control form-control-sm sales-line-actual-price"
                                    data-sales-actual-price
                                    aria-label="@L["Sales:ActualPrice"]"
                                    value="@FormatNumber(line.ActualSellingPrice)" />
-                            @if (line.Id == Model.LineId)
-                            {
-                                <span class="text-danger small" asp-validation-for="UpdateLine.ActualSellingPrice"></span>
-                            }
+                            <span class="text-danger small" asp-validation-for="UpdateLines.Lines[i].ActualSellingPrice"></span>
                         </td>
                         <td class="sales-line-col-override">
                             <input type="text"
-                                   name="UpdateLine.OverrideReason"
-                                   form="@updateFormId"
+                                   name="UpdateLines.Lines[@i].OverrideReason"
+                                   form="@updateLinesFormId"
                                    class="form-control form-control-sm sales-line-override"
                                    aria-label="@L["Sales:OverrideReason"]"
                                    value="@line.OverrideReason" />
-                            @if (line.Id == Model.LineId)
-                            {
-                                <span class="text-danger small" asp-validation-for="UpdateLine.OverrideReason"></span>
-                            }
+                            <span class="text-danger small" asp-validation-for="UpdateLines.Lines[i].OverrideReason"></span>
                             <span class="text-danger d-block small d-none" data-sales-override-validation></span>
                         </td>
                         <td class="sales-line-col-action text-end">
-                            <form id="@updateFormId" method="post" asp-page-handler="Update" class="d-inline">
-                                <input type="hidden" name="LineId" value="@line.Id" />
-                                <button class="btn btn-primary btn-sm sales-action-button" type="submit">@L["Save"]</button>
-                            </form>
                             <form id="@removeFormId" method="post" asp-page-handler="Remove" class="d-inline">
                                 <input type="hidden" name="lineId" value="@line.Id" />
                                 <button class="btn btn-outline-danger btn-sm sales-action-button" type="submit" title="@L["Delete"]" aria-label="@L["Delete"]">
@@ -204,6 +196,7 @@
     </div>
 
     <div class="sales-create-actions mb-3">
+        <button class="btn btn-primary btn-sm sales-action-button" form="@updateLinesFormId" type="submit">@L["Sales:SaveAllLines"]</button>
         <a class="btn btn-secondary btn-sm sales-action-button" asp-page="/Sales/Details" asp-route-id="@Model.Order.Id">@L["Back"]</a>
     </div>
 </div>

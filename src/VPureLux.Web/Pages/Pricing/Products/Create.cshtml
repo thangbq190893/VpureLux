@@ -10,19 +10,19 @@
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <p class="text-muted">@L["Pricing:ProductContext", Model.ProductLabel]</p>
             <div class="border rounded p-3 mb-3">
-                <div class="text-muted small">@L["Pricing:ComponentBuildPrice"]</div>
-                @if (Model.ComponentBuildPrice.HasValue)
+                <div class="text-muted small">@L["Bom:StandardCostRange"]</div>
+                @if (Model.HasStandardCostRange)
                 {
-                    <div class="fs-5 fw-semibold">@Model.ComponentBuildPriceText</div>
-                    <div class="text-muted small">@L["Pricing:ComponentBuildPriceHint"]</div>
+                    <div class="fs-5 fw-semibold">@Model.StandardCostRangeText</div>
+                    <div class="text-muted small">@L["Pricing:BomStandardCostRangeHint"]</div>
                 }
                 else if (!Model.HasPublishedBom)
                 {
                     <div class="text-muted">@L["Pricing:NoPublishedBom"]</div>
                 }
-                else if (Model.HasMissingComponentSuggestedPrices)
+                else if (Model.MissingInventoryCostCount > 0)
                 {
-                    <div class="text-warning">@L["Pricing:MissingComponentPrices"]</div>
+                    <div class="text-warning">@L["Bom:MissingInventoryCost", Model.MissingInventoryCostCount]</div>
                 }
                 else
                 {

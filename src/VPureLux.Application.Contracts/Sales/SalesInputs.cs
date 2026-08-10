@@ -36,6 +36,17 @@ public class UpdateSalesOrderLineDto
     public string? OverrideReason { get; set; }
 }
 
+public class UpdateSalesOrderLineItemDto : UpdateSalesOrderLineDto
+{
+    public Guid LineId { get; set; }
+}
+
+public class UpdateSalesOrderLinesDto
+{
+    [Required, MinLength(1)]
+    public List<UpdateSalesOrderLineItemDto> Lines { get; set; } = new();
+}
+
 public class ConfirmSalesOrderDto
 {
     [Required, StringLength(SalesConsts.MaxIdempotencyKeyLength)]

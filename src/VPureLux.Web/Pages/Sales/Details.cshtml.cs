@@ -45,6 +45,8 @@ public class DetailsModel : VPureLuxPageModel
     public bool IsConfirmed => Order.Status == SalesOrderStatus.Confirmed;
     public decimal DraftEstimatedRevenueAmount { get; private set; }
     public string CustomerDisplay { get; private set; } = string.Empty;
+    public string CustomerPhoneDisplay { get; private set; } = string.Empty;
+    public string CustomerAddressDisplay { get; private set; } = string.Empty;
     [TempData] public string? ConfirmErrorMessage { get; set; }
     public string? PaymentErrorMessage { get; private set; }
     public Dictionary<Guid, string> ProductLabels { get; private set; } = new();
@@ -68,6 +70,13 @@ public class DetailsModel : VPureLuxPageModel
     }
 
     public async Task OnGetAsync() => await LoadAsync();
+
+    public async Task<IActionResult> OnGetPrintAsync()
+    {
+        await LoadAsync();
+        return Page();
+    }
+
     [UnitOfWork(IsDisabled = true)]
     public async Task<IActionResult> OnPostConfirmAsync()
     {
@@ -182,7 +191,10 @@ public class DetailsModel : VPureLuxPageModel
             x.Quantity * x.ActualSellingPrice,
             SalesConsts.MoneyScale,
             MidpointRounding.AwayFromZero));
-        CustomerDisplay = await GetCustomerDisplayAsync();
+        var customer = await TryGetCustomerAsync();
+        CustomerDisplay = GetCustomerDisplay(customer);
+        CustomerPhoneDisplay = customer?.PhoneNumber ?? string.Empty;
+        CustomerAddressDisplay = customer?.Address ?? string.Empty;
         ProductLabels = (await _products.GetListAsync(new GetProductListInput { MaxResultCount = Volo.Abp.Application.Dtos.LimitedResultRequestDto.MaxMaxResultCount })).Items
             .Where(x => Order.Lines.Any(line => line.ProductId == x.Id))
             .ToDictionary(x => x.Id, x => $"{x.Code} - {x.Name}");
@@ -230,25 +242,31 @@ public class DetailsModel : VPureLuxPageModel
         }
     }
 
-    private async Task<string> GetCustomerDisplayAsync()
+    private string GetCustomerDisplay(CustomerDto? customer)
     {
         if (!string.IsNullOrWhiteSpace(Order.CustomerCodeSnapshot) || !string.IsNullOrWhiteSpace(Order.CustomerNameSnapshot))
         {
             return $"{Order.CustomerCodeSnapshot} - {Order.CustomerNameSnapshot}".Trim(' ', '-');
         }
 
+        return customer == null
+            ? L["Sales:CustomerContextUnavailable"]
+            : $"{customer.Code} - {customer.Name}";
+    }
+
+    private async Task<CustomerDto?> TryGetCustomerAsync()
+    {
         try
         {
-            var customer = await _customers.GetAsync(Order.CustomerId);
-            return $"{customer.Code} - {customer.Name}";
+            return await _customers.GetAsync(Order.CustomerId);
         }
         catch (AbpAuthorizationException)
         {
-            return L["Sales:CustomerContextUnavailable"];
+            return null;
         }
         catch (BusinessException exception) when (exception.Code == VPureLuxDomainErrorCodes.CustomerNotFound)
         {
-            return L["Sales:CustomerContextUnavailable"];
+            return null;
         }
     }
 

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using VPureLux.Bom;
 using VPureLux.Catalog.Products;
 using VPureLux.Permissions;
 using VPureLux.Pricing;
@@ -18,26 +19,31 @@ public class CreateModel : VPureLuxPageModel
     private readonly IProductSuggestedPriceAppService _appService;
     private readonly IProductAppService _productAppService;
     private readonly IProductPricingContextLookupService _productPricingContextLookupService;
+    private readonly IBomVersionRepository _bomVersionRepository;
+    private readonly IBomStandardCostLookupService _standardCostLookupService;
 
     [BindProperty(SupportsGet = true)] public Guid ProductId { get; set; }
     [BindProperty] public CreateProductSuggestedPriceVersionDto Input { get; set; } = new();
     [BindProperty] public string EffectiveFromText { get; set; } = string.Empty;
     public string ProductLabel { get; private set; } = string.Empty;
-    public decimal? ComponentBuildPrice { get; private set; }
+    public string StandardCostRangeText { get; private set; } = string.Empty;
+    public bool HasStandardCostRange { get; private set; }
+    public int MissingInventoryCostCount { get; private set; }
     public bool HasPublishedBom { get; private set; }
     public bool HasMissingComponentSuggestedPrices { get; private set; }
-    public string ComponentBuildPriceText => ComponentBuildPrice.HasValue
-        ? $"{ComponentBuildPrice.Value.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))} {PricingConsts.Currency}"
-        : string.Empty;
 
     public CreateModel(
         IProductSuggestedPriceAppService appService,
         IProductAppService productAppService,
-        IProductPricingContextLookupService productPricingContextLookupService)
+        IProductPricingContextLookupService productPricingContextLookupService,
+        IBomVersionRepository bomVersionRepository,
+        IBomStandardCostLookupService standardCostLookupService)
     {
         _appService = appService;
         _productAppService = productAppService;
         _productPricingContextLookupService = productPricingContextLookupService;
+        _bomVersionRepository = bomVersionRepository;
+        _standardCostLookupService = standardCostLookupService;
     }
 
     public async Task OnGetAsync()
@@ -84,6 +90,30 @@ public class CreateModel : VPureLuxPageModel
 
         HasPublishedBom = context.HasPublishedBom;
         HasMissingComponentSuggestedPrices = context.HasMissingComponentSuggestedPrices;
-        ComponentBuildPrice = context.ComponentBuildPrice;
+        await LoadStandardCostRangeAsync();
+    }
+
+    private async Task LoadStandardCostRangeAsync()
+    {
+        var bom = (await _bomVersionRepository.GetListByProductIdAsync(ProductId))
+            .FirstOrDefault(x => x.Status == BomStatus.Published);
+        if (bom == null)
+        {
+            HasPublishedBom = false;
+            return;
+        }
+
+        HasPublishedBom = true;
+        var cost = await _standardCostLookupService.GetAsync(bom.Id);
+        if (!cost.HasCompleteCost)
+        {
+            MissingInventoryCostCount = cost.MissingComponentCount;
+            return;
+        }
+
+        HasStandardCostRange = true;
+        StandardCostRangeText = VPureLux.Web.Pages.Bom.BomUi.FormatMoneyRange(
+            cost.MinTotalCost!.Value,
+            cost.MaxTotalCost!.Value);
     }
 }

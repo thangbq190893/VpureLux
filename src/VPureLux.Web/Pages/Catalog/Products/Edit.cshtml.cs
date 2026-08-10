@@ -17,8 +17,6 @@ public class EditModel : VPureLuxPageModel
     [BindProperty(SupportsGet = true)]
     public Guid Id { get; set; }
 
-    public string Code { get; set; } = string.Empty;
-
     [BindProperty]
     public UpdateProductDto Input { get; set; } = new();
 
@@ -35,10 +33,10 @@ public class EditModel : VPureLuxPageModel
     public async Task OnGetAsync()
     {
         var product = await _productAppService.GetAsync(Id);
-        Code = product.Code;
         HasImage = product.HasImage;
         Input = new UpdateProductDto
         {
+            Code = product.Code,
             Name = product.Name,
             Description = product.Description
         };

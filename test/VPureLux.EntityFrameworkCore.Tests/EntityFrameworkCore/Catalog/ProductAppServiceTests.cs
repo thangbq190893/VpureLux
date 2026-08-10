@@ -101,10 +101,12 @@ public class ProductAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
 
         var updated = await _productAppService.UpdateAsync(product.Id, new UpdateProductDto
         {
+            Code = "RO10-PREMIUM",
             Name = "RO 10 Stage Premium",
             Description = "Updated"
         });
 
+        updated.Code.ShouldBe("RO10-PREMIUM");
         updated.Name.ShouldBe("RO 10 Stage Premium");
 
         await _productAppService.DeactivateAsync(product.Id);
