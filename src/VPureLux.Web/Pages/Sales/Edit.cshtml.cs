@@ -100,7 +100,13 @@ public class EditModel : VPureLuxPageModel
             return Page();
         }
 
-        var isValid = ValidateUpdateLinePricingOverride(line);
+        if (UpdateLine.ProductId == Guid.Empty)
+        {
+            UpdateLine.ProductId = line.ProductId;
+        }
+
+        var isValid = ValidateUpdateLineEligibility();
+        isValid = ValidateUpdateLinePricingOverride() && isValid;
         isValid = await ValidateUpdateLineStockAvailabilityAsync(line) && isValid;
 
         if (!isValid)
@@ -292,18 +298,36 @@ public class EditModel : VPureLuxPageModel
             nameof(NewLine) + "." + nameof(NewLine.OverrideReason));
     }
 
-    private bool ValidateUpdateLinePricingOverride(SalesOrderLineDto line)
+    private bool ValidateUpdateLinePricingOverride()
     {
-        if (!line.SuggestedPriceSnapshot.HasValue)
+        if (UpdateLine.ProductId == Guid.Empty ||
+            !ProductContexts.TryGetValue(UpdateLine.ProductId, out var context) ||
+            !context.SuggestedPrice.HasValue)
         {
             return true;
         }
 
         return ValidateOverrideReason(
-            line.SuggestedPriceSnapshot.Value,
+            context.SuggestedPrice.Value,
             UpdateLine.ActualSellingPrice,
             UpdateLine.OverrideReason,
             nameof(UpdateLine) + "." + nameof(UpdateLine.OverrideReason));
+    }
+
+    private bool ValidateUpdateLineEligibility()
+    {
+        if (UpdateLine.ProductId == Guid.Empty)
+        {
+            return true;
+        }
+
+        if (ProductContexts.TryGetValue(UpdateLine.ProductId, out var context) && context.HasPublishedBom)
+        {
+            return true;
+        }
+
+        ModelState.AddModelError(nameof(UpdateLine) + "." + nameof(UpdateLine.ProductId), L["Sales:ProductStockSaleNotSupported"].Value);
+        return false;
     }
 
     private bool ValidateOverrideReason(decimal suggestedPrice, decimal actualPrice, string? overrideReason, string modelStateKey)
@@ -366,7 +390,7 @@ public class EditModel : VPureLuxPageModel
             .Select((line, index) => new SalesStockAvailabilityLineRequest
             {
                 LineIndex = index,
-                ProductId = line.ProductId,
+                ProductId = line.Id == updatedLine.Id ? UpdateLine.ProductId : line.ProductId,
                 Quantity = line.Id == updatedLine.Id ? UpdateLine.Quantity : line.Quantity
             })
             .ToList();
@@ -404,6 +428,12 @@ public class EditModel : VPureLuxPageModel
         if (exception.Code == VPureLuxDomainErrorCodes.SalesOverrideReasonRequired)
         {
             ModelState.AddModelError(nameof(UpdateLine) + "." + nameof(UpdateLine.OverrideReason), L[VPureLuxDomainErrorCodes.SalesOverrideReasonRequired].Value);
+            return;
+        }
+
+        if (exception.Code == VPureLuxDomainErrorCodes.SalesBomMustBePublished)
+        {
+            ModelState.AddModelError(nameof(UpdateLine) + "." + nameof(UpdateLine.ProductId), L["Sales:ProductStockSaleNotSupported"].Value);
             return;
         }
 

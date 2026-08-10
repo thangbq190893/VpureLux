@@ -593,7 +593,7 @@
                 clearStockAvailability(scope);
             }
 
-            loadProductContext(scope, { resetPricing: !!createPage && productChanged });
+            loadProductContext(scope, { resetPricing: productChanged });
             refreshStockAvailability(getLinesContainer());
         }
 

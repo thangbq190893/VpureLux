@@ -68,8 +68,24 @@ public class SalesOrderLine : Entity<Guid>
         SetActualSellingPrice(actualSellingPrice, overrideReason);
     }
 
-    internal void UpdateDraft(decimal quantity, decimal actualSellingPrice, string? overrideReason)
+    internal void UpdateDraft(
+        Guid productId,
+        Guid bomVersionId,
+        decimal quantity,
+        Guid? suggestedPriceVersionId,
+        decimal? suggestedPrice,
+        decimal actualSellingPrice,
+        string? overrideReason)
     {
+        if (productId == Guid.Empty || bomVersionId == Guid.Empty)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.ValidationFailed);
+        }
+
+        CatalogItemId = productId;
+        BomVersionId = bomVersionId;
+        SuggestedPriceVersionId = suggestedPriceVersionId;
+        SuggestedPriceSnapshot = NormalizeOptionalMoney(suggestedPrice);
         Quantity = NormalizeQuantity(quantity);
         SetActualSellingPrice(actualSellingPrice, overrideReason);
     }

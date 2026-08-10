@@ -15,7 +15,7 @@ public class SalesDomainTests
         var order = Order();
         var first = AddProductLine(order, quantity: 2, actualSellingPrice: 100);
         var second = AddProductLine(order, quantity: 1, actualSellingPrice: 200);
-        order.UpdateLine(first.Id, 3, 110, null);
+        order.UpdateLine(first.Id, first.ProductId, first.BomVersionId!.Value, 3, first.SuggestedPriceVersionId, first.SuggestedPriceSnapshot, 110, null);
         order.RemoveLine(first.Id);
         second.LineNo.ShouldBe(1);
         second.Quantity.ShouldBe(1);

@@ -127,8 +127,22 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
         var order = await GetOrderAsync(id);
         var line = order.Lines.SingleOrDefault(x => x.Id == lineId)
             ?? throw new BusinessException(VPureLuxDomainErrorCodes.EntityNotFound);
-        await EnsureOverridePermissionAsync(line.SuggestedPriceSnapshot, input.ActualSellingPrice);
-        order.UpdateLine(lineId, input.Quantity, input.ActualSellingPrice, input.OverrideReason);
+        var productId = input.ProductId == Guid.Empty ? line.ProductId : input.ProductId;
+        var product = await EnsureActiveProductAsync(productId);
+        var bom = await EnsurePublishedBomAsync(product.Id);
+        var price = await _suggestedPrices.FindAtDateAsync(product.Id, order.OrderDate);
+        var priceVersionId = price?.Id;
+        var suggestedPrice = price?.Price.Amount;
+        await EnsureOverridePermissionAsync(suggestedPrice, input.ActualSellingPrice);
+        order.UpdateLine(
+            lineId,
+            product.Id,
+            bom.Id,
+            input.Quantity,
+            priceVersionId,
+            suggestedPrice,
+            input.ActualSellingPrice,
+            input.OverrideReason);
         await _salesOrders.UpdateAsync(order, autoSave: true);
         return _mapper.ToDto(order, includeCost: false, includeProfit: false);
     }

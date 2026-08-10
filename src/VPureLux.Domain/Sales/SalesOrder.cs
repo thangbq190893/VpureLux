@@ -61,10 +61,25 @@ public class SalesOrder : FullAuditedAggregateRoot<Guid>
         return line;
     }
 
-    public void UpdateLine(Guid lineId, decimal quantity, decimal actualSellingPrice, string? overrideReason)
+    public void UpdateLine(
+        Guid lineId,
+        Guid productId,
+        Guid bomVersionId,
+        decimal quantity,
+        Guid? suggestedPriceVersionId,
+        decimal? suggestedPrice,
+        decimal actualSellingPrice,
+        string? overrideReason)
     {
         EnsureDraft();
-        FindLine(lineId).UpdateDraft(quantity, actualSellingPrice, overrideReason);
+        FindLine(lineId).UpdateDraft(
+            productId,
+            bomVersionId,
+            quantity,
+            suggestedPriceVersionId,
+            suggestedPrice,
+            actualSellingPrice,
+            overrideReason);
     }
 
     public void RemoveLine(Guid lineId)

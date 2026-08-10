@@ -27,6 +27,7 @@ public class CreateSalesOrderDto
 
 public class UpdateSalesOrderLineDto
 {
+    public Guid ProductId { get; set; }
     [Range(typeof(decimal), "0.0001", "99999999999999.9999", ParseLimitsInInvariantCulture = true)]
     public decimal Quantity { get; set; }
     [Range(typeof(decimal), "0", "9999999999999999.99", ParseLimitsInInvariantCulture = true)]

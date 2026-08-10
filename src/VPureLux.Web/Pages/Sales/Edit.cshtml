@@ -57,12 +57,22 @@
                     var removeFormId = $"sales-remove-line-{line.Id:N}";
                     <tr class="sales-line-row" data-sales-line-row data-sales-line-index="@i">
                         <td class="sales-line-col-product">
-                            <input type="hidden"
-                                   value="@line.ProductId"
-                                   data-sales-product-select
-                                   data-sales-line-index="@i" />
-                            <div>@Model.GetProductLabel(line)</div>
-                            <span class="@Model.GetBomBadgeClass(line)">@Model.GetBomStatusText(line)</span>
+                            <select name="UpdateLine.ProductId"
+                                    form="@updateFormId"
+                                    class="w-100 sales-line-product vpl-select2-target js-select2"
+                                    data-use-select2="true"
+                                    data-sales-product-select
+                                    data-sales-line-index="@i"
+                                    aria-label="@L["Sales:ProductSku"]">
+                                @foreach (var product in Model.Products)
+                                {
+                                    <option value="@product.Value" selected="@(product.Value == line.ProductId.ToString())">@product.Text</option>
+                                }
+                            </select>
+                            @if (line.Id == Model.LineId)
+                            {
+                                <span class="text-danger d-block small" asp-validation-for="UpdateLine.ProductId"></span>
+                            }
                         </td>
                         <td class="sales-line-col-status">
                             <div class="small text-muted sales-line-context" data-sales-product-context>

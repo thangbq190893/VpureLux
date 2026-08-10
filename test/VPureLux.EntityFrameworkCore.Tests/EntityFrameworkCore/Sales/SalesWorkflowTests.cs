@@ -207,6 +207,48 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     [Fact]
+    public async Task Draft_Line_Update_Should_Allow_Changing_Product_And_Refresh_Bom_And_Price_Snapshot()
+    {
+        var context = await CreateBaseAsync();
+        var firstComponent = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 20_000);
+        var secondComponent = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 30_000);
+        var (firstProduct, firstBom) = await CreateProductForComponentAsync(firstComponent);
+        var (secondProduct, secondBom) = await CreateProductForComponentAsync(secondComponent);
+        await _prices.CreateAsync(firstProduct.Id, new CreateProductSuggestedPriceVersionDto
+        {
+            EffectiveFrom = DateTime.Now.Date,
+            Price = 100_000,
+            Reason = "First product list price"
+        });
+        var secondPrice = await _prices.CreateAsync(secondProduct.Id, new CreateProductSuggestedPriceVersionDto
+        {
+            EffectiveFrom = DateTime.Now.Date,
+            Price = 150_000,
+            Reason = "Second product list price"
+        });
+        var order = await _sales.CreateAsync(Input(context, firstProduct.Id, 1, null));
+        var line = order.Lines.Single();
+
+        await _sales.UpdateLineAsync(order.Id, line.Id, new UpdateSalesOrderLineDto
+        {
+            ProductId = secondProduct.Id,
+            Quantity = 2,
+            ActualSellingPrice = 150_000
+        });
+
+        var updated = await _sales.GetAsync(order.Id);
+        var updatedLine = updated.Lines.Single();
+        updatedLine.Id.ShouldBe(line.Id);
+        updatedLine.ProductId.ShouldBe(secondProduct.Id);
+        updatedLine.BomVersionId.ShouldBe(secondBom.Id);
+        updatedLine.BomVersionId.ShouldNotBe(firstBom.Id);
+        updatedLine.SuggestedPriceVersionId.ShouldBe(secondPrice.Id);
+        updatedLine.SuggestedPriceSnapshot.ShouldBe(150_000);
+        updatedLine.Quantity.ShouldBe(2);
+        updatedLine.ActualSellingPrice.ShouldBe(150_000);
+    }
+
+    [Fact]
     public async Task Should_Confirm_Product_Line_Idempotently_And_Calculate_Profit_History()
     {
         var context = await CreateBaseAsync();

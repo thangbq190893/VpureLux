@@ -510,7 +510,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
 
         scriptSource.ShouldContain("function hasSelectedProductChanged(productSelector)");
         scriptSource.ShouldContain("setPreviousProductId(productSelector, selectedProductId)");
-        scriptSource.ShouldContain("loadProductContext(scope, { resetPricing: !!createPage && productChanged })");
+        scriptSource.ShouldContain("loadProductContext(scope, { resetPricing: productChanged })");
         scriptSource.ShouldContain("function resetLinePricingForProductChange(scope, data)");
         scriptSource.ShouldContain("actualPriceInput.value = suggestedPrice");
         scriptSource.ShouldContain("markActualPriceAutoFilled(actualPriceInput, true)");
@@ -562,7 +562,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
         var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/SalesProductContext.js"));
 
         scriptSource.ShouldContain("var productChanged = hasSelectedProductChanged(productSelector);");
-        scriptSource.ShouldContain("loadProductContext(scope, { resetPricing: !!createPage && productChanged })");
+        scriptSource.ShouldContain("loadProductContext(scope, { resetPricing: productChanged })");
         scriptSource.ShouldContain("resetLinePricingForProductChange(scope, data);");
         scriptSource.ShouldContain("resetLinePricingForProductChange(scope, null);");
     }
@@ -1128,6 +1128,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
         var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Sales/Edit/{order.Id}"));
 
         html.ShouldContain($"{context.ProductCode} - {context.ProductName}");
+        html.ShouldContain("name=\"UpdateLine.ProductId\"");
         html.ShouldContain("badge");
         html.ShouldContain(localizer["Sales:PublishedBomAvailable"].Value);
         html.ShouldContain("data-sales-product-context");
@@ -1166,6 +1167,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
         html.ShouldContain("data-sales-warehouse-id");
         html.ShouldContain("name=\"LineId\"");
         html.ShouldContain("name=\"lineId\"");
+        html.ShouldContain("name=\"UpdateLine.ProductId\"");
         html.ShouldContain("name=\"UpdateLine.Quantity\"");
         html.ShouldContain("name=\"UpdateLine.ActualSellingPrice\"");
         html.ShouldContain("name=\"UpdateLine.OverrideReason\"");
@@ -1178,6 +1180,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("asp-page-handler=\"Update\"");
         pageSource.ShouldContain("form=\"@updateFormId\"");
         pageSource.ShouldContain("form=\"@addFormId\"");
+        pageSource.ShouldContain("name=\"UpdateLine.ProductId\"");
         pageSource.ShouldContain("data-sales-product-select");
         pageSource.ShouldContain("data-sales-product-context");
         pageSource.ShouldContain("sales-product-context-data");
@@ -1213,6 +1216,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("availabilityPage.dataset.salesWarehouseId");
         scriptSource.ShouldContain("availabilityPage.dataset.salesAvailabilityEndpoint");
         scriptSource.ShouldContain("refreshStockAvailability(getLinesContainer());");
+        scriptSource.ShouldContain("loadProductContext(scope, { resetPricing: productChanged })");
         scriptSource.ShouldContain("setStockAvailability(scope, 'noBom', getNoBomStockAvailabilityMessage())");
         createCss.ShouldContain(".sales-edit-lines-table");
         createCss.ShouldContain(".sales-edit-add-line-row");
@@ -1303,6 +1307,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
         model.LineId = line.Id;
         model.UpdateLine = new UpdateSalesOrderLineDto
         {
+            ProductId = context.ProductId,
             Quantity = 1,
             ActualSellingPrice = 90
         };
@@ -1314,6 +1319,53 @@ public class SalesPagesTests : VPureLuxWebTestBase
         model.ModelState[$"UpdateLine.OverrideReason"]!.Errors
             .Select(x => x.ErrorMessage)
             .ShouldContain(localizer[VPureLuxDomainErrorCodes.SalesOverrideReasonRequired].Value);
+    }
+
+    [Fact]
+    public async Task Sales_Edit_UpdateLine_Should_Allow_Changing_Product_On_Draft_Order()
+    {
+        var context = await CreateSalesContextAsync("SALES-ECP");
+        var secondComponent = await GetRequiredService<IComponentAppService>()
+            .CreateAsync(new CreateComponentDto { Code = Unique("ECP-C"), Name = "Edit Change Product Component", Unit = "Piece" });
+        await PostComponentReceiptAsync(context.WarehouseId, secondComponent.Id, 5);
+        var secondProduct = await CreateProductAsync("ECP-P", "Edit Change Product");
+        await PublishBomAsync(secondProduct.Id, secondComponent.Id);
+        await GetRequiredService<IProductSuggestedPriceAppService>().CreateAsync(secondProduct.Id, new CreateProductSuggestedPriceVersionDto
+        {
+            Price = 250,
+            Reason = "Giá niêm yết sản phẩm đổi",
+            EffectiveFrom = DateTime.Now.Date
+        });
+        var service = GetRequiredService<ISalesOrderAppService>();
+        var order = await service.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines = [new CreateSalesOrderLineDto { ProductId = context.ProductId, Quantity = 1, ActualSellingPrice = 100 }]
+        });
+        var line = order.Lines.Single();
+        var model = GetRequiredService<EditModel>();
+        SetPageContext(model);
+        model.Id = order.Id;
+        model.LineId = line.Id;
+        model.UpdateLine = new UpdateSalesOrderLineDto
+        {
+            ProductId = secondProduct.Id,
+            Quantity = 2,
+            ActualSellingPrice = 250
+        };
+
+        var result = await WithSalesUnitOfWorkAsync(() => model.OnPostUpdateAsync());
+
+        var redirect = result.ShouldBeOfType<RedirectToPageResult>();
+        redirect.RouteValues!["id"].ShouldBe(order.Id);
+        var updated = await service.GetAsync(order.Id);
+        var updatedLine = updated.Lines.Single();
+        updatedLine.Id.ShouldBe(line.Id);
+        updatedLine.ProductId.ShouldBe(secondProduct.Id);
+        updatedLine.Quantity.ShouldBe(2);
+        updatedLine.SuggestedPriceSnapshot.ShouldBe(250);
+        updatedLine.ActualSellingPrice.ShouldBe(250);
     }
 
     [Fact]
