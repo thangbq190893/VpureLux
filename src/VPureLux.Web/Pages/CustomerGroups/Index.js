@@ -27,6 +27,27 @@
         return data && data.record ? data.record : (data || {});
     }
 
+    function statusKey(value) {
+        if (value === 1 || value === '1' || value === 'Active') {
+            return 'Active';
+        }
+
+        if (value === 2 || value === '2' || value === 'Inactive') {
+            return 'Inactive';
+        }
+
+        return value || '';
+    }
+
+    function statusText(value) {
+        var key = statusKey(value);
+        return key ? localize('Status:' + key) : '';
+    }
+
+    function isActiveStatus(value) {
+        return statusKey(value) === 'Active';
+    }
+
     function reloadAfterModal() {
         abp.notify.success(localize('CustomerGroups:SavedSuccessfully'));
         dataTable.ajax.reload(null, false);
@@ -81,13 +102,13 @@
                 }
             },
             {
-                data: 'status',
-                render: function (data) {
-                    return encode(localize('Status:' + data));
-                }
+                data: 'sortOrder'
             },
             {
-                data: 'sortOrder'
+                data: 'status',
+                render: function (data) {
+                    return encode(statusText(data));
+                }
             },
             {
                 data: null,
@@ -113,7 +134,7 @@
                         {
                             text: localize('Deactivate'),
                             visible: function (data) {
-                                return canManageStatus && recordOf(data).status === 'Active';
+                                return canManageStatus && isActiveStatus(recordOf(data).status);
                             },
                             action: function (data) {
                                 postStatus(
@@ -126,7 +147,7 @@
                         {
                             text: localize('Activate'),
                             visible: function (data) {
-                                return canManageStatus && recordOf(data).status !== 'Active';
+                                return canManageStatus && !isActiveStatus(recordOf(data).status);
                             },
                             action: function (data) {
                                 postStatus(

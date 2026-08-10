@@ -35,8 +35,12 @@
                         <input asp-for="SearchText" id="CustomersSearchText" class="form-control" placeholder="@L["Search"]" />
                     </abp-column>
                     <abp-column size-md="_3">
-                        <select asp-for="Status" asp-items="Html.GetEnumSelectList<VPureLux.Customers.CustomerStatus>()" id="CustomersStatus" class="form-select">
+                        <select asp-for="Status" id="CustomersStatus" class="form-select">
                             <option value="">@L["Customers:Status"]</option>
+                            @foreach (var status in Enum.GetValues<VPureLux.Customers.CustomerStatus>())
+                            {
+                                <option value="@status" selected="@(Model.Status == status)">@L[$"Status:{status}"]</option>
+                            }
                         </select>
                     </abp-column>
                     <abp-column size-md="_3">
@@ -48,9 +52,9 @@
             <abp-table id="CustomersTable" striped-rows="true" class="vpl-table-dense">
                 <thead>
                 <tr>
-                    <th>@L["Customers:Code"]</th>
                     <th>@L["Customers:Name"]</th>
-                    <th>@L["Customers:CustomerGroup"]</th>
+                    <th>@L["Customers:PhoneNumber"]</th>
+                    <th>@L["Customers:Address"]</th>
                     <th>@L["Customers:Status"]</th>
                     <th class="text-end">@L["Actions"]</th>
                 </tr>

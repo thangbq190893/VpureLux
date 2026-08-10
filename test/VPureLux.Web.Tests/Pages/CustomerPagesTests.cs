@@ -162,6 +162,9 @@ public class CustomerPagesTests : VPureLuxWebTestBase
         var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/CustomerGroups/Index.cshtml"));
         pageSource.ShouldContain("@section scripts");
         pageSource.ShouldContain("<abp-script src=\"/Pages/CustomerGroups/Index.js\" />");
+        pageSource.ShouldNotContain("Html.GetEnumSelectList");
+        pageSource.IndexOf("CustomerGroups:SortOrder", StringComparison.Ordinal)
+            .ShouldBeLessThan(pageSource.LastIndexOf("CustomerGroups:Status", StringComparison.Ordinal));
 
         html.ShouldContain("data-customer-groups-index");
         html.ShouldContain("id=\"CustomerGroupsTable\"");
@@ -173,6 +176,8 @@ public class CustomerPagesTests : VPureLuxWebTestBase
 
         var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/CustomerGroups/Index.js"));
         scriptSource.ShouldContain("rowAction");
+        scriptSource.ShouldContain("function statusText(value)");
+        scriptSource.ShouldContain("value === 1 || value === '1' || value === 'Active'");
         scriptSource.ShouldContain("CustomerGroups:ConfirmDeactivate");
         scriptSource.ShouldContain("CustomerGroups:ConfirmActivate");
         scriptSource.ShouldContain("dataTable.ajax.reload(null, false)");
@@ -194,6 +199,12 @@ public class CustomerPagesTests : VPureLuxWebTestBase
         var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Customers/Index.cshtml"));
         pageSource.ShouldContain("@section scripts");
         pageSource.ShouldContain("<abp-script src=\"/Pages/Customers/Index.js\" />");
+        pageSource.ShouldContain("Customers:PhoneNumber");
+        pageSource.ShouldContain("Customers:Address");
+        pageSource.ShouldNotContain("Customers:CustomerGroup</th>");
+        pageSource.ShouldNotContain("Html.GetEnumSelectList");
+        pageSource.IndexOf("Customers:Address", StringComparison.Ordinal)
+            .ShouldBeLessThan(pageSource.LastIndexOf("Customers:Status", StringComparison.Ordinal));
 
         html.ShouldContain("data-customers-index");
         html.ShouldContain("id=\"CustomersTable\"");
@@ -205,6 +216,10 @@ public class CustomerPagesTests : VPureLuxWebTestBase
 
         var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Customers/Index.js"));
         scriptSource.ShouldContain("rowAction");
+        scriptSource.ShouldContain("data: 'phoneNumber'");
+        scriptSource.ShouldContain("data: 'address'");
+        scriptSource.ShouldContain("function statusText(value)");
+        scriptSource.ShouldContain("value === 1 || value === '1' || value === 'Active'");
         scriptSource.ShouldContain("Customers:ConfirmDeactivate");
         scriptSource.ShouldContain("Customers:ConfirmActivate");
         scriptSource.ShouldContain("dataTable.ajax.reload(null, false)");
