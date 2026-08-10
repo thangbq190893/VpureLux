@@ -36,6 +36,16 @@
         }),
         columnDefs: [
             {
+                data: null,
+                orderable: false,
+                className: 'text-start',
+                render: function (_data, _type, row) {
+                    return '<a class="btn btn-sm btn-outline-secondary" href="' +
+                        abp.appPath + 'Sales/Details/' + encodeURIComponent(row.id) + '">' +
+                        encode(l('Details')) + '</a>';
+                }
+            },
+            {
                 data: 'orderNo',
                 render: function (data) {
                     return encode(data);
@@ -95,16 +105,6 @@
                 render: function (_data, _type, row) {
                     return '<span class="badge ' + encode(row.paymentStatusBadgeClass) + '">' +
                         encode(row.paymentStatusLabel) + '</span>';
-                }
-            },
-            {
-                data: null,
-                orderable: false,
-                className: 'text-end',
-                render: function (_data, _type, row) {
-                    return '<a class="btn btn-sm btn-outline-secondary" href="' +
-                        abp.appPath + 'Sales/Details/' + encodeURIComponent(row.id) + '">' +
-                        encode(l('Details')) + '</a>';
                 }
             }
         ]

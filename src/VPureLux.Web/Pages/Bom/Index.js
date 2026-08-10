@@ -138,6 +138,15 @@
         columnDefs: [
             {
                 data: null,
+                orderable: false,
+                className: 'text-start bom-actions-column',
+                width: '15%',
+                render: function (_data, _type, row) {
+                    return actionsHtml(row);
+                }
+            },
+            {
+                data: null,
                 className: 'bom-product-column',
                 width: '40%',
                 render: function (_data, _type, row) {
@@ -160,15 +169,6 @@
                 width: '25%',
                 render: function (data) {
                     return '<span class="bom-standard-cost-cell">' + encode(data) + '</span>';
-                }
-            },
-            {
-                data: null,
-                orderable: false,
-                className: 'text-end bom-actions-column',
-                width: '15%',
-                render: function (_data, _type, row) {
-                    return actionsHtml(row);
                 }
             }
         ]

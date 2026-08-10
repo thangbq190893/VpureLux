@@ -182,15 +182,15 @@
     ];
 
     if (canUpdateLotInfo) {
-        columnDefs.push({
+        columnDefs.unshift({
             data: null,
             orderable: false,
-            className: 'text-end text-nowrap',
+            className: 'text-start text-nowrap',
             render: function () {
                 return '<div class="dropdown">' +
                     '<button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="dropdown" ' +
                     'aria-expanded="false" aria-label="' + encode(l('Actions')) + '">...</button>' +
-                    '<div class="dropdown-menu dropdown-menu-end">' +
+                    '<div class="dropdown-menu">' +
                     '<button type="button" class="dropdown-item" data-update-lot-supplier>' +
                     encode(l('Inventory:UpdateSupplierShort')) + '</button>' +
                     '<button type="button" class="dropdown-item" data-update-lot-unit-cost>' +

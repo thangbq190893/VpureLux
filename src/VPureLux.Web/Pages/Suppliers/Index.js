@@ -63,6 +63,33 @@
         }),
         columnDefs: [
             {
+                data: null,
+                orderable: false,
+                className: 'text-start',
+                rowAction: {
+                    items: [
+                        {
+                            text: l('Edit'),
+                            visible: function () {
+                                return canEdit;
+                            },
+                            action: function (data) {
+                                window.location.href = abp.appPath + 'Suppliers/Edit?id=' + encodeURIComponent(recordOf(data).id);
+                            }
+                        },
+                        {
+                            text: l('Delete'),
+                            visible: function () {
+                                return canDelete;
+                            },
+                            action: function (data) {
+                                deleteSupplier(recordOf(data));
+                            }
+                        }
+                    ]
+                }
+            },
+            {
                 data: 'code',
                 render: function (data) {
                     return encode(data);
@@ -95,33 +122,6 @@
                 data: 'address',
                 render: function (data) {
                     return encode(data);
-                }
-            },
-            {
-                data: null,
-                orderable: false,
-                className: 'text-end',
-                rowAction: {
-                    items: [
-                        {
-                            text: l('Edit'),
-                            visible: function () {
-                                return canEdit;
-                            },
-                            action: function (data) {
-                                window.location.href = abp.appPath + 'Suppliers/Edit?id=' + encodeURIComponent(recordOf(data).id);
-                            }
-                        },
-                        {
-                            text: l('Delete'),
-                            visible: function () {
-                                return canDelete;
-                            },
-                            action: function (data) {
-                                deleteSupplier(recordOf(data));
-                            }
-                        }
-                    ]
                 }
             }
         ]

@@ -90,30 +90,9 @@
         }),
         columnDefs: [
             {
-                data: 'code',
-                render: function (data) {
-                    return encode(data);
-                }
-            },
-            {
-                data: 'name',
-                render: function (data) {
-                    return encode(data);
-                }
-            },
-            {
-                data: 'sortOrder'
-            },
-            {
-                data: 'status',
-                render: function (data) {
-                    return encode(statusText(data));
-                }
-            },
-            {
                 data: null,
                 orderable: false,
-                className: 'text-end',
+                className: 'text-start',
                 rowAction: {
                     items: [
                         {
@@ -158,6 +137,27 @@
                             }
                         }
                     ]
+                }
+            },
+            {
+                data: 'code',
+                render: function (data) {
+                    return encode(data);
+                }
+            },
+            {
+                data: 'name',
+                render: function (data) {
+                    return encode(data);
+                }
+            },
+            {
+                data: 'sortOrder'
+            },
+            {
+                data: 'status',
+                render: function (data) {
+                    return encode(statusText(data));
                 }
             }
         ]

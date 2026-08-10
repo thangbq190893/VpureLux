@@ -89,30 +89,18 @@
             <abp-table striped-rows="true" class="vpl-table-dense">
                 <thead>
                 <tr>
+                    <th class="text-start">@L["Actions"]</th>
                     <th>@L["Bom:VersionNo"]</th>
                     <th>@L["Bom:Status"]</th>
                     <th>@L["Bom:EffectiveFrom"]</th>
                     <th>@L["Bom:EffectiveTo"]</th>
-                    <th class="text-end">@L["Actions"]</th>
                 </tr>
                 </thead>
                 <tbody>
                 @foreach (var version in Model.Versions)
                 {
                     <tr>
-                        <td>@version.VersionNo</td>
-                        <td>
-                            <span class="badge @(version.Status == VPureLux.Bom.BomStatus.Published ? "bg-success" : version.Status == VPureLux.Bom.BomStatus.Archived ? "bg-secondary" : "bg-warning text-dark")">
-                                @L[$"Bom:Status:{version.Status}"]
-                            </span>
-                            @if (Model.CurrentPublishedVersionId == version.Id)
-                            {
-                                <span class="badge bg-primary ms-1" data-bom-current-version>@L["Bom:CurrentVersionBadge"]</span>
-                            }
-                        </td>
-                        <td>@VPureLux.Web.Pages.Bom.BomUi.FormatDate(version.EffectiveFrom)</td>
-                        <td>@VPureLux.Web.Pages.Bom.BomUi.FormatDate(version.EffectiveTo)</td>
-                        <td class="text-end">
+                        <td class="text-start text-nowrap">
                             <a class="btn btn-sm btn-outline-secondary" asp-page="/Bom/Details" asp-route-id="@version.Id">@L["Bom:Details"]</a>
                             @if (Model.CanCreate && version.Status == VPureLux.Bom.BomStatus.Draft)
                             {
@@ -153,6 +141,18 @@
                                 </form>
                             }
                         </td>
+                        <td>@version.VersionNo</td>
+                        <td>
+                            <span class="badge @(version.Status == VPureLux.Bom.BomStatus.Published ? "bg-success" : version.Status == VPureLux.Bom.BomStatus.Archived ? "bg-secondary" : "bg-warning text-dark")">
+                                @L[$"Bom:Status:{version.Status}"]
+                            </span>
+                            @if (Model.CurrentPublishedVersionId == version.Id)
+                            {
+                                <span class="badge bg-primary ms-1" data-bom-current-version>@L["Bom:CurrentVersionBadge"]</span>
+                            }
+                        </td>
+                        <td>@VPureLux.Web.Pages.Bom.BomUi.FormatDate(version.EffectiveFrom)</td>
+                        <td>@VPureLux.Web.Pages.Bom.BomUi.FormatDate(version.EffectiveTo)</td>
                     </tr>
                 }
                 </tbody>

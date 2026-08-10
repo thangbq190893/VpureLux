@@ -87,6 +87,14 @@
         }),
         columnDefs: [
             {
+                data: null,
+                orderable: false,
+                className: 'text-start text-nowrap',
+                render: function (_data, _type, row) {
+                    return productActions(row);
+                }
+            },
+            {
                 data: 'productCode',
                 render: function (data) {
                     return encode(data);
@@ -121,14 +129,6 @@
                 className: 'text-end text-nowrap',
                 render: function (data) {
                     return encode(formatMoney(data, 'VND') || noProductListPriceText);
-                }
-            },
-            {
-                data: null,
-                orderable: false,
-                className: 'text-end text-nowrap',
-                render: function (_data, _type, row) {
-                    return productActions(row);
                 }
             }
         ]

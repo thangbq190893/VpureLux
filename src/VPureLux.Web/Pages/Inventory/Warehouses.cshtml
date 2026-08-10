@@ -49,22 +49,18 @@
             <abp-table striped-rows="true" class="vpl-table-dense">
                 <thead>
                 <tr>
+                    <th class="text-start">@L["Actions"]</th>
                     <th>@L["Inventory:Code"]</th>
                     <th>@L["Inventory:Name"]</th>
                     <th>@L["Inventory:Address"]</th>
                     <th>@L["Inventory:Status"]</th>
-                    <th class="text-end">@L["Actions"]</th>
                 </tr>
                 </thead>
                 <tbody>
                 @foreach (var x in Model.Warehouses)
                 {
                     <tr>
-                        <td>@x.Code</td>
-                        <td>@x.Name</td>
-                        <td>@x.Address</td>
-                        <td>@L[$"Status:{x.Status}"]</td>
-                        <td class="text-end">
+                        <td class="text-start text-nowrap">
                             <button type="button"
                                     class="btn btn-sm btn-outline-primary"
                                     data-warehouse-edit-button
@@ -84,6 +80,10 @@
                                 </button>
                             </form>
                         </td>
+                        <td>@x.Code</td>
+                        <td>@x.Name</td>
+                        <td>@x.Address</td>
+                        <td>@L[$"Status:{x.Status}"]</td>
                     </tr>
                 }
                 </tbody>

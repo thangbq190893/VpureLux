@@ -61,6 +61,72 @@
         {
             data: null,
             orderable: false,
+            className: 'text-start',
+            rowAction: {
+                items: [
+                    {
+                        text: l('Details'),
+                        action: function (data) {
+                            const record = recordOf(data);
+                            page.catalogModals.details.open({ id: record.id });
+                        }
+                    },
+                    {
+                        text: l('Edit'),
+                        visible: function () {
+                            return canEdit;
+                        },
+                        action: function (data) {
+                            const record = recordOf(data);
+                            page.catalogModals.edit.open({ id: record.id });
+                        }
+                    },
+                    {
+                        text: l('Catalog:ManageImage'),
+                        visible: function () {
+                            return canEdit;
+                        },
+                        action: function (data) {
+                            const record = recordOf(data);
+                            location.href = abp.appPath + 'Catalog/Components/Edit/' + record.id;
+                        }
+                    },
+                    {
+                        text: l('Deactivate'),
+                        visible: function (data) {
+                            const record = recordOf(data);
+                            return canEdit && record.status === 'Active';
+                        },
+                        action: function (data) {
+                            const record = recordOf(data);
+                            postStatus(
+                                record,
+                                'Deactivate',
+                                l('Catalog:ConfirmDeactivateComponent'),
+                                page.dataset.deactivatedMessage);
+                        }
+                    },
+                    {
+                        text: l('Activate'),
+                        visible: function (data) {
+                            const record = recordOf(data);
+                            return canEdit && record.status !== 'Active';
+                        },
+                        action: function (data) {
+                            const record = recordOf(data);
+                            postStatus(
+                                record,
+                                'Activate',
+                                l('Catalog:ConfirmActivateComponent'),
+                                page.dataset.activatedMessage);
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            data: null,
+            orderable: false,
             className: 'vpl-catalog-thumbnail-cell',
             render: function (_data, _type, row) {
                 return imageHtml(row);
@@ -102,73 +168,6 @@
             }
         });
     }
-
-    columnDefs.push({
-        data: null,
-        orderable: false,
-        className: 'text-end',
-        rowAction: {
-            items: [
-                {
-                    text: l('Details'),
-                    action: function (data) {
-                        const record = recordOf(data);
-                        page.catalogModals.details.open({ id: record.id });
-                    }
-                },
-                {
-                    text: l('Edit'),
-                    visible: function () {
-                        return canEdit;
-                    },
-                    action: function (data) {
-                        const record = recordOf(data);
-                        page.catalogModals.edit.open({ id: record.id });
-                    }
-                },
-                {
-                    text: l('Catalog:ManageImage'),
-                    visible: function () {
-                        return canEdit;
-                    },
-                    action: function (data) {
-                        const record = recordOf(data);
-                        location.href = abp.appPath + 'Catalog/Components/Edit/' + record.id;
-                    }
-                },
-                {
-                    text: l('Deactivate'),
-                    visible: function (data) {
-                        const record = recordOf(data);
-                        return canEdit && record.status === 'Active';
-                    },
-                    action: function (data) {
-                        const record = recordOf(data);
-                        postStatus(
-                            record,
-                            'Deactivate',
-                            l('Catalog:ConfirmDeactivateComponent'),
-                            page.dataset.deactivatedMessage);
-                    }
-                },
-                {
-                    text: l('Activate'),
-                    visible: function (data) {
-                        const record = recordOf(data);
-                        return canEdit && record.status !== 'Active';
-                    },
-                    action: function (data) {
-                        const record = recordOf(data);
-                        postStatus(
-                            record,
-                            'Activate',
-                            l('Catalog:ConfirmActivateComponent'),
-                            page.dataset.activatedMessage);
-                    }
-                }
-            ]
-        }
-    });
 
     const dataTable = $(tableSelector).DataTable(abp.libs.datatables.normalizeConfiguration({
         processing: true,

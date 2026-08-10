@@ -38,6 +38,16 @@
         }),
         columnDefs: [
             {
+                data: null,
+                orderable: false,
+                className: 'text-start',
+                render: function (_data, _type, row) {
+                    return '<a class="btn btn-sm btn-outline-secondary" href="' +
+                        abp.appPath + 'Audit/Details/' + encodeURIComponent(row.id) + '">' +
+                        encode(l('Details')) + '</a>';
+                }
+            },
+            {
                 data: 'eventTime',
                 className: 'text-nowrap',
                 render: function (data) {
@@ -79,16 +89,6 @@
                     return '<span class="badge ' + encode(row.statusBadgeClass) + '">' +
                         encode(row.statusLabel) + '</span>' +
                         '<div class="text-muted small">' + encode(row.actorTypeLabel) + '</div>';
-                }
-            },
-            {
-                data: null,
-                orderable: false,
-                className: 'text-end',
-                render: function (_data, _type, row) {
-                    return '<a class="btn btn-sm btn-outline-secondary" href="' +
-                        abp.appPath + 'Audit/Details/' + encodeURIComponent(row.id) + '">' +
-                        encode(l('Details')) + '</a>';
                 }
             }
         ]

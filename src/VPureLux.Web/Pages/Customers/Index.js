@@ -90,40 +90,9 @@
         }),
         columnDefs: [
             {
-                data: 'name',
-                render: function (data, type, row) {
-                    var html = '<strong>' + encode(data) + '</strong>';
-                    if (row.code) {
-                        html += '<div class="text-muted small">' + encode(row.code) + '</div>';
-                    }
-
-                    return html;
-                }
-            },
-            {
-                data: 'phoneNumber',
-                orderable: false,
-                render: function (data) {
-                    return encode(data);
-                }
-            },
-            {
-                data: 'address',
-                orderable: false,
-                render: function (data) {
-                    return encode(data);
-                }
-            },
-            {
-                data: 'status',
-                render: function (data) {
-                    return encode(statusText(data));
-                }
-            },
-            {
                 data: null,
                 orderable: false,
-                className: 'text-end',
+                className: 'text-start',
                 rowAction: {
                     items: [
                         {
@@ -168,6 +137,37 @@
                             }
                         }
                     ]
+                }
+            },
+            {
+                data: 'name',
+                render: function (data, type, row) {
+                    var html = '<strong>' + encode(data) + '</strong>';
+                    if (row.code) {
+                        html += '<div class="text-muted small">' + encode(row.code) + '</div>';
+                    }
+
+                    return html;
+                }
+            },
+            {
+                data: 'phoneNumber',
+                orderable: false,
+                render: function (data) {
+                    return encode(data);
+                }
+            },
+            {
+                data: 'address',
+                orderable: false,
+                render: function (data) {
+                    return encode(data);
+                }
+            },
+            {
+                data: 'status',
+                render: function (data) {
+                    return encode(statusText(data));
                 }
             }
         ]

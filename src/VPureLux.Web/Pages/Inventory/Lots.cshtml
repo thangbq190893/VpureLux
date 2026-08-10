@@ -54,6 +54,10 @@
             <abp-table id="InventoryLotsTable" striped-rows="true" class="vpl-table-dense">
                 <thead>
                     <tr>
+                        @if (Model.CanUpdateLotInfo)
+                        {
+                            <th class="text-start">@L["Actions"]</th>
+                        }
                         <th>@L["Inventory:LotNo"]</th>
                         <th>@L["Inventory:Warehouse"]</th>
                         <th>@L["Inventory:Supplier"]</th>
@@ -63,10 +67,6 @@
                         <th>@L["Inventory:Available"]</th>
                         <th>@L["Inventory:UnitCost"]</th>
                         <th>@L["Inventory:ReceiptValue"]</th>
-                        @if (Model.CanUpdateLotInfo)
-                        {
-                            <th class="text-end">@L["Actions"]</th>
-                        }
                     </tr>
                 </thead>
             </abp-table>
