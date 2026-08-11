@@ -14,6 +14,10 @@
 }
 
 <div class="vpl-page vpl-inquiry-page">
+    <form id="SalesCancelTokenForm" method="post" class="d-none">
+        @Html.AntiForgeryToken()
+    </form>
+
     <div class="vpl-page-header">
         <h2 class="vpl-page-title mb-0">@L["Sales:Title"]</h2>
         <div class="vpl-btn-toolbar">

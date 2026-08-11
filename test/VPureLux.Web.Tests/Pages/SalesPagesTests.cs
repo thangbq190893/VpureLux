@@ -232,9 +232,15 @@ public class SalesPagesTests : VPureLuxWebTestBase
         rows.Items.Single(x => x.Id == unpaid.Id).CancelConfirmationMessage
             .ShouldBe(localizer["Sales:CancelConfirmedUnpaidOrderMessage"].Value);
         rows.Items.Single(x => x.Id == partial.Id).CanCancel.ShouldBeFalse();
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Index.cshtml"));
         var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Index.js"));
+        pageSource.ShouldContain("SalesCancelTokenForm");
+        pageSource.ShouldContain("Html.AntiForgeryToken()");
         scriptSource.ShouldContain("handler=Cancel");
         scriptSource.ShouldContain("js-sales-cancel");
+        scriptSource.ShouldContain("__RequestVerificationToken");
+        scriptSource.ShouldContain("RequestVerificationToken");
+        scriptSource.ShouldContain("headers: formTokenHeaders()");
     }
 
     [Fact]

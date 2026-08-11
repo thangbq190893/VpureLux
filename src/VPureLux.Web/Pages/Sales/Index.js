@@ -14,6 +14,14 @@
         return $('<div/>').text(value || '').html();
     }
 
+    function formTokenHeaders() {
+        const token = $('#SalesCancelTokenForm').find('input[name="__RequestVerificationToken"]').val();
+
+        return token
+            ? { RequestVerificationToken: token }
+            : {};
+    }
+
     function cancelOrder(row) {
         const message = row.cancelConfirmationMessage || l('Sales:CancelOrderMessage');
         abp.message.confirm(message, l('Confirm')).then(function (confirmed) {
@@ -23,7 +31,8 @@
 
             abp.ajax({
                 url: abp.appPath + 'Sales?handler=Cancel&id=' + encodeURIComponent(row.id),
-                type: 'POST'
+                type: 'POST',
+                headers: formTokenHeaders()
             }).then(function () {
                 abp.notify.success(l('Sales:CancelledSuccessfully'));
                 dataTable.ajax.reload(null, false);
