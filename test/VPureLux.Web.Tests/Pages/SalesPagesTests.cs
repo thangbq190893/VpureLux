@@ -1235,7 +1235,8 @@ public class SalesPagesTests : VPureLuxWebTestBase
         pageSource.ShouldContain("asp-page-handler=\"Remove\"");
         pageSource.ShouldContain("asp-page-handler=\"SaveLines\"");
         pageSource.ShouldContain("form=\"@updateLinesFormId\"");
-        pageSource.ShouldContain("form=\"@addFormId\"");
+        pageSource.ShouldContain("id=\"@addFormId\"");
+        pageSource.ShouldContain("sales-edit-add-line-panel");
         pageSource.ShouldContain("name=\"UpdateLines.Lines[@i].ProductId\"");
         pageSource.ShouldContain("name=\"UpdateLines.Lines[@i].LineId\"");
         pageSource.ShouldContain("Sales:SaveAllLines");
@@ -1279,7 +1280,8 @@ public class SalesPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("loadProductContext(scope, { resetPricing: productChanged })");
         scriptSource.ShouldContain("setStockAvailability(scope, 'noBom', getNoBomStockAvailabilityMessage())");
         createCss.ShouldContain(".sales-edit-lines-table");
-        createCss.ShouldContain(".sales-edit-add-line-row");
+        createCss.ShouldContain(".sales-edit-add-line-panel");
+        createCss.ShouldContain(".sales-edit-add-line-grid");
     }
 
     [Fact]
