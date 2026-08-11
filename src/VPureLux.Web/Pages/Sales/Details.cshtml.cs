@@ -15,6 +15,7 @@ using VPureLux.Localization;
 using VPureLux.Permissions;
 using VPureLux.Pricing;
 using VPureLux.Sales;
+using VPureLux.Web.Sales;
 using Volo.Abp;
 using Volo.Abp.Authorization;
 using Volo.Abp.Data;
@@ -31,8 +32,10 @@ public class DetailsModel : VPureLuxPageModel
     private readonly IProductAppService _products;
     private readonly IProductPricingContextLookupService _productPricingContext;
     private readonly IUnitOfWorkManager _unitOfWorkManager;
+    private readonly SalesOrderPublicLinkService _publicLinks;
     [BindProperty(SupportsGet = true)] public Guid Id { get; set; }
     [BindProperty(SupportsGet = true)] public bool PrintPrices { get; set; } = true;
+    [BindProperty(SupportsGet = true)] public bool PrintPublicQr { get; set; } = true;
     [BindProperty] public ConfirmSalesOrderDto Confirmation { get; set; } = new() { IdempotencyKey = Guid.NewGuid().ToString("N") };
     [BindProperty] public CreateSalesOrderPaymentDto Payment { get; set; } = CreateDefaultPaymentInput();
     [TempData] public string? SuccessMessage { get; set; }
@@ -48,6 +51,8 @@ public class DetailsModel : VPureLuxPageModel
     public string CustomerDisplay { get; private set; } = string.Empty;
     public string CustomerPhoneDisplay { get; private set; } = string.Empty;
     public string CustomerAddressDisplay { get; private set; } = string.Empty;
+    public string PublicOrderUrl { get; private set; } = string.Empty;
+    public string PublicOrderQrCodeDataUri { get; private set; } = string.Empty;
     [TempData] public string? ConfirmErrorMessage { get; set; }
     public string? PaymentErrorMessage { get; private set; }
     public Dictionary<Guid, string> ProductLabels { get; private set; } = new();
@@ -60,7 +65,8 @@ public class DetailsModel : VPureLuxPageModel
         ICustomerAppService customers,
         IProductAppService products,
         IProductPricingContextLookupService productPricingContext,
-        IUnitOfWorkManager unitOfWorkManager)
+        IUnitOfWorkManager unitOfWorkManager,
+        SalesOrderPublicLinkService publicLinks)
     {
         _service = service;
         _authorizationService = authorizationService;
@@ -68,6 +74,7 @@ public class DetailsModel : VPureLuxPageModel
         _products = products;
         _productPricingContext = productPricingContext;
         _unitOfWorkManager = unitOfWorkManager;
+        _publicLinks = publicLinks;
     }
 
     public async Task OnGetAsync() => await LoadAsync();
@@ -75,6 +82,7 @@ public class DetailsModel : VPureLuxPageModel
     public async Task<IActionResult> OnGetPrintAsync()
     {
         await LoadAsync();
+        BuildPublicOrderLink();
         return Page();
     }
 
@@ -214,6 +222,28 @@ public class DetailsModel : VPureLuxPageModel
         {
             Payment.IdempotencyKey = Guid.NewGuid().ToString("N");
         }
+    }
+
+    private void BuildPublicOrderLink()
+    {
+        if (!PrintPublicQr)
+        {
+            return;
+        }
+
+        var token = _publicLinks.CreateToken(Order.Id, PrintPrices);
+        var publicUrl = Url.Page(
+            "/Public/SalesOrders/Details",
+            pageHandler: null,
+            values: new { token },
+            protocol: Request.Scheme);
+        if (string.IsNullOrWhiteSpace(publicUrl))
+        {
+            publicUrl = $"{Request.Scheme}://{Request.Host}/Public/SalesOrders/{token}";
+        }
+
+        PublicOrderUrl = publicUrl;
+        PublicOrderQrCodeDataUri = _publicLinks.CreateQrPngDataUri(publicUrl);
     }
 
     private async Task LoadProductContextsAsync()

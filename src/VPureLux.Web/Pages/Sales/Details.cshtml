@@ -82,6 +82,11 @@
                     <input type="hidden" name="PrintPrices" value="false" />
                     <span class="form-check-label">@L["Sales:PrintWithPrices"]</span>
                 </label>
+                <label class="form-check form-check-inline mb-0">
+                    <input class="form-check-input" type="checkbox" name="PrintPublicQr" value="true" checked />
+                    <input type="hidden" name="PrintPublicQr" value="false" />
+                    <span class="form-check-label">@L["Sales:PrintPublicQr"]</span>
+                </label>
                 <button type="submit" class="btn btn-sm btn-outline-secondary">@L["Sales:PrintForTechnician"]</button>
             </form>
         </div>
@@ -110,6 +115,18 @@
                 <div>@L["Sales:OrderNo"]: @Model.Order.OrderNo</div>
                 <div>@L["Sales:OrderDate"]: @FormatDate(Model.Order.OrderDate)</div>
             </div>
+
+            @if (Model.PrintPublicQr && !string.IsNullOrWhiteSpace(Model.PublicOrderQrCodeDataUri))
+            {
+                <div class="sales-print-public-qr">
+                    <img src="@Model.PublicOrderQrCodeDataUri" alt="@L["Sales:PublicOrderQrAlt"]" />
+                    <div>
+                        <strong>@L["Sales:PublicOrderQrTitle"]</strong>
+                        <span>@L["Sales:PublicOrderQrHint"]</span>
+                        <small>@Model.PublicOrderUrl</small>
+                    </div>
+                </div>
+            }
 
             <div class="sales-print-parties">
                 <section>
@@ -430,6 +447,35 @@
             text-transform: uppercase;
         }
 
+        .sales-print-public-qr {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            margin-bottom: 1rem;
+            padding: .75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            break-inside: avoid;
+        }
+
+        .sales-print-public-qr img {
+            width: 96px;
+            height: 96px;
+            flex: 0 0 auto;
+        }
+
+        .sales-print-public-qr strong,
+        .sales-print-public-qr span,
+        .sales-print-public-qr small {
+            display: block;
+        }
+
+        .sales-print-public-qr small {
+            margin-top: .25rem;
+            overflow-wrap: anywhere;
+            color: #6b7280;
+        }
+
         .sales-print-parties {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -518,6 +564,10 @@
 
             .sales-print-parties {
                 grid-template-columns: 1fr;
+            }
+
+            .sales-print-public-qr {
+                align-items: flex-start;
             }
         }
     </style>

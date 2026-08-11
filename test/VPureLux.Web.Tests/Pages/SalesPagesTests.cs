@@ -27,6 +27,7 @@ using VPureLux.Localization;
 using VPureLux.Pricing;
 using VPureLux.Sales;
 using VPureLux.Web.Pages.Sales;
+using VPureLux.Web.Sales;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Authorization;
@@ -1896,7 +1897,8 @@ public class SalesPagesTests : VPureLuxWebTestBase
         pricingContext.FindMapAsync(Arg.Any<IReadOnlyCollection<Guid>>(), Arg.Any<DateTime>())
             .Returns(new Dictionary<Guid, ProductPricingContextDto>());
         var unitOfWorkManager = Substitute.For<IUnitOfWorkManager>();
-        var model = new DetailsModel(service, authorization, customers, products, pricingContext, unitOfWorkManager);
+        var publicLinks = GetRequiredService<SalesOrderPublicLinkService>();
+        var model = new DetailsModel(service, authorization, customers, products, pricingContext, unitOfWorkManager, publicLinks);
         SetPageContext(model, GetRequiredService<IServiceProvider>());
         model.ProductContexts[Guid.NewGuid()] = new SalesProductContextViewModel();
         model.Id = orderId;
@@ -2285,6 +2287,85 @@ public class SalesPagesTests : VPureLuxWebTestBase
         withoutPrices.ShouldContain($"{context.ProductCode} - {context.ProductName}");
         withoutPrices.ShouldNotContain(localizer["Sales:ActualPrice"].Value);
         withoutPrices.ShouldNotContain(FormatMoneyForTest(100));
+    }
+
+    [Fact]
+    public async Task Sales_Details_Print_Should_Render_Public_Order_Qr_Link()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-DQR");
+        var order = await GetRequiredService<ISalesOrderAppService>().CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines =
+            [
+                new CreateSalesOrderLineDto
+                {
+                    ProductId = context.ProductId,
+                    Quantity = 1,
+                    ActualSellingPrice = 100
+                }
+            ]
+        });
+
+        var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Sales/Details/{order.Id}?handler=Print&PrintPrices=true&PrintPublicQr=true"));
+
+        html.ShouldContain(localizer["Sales:PublicOrderQrTitle"].Value);
+        html.ShouldContain("data:image/png;base64,");
+        html.ShouldContain("/Public/SalesOrders/");
+    }
+
+    [Fact]
+    public async Task Public_Sales_Order_Page_Should_Render_With_And_Without_Prices()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var publicLinks = GetRequiredService<SalesOrderPublicLinkService>();
+        var context = await CreateSalesContextAsync("SALES-PUB");
+        var order = await GetRequiredService<ISalesOrderAppService>().CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines =
+            [
+                new CreateSalesOrderLineDto
+                {
+                    ProductId = context.ProductId,
+                    Quantity = 2,
+                    ActualSellingPrice = 100
+                }
+            ]
+        });
+
+        var withPriceToken = Uri.EscapeDataString(publicLinks.CreateToken(order.Id, showPrices: true));
+        var withPrices = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Public/SalesOrders/{withPriceToken}"));
+
+        withPrices.ShouldContain(localizer["Sales:PublicOrderTitle"].Value);
+        withPrices.ShouldContain($"{context.CustomerCode} - {context.CustomerName}");
+        withPrices.ShouldContain($"{context.ProductCode} - {context.ProductName}");
+        withPrices.ShouldContain(localizer["Sales:ActualPrice"].Value);
+        withPrices.ShouldContain(FormatMoneyForTest(100));
+
+        var withoutPriceToken = Uri.EscapeDataString(publicLinks.CreateToken(order.Id, showPrices: false));
+        var withoutPrices = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Public/SalesOrders/{withoutPriceToken}"));
+
+        withoutPrices.ShouldContain(localizer["Sales:PublicOrderTitle"].Value);
+        withoutPrices.ShouldContain($"{context.ProductCode} - {context.ProductName}");
+        withoutPrices.ShouldNotContain(localizer["Sales:ActualPrice"].Value);
+        withoutPrices.ShouldNotContain(FormatMoneyForTest(100));
+    }
+
+    [Fact]
+    public async Task Public_Sales_Order_Page_Should_Show_Friendly_Error_For_Invalid_Token()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+
+        var response = await Client.GetAsync("/Public/SalesOrders/not-a-valid-token");
+        var html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound, html);
+        html.ShouldContain(localizer["Sales:PublicOrderInvalidTitle"].Value);
+        html.ShouldNotContain("CryptographicException");
     }
 
     private async Task<(string Action, Dictionary<string, string> Fields)> GetSalesPaymentFormAsync(Guid orderId)
