@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -420,6 +421,78 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     [Fact]
+    public async Task Confirmed_Unpaid_Cancel_Should_Restore_All_Fifo_Lots_For_Multiple_Lines()
+    {
+        var context = await CreateBaseAsync();
+        var component = await _components.CreateAsync(new CreateComponentDto
+        {
+            Code = Unique("MF"),
+            Name = "Multi FIFO Component",
+            Unit = "Piece"
+        });
+        var stockItem = await GetComponentStockItemAsync(component.Id);
+        var firstLotNo = Unique("FIFA");
+        var secondLotNo = Unique("FIFB");
+        await PostReceiptAsync(context.Warehouse.Id, stockItem.Id, 5, 100, firstLotNo);
+        await PostReceiptAsync(context.Warehouse.Id, stockItem.Id, 7, 200, secondLotNo);
+        var (firstProduct, _) = await CreateProductForComponentAsync(component, 2);
+        var (secondProduct, _) = await CreateProductForComponentAsync(component, 3);
+        var order = await _sales.CreateAsync(Input(context, firstProduct.Id, 2, 1_000));
+        await _sales.AddLineAsync(order.Id, new CreateSalesOrderLineDto
+        {
+            ProductId = secondProduct.Id,
+            Quantity = 2,
+            ActualSellingPrice = 1_000
+        });
+
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+
+        var confirmed = await _sales.GetAsync(order.Id);
+        confirmed.Lines.Count.ShouldBe(2);
+        confirmed.Lines.Sum(x => x.BomSnapshotItems.Sum(item => item.TotalRequiredQuantity)).ShouldBe(10);
+        var issuedLots = await GetLotsAsync(stockItem.Id);
+        issuedLots.Single(x => x.LotNo == firstLotNo).AvailableQuantity.ShouldBe(0);
+        issuedLots.Single(x => x.LotNo == firstLotNo).Status.ShouldBe(InventoryLotStatus.Depleted);
+        issuedLots.Single(x => x.LotNo == secondLotNo).AvailableQuantity.ShouldBe(2);
+        var issuedBalance = (await _inventoryQuery.GetBalancesAsync(context.Warehouse.Id, stockItem.Id)).Single();
+        issuedBalance.QuantityOnHand.ShouldBe(2);
+        issuedBalance.InventoryValue.ShouldBe(400);
+
+        await _sales.CancelAsync(order.Id);
+
+        var cancelled = await _sales.GetAsync(order.Id);
+        cancelled.Status.ShouldBe(SalesOrderStatus.Cancelled);
+        var restoredLots = await GetLotsAsync(stockItem.Id);
+        restoredLots.Single(x => x.LotNo == firstLotNo).AvailableQuantity.ShouldBe(5);
+        restoredLots.Single(x => x.LotNo == firstLotNo).Status.ShouldBe(InventoryLotStatus.Available);
+        restoredLots.Single(x => x.LotNo == secondLotNo).AvailableQuantity.ShouldBe(7);
+        restoredLots.Single(x => x.LotNo == secondLotNo).Status.ShouldBe(InventoryLotStatus.Available);
+        var restoredBalance = (await _inventoryQuery.GetBalancesAsync(context.Warehouse.Id, stockItem.Id)).Single();
+        restoredBalance.QuantityOnHand.ShouldBe(12);
+        restoredBalance.InventoryValue.ShouldBe(1_900);
+
+        var ledger = await _inventoryQuery.GetLedgerAsync(context.Warehouse.Id, stockItem.Id);
+        ledger.Count(x => x.Type == InventoryTransactionType.SalesIssue &&
+                          confirmed.Lines.Select(line => line.Id).Contains(x.ReferenceId!.Value)).ShouldBe(2);
+        var rollbackTransactions = ledger
+            .Where(x => x.Type == InventoryTransactionType.AdjustmentIncrease &&
+                        confirmed.Lines.Select(line => line.Id).Contains(x.ReferenceId!.Value))
+            .ToList();
+        rollbackTransactions.Count.ShouldBe(2);
+        rollbackTransactions.SelectMany(x => x.Lines).Where(x => x.LotNo == firstLotNo).Sum(x => x.Quantity).ShouldBe(5);
+        rollbackTransactions.SelectMany(x => x.Lines).Where(x => x.LotNo == secondLotNo).Sum(x => x.Quantity).ShouldBe(5);
+        rollbackTransactions.SelectMany(x => x.Lines).Where(x => x.LotNo == firstLotNo).ShouldAllBe(x => x.UnitCost == 100);
+        rollbackTransactions.SelectMany(x => x.Lines).Where(x => x.LotNo == secondLotNo).ShouldAllBe(x => x.UnitCost == 200);
+
+        (await Should.ThrowAsync<BusinessException>(() => _sales.CancelAsync(order.Id)))
+            .Code.ShouldBe(VPureLuxDomainErrorCodes.SalesOrderAlreadyCancelled);
+        var ledgerAfterSecondCancel = await _inventoryQuery.GetLedgerAsync(context.Warehouse.Id, stockItem.Id);
+        ledgerAfterSecondCancel.Count(x => x.Type == InventoryTransactionType.AdjustmentIncrease &&
+                                           confirmed.Lines.Select(line => line.Id).Contains(x.ReferenceId!.Value)).ShouldBe(2);
+        (await _inventoryQuery.GetBalancesAsync(context.Warehouse.Id, stockItem.Id)).Single().QuantityOnHand.ShouldBe(12);
+    }
+
+    [Fact]
     public async Task Confirmed_Paid_Cancel_Should_Be_Blocked_And_Leave_Inventory_Unchanged()
     {
         var context = await CreateBaseAsync();
@@ -618,6 +691,19 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
             return await db.InventoryLots.AsNoTracking().SingleAsync(x => x.StockItemId == stockItemId);
         });
 
+    private async Task<List<InventoryLot>> GetLotsAsync(Guid stockItemId) =>
+        await WithUnitOfWorkAsync(async () =>
+        {
+            var db = await GetRequiredService<IDbContextProvider<VPureLuxDbContext>>().GetDbContextAsync();
+            return await db.InventoryLots
+                .AsNoTracking()
+                .Where(x => x.StockItemId == stockItemId)
+                .OrderBy(x => x.ReceivedAt)
+                .ThenBy(x => x.CreationTime)
+                .ThenBy(x => x.Id)
+                .ToListAsync();
+        });
+
     private async Task PostReceiptAsync(Guid warehouseId, Guid stockItemId, decimal quantity, decimal unitCost, string lotNo)
     {
         await _inventory.PostReceiptAsync(new PostReceiptDto
@@ -656,13 +742,14 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     private async Task<(ProductDto Product, BomVersionDto Bom)> CreateProductForComponentAsync(
-        VPureLux.Catalog.Components.ComponentDto component)
+        VPureLux.Catalog.Components.ComponentDto component,
+        decimal quantity = 1)
     {
         var product = await _products.CreateAsync(new CreateProductDto { Code = Unique("SP"), Name = $"SKU {component.Code}" });
         var bom = await _boms.CreateAsync(product.Id, new CreateBomVersionDto
         {
             EffectiveFrom = DateTime.Now.Date,
-            Items = [new CreateBomItemDto { ComponentId = component.Id, Quantity = 1 }]
+            Items = [new CreateBomItemDto { ComponentId = component.Id, Quantity = quantity }]
         });
         await _boms.PublishAsync(bom.Id);
         return (product, bom);
