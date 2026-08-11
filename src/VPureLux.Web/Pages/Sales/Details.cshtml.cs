@@ -32,6 +32,7 @@ public class DetailsModel : VPureLuxPageModel
     private readonly IProductPricingContextLookupService _productPricingContext;
     private readonly IUnitOfWorkManager _unitOfWorkManager;
     [BindProperty(SupportsGet = true)] public Guid Id { get; set; }
+    [BindProperty(SupportsGet = true)] public bool PrintPrices { get; set; } = true;
     [BindProperty] public ConfirmSalesOrderDto Confirmation { get; set; } = new() { IdempotencyKey = Guid.NewGuid().ToString("N") };
     [BindProperty] public CreateSalesOrderPaymentDto Payment { get; set; } = CreateDefaultPaymentInput();
     [TempData] public string? SuccessMessage { get; set; }

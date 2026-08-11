@@ -2247,6 +2247,46 @@ public class SalesPagesTests : VPureLuxWebTestBase
         order.Lines.Count.ShouldBe(2);
     }
 
+    [Fact]
+    public async Task Sales_Details_Print_Should_Render_Order_Info_And_Respect_Price_Option()
+    {
+        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
+        var context = await CreateSalesContextAsync("SALES-DPR");
+        var order = await GetRequiredService<ISalesOrderAppService>().CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.CustomerId,
+            WarehouseId = context.WarehouseId,
+            Lines =
+            [
+                new CreateSalesOrderLineDto
+                {
+                    ProductId = context.ProductId,
+                    Quantity = 2,
+                    ActualSellingPrice = 100
+                }
+            ]
+        });
+
+        var withPrices = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Sales/Details/{order.Id}?handler=Print&PrintPrices=true"));
+
+        withPrices.ShouldContain(localizer["Sales:PrintTitle"].Value);
+        withPrices.ShouldContain(localizer["Sales:SellerInfo"].Value);
+        withPrices.ShouldContain(localizer["Sales:BuyerInfo"].Value);
+        withPrices.ShouldContain(localizer["Sales:SellerUnit"].Value);
+        withPrices.ShouldContain(localizer["Sales:ActualPrice"].Value);
+        withPrices.ShouldContain($"{context.CustomerCode} - {context.CustomerName}");
+        withPrices.ShouldContain($"{context.ProductCode} - {context.ProductName}");
+        withPrices.ShouldContain(FormatMoneyForTest(100));
+
+        var withoutPrices = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Sales/Details/{order.Id}?handler=Print&PrintPrices=false"));
+
+        withoutPrices.ShouldContain(localizer["Sales:PrintTitle"].Value);
+        withoutPrices.ShouldContain(localizer["Sales:BuyerInfo"].Value);
+        withoutPrices.ShouldContain($"{context.ProductCode} - {context.ProductName}");
+        withoutPrices.ShouldNotContain(localizer["Sales:ActualPrice"].Value);
+        withoutPrices.ShouldNotContain(FormatMoneyForTest(100));
+    }
+
     private async Task<(string Action, Dictionary<string, string> Fields)> GetSalesPaymentFormAsync(Guid orderId)
     {
         var html = await GetResponseAsStringAsync($"/Sales/Details/{orderId}");

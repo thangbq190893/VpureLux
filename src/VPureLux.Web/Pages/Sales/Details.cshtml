@@ -7,6 +7,7 @@
 @{
     ViewData["Title"] = Model.Order.OrderNo;
     var isPrintMode = string.Equals(Request.Query["handler"], "Print", StringComparison.OrdinalIgnoreCase);
+    var showPrintPrices = !isPrintMode || Model.PrintPrices;
 }
 @{ var canViewCost = (await AuthorizationService.AuthorizeAsync(User, null, VPureLuxPermissions.Sales.ViewCost)).Succeeded; }
 @{ var canViewProfit = (await AuthorizationService.AuthorizeAsync(User, null, VPureLuxPermissions.Sales.ViewProfit)).Succeeded; }
@@ -70,10 +71,19 @@
                     <button class="btn btn-sm btn-danger">@L["Sales:Cancel"]</button>
                 </form>
             }
-            <a class="btn btn-sm btn-outline-secondary"
-               asp-page-handler="Print"
-               asp-route-id="@Model.Order.Id"
-               target="_blank">@L["Sales:PrintForTechnician"]</a>
+            <form method="get"
+                  asp-page="/Sales/Details"
+                  asp-route-id="@Model.Order.Id"
+                  target="_blank"
+                  class="sales-print-options">
+                <input type="hidden" name="handler" value="Print" />
+                <label class="form-check form-check-inline mb-0">
+                    <input class="form-check-input" type="checkbox" name="PrintPrices" value="true" checked />
+                    <input type="hidden" name="PrintPrices" value="false" />
+                    <span class="form-check-label">@L["Sales:PrintWithPrices"]</span>
+                </label>
+                <button type="submit" class="btn btn-sm btn-outline-secondary">@L["Sales:PrintForTechnician"]</button>
+            </form>
         </div>
     </div>
 
@@ -92,6 +102,78 @@
 
     <abp-validation-summary />
 
+    @if (isPrintMode)
+    {
+        <section class="sales-print-document">
+            <div class="sales-print-title">
+                <h1>@L["Sales:PrintTitle"]</h1>
+                <div>@L["Sales:OrderNo"]: @Model.Order.OrderNo</div>
+                <div>@L["Sales:OrderDate"]: @FormatDate(Model.Order.OrderDate)</div>
+            </div>
+
+            <div class="sales-print-parties">
+                <section>
+                    <h2>@L["Sales:SellerInfo"]</h2>
+                    <dl>
+                        <dt>@L["Sales:SellerUnit"]</dt>
+                        <dd>@L["AppName"]</dd>
+                    </dl>
+                </section>
+                <section>
+                    <h2>@L["Sales:BuyerInfo"]</h2>
+                    <dl>
+                        <dt>@L["Sales:Customer"]</dt>
+                        <dd>@Model.CustomerDisplay</dd>
+                        <dt>@L["Customers:PhoneNumber"]</dt>
+                        <dd>@(string.IsNullOrWhiteSpace(Model.CustomerPhoneDisplay) ? "-" : Model.CustomerPhoneDisplay)</dd>
+                        <dt>@L["Customers:Address"]</dt>
+                        <dd>@(string.IsNullOrWhiteSpace(Model.CustomerAddressDisplay) ? "-" : Model.CustomerAddressDisplay)</dd>
+                    </dl>
+                </section>
+            </div>
+
+            <table class="sales-print-lines">
+                <thead>
+                <tr>
+                    <th>#</th>
+                    <th>@L["Sales:ProductSku"]</th>
+                    <th>@L["Sales:Quantity"]</th>
+                    @if (showPrintPrices)
+                    {
+                        <th>@L["Sales:ActualPrice"]</th>
+                        <th>@L["Reports:TotalAmount"]</th>
+                    }
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var line in Model.Order.Lines.OrderBy(x => x.LineNo))
+                {
+                    <tr>
+                        <td>@line.LineNo</td>
+                        <td>@Model.GetProductLabel(line)</td>
+                        <td>@FormatQuantity(line.Quantity) @line.UnitSnapshot</td>
+                        @if (showPrintPrices)
+                        {
+                            <td>@FormatMoney(line.ActualSellingPrice)</td>
+                            <td>@FormatMoney(line.RevenueAmount)</td>
+                        }
+                    </tr>
+                }
+                </tbody>
+                @if (showPrintPrices)
+                {
+                    <tfoot>
+                    <tr>
+                        <th colspan="4">@L["Sales:PaymentTotalAmount"]</th>
+                        <th>@FormatMoney(Model.IsDraft ? Model.DraftEstimatedRevenueAmount : Model.Order.TotalRevenueAmount)</th>
+                    </tr>
+                    </tfoot>
+                }
+            </table>
+        </section>
+    }
+    else
+    {
     <abp-card class="vpl-card-dense mb-3">
         <abp-card-body>
             <dl class="row mb-0">
@@ -316,12 +398,94 @@
             </abp-table>
         </abp-card-body>
     </abp-card>
+    }
 
     <a class="btn btn-sm btn-secondary sales-screen-only" asp-page="/Sales/Index">@L["Back"]</a>
 </div>
 
 @section styles {
     <style>
+        .sales-print-options {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+        }
+
+        .sales-print-document {
+            max-width: 960px;
+            margin: 0 auto;
+            color: #111827;
+            background: #fff;
+        }
+
+        .sales-print-title {
+            margin-bottom: 1.25rem;
+            text-align: center;
+        }
+
+        .sales-print-title h1 {
+            margin-bottom: .5rem;
+            font-size: 1.45rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .sales-print-parties {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .sales-print-parties section {
+            padding: .75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+        }
+
+        .sales-print-parties h2 {
+            margin-bottom: .5rem;
+            font-size: .95rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .sales-print-parties dl {
+            display: grid;
+            grid-template-columns: 7rem 1fr;
+            gap: .25rem .5rem;
+            margin-bottom: 0;
+        }
+
+        .sales-print-parties dt {
+            font-weight: 600;
+        }
+
+        .sales-print-parties dd {
+            margin-bottom: 0;
+        }
+
+        .sales-print-lines {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .sales-print-lines th,
+        .sales-print-lines td {
+            padding: .5rem;
+            border: 1px solid #d1d5db;
+            vertical-align: top;
+        }
+
+        .sales-print-lines th {
+            background: #f3f4f6;
+            font-weight: 700;
+        }
+
+        .sales-print-lines tfoot th {
+            text-align: right;
+        }
+
         @@media print {
             .lpx-sidebar-container,
             .lpx-toolbar,
@@ -336,6 +500,24 @@
 
             .sales-print-page {
                 margin: 0;
+            }
+
+            .sales-print-document {
+                max-width: none;
+            }
+
+            .sales-print-parties section {
+                break-inside: avoid;
+            }
+        }
+
+        @@media (max-width: 767.98px) {
+            .sales-print-options {
+                flex-wrap: wrap;
+            }
+
+            .sales-print-parties {
+                grid-template-columns: 1fr;
             }
         }
     </style>
