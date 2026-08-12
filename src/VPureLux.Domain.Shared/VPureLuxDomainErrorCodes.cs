@@ -30,6 +30,14 @@ public static class VPureLuxDomainErrorCodes
     public const string SupplierCodeAlreadyExists = "SUPPLIER_001";
     public const string SupplierNotFound = "SUPPLIER_002";
 
+    public const string OperatingCostCategoryCodeAlreadyExists = "OPCOST_001";
+    public const string OperatingCostCategoryNotFound = "OPCOST_002";
+    public const string OperatingCostEntryNotFound = "OPCOST_003";
+    public const string OperatingCostAmountMustBeGreaterThanZero = "OPCOST_004";
+    public const string OperatingCostCategoryInactive = "OPCOST_005";
+    public const string OperatingCostCategoryDirectionMismatch = "OPCOST_006";
+    public const string OperatingCostCategoryInUse = "OPCOST_007";
+
     public const string ActivePriceVersionAlreadyExists = "PRICE_001";
     public const string PriceMustBeGreaterThanZero = "PRICE_002";
     public const string PriceVersionNotFound = "PRICE_003";

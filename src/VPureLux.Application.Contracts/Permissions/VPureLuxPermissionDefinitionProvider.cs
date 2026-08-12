@@ -54,6 +54,18 @@ public class VPureLuxPermissionDefinitionProvider : PermissionDefinitionProvider
         suppliers.AddChild(VPureLuxPermissions.Suppliers.Edit, L("Permission:Suppliers.Edit"));
         suppliers.AddChild(VPureLuxPermissions.Suppliers.Delete, L("Permission:Suppliers.Delete"));
 
+        var operatingCosts = myGroup.AddPermission(
+            VPureLuxPermissions.OperatingCosts.Default,
+            L("Permission:OperatingCosts"));
+        operatingCosts.AddChild(VPureLuxPermissions.OperatingCosts.View, L("Permission:OperatingCosts.View"));
+        operatingCosts.AddChild(
+            VPureLuxPermissions.OperatingCosts.ManageEntries,
+            L("Permission:OperatingCosts.ManageEntries"));
+        operatingCosts.AddChild(
+            VPureLuxPermissions.OperatingCosts.ManageCategories,
+            L("Permission:OperatingCosts.ManageCategories"));
+        operatingCosts.AddChild(VPureLuxPermissions.OperatingCosts.Delete, L("Permission:OperatingCosts.Delete"));
+
         var pricing = myGroup.AddPermission(VPureLuxPermissions.Pricing.Default, L("Permission:Pricing"));
         pricing.AddChild(VPureLuxPermissions.Pricing.View, L("Permission:Pricing.View"));
         pricing.AddChild(VPureLuxPermissions.Pricing.History, L("Permission:Pricing.History"));

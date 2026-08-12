@@ -1,0 +1,70 @@
+@page
+@model VPureLux.Web.Pages.OperatingCosts.CategoriesModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using VPureLux.OperatingCosts
+@{
+    ViewData["Title"] = L["OperatingCosts:Categories"];
+}
+
+@section scripts {
+    <abp-script src="/Pages/OperatingCosts/Categories.js" />
+}
+
+<div data-operating-cost-categories
+     data-can-manage="@Model.CanManageCategories.ToString().ToLowerInvariant()"
+     data-status-success="@(string.IsNullOrWhiteSpace(Model.StatusMessageKey) ? string.Empty : L[Model.StatusMessageKey].Value)"></div>
+
+<div class="vpl-page">
+    <div class="vpl-page-header">
+        <h2 class="vpl-page-title mb-0">@L["OperatingCosts:Categories"]</h2>
+        <div class="vpl-btn-toolbar">
+            <a class="btn btn-outline-secondary" asp-page="/OperatingCosts/Index">@L["OperatingCosts:BackToEntries"]</a>
+            @if (Model.CanManageCategories)
+            {
+                <a class="btn btn-primary" asp-page="/OperatingCosts/CreateCategory">@L["OperatingCosts:CreateCategory"]</a>
+            }
+        </div>
+    </div>
+
+    <abp-card class="vpl-card-dense">
+        <abp-card-body>
+            <form id="OperatingCostCategoriesSearchForm" class="row g-2 align-items-end mb-3">
+                <div class="col-md-4">
+                    <input asp-for="SearchText" id="OperatingCostCategoriesSearchText" class="form-control form-control-sm" placeholder="@L["OperatingCosts:CategorySearchPlaceholder"]" />
+                </div>
+                <div class="col-md-3">
+                    <select asp-for="Direction" id="OperatingCostCategoriesDirection" class="form-select form-select-sm">
+                        <option value="">@L["Select"]</option>
+                        <option value="@OperatingCostDirection.Expense">@L["OperatingCosts:Direction:Expense"]</option>
+                        <option value="@OperatingCostDirection.Income">@L["OperatingCosts:Direction:Income"]</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select asp-for="IsActive" id="OperatingCostCategoriesIsActive" class="form-select form-select-sm">
+                        <option value="">@L["Select"]</option>
+                        <option value="true">@L["Status:Active"]</option>
+                        <option value="false">@L["Status:Inactive"]</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary btn-sm">@L["Search"]</button>
+                </div>
+                <div class="col-auto">
+                    <button type="button" id="OperatingCostCategoriesClearButton" class="btn btn-outline-secondary btn-sm">@L["Clear"]</button>
+                </div>
+            </form>
+
+            <abp-table id="OperatingCostCategoriesTable" striped-rows="true" class="vpl-table-dense">
+                <thead>
+                <tr>
+                    <th>@L["Actions"]</th>
+                    <th>@L["OperatingCosts:CategoryCode"]</th>
+                    <th>@L["OperatingCosts:CategoryName"]</th>
+                    <th>@L["OperatingCosts:Direction"]</th>
+                    <th>@L["Status"]</th>
+                </tr>
+                </thead>
+            </abp-table>
+        </abp-card-body>
+    </abp-card>
+</div>

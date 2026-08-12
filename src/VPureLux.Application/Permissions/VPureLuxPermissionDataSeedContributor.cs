@@ -30,7 +30,12 @@ public class VPureLuxPermissionDataSeedContributor : IDataSeedContributor, ITran
                 VPureLuxPermissions.Suppliers.View,
                 VPureLuxPermissions.Suppliers.Create,
                 VPureLuxPermissions.Suppliers.Edit,
-                VPureLuxPermissions.Suppliers.Delete
+                VPureLuxPermissions.Suppliers.Delete,
+                VPureLuxPermissions.OperatingCosts.Default,
+                VPureLuxPermissions.OperatingCosts.View,
+                VPureLuxPermissions.OperatingCosts.ManageEntries,
+                VPureLuxPermissions.OperatingCosts.ManageCategories,
+                VPureLuxPermissions.OperatingCosts.Delete
             ],
             context.TenantId);
     }

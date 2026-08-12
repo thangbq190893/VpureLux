@@ -1,0 +1,135 @@
+@page
+@model VPureLux.Web.Pages.OperatingCosts.IndexModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using VPureLux.OperatingCosts
+@{
+    ViewData["Title"] = L["OperatingCosts:Title"];
+}
+
+@section scripts {
+    <abp-script src="/Pages/OperatingCosts/Index.js" />
+}
+
+<div data-operating-costs-index
+     data-can-manage-entries="@Model.CanManageEntries.ToString().ToLowerInvariant()"
+     data-can-manage-categories="@Model.CanManageCategories.ToString().ToLowerInvariant()"
+     data-can-delete="@Model.CanDelete.ToString().ToLowerInvariant()"
+     data-status-success="@(string.IsNullOrWhiteSpace(Model.StatusMessageKey) ? string.Empty : L[Model.StatusMessageKey].Value)"></div>
+
+<div class="vpl-page vpl-inquiry-page">
+    <div class="vpl-page-header">
+        <h2 class="vpl-page-title mb-0">@L["OperatingCosts:Title"]</h2>
+        <div class="vpl-btn-toolbar">
+            @if (Model.CanManageCategories)
+            {
+                <a class="btn btn-outline-secondary" asp-page="/OperatingCosts/Categories">@L["OperatingCosts:Categories"]</a>
+            }
+            @if (Model.CanManageEntries)
+            {
+                <a class="btn btn-primary" asp-page="/OperatingCosts/Create">@L["OperatingCosts:CreateEntry"]</a>
+            }
+        </div>
+    </div>
+
+    <abp-card class="vpl-card-dense mb-3">
+        <abp-card-body>
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <div class="border rounded p-3 h-100">
+                        <div class="text-muted small">@L["OperatingCosts:TotalIncome"]</div>
+                        <div class="fs-5 fw-semibold text-success" id="OperatingCostsTotalIncome">0 ₫</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="border rounded p-3 h-100">
+                        <div class="text-muted small">@L["OperatingCosts:TotalExpense"]</div>
+                        <div class="fs-5 fw-semibold text-danger" id="OperatingCostsTotalExpense">0 ₫</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="border rounded p-3 h-100">
+                        <div class="text-muted small">@L["OperatingCosts:NetAmount"]</div>
+                        <div class="fs-5 fw-semibold" id="OperatingCostsNetAmount">0 ₫</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="border rounded p-3 h-100">
+                        <div class="text-muted small">@L["OperatingCosts:MonthDebt"]</div>
+                        <div class="small">@L["OperatingCosts:Receivable"]: <strong id="OperatingCostsUnpaidReceivable">0 ₫</strong></div>
+                        <div class="small">@L["OperatingCosts:Payable"]: <strong id="OperatingCostsUnpaidPayable">0 ₫</strong></div>
+                    </div>
+                </div>
+            </div>
+        </abp-card-body>
+    </abp-card>
+
+    <abp-card class="vpl-inquiry-filter-card vpl-card-dense mb-3">
+        <abp-card-body>
+            <form id="OperatingCostsSearchForm" class="row g-2 align-items-end mb-0">
+                <div class="col-md-2">
+                    <label asp-for="FromDate" class="form-label">@L["OperatingCosts:FromDate"]</label>
+                    <input asp-for="FromDate" id="OperatingCostsFromDate" type="date" class="form-control form-control-sm" />
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="ToDate" class="form-label">@L["OperatingCosts:ToDate"]</label>
+                    <input asp-for="ToDate" id="OperatingCostsToDate" type="date" class="form-control form-control-sm" />
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="Direction" class="form-label">@L["OperatingCosts:Direction"]</label>
+                    <select asp-for="Direction" id="OperatingCostsDirection" class="form-select form-select-sm">
+                        <option value="">@L["Select"]</option>
+                        <option value="@OperatingCostDirection.Expense">@L["OperatingCosts:Direction:Expense"]</option>
+                        <option value="@OperatingCostDirection.Income">@L["OperatingCosts:Direction:Income"]</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="PaymentStatus" class="form-label">@L["OperatingCosts:PaymentStatus"]</label>
+                    <select asp-for="PaymentStatus" id="OperatingCostsPaymentStatus" class="form-select form-select-sm">
+                        <option value="">@L["Select"]</option>
+                        <option value="@OperatingCostPaymentStatus.Paid">@L["OperatingCosts:PaymentStatus:Paid"]</option>
+                        <option value="@OperatingCostPaymentStatus.Unpaid">@L["OperatingCosts:PaymentStatus:Unpaid"]</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="CategoryId" class="form-label">@L["OperatingCosts:Category"]</label>
+                    <select asp-for="CategoryId" id="OperatingCostsCategoryId" class="form-select form-select-sm">
+                        <option value="">@L["Select"]</option>
+                        @foreach (var category in Model.Categories)
+                        {
+                            <option value="@category.Id">@category.Code - @category.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="SearchText" class="form-label">@L["Search"]</label>
+                    <input asp-for="SearchText" id="OperatingCostsSearchText" class="form-control form-control-sm" placeholder="@L["OperatingCosts:SearchPlaceholder"]" />
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary btn-sm">@L["Search"]</button>
+                </div>
+                <div class="col-auto">
+                    <button type="button" id="OperatingCostsClearButton" class="btn btn-outline-secondary btn-sm">@L["Clear"]</button>
+                </div>
+            </form>
+        </abp-card-body>
+    </abp-card>
+
+    <abp-card class="vpl-inquiry-results-card vpl-card-dense">
+        <abp-card-body>
+            <abp-table id="OperatingCostsTable" striped-rows="true" class="vpl-table-dense">
+                <thead>
+                <tr>
+                    <th>@L["Actions"]</th>
+                    <th>@L["OperatingCosts:EntryDate"]</th>
+                    <th>@L["OperatingCosts:Direction"]</th>
+                    <th>@L["OperatingCosts:Category"]</th>
+                    <th>@L["OperatingCosts:Description"]</th>
+                    <th class="text-end">@L["OperatingCosts:Amount"]</th>
+                    <th>@L["OperatingCosts:PaymentStatus"]</th>
+                    <th>@L["OperatingCosts:Counterparty"]</th>
+                </tr>
+                </thead>
+            </abp-table>
+        </abp-card-body>
+    </abp-card>
+</div>

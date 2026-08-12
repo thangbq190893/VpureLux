@@ -1,0 +1,21 @@
+@page
+@model VPureLux.Web.Pages.OperatingCosts.CreateCategoryModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{
+    ViewData["Title"] = L["OperatingCosts:CreateCategory"];
+}
+
+<div class="vpl-page">
+    <div class="vpl-page-header">
+        <h2 class="vpl-page-title mb-0">@L["OperatingCosts:CreateCategory"]</h2>
+    </div>
+    <abp-card class="vpl-card-dense">
+        <abp-card-body>
+            <form method="post">
+                <partial name="_CategoryForm" model="Model.Input" />
+                <button type="submit" class="btn btn-primary">@L["Save"]</button>
+                <a class="btn btn-outline-secondary" asp-page="/OperatingCosts/Categories">@L["Back"]</a>
+            </form>
+        </abp-card-body>
+    </abp-card>
+</div>

@@ -1,0 +1,23 @@
+@page
+@model VPureLux.Web.Pages.OperatingCosts.EditModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{
+    ViewData["Title"] = L["OperatingCosts:EditEntry"];
+}
+
+<div class="vpl-page">
+    <div class="vpl-page-header">
+        <h2 class="vpl-page-title mb-0">@L["OperatingCosts:EditEntry"]</h2>
+    </div>
+
+    <abp-card class="vpl-card-dense">
+        <abp-card-body>
+            <form method="post">
+                <input type="hidden" asp-for="Id" />
+                <partial name="_EntryForm" model="Model.Form" />
+                <button type="submit" class="btn btn-primary">@L["Save"]</button>
+                <a class="btn btn-outline-secondary" asp-page="/OperatingCosts/Index">@L["Back"]</a>
+            </form>
+        </abp-card-body>
+    </abp-card>
+</div>

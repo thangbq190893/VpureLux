@@ -1,0 +1,85 @@
+@model VPureLux.Web.Pages.OperatingCosts.EntryFormViewModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using VPureLux.OperatingCosts
+
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <label asp-for="Input.EntryDate" class="form-label">@L["OperatingCosts:EntryDate"]</label>
+        <input asp-for="Input.EntryDate" type="date" class="form-control" />
+        <span asp-validation-for="Input.EntryDate" class="text-danger"></span>
+    </div>
+    <div class="col-md-3 mb-3">
+        <label asp-for="Input.Direction" class="form-label">@L["OperatingCosts:Direction"]</label>
+        <select asp-for="Input.Direction" class="form-select">
+            <option value="@OperatingCostDirection.Expense">@L["OperatingCosts:Direction:Expense"]</option>
+            <option value="@OperatingCostDirection.Income">@L["OperatingCosts:Direction:Income"]</option>
+        </select>
+        <span asp-validation-for="Input.Direction" class="text-danger"></span>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label asp-for="Input.CategoryId" class="form-label">@L["OperatingCosts:Category"]</label>
+        <select asp-for="Input.CategoryId" class="form-select">
+            <option value="">@L["Select"]</option>
+            @foreach (var category in Model.Categories)
+            {
+                <option value="@category.Id">@category.Code - @category.Name (@L[$"OperatingCosts:Direction:{category.Direction}"])</option>
+            }
+        </select>
+        <span asp-validation-for="Input.CategoryId" class="text-danger"></span>
+        @if (Model.Categories.Count == 0)
+        {
+            <div class="form-text text-danger">@L["OperatingCosts:NoActiveCategoriesHint"]</div>
+        }
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <label asp-for="Input.Amount" class="form-label">@L["OperatingCosts:Amount"]</label>
+        <input asp-for="Input.Amount" class="form-control" inputmode="decimal" />
+        <span asp-validation-for="Input.Amount" class="text-danger"></span>
+    </div>
+    <div class="col-md-3 mb-3">
+        <label asp-for="Input.PaymentStatus" class="form-label">@L["OperatingCosts:PaymentStatus"]</label>
+        <select asp-for="Input.PaymentStatus" class="form-select">
+            <option value="@OperatingCostPaymentStatus.Paid">@L["OperatingCosts:PaymentStatus:Paid"]</option>
+            <option value="@OperatingCostPaymentStatus.Unpaid">@L["OperatingCosts:PaymentStatus:Unpaid"]</option>
+        </select>
+        <span asp-validation-for="Input.PaymentStatus" class="text-danger"></span>
+    </div>
+    <div class="col-md-3 mb-3">
+        <label asp-for="Input.DueDate" class="form-label">@L["OperatingCosts:DueDate"]</label>
+        <input asp-for="Input.DueDate" type="date" class="form-control" />
+        <span asp-validation-for="Input.DueDate" class="text-danger"></span>
+    </div>
+    <div class="col-md-3 mb-3">
+        <label asp-for="Input.PaymentDate" class="form-label">@L["OperatingCosts:PaymentDate"]</label>
+        <input asp-for="Input.PaymentDate" type="date" class="form-control" />
+        <span asp-validation-for="Input.PaymentDate" class="text-danger"></span>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label asp-for="Input.Counterparty" class="form-label">@L["OperatingCosts:Counterparty"]</label>
+        <input asp-for="Input.Counterparty" class="form-control" />
+        <span asp-validation-for="Input.Counterparty" class="text-danger"></span>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label asp-for="Input.ReferenceNo" class="form-label">@L["OperatingCosts:ReferenceNo"]</label>
+        <input asp-for="Input.ReferenceNo" class="form-control" />
+        <span asp-validation-for="Input.ReferenceNo" class="text-danger"></span>
+    </div>
+</div>
+
+<div class="mb-3">
+    <label asp-for="Input.Description" class="form-label">@L["OperatingCosts:Description"]</label>
+    <input asp-for="Input.Description" class="form-control" />
+    <span asp-validation-for="Input.Description" class="text-danger"></span>
+</div>
+
+<div class="mb-3">
+    <label asp-for="Input.Note" class="form-label">@L["OperatingCosts:Note"]</label>
+    <textarea asp-for="Input.Note" class="form-control" rows="3"></textarea>
+    <span asp-validation-for="Input.Note" class="text-danger"></span>
+</div>

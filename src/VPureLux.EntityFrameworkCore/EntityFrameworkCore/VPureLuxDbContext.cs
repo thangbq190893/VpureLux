@@ -32,6 +32,7 @@ using VPureLux.Inventory;
 using VPureLux.Sales;
 using VPureLux.Audit;
 using VPureLux.Suppliers;
+using VPureLux.OperatingCosts;
 
 namespace VPureLux.EntityFrameworkCore;
 
@@ -63,6 +64,8 @@ public class VPureLuxDbContext :
     public DbSet<NumberSequence> NumberSequences { get; set; }
     public DbSet<BusinessAuditLog> BusinessAuditLogs { get; set; }
     public DbSet<Supplier> Suppliers { get; set; }
+    public DbSet<OperatingCostCategory> OperatingCostCategories { get; set; }
+    public DbSet<OperatingCostEntry> OperatingCostEntries { get; set; }
 
     #region Entities from the modules
 
@@ -149,6 +152,8 @@ public class VPureLuxDbContext :
         builder.ApplyConfiguration(new NumberSequenceConfiguration());
         builder.ApplyConfiguration(new BusinessAuditLogConfiguration());
         builder.ApplyConfiguration(new SupplierConfiguration());
+        builder.ApplyConfiguration(new OperatingCostCategoryConfiguration());
+        builder.ApplyConfiguration(new OperatingCostEntryConfiguration());
 
         if (Database.ProviderName?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true)
         {

@@ -19,6 +19,7 @@ public class VPureLuxMenus
 
     public const string Customers = Prefix + ".Customers";
     public const string CustomerGroups = Prefix + ".CustomerGroups";
+    public const string OperatingCosts = Prefix + ".OperatingCosts";
     public const string Pricing = Prefix + ".Pricing";
     public const string Inventory = Prefix + ".Inventory";
     public const string InventoryLedger = Inventory + ".Ledger";
