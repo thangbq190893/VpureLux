@@ -22,12 +22,26 @@
             : {};
     }
 
-    function cancelOrder(row) {
+    function reloadSalesTable() {
+        if (dataTable.ajax && typeof dataTable.ajax.reload === 'function') {
+            dataTable.ajax.reload(null, false);
+            return;
+        }
+
+        if (typeof dataTable.draw === 'function') {
+            dataTable.draw(false);
+        }
+    }
+
+    function cancelOrder(row, button) {
         const message = row.cancelConfirmationMessage || l('Sales:CancelOrderMessage');
         abp.message.confirm(message, l('Confirm')).then(function (confirmed) {
             if (!confirmed) {
                 return;
             }
+
+            const $button = $(button);
+            $button.prop('disabled', true);
 
             abp.ajax({
                 url: abp.appPath + 'Sales?handler=Cancel&id=' + encodeURIComponent(row.id),
@@ -35,7 +49,9 @@
                 headers: formTokenHeaders()
             }).then(function () {
                 abp.notify.success(l('Sales:CancelledSuccessfully'));
-                dataTable.ajax.reload(null, false);
+                reloadSalesTable();
+            }).always(function () {
+                $button.prop('disabled', false);
             });
         });
     }
@@ -146,7 +162,7 @@
     $(tableSelector).on('click', '.js-sales-cancel', function () {
         const row = dataTable.row($(this).closest('tr')).data();
         if (row) {
-            cancelOrder(row);
+            cancelOrder(row, this);
         }
     });
 

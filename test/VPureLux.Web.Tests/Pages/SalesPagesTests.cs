@@ -242,6 +242,10 @@ public class SalesPagesTests : VPureLuxWebTestBase
         scriptSource.ShouldContain("__RequestVerificationToken");
         scriptSource.ShouldContain("RequestVerificationToken");
         scriptSource.ShouldContain("headers: formTokenHeaders()");
+        scriptSource.ShouldContain("reloadSalesTable");
+        scriptSource.ShouldContain("dataTable.ajax.reload(null, false)");
+        scriptSource.ShouldContain("dataTable.draw(false)");
+        scriptSource.ShouldContain("$button.prop('disabled', true)");
     }
 
     [Fact]
