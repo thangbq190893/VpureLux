@@ -80,14 +80,43 @@
     grid-template-columns: 8.5rem 8.5rem 9rem 11rem minmax(12rem, 1fr) minmax(16rem, 1.3fr) auto;
 }
 
+.operating-costs-filter-item {
+    display: grid;
+    grid-template-rows: 1.1rem 2.25rem;
+    min-width: 0;
+}
+
 .operating-costs-filter-grid .form-label {
+    align-self: end;
     color: var(--bs-secondary-color, #6c757d);
     font-size: 0.76rem;
     line-height: 1.1;
     margin-bottom: 0.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.operating-costs-filter-grid .form-control,
+.operating-costs-filter-grid .form-select {
+    align-self: stretch;
+    box-sizing: border-box;
+    font-size: 0.84rem;
+    height: 2.25rem;
+    line-height: 1.25;
+    min-height: 2.25rem;
+    width: 100%;
+}
+
+.operating-costs-filter-grid input[type="date"].form-control {
+    line-height: 1.25;
+    padding-bottom: 0.45rem;
+    padding-top: 0.45rem;
 }
 
 .operating-costs-filter-actions {
+    align-items: stretch;
+    align-self: end;
     display: flex;
     gap: 0.45rem;
     justify-content: flex-end;
@@ -95,7 +124,11 @@
 }
 
 .operating-costs-filter-actions .btn {
+    height: 2.25rem;
+    line-height: 1;
     min-width: 4.25rem;
+    padding-bottom: 0;
+    padding-top: 0;
 }
 
 .operating-costs-table-card .card-body {

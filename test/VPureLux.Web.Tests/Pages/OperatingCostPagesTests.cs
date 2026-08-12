@@ -41,8 +41,10 @@ public class OperatingCostPagesTests : VPureLuxWebTestBase
         indexScript.ShouldContain("OperatingCosts?handler=Summary");
         indexScript.ShouldContain("OperatingCosts?handler=Delete");
         indexStyles.ShouldContain("grid-template-columns");
+        indexStyles.ShouldContain("grid-template-rows: 1.1rem 2.25rem");
         indexStyles.ShouldContain(".operating-costs-summary");
         indexStyles.ShouldContain("table-layout: fixed");
+        indexStyles.ShouldContain("height: 2.25rem");
         indexStyles.ShouldContain("height: auto !important");
         categoriesScript.ShouldContain("serverSide: true");
         categoriesScript.ShouldContain("OperatingCosts/Categories?handler=Delete");
