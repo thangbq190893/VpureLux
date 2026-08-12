@@ -85,16 +85,20 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
             input.CustomerId, input.Status, input.Sorting, input.MaxResultCount, input.SkipCount);
         var visibility = await GetFinancialVisibilityAsync();
         var summaries = await GetPaymentSummariesAsync(page);
+        var items = page.Select(x => _mapper.ToDto(x, visibility.Cost, visibility.Profit, summaries[x.Id])).ToList();
+        await FillMissingCustomerSnapshotsAsync(items);
         return new PagedResultDto<SalesOrderDto>(
             count,
-            page.Select(x => _mapper.ToDto(x, visibility.Cost, visibility.Profit, summaries[x.Id])).ToList());
+            items);
     }
 
     public async Task<SalesOrderDto> GetAsync(Guid id)
     {
         var visibility = await GetFinancialVisibilityAsync();
         var order = await GetOrderAsync(id);
-        return _mapper.ToDto(order, visibility.Cost, visibility.Profit, await GetPaymentSummaryAsync(order));
+        var dto = _mapper.ToDto(order, visibility.Cost, visibility.Profit, await GetPaymentSummaryAsync(order));
+        await FillMissingCustomerSnapshotsAsync([dto]);
+        return dto;
     }
 
     [Authorize(VPureLuxPermissions.Sales.Create)]
@@ -643,9 +647,52 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
             .Skip(input.SkipCount)
             .Take(input.MaxResultCount)
             .ToList();
+        var items = page.Select(x => _mapper.ToDto(x, visibility.Cost, visibility.Profit, summaries[x.Id])).ToList();
+        await FillMissingCustomerSnapshotsAsync(items);
         return new PagedResultDto<SalesOrderDto>(
             filtered.Count,
-            page.Select(x => _mapper.ToDto(x, visibility.Cost, visibility.Profit, summaries[x.Id])).ToList());
+            items);
+    }
+
+    private async Task FillMissingCustomerSnapshotsAsync(List<SalesOrderDto> orders)
+    {
+        var missingCustomerIds = orders
+            .Where(x => string.IsNullOrWhiteSpace(x.CustomerNameSnapshot) || string.IsNullOrWhiteSpace(x.CustomerCodeSnapshot))
+            .Select(x => x.CustomerId)
+            .Distinct()
+            .ToList();
+        if (missingCustomerIds.Count == 0)
+        {
+            return;
+        }
+
+        var customers = new Dictionary<Guid, Customer>();
+        foreach (var customerId in missingCustomerIds)
+        {
+            var customer = await _customers.FindAsync(customerId);
+            if (customer != null)
+            {
+                customers[customer.Id] = customer;
+            }
+        }
+
+        foreach (var order in orders)
+        {
+            if (!customers.TryGetValue(order.CustomerId, out var customer))
+            {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(order.CustomerCodeSnapshot))
+            {
+                order.CustomerCodeSnapshot = customer.Code;
+            }
+
+            if (string.IsNullOrWhiteSpace(order.CustomerNameSnapshot))
+            {
+                order.CustomerNameSnapshot = customer.Name;
+            }
+        }
     }
 
     private async Task<Dictionary<Guid, SalesOrderPaymentSummary>> GetPaymentSummariesAsync(List<SalesOrder> orders)

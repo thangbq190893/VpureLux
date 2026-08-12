@@ -269,6 +269,8 @@ public class SalesPagesTests : VPureLuxWebTestBase
         html.ShouldContain(localizer["Sales:PaymentStatus:NotApplicable"].Value);
         localizer["Sales:PaymentStatus:NotApplicable"].Value.ShouldBe("Chưa xác nhận");
         rows.Items.Any(x => x.PaymentTotalAmount == "—").ShouldBeTrue();
+        rows.Items.Any(x => x.CustomerName == context.CustomerName).ShouldBeTrue();
+        rows.Items.Any(x => x.CustomerName == localizer["Sales:CustomerContextUnavailable"].Value).ShouldBeFalse();
     }
 
     [Fact]
