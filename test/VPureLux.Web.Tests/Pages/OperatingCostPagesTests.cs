@@ -20,11 +20,15 @@ public class OperatingCostPagesTests : VPureLuxWebTestBase
         var index = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/OperatingCosts"));
         var categories = WebUtility.HtmlDecode(await GetResponseAsStringAsync("/OperatingCosts/Categories"));
         var indexScript = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/OperatingCosts/Index.js"));
+        var indexStyles = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/OperatingCosts/Index.css"));
         var categoriesScript = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/OperatingCosts/Categories.js"));
         var menuSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Menus/VPureLuxMenuContributor.cs"));
 
         index.ShouldContain(localizer["OperatingCosts:Title"].Value);
         index.ShouldContain("id=\"OperatingCostsTable\"");
+        index.ShouldContain("operating-costs-summary");
+        index.ShouldContain("operating-costs-filter-grid");
+        index.ShouldContain("operating-costs-table");
         index.ShouldContain("/OperatingCosts/Create");
         index.ShouldContain(localizer["OperatingCosts:TotalIncome"].Value);
         index.ShouldContain(localizer["OperatingCosts:MonthDebt"].Value);
@@ -36,6 +40,10 @@ public class OperatingCostPagesTests : VPureLuxWebTestBase
         indexScript.ShouldContain("rowAction");
         indexScript.ShouldContain("OperatingCosts?handler=Summary");
         indexScript.ShouldContain("OperatingCosts?handler=Delete");
+        indexStyles.ShouldContain("grid-template-columns");
+        indexStyles.ShouldContain(".operating-costs-summary");
+        indexStyles.ShouldContain("table-layout: fixed");
+        indexStyles.ShouldContain("height: auto !important");
         categoriesScript.ShouldContain("serverSide: true");
         categoriesScript.ShouldContain("OperatingCosts/Categories?handler=Delete");
         menuSource.ShouldContain("VPureLuxMenus.OperatingCosts");
