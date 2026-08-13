@@ -122,7 +122,7 @@
             {
                 data: 'description',
                 render: function (data) {
-                    return '<span class="text-wrap">' + encode(data) + '</span>';
+                    return '<span class="operating-costs-description-cell">' + encode(data) + '</span>';
                 }
             },
             { data: 'amount', className: 'text-end text-nowrap', render: encode },
@@ -134,7 +134,12 @@
                         encode(row.paymentStatus) + '</span>';
                 }
             },
-            { data: 'counterparty', render: encode }
+            {
+                data: 'counterparty',
+                render: function (data) {
+                    return '<span class="operating-costs-counterparty-cell">' + encode(data) + '</span>';
+                }
+            }
         ]
     }));
 

@@ -148,61 +148,91 @@
 
 #OperatingCostsTable.operating-costs-table.dataTable {
     margin-bottom: 0 !important;
+    min-width: 0 !important;
     table-layout: fixed;
     width: 100% !important;
+}
+
+#OperatingCostsTable.operating-costs-table,
+#OperatingCostsTable.operating-costs-table * {
+    box-sizing: border-box;
 }
 
 #OperatingCostsTable th,
 #OperatingCostsTable td {
     overflow-wrap: anywhere;
-    vertical-align: middle;
+    vertical-align: top;
+    white-space: normal !important;
+    word-break: break-word;
 }
 
 #OperatingCostsTable th {
     line-height: 1.2;
-    white-space: normal;
+    padding-right: 1rem;
 }
 
 #OperatingCostsTable td {
     line-height: 1.3;
 }
 
-#OperatingCostsTable td:nth-child(5),
-#OperatingCostsTable td:nth-child(8) {
-    white-space: normal;
+#OperatingCostsTable td:nth-child(1),
+#OperatingCostsTable td:nth-child(2),
+#OperatingCostsTable td:nth-child(3),
+#OperatingCostsTable td:nth-child(6),
+#OperatingCostsTable td:nth-child(7) {
+    overflow-wrap: normal;
+    white-space: nowrap !important;
+    word-break: normal;
+}
+
+#OperatingCostsTable td:nth-child(1) .btn {
+    font-size: 0.8125rem;
+    line-height: 1.2;
+    max-width: 100%;
+    min-width: 0;
+    padding: 0.45rem 0.65rem;
+    white-space: nowrap;
+}
+
+.operating-costs-description-cell,
+.operating-costs-counterparty-cell {
+    display: block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    white-space: normal !important;
     word-break: break-word;
 }
 
 .operating-costs-actions-column {
-    width: 7%;
+    width: 8rem;
 }
 
 .operating-costs-date-column {
-    width: 8%;
+    width: 7.2rem;
 }
 
 .operating-costs-direction-column {
-    width: 6%;
+    width: 4.5rem;
 }
 
 .operating-costs-category-column {
-    width: 16%;
+    width: 15rem;
 }
 
 .operating-costs-description-column {
-    width: 27%;
+    width: auto;
 }
 
 .operating-costs-amount-column {
-    width: 10%;
+    width: 8.5rem;
 }
 
 .operating-costs-payment-column {
-    width: 12%;
+    width: 10.5rem;
 }
 
 .operating-costs-counterparty-column {
-    width: 12%;
+    width: 12rem;
 }
 
 #OperatingCostsTable_wrapper {
