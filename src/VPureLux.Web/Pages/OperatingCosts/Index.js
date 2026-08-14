@@ -30,8 +30,8 @@
 
     function getFilters() {
         return {
-            fromDate: $fromDate.val(),
-            toDate: $toDate.val(),
+            fromDate: window.vPureLuxDate ? window.vPureLuxDate.toIso($fromDate.val()) : $fromDate.val(),
+            toDate: window.vPureLuxDate ? window.vPureLuxDate.toIso($toDate.val()) : $toDate.val(),
             direction: $direction.val(),
             paymentStatus: $paymentStatus.val(),
             categoryId: $categoryId.val(),

@@ -155,6 +155,28 @@ public class ReportsPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task SalesRevenue_PageModel_Should_Parse_Vietnamese_Query_Date_Inputs()
+    {
+        SalesRevenueReportInput? captured = null;
+        var reports = Substitute.For<ISalesReportsAppService>();
+        reports.GetSalesRevenueAsync(Arg.Do<SalesRevenueReportInput>(input => captured = input))
+            .Returns(new SalesRevenueReportDto());
+        var model = CreateRevenueModel(reports);
+        SetPageContext(model);
+        model.FromDateInput = "1/8/2026";
+        model.ToDateInput = "31/8/2026";
+
+        await model.OnGetAsync();
+
+        model.ModelState.IsValid.ShouldBeTrue();
+        captured.ShouldNotBeNull();
+        captured!.FromDate.ShouldBe(new DateTime(2026, 8, 1));
+        captured.ToDate.ShouldBe(new DateTime(2026, 8, 31));
+        model.FromDateInput.ShouldBe("2026-08-01");
+        model.ToDateInput.ShouldBe("2026-08-31");
+    }
+
+    [Fact]
     public async Task SalesRevenue_PageModel_Should_Show_Friendly_Validation_For_Invalid_Date_Range()
     {
         var reports = Substitute.For<ISalesReportsAppService>();

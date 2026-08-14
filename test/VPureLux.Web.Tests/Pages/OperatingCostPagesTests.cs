@@ -22,7 +22,10 @@ public class OperatingCostPagesTests : VPureLuxWebTestBase
         var indexScript = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/OperatingCosts/Index.js"));
         var indexStyles = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/OperatingCosts/Index.css"));
         var categoriesScript = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/OperatingCosts/Categories.js"));
+        var ledgerScript = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Ledger.js"));
+        var globalScript = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/wwwroot/global-scripts.js"));
         var menuSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Menus/VPureLuxMenuContributor.cs"));
+        var webModuleSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/VPureLuxWebModule.cs"));
 
         index.ShouldContain(localizer["OperatingCosts:Title"].Value);
         index.ShouldContain("id=\"OperatingCostsTable\"");
@@ -42,6 +45,8 @@ public class OperatingCostPagesTests : VPureLuxWebTestBase
         indexScript.ShouldContain("OperatingCosts?handler=Delete");
         indexScript.ShouldContain("operating-costs-description-cell");
         indexScript.ShouldContain("operating-costs-counterparty-cell");
+        indexScript.ShouldContain("window.vPureLuxDate.toIso($fromDate.val())");
+        indexScript.ShouldContain("window.vPureLuxDate.toIso($toDate.val())");
         indexStyles.ShouldContain("grid-template-columns");
         indexStyles.ShouldContain("grid-template-rows: 1.1rem 2.25rem");
         indexStyles.ShouldContain(".operating-costs-summary");
@@ -52,6 +57,17 @@ public class OperatingCostPagesTests : VPureLuxWebTestBase
         indexStyles.ShouldContain("height: auto !important");
         categoriesScript.ShouldContain("serverSide: true");
         categoriesScript.ShouldContain("OperatingCosts/Categories?handler=Delete");
+        ledgerScript.ShouldContain("window.vPureLuxDate.toIso($fromDate.val())");
+        ledgerScript.ShouldContain("window.vPureLuxDate.toIso($toDate.val())");
+        globalScript.ShouldContain("format: 'dd/mm/yyyy'");
+        globalScript.ShouldContain("language: 'vi'");
+        globalScript.ShouldContain("input.type = 'text'");
+        globalScript.ShouldContain("window.vPureLuxDate");
+        webModuleSource.ShouldContain("/libs/bootstrap-datepicker/locales/bootstrap-datepicker.vi.min.js");
+        webModuleSource.IndexOf(
+            "/libs/bootstrap-datepicker/locales/bootstrap-datepicker.vi.min.js",
+            StringComparison.Ordinal).ShouldBeLessThan(
+            webModuleSource.IndexOf("/global-scripts.js", StringComparison.Ordinal));
         menuSource.ShouldContain("VPureLuxMenus.OperatingCosts");
         menuSource.ShouldContain("VPureLuxPermissions.OperatingCosts.View");
         index.ShouldNotContain("Linh kiện", Case.Insensitive);

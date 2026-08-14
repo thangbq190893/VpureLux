@@ -260,6 +260,7 @@ public class VPureLuxWebModule : AbpModule
                 LeptonXThemeBundles.Scripts.Global,
                 bundle =>
                 {
+                    bundle.AddFiles("/libs/bootstrap-datepicker/locales/bootstrap-datepicker.vi.min.js");
                     bundle.AddFiles("/global-scripts.js");
                     if (hostingEnvironment.IsDevelopment())
                     {
