@@ -233,6 +233,23 @@ public class InventoryWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     [Fact]
+    public async Task Lots_Query_Should_Show_Newest_Receipt_Date_First()
+    {
+        var context = await CreateContextAsync();
+        var oldLotNo = Unique("LOT-OLD");
+        var middleLotNo = Unique("LOT-MID");
+        var newestLotNo = Unique("LOT-NEW");
+
+        await ReceiptAsync(context.WarehouseId, context.StockItemId, 1, 100, oldLotNo, new DateTime(2026, 8, 1));
+        await ReceiptAsync(context.WarehouseId, context.StockItemId, 1, 100, middleLotNo, new DateTime(2026, 8, 10));
+        await ReceiptAsync(context.WarehouseId, context.StockItemId, 1, 100, newestLotNo, new DateTime(2026, 8, 13));
+
+        var lots = await _queries.GetLotsAsync(context.WarehouseId, context.StockItemId);
+
+        lots.Select(x => x.LotNo).ShouldBe([newestLotNo, middleLotNo, oldLotNo]);
+    }
+
+    [Fact]
     public async Task Existing_Receipt_Lot_Should_Allow_Supplier_Update()
     {
         var context = await CreateContextAsync();

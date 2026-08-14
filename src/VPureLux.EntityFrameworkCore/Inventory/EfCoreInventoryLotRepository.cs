@@ -49,7 +49,7 @@ public class EfCoreInventoryLotRepository : EfCoreRepository<VPureLuxDbContext, 
                 (!warehouseId.HasValue || x.WarehouseId == warehouseId) &&
                 (!stockItemId.HasValue || x.StockItemId == stockItemId) &&
                 (string.IsNullOrWhiteSpace(normalizedLotNo) || x.LotNo.Contains(normalizedLotNo)))
-            .OrderBy(x => x.ReceivedAt).ThenBy(x => x.CreationTime).ThenBy(x => x.Id)
+            .OrderByDescending(x => x.ReceivedAt).ThenByDescending(x => x.CreationTime).ThenByDescending(x => x.Id)
             .ToListAsync(GetCancellationToken(cancellationToken));
     }
 

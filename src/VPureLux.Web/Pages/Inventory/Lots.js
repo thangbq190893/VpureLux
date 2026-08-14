@@ -209,7 +209,7 @@
         paging: true,
         searching: false,
         autoWidth: false,
-        order: [],
+        order: [[canUpdateLotInfo ? 5 : 4, 'desc']],
         language: {
             emptyTable: l('Inventory:NoLots'),
             zeroRecords: l('Inventory:NoLots')
