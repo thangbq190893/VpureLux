@@ -1,0 +1,49 @@
+.operating-cost-categories-filter {
+    align-items: end;
+    display: grid;
+    gap: 0.6rem;
+    grid-template-columns: minmax(18rem, 30rem) minmax(11rem, 16rem) auto auto;
+    margin-bottom: 0.75rem;
+}
+
+.operating-cost-categories-filter-item {
+    display: grid;
+    min-width: 0;
+}
+
+.operating-cost-categories-filter .form-control,
+.operating-cost-categories-filter .form-select,
+.operating-cost-categories-filter .btn {
+    box-sizing: border-box;
+    font-size: 0.84rem;
+    height: 2.25rem;
+    line-height: 1.25;
+    min-height: 2.25rem;
+}
+
+.operating-cost-categories-filter .form-control,
+.operating-cost-categories-filter .form-select {
+    width: 100%;
+}
+
+.operating-cost-categories-filter .btn {
+    align-items: center;
+    display: inline-flex;
+    justify-content: center;
+    min-width: 4.25rem;
+    padding-bottom: 0;
+    padding-top: 0;
+    white-space: nowrap;
+}
+
+@media (max-width: 991.98px) {
+    .operating-cost-categories-filter {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 575.98px) {
+    .operating-cost-categories-filter {
+        grid-template-columns: 1fr;
+    }
+}

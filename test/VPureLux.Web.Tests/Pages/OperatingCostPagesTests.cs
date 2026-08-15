@@ -29,6 +29,7 @@ public class OperatingCostPagesTests : VPureLuxWebTestBase
         var indexScript = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/OperatingCosts/Index.js"));
         var indexStyles = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/OperatingCosts/Index.css"));
         var categoriesScript = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/OperatingCosts/Categories.js"));
+        var categoriesStyles = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/OperatingCosts/Categories.css"));
         var categoryForm = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/OperatingCosts/_CategoryForm.cshtml"));
         var entryForm = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/OperatingCosts/_EntryForm.cshtml"));
         var ledgerScript = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Ledger.js"));
@@ -48,6 +49,7 @@ public class OperatingCostPagesTests : VPureLuxWebTestBase
         categories.ShouldContain("id=\"OperatingCostCategoriesTable\"");
         categories.ShouldContain("/OperatingCosts/CreateCategory");
         categories.ShouldNotContain("OperatingCostCategoriesDirection");
+        categories.ShouldContain("operating-cost-categories-filter");
         categoryForm.ShouldNotContain("asp-for=\"Direction\"");
         entryForm.ShouldContain("asp-for=\"Input.Direction\"");
         entryForm.ShouldNotContain("OperatingCosts:Direction:{category.Direction}");
@@ -71,6 +73,11 @@ public class OperatingCostPagesTests : VPureLuxWebTestBase
         categoriesScript.ShouldContain("serverSide: true");
         categoriesScript.ShouldContain("OperatingCosts/Categories?handler=Delete");
         categoriesScript.ShouldNotContain("OperatingCostCategoriesDirection");
+        categoriesStyles.ShouldContain("grid-template-columns");
+        categoriesStyles.ShouldContain("height: 2.25rem");
+        categoriesStyles.ShouldContain(".operating-cost-categories-filter .form-control");
+        categoriesStyles.ShouldContain(".operating-cost-categories-filter .form-select");
+        categoriesStyles.ShouldContain(".operating-cost-categories-filter .btn");
         ledgerScript.ShouldContain("window.vPureLuxDate.toIso($fromDate.val())");
         ledgerScript.ShouldContain("window.vPureLuxDate.toIso($toDate.val())");
         globalScript.ShouldContain("format: 'dd/mm/yyyy'");
