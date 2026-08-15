@@ -10,10 +10,6 @@
     <abp-script src="/Pages/OperatingCosts/Categories.js" />
 }
 
-@section styles {
-    <abp-style src="/Pages/OperatingCosts/Categories.css" />
-}
-
 <div data-operating-cost-categories
      data-can-manage="@Model.CanManageCategories.ToString().ToLowerInvariant()"
      data-status-success="@(string.IsNullOrWhiteSpace(Model.StatusMessageKey) ? string.Empty : L[Model.StatusMessageKey].Value)"></div>
@@ -32,23 +28,23 @@
 
     <abp-card class="vpl-card-dense">
         <abp-card-body>
-            <form id="OperatingCostCategoriesSearchForm" class="operating-cost-categories-filter">
-                <div class="operating-cost-categories-filter-item operating-cost-categories-filter-search">
-                    <input asp-for="SearchText" id="OperatingCostCategoriesSearchText" class="form-control form-control-sm" placeholder="@L["OperatingCosts:CategorySearchPlaceholder"]" />
-                </div>
-                <div class="operating-cost-categories-filter-item operating-cost-categories-filter-status">
-                    <select asp-for="IsActive" id="OperatingCostCategoriesIsActive" class="form-select form-select-sm">
-                        <option value="">@L["Select"]</option>
-                        <option value="true">@L["Status:Active"]</option>
-                        <option value="false">@L["Status:Inactive"]</option>
-                    </select>
-                </div>
-                <div class="operating-cost-categories-filter-action">
-                    <button type="submit" class="btn btn-primary btn-sm">@L["Search"]</button>
-                </div>
-                <div class="operating-cost-categories-filter-action">
-                    <button type="button" id="OperatingCostCategoriesClearButton" class="btn btn-outline-secondary btn-sm">@L["Clear"]</button>
-                </div>
+            <form id="OperatingCostCategoriesSearchForm" class="mb-3">
+                <abp-row>
+                    <abp-column size-md="_4">
+                        <input asp-for="SearchText" id="OperatingCostCategoriesSearchText" class="form-control" placeholder="@L["OperatingCosts:CategorySearchPlaceholder"]" />
+                    </abp-column>
+                    <abp-column size-md="_3">
+                        <select asp-for="IsActive" id="OperatingCostCategoriesIsActive" class="form-select">
+                            <option value="">@L["Select"]</option>
+                            <option value="true">@L["Status:Active"]</option>
+                            <option value="false">@L["Status:Inactive"]</option>
+                        </select>
+                    </abp-column>
+                    <abp-column size-md="_3">
+                        <button class="btn btn-secondary" type="submit">@L["Search"]</button>
+                        <button class="btn btn-light" type="button" id="OperatingCostCategoriesClearButton">@L["Clear"]</button>
+                    </abp-column>
+                </abp-row>
             </form>
 
             <abp-table id="OperatingCostCategoriesTable" striped-rows="true" class="vpl-table-dense">
