@@ -1,14 +1,29 @@
 .operating-cost-categories-filter {
-    align-items: end;
-    display: grid;
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
     gap: 0.6rem;
-    grid-template-columns: minmax(18rem, 30rem) minmax(11rem, 16rem) auto auto;
     margin-bottom: 0.75rem;
 }
 
 .operating-cost-categories-filter-item {
     display: grid;
+    flex: 0 1 auto;
     min-width: 0;
+}
+
+.operating-cost-categories-filter-search {
+    flex-basis: 30rem;
+}
+
+.operating-cost-categories-filter-status {
+    flex-basis: 16rem;
+}
+
+.operating-cost-categories-filter-action {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
 }
 
 .operating-cost-categories-filter .form-control,
@@ -37,13 +52,18 @@
 }
 
 @media (max-width: 991.98px) {
-    .operating-cost-categories-filter {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .operating-cost-categories-filter-search {
+        flex-basis: 24rem;
     }
 }
 
 @media (max-width: 575.98px) {
-    .operating-cost-categories-filter {
-        grid-template-columns: 1fr;
+    .operating-cost-categories-filter-item,
+    .operating-cost-categories-filter-action {
+        flex-basis: 100%;
+    }
+
+    .operating-cost-categories-filter .btn {
+        width: 100%;
     }
 }

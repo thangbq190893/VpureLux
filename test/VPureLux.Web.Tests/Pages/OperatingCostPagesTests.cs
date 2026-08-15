@@ -50,6 +50,8 @@ public class OperatingCostPagesTests : VPureLuxWebTestBase
         categories.ShouldContain("/OperatingCosts/CreateCategory");
         categories.ShouldNotContain("OperatingCostCategoriesDirection");
         categories.ShouldContain("operating-cost-categories-filter");
+        categories.ShouldContain("operating-cost-categories-filter-search");
+        categories.ShouldContain("operating-cost-categories-filter-status");
         categoryForm.ShouldNotContain("asp-for=\"Direction\"");
         entryForm.ShouldContain("asp-for=\"Input.Direction\"");
         entryForm.ShouldNotContain("OperatingCosts:Direction:{category.Direction}");
@@ -73,7 +75,9 @@ public class OperatingCostPagesTests : VPureLuxWebTestBase
         categoriesScript.ShouldContain("serverSide: true");
         categoriesScript.ShouldContain("OperatingCosts/Categories?handler=Delete");
         categoriesScript.ShouldNotContain("OperatingCostCategoriesDirection");
-        categoriesStyles.ShouldContain("grid-template-columns");
+        categoriesStyles.ShouldContain("display: flex");
+        categoriesStyles.ShouldContain("flex-wrap: wrap");
+        categoriesStyles.ShouldContain(".operating-cost-categories-filter-search");
         categoriesStyles.ShouldContain("height: 2.25rem");
         categoriesStyles.ShouldContain(".operating-cost-categories-filter .form-control");
         categoriesStyles.ShouldContain(".operating-cost-categories-filter .form-select");
