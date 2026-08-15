@@ -1,11 +1,18 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.Primitives;
 using Microsoft.Extensions.Localization;
 using Shouldly;
 using VPureLux.Localization;
 using VPureLux.OperatingCosts;
+using VPureLux.Web.ModelBinding;
 using Xunit;
 
 namespace VPureLux.Pages;
@@ -107,7 +114,48 @@ public class OperatingCostPagesTests : VPureLuxWebTestBase
         editCategory.ShouldContain(category.Name);
     }
 
+    [Theory]
+    [InlineData("14/08/2026", 2026, 8, 14)]
+    [InlineData("1/8/2026", 2026, 8, 1)]
+    [InlineData("2026-08-14", 2026, 8, 14)]
+    public async Task Web_DateTime_Binder_Should_Accept_Vietnamese_And_Iso_Date_Input(
+        string value,
+        int year,
+        int month,
+        int day)
+    {
+        var bindingContext = CreateDateBindingContext(value, typeof(DateTime));
+
+        await new VPureLuxDateTimeModelBinder().BindModelAsync(bindingContext);
+
+        bindingContext.Result.IsModelSet.ShouldBeTrue();
+        bindingContext.ModelState.IsValid.ShouldBeTrue();
+        bindingContext.Result.Model.ShouldBe(new DateTime(year, month, day));
+    }
+
     private static string Unique(string prefix) => prefix + Guid.NewGuid().ToString("N")[..8];
+
+    private static ModelBindingContext CreateDateBindingContext(string value, Type modelType)
+    {
+        var valueProvider = new FormValueProvider(
+            BindingSource.Form,
+            new FormCollection(new Dictionary<string, StringValues>
+            {
+                ["Input.EntryDate"] = value
+            }),
+            CultureInfo.InvariantCulture);
+        var metadataProvider = new EmptyModelMetadataProvider();
+
+        return new DefaultModelBindingContext
+        {
+            ActionContext = new ActionContext { HttpContext = new DefaultHttpContext() },
+            FieldName = "Input.EntryDate",
+            ModelMetadata = metadataProvider.GetMetadataForType(modelType),
+            ModelName = "Input.EntryDate",
+            ModelState = new ModelStateDictionary(),
+            ValueProvider = valueProvider
+        };
+    }
 
     private async Task<string> GetOkBodyAsync(string url)
     {

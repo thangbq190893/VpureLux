@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +13,7 @@ using VPureLux.MultiTenancy;
 using VPureLux.Permissions;
 using VPureLux.Web.Menus;
 using VPureLux.Web.HealthChecks;
+using VPureLux.Web.ModelBinding;
 using Microsoft.OpenApi;
 using Volo.Abp;
 using Volo.Abp.Studio;
@@ -193,6 +195,7 @@ public class VPureLuxWebModule : AbpModule
         ConfigureDataProtection(context, configuration, hostingEnvironment);
         ConfigureDistributedLocking(context, configuration);
         ConfigureAuthentication(context);
+        ConfigureModelBinding();
         ConfigureVirtualFileSystem(hostingEnvironment);
         ConfigureNavigationServices();
         ConfigureAutoApiControllers();
@@ -353,6 +356,14 @@ public class VPureLuxWebModule : AbpModule
         Configure<AbpAspNetCoreMvcOptions>(options =>
         {
             options.ConventionalControllers.Create(typeof(VPureLuxApplicationModule).Assembly);
+        });
+    }
+
+    private void ConfigureModelBinding()
+    {
+        Configure<MvcOptions>(options =>
+        {
+            options.ModelBinderProviders.Insert(0, new VPureLuxDateTimeModelBinderProvider());
         });
     }
 
