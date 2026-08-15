@@ -20,7 +20,6 @@ public class CategoriesModel : VPureLuxPageModel
     private readonly IStringLocalizer<VPureLuxResource> _localizer;
 
     [BindProperty(SupportsGet = true)] public string? SearchText { get; set; }
-    [BindProperty(SupportsGet = true)] public OperatingCostDirection? Direction { get; set; }
     [BindProperty(SupportsGet = true)] public bool? IsActive { get; set; }
 
     public bool CanManageCategories { get; private set; }
@@ -64,7 +63,6 @@ public class CategoriesModel : VPureLuxPageModel
             category.Id,
             category.Code,
             category.Name,
-            _localizer[$"OperatingCosts:Direction:{category.Direction}"].Value,
             category.IsActive ? _localizer["Status:Active"].Value : _localizer["Status:Inactive"].Value,
             category.IsActive ? "text-bg-success" : "text-bg-secondary");
     }
@@ -73,7 +71,6 @@ public class CategoriesModel : VPureLuxPageModel
         Guid Id,
         string Code,
         string Name,
-        string Direction,
         string Status,
         string StatusBadgeClass);
 }

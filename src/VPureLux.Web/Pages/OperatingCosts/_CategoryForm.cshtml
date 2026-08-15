@@ -8,18 +8,10 @@
         <input asp-for="Code" class="form-control" />
         <span asp-validation-for="Code" class="text-danger"></span>
     </div>
-    <div class="col-md-5 mb-3">
+    <div class="col-md-8 mb-3">
         <label asp-for="Name" class="form-label">@L["OperatingCosts:CategoryName"]</label>
         <input asp-for="Name" class="form-control" />
         <span asp-validation-for="Name" class="text-danger"></span>
-    </div>
-    <div class="col-md-3 mb-3">
-        <label asp-for="Direction" class="form-label">@L["OperatingCosts:Direction"]</label>
-        <select asp-for="Direction" class="form-select">
-            <option value="@OperatingCostDirection.Expense">@L["OperatingCosts:Direction:Expense"]</option>
-            <option value="@OperatingCostDirection.Income">@L["OperatingCosts:Direction:Income"]</option>
-        </select>
-        <span asp-validation-for="Direction" class="text-danger"></span>
     </div>
 </div>
 <div class="form-check mb-3">

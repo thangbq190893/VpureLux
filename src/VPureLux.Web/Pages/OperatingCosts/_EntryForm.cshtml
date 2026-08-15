@@ -22,7 +22,7 @@
             <option value="">@L["Select"]</option>
             @foreach (var category in Model.Categories)
             {
-                <option value="@category.Id">@category.Code - @category.Name (@L[$"OperatingCosts:Direction:{category.Direction}"])</option>
+                <option value="@category.Id">@category.Code - @category.Name</option>
             }
         </select>
         <span asp-validation-for="Input.CategoryId" class="text-danger"></span>

@@ -48,14 +48,8 @@ public class OperatingCostAppService : ApplicationService, IOperatingCostAppServ
         var query = (await _categoryRepository.GetQueryableAsync())
             .Where(x => x.IsActive);
 
-        if (direction.HasValue)
-        {
-            query = query.Where(x => x.Direction == direction.Value);
-        }
-
         var categories = await AsyncExecuter.ToListAsync(query
-            .OrderBy(x => x.Direction)
-            .ThenBy(x => x.Name));
+            .OrderBy(x => x.Name));
 
         return categories.Select(ToDto).ToList();
     }
@@ -69,8 +63,8 @@ public class OperatingCostAppService : ApplicationService, IOperatingCostAppServ
     [Authorize(VPureLuxPermissions.OperatingCosts.ManageCategories)]
     public async Task<OperatingCostCategoryDto> CreateCategoryAsync(CreateOperatingCostCategoryDto input)
     {
-        var category = await _manager.CreateCategoryAsync(input.Code, input.Name, input.Direction);
-        category.UpdateInfo(input.Name, input.Direction, input.IsActive);
+        var category = await _manager.CreateCategoryAsync(input.Code, input.Name, OperatingCostDirection.Expense);
+        category.UpdateInfo(input.Name, OperatingCostDirection.Expense, input.IsActive);
         await _categoryRepository.InsertAsync(category, autoSave: true);
         return ToDto(category);
     }
@@ -83,7 +77,7 @@ public class OperatingCostAppService : ApplicationService, IOperatingCostAppServ
         await _manager.EnsureCategoryCodeCanBeUsedAsync(id, input.Code);
 
         category.ChangeCode(input.Code);
-        category.UpdateInfo(input.Name, input.Direction, input.IsActive);
+        category.UpdateInfo(input.Name, category.Direction, input.IsActive);
         await _categoryRepository.UpdateAsync(category, autoSave: true);
         return ToDto(category);
     }
@@ -174,8 +168,6 @@ public class OperatingCostAppService : ApplicationService, IOperatingCostAppServ
     {
         var entry = await GetEntryEntityAsync(id);
         var category = await GetCategoryEntityAsync(input.CategoryId);
-        _manager.EnsureCategoryCanBeUsed(category, input.Direction);
-
         entry.UpdateInfo(
             input.EntryDate,
             input.Direction,
@@ -251,11 +243,6 @@ public class OperatingCostAppService : ApplicationService, IOperatingCostAppServ
                 x.Name.Contains(input.SearchText!));
         }
 
-        if (input.Direction.HasValue)
-        {
-            query = query.Where(x => x.Direction == input.Direction.Value);
-        }
-
         if (input.IsActive.HasValue)
         {
             query = query.Where(x => x.IsActive == input.IsActive.Value);
@@ -311,7 +298,7 @@ public class OperatingCostAppService : ApplicationService, IOperatingCostAppServ
     {
         if (sorting.IsNullOrWhiteSpace())
         {
-            return query.OrderBy(x => x.Direction).ThenBy(x => x.Name);
+            return query.OrderBy(x => x.Name);
         }
 
         var (field, desc) = ParseSorting(sorting);
@@ -321,7 +308,7 @@ public class OperatingCostAppService : ApplicationService, IOperatingCostAppServ
             "name" => desc ? query.OrderByDescending(x => x.Name) : query.OrderBy(x => x.Name),
             "direction" => desc ? query.OrderByDescending(x => x.Direction) : query.OrderBy(x => x.Direction),
             "isactive" => desc ? query.OrderByDescending(x => x.IsActive) : query.OrderBy(x => x.IsActive),
-            _ => query.OrderBy(x => x.Direction).ThenBy(x => x.Name)
+            _ => query.OrderBy(x => x.Name)
         };
     }
 

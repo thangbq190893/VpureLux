@@ -119,6 +119,45 @@ public class OperatingCostAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     [Fact]
+    public async Task Category_Should_Be_Reusable_For_Income_And_Expense_Entries()
+    {
+        var category = await _service.CreateCategoryAsync(new CreateOperatingCostCategoryDto
+        {
+            Code = Unique("COMMON"),
+            Name = "Khoản mục dùng chung"
+        });
+
+        await _service.CreateEntryAsync(new CreateOperatingCostEntryDto
+        {
+            EntryDate = new DateTime(2026, 8, 14),
+            Direction = OperatingCostDirection.Expense,
+            CategoryId = category.Id,
+            Amount = 100_000,
+            PaymentStatus = OperatingCostPaymentStatus.Paid,
+            Description = "Chi dùng chung"
+        });
+        await _service.CreateEntryAsync(new CreateOperatingCostEntryDto
+        {
+            EntryDate = new DateTime(2026, 8, 14),
+            Direction = OperatingCostDirection.Income,
+            CategoryId = category.Id,
+            Amount = 200_000,
+            PaymentStatus = OperatingCostPaymentStatus.Paid,
+            Description = "Thu dùng chung"
+        });
+
+        var summary = await _service.GetSummaryAsync(new GetOperatingCostEntryListInput
+        {
+            FromDate = new DateTime(2026, 8, 1),
+            ToDate = new DateTime(2026, 8, 31),
+            CategoryId = category.Id
+        });
+
+        summary.TotalExpense.ShouldBe(100_000);
+        summary.TotalIncome.ShouldBe(200_000);
+    }
+
+    [Fact]
     public async Task Should_Define_Permissions_Protect_Service_And_Map_Ef_Metadata()
     {
         var permissions = GetRequiredService<IPermissionDefinitionManager>();

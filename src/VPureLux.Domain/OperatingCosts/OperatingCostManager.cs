@@ -98,10 +98,5 @@ public class OperatingCostManager : DomainService
                 .WithData(nameof(category.Id), category.Id);
         }
 
-        if (category.Direction != direction)
-        {
-            throw new BusinessException(VPureLuxDomainErrorCodes.OperatingCostCategoryDirectionMismatch)
-                .WithData(nameof(category.Id), category.Id);
-        }
     }
 }

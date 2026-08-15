@@ -31,7 +31,6 @@ public class EditCategoryModel : VPureLuxPageModel
         {
             Code = category.Code,
             Name = category.Name,
-            Direction = category.Direction,
             IsActive = category.IsActive
         };
     }

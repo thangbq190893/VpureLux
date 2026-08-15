@@ -33,13 +33,6 @@
                     <input asp-for="SearchText" id="OperatingCostCategoriesSearchText" class="form-control form-control-sm" placeholder="@L["OperatingCosts:CategorySearchPlaceholder"]" />
                 </div>
                 <div class="col-md-3">
-                    <select asp-for="Direction" id="OperatingCostCategoriesDirection" class="form-select form-select-sm">
-                        <option value="">@L["Select"]</option>
-                        <option value="@OperatingCostDirection.Expense">@L["OperatingCosts:Direction:Expense"]</option>
-                        <option value="@OperatingCostDirection.Income">@L["OperatingCosts:Direction:Income"]</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
                     <select asp-for="IsActive" id="OperatingCostCategoriesIsActive" class="form-select form-select-sm">
                         <option value="">@L["Select"]</option>
                         <option value="true">@L["Status:Active"]</option>
@@ -60,7 +53,6 @@
                     <th>@L["Actions"]</th>
                     <th>@L["OperatingCosts:CategoryCode"]</th>
                     <th>@L["OperatingCosts:CategoryName"]</th>
-                    <th>@L["OperatingCosts:Direction"]</th>
                     <th>@L["Status"]</th>
                 </tr>
                 </thead>

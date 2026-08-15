@@ -9,7 +9,6 @@
 
     var canManage = page.dataset.canManage === 'true';
     var $searchText = $('#OperatingCostCategoriesSearchText');
-    var $direction = $('#OperatingCostCategoriesDirection');
     var $isActive = $('#OperatingCostCategoriesIsActive');
 
     if (page.dataset.statusSuccess) {
@@ -27,7 +26,6 @@
     function getFilters() {
         return {
             searchText: $searchText.val(),
-            direction: $direction.val(),
             isActive: $isActive.val()
         };
     }
@@ -96,7 +94,6 @@
             },
             { data: 'code', render: encode },
             { data: 'name', render: encode },
-            { data: 'direction', render: encode },
             {
                 data: null,
                 className: 'text-nowrap',
@@ -114,7 +111,6 @@
 
     $('#OperatingCostCategoriesClearButton').on('click', function () {
         $searchText.val('');
-        $direction.val('');
         $isActive.val('');
         dataTable.ajax.reload();
     });

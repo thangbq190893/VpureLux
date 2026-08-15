@@ -29,6 +29,8 @@ public class OperatingCostPagesTests : VPureLuxWebTestBase
         var indexScript = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/OperatingCosts/Index.js"));
         var indexStyles = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/OperatingCosts/Index.css"));
         var categoriesScript = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/OperatingCosts/Categories.js"));
+        var categoryForm = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/OperatingCosts/_CategoryForm.cshtml"));
+        var entryForm = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/OperatingCosts/_EntryForm.cshtml"));
         var ledgerScript = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Inventory/Ledger.js"));
         var globalScript = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/wwwroot/global-scripts.js"));
         var menuSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Menus/VPureLuxMenuContributor.cs"));
@@ -45,6 +47,10 @@ public class OperatingCostPagesTests : VPureLuxWebTestBase
         categories.ShouldContain(localizer["OperatingCosts:Categories"].Value);
         categories.ShouldContain("id=\"OperatingCostCategoriesTable\"");
         categories.ShouldContain("/OperatingCosts/CreateCategory");
+        categories.ShouldNotContain("OperatingCostCategoriesDirection");
+        categoryForm.ShouldNotContain("asp-for=\"Direction\"");
+        entryForm.ShouldContain("asp-for=\"Input.Direction\"");
+        entryForm.ShouldNotContain("OperatingCosts:Direction:{category.Direction}");
 
         indexScript.ShouldContain("serverSide: true");
         indexScript.ShouldContain("rowAction");
@@ -64,6 +70,7 @@ public class OperatingCostPagesTests : VPureLuxWebTestBase
         indexStyles.ShouldContain("height: auto !important");
         categoriesScript.ShouldContain("serverSide: true");
         categoriesScript.ShouldContain("OperatingCosts/Categories?handler=Delete");
+        categoriesScript.ShouldNotContain("OperatingCostCategoriesDirection");
         ledgerScript.ShouldContain("window.vPureLuxDate.toIso($fromDate.val())");
         ledgerScript.ShouldContain("window.vPureLuxDate.toIso($toDate.val())");
         globalScript.ShouldContain("format: 'dd/mm/yyyy'");
