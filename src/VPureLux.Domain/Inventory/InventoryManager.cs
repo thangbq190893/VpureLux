@@ -129,6 +129,11 @@ public class InventoryManager : DomainService
                 break;
             }
 
+            if (lot.AvailableQuantity <= 0)
+            {
+                continue;
+            }
+
             var allocated = Math.Min(remaining, lot.AvailableQuantity);
             lot.Allocate(allocated);
             transaction.AddAllocation(line.Id, _guidGenerator.Create(), lot.Id, allocated, lot.UnitCost);

@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Logging;
 using VPureLux.Bom;
 using VPureLux.Catalog;
 using VPureLux.Customers;
@@ -36,6 +37,7 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
     private readonly SalesManager _salesManager;
     private readonly ISalesOrderPaymentRepository _payments;
     private readonly SalesApplicationMapper _mapper;
+    private readonly ILogger<SalesOrderAppService> _logger;
 
     public SalesOrderAppService(
         ISalesOrderRepository salesOrders,
@@ -53,7 +55,8 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
         InventoryManager inventoryManager,
         SalesManager salesManager,
         ISalesOrderPaymentRepository payments,
-        SalesApplicationMapper mapper)
+        SalesApplicationMapper mapper,
+        ILogger<SalesOrderAppService> logger)
     {
         _salesOrders = salesOrders;
         _customers = customers;
@@ -71,6 +74,7 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
         _salesManager = salesManager;
         _payments = payments;
         _mapper = mapper;
+        _logger = logger;
     }
 
     public async Task<PagedResultDto<SalesOrderDto>> GetListAsync(GetSalesOrderListInput input)
@@ -399,7 +403,7 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
             snapshotItems.Add(new SalesOrderBomSnapshotData(
                 component.Id, component.Code, component.Name, component.Unit, item.Quantity, required));
         }
-        var result = await PostInventoryIssueAsync(order, line, bom.Id, requirements);
+        var result = await PostInventoryIssueAsync(order, line, product, bom.Id, requirements);
         order.ApplyLineConfirmationSnapshot(
             line.Id, product.Code, product.Name, SalesConsts.DefaultProductUnit, bom.VersionNo.Value,
             result.Id, result.Cost, snapshotItems);
@@ -408,6 +412,7 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
     private async Task<(Guid Id, decimal Cost)> PostInventoryIssueAsync(
         SalesOrder order,
         SalesOrderLine salesLine,
+        Product product,
         Guid? bomVersionId,
         IEnumerable<(Component Component, decimal Quantity)> requirements)
     {
@@ -431,13 +436,17 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
         var transaction = _inventoryManager.CreateTransaction(
             order.WarehouseId, InventoryTransactionType.SalesIssue, idempotencyKey, hash,
             "SalesOrderLine", salesLine.Id, bomVersionId);
-        try
+        foreach (var requirement in consolidated)
         {
-            foreach (var requirement in consolidated)
+            StockItem? stockItem = null;
+            IReadOnlyList<InventoryLot> availableLots = Array.Empty<InventoryLot>();
+
+            try
             {
-                var stockItem = await _stockItems.FindByCatalogItemAsync(StockItemType.Component, requirement.Component.Id)
+                stockItem = await _stockItems.FindByCatalogItemAsync(StockItemType.Component, requirement.Component.Id)
                     ?? throw new BusinessException(VPureLuxDomainErrorCodes.StockItemNotFound);
                 await _inventoryManager.EnsureWarehouseAndStockItemUsableAsync(order.WarehouseId, stockItem.Id);
+                availableLots = await _lots.GetAvailableFifoLotsAsync(order.WarehouseId, stockItem.Id);
                 var issueLine = transaction.AddIssueLine(GuidGenerator.Create(), stockItem.Id, requirement.Quantity);
                 var allocations = await _inventoryManager.AllocateFifoAsync(transaction, issueLine);
                 foreach (var allocation in allocations)
@@ -448,17 +457,105 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
                     order.WarehouseId, stockItem.Id, -requirement.Quantity,
                     -allocations.Sum(x => x.TotalCost), Clock.Now);
             }
-        }
-        catch (BusinessException exception) when (
-            exception.Code?.StartsWith("INV_", StringComparison.Ordinal) == true)
-        {
-            throw new BusinessException(VPureLuxDomainErrorCodes.SalesInventoryValidationFailed)
-                .WithData("InventoryErrorCode", exception.Code);
+            catch (BusinessException exception) when (IsSalesInventoryContextException(exception))
+            {
+                throw CreateSalesInventoryValidationException(
+                    exception,
+                    order,
+                    salesLine,
+                    product,
+                    requirement.Component,
+                    stockItem,
+                    requirement.Quantity,
+                    availableLots);
+            }
         }
 
         transaction.Post(Clock.Now);
         await _inventoryTransactions.InsertAsync(transaction);
         return (transaction.Id, transaction.TotalIssueCost);
+    }
+
+    private static bool IsSalesInventoryContextException(BusinessException exception) =>
+        exception.Code == VPureLuxDomainErrorCodes.ValidationFailed ||
+        exception.Code?.StartsWith("INV_", StringComparison.Ordinal) == true;
+
+    private BusinessException CreateSalesInventoryValidationException(
+        BusinessException exception,
+        SalesOrder order,
+        SalesOrderLine salesLine,
+        Product product,
+        Component component,
+        StockItem? stockItem,
+        decimal requiredQuantity,
+        IReadOnlyList<InventoryLot> availableLots)
+    {
+        var totalAvailable = availableLots.Sum(x => x.AvailableQuantity);
+        var firstLot = availableLots.FirstOrDefault();
+        var invalidField = exception.Data.Keys.OfType<string>().FirstOrDefault();
+        var invalidValue = invalidField == null ? null : exception.Data[invalidField];
+
+        _logger.LogWarning(
+            exception,
+            "Sales inventory validation failed. OrderId={SalesOrderId}, LineId={SalesOrderLineId}, LineNo={SalesLineNo}, ProductId={ProductId}, ProductCode={ProductCode}, ProductName={ProductName}, ComponentId={ComponentId}, ComponentCode={ComponentCode}, ComponentName={ComponentName}, StockItemId={StockItemId}, RequiredQuantity={RequiredQuantity}, AvailableQuantity={AvailableQuantity}, InventoryErrorCode={InventoryErrorCode}, InvalidField={InvalidField}, InvalidValue={InvalidValue}, FirstLotId={FirstLotId}, FirstLotNo={FirstLotNo}, FirstLotAvailableQuantity={FirstLotAvailableQuantity}.",
+            order.Id,
+            salesLine.Id,
+            salesLine.LineNo,
+            product.Id,
+            product.Code,
+            product.Name,
+            component.Id,
+            component.Code,
+            component.Name,
+            stockItem?.Id,
+            requiredQuantity,
+            totalAvailable,
+            exception.Code,
+            invalidField,
+            invalidValue,
+            firstLot?.Id,
+            firstLot?.LotNo,
+            firstLot?.AvailableQuantity);
+
+        var salesException = new BusinessException(VPureLuxDomainErrorCodes.SalesInventoryValidationFailed)
+            .WithData("InventoryErrorCode", exception.Code ?? string.Empty)
+            .WithData("SalesOrderId", order.Id)
+            .WithData("SalesOrderLineId", salesLine.Id)
+            .WithData("SalesLineNo", salesLine.LineNo)
+            .WithData("SalesLineQuantity", salesLine.Quantity)
+            .WithData("ProductId", product.Id)
+            .WithData("ProductCode", product.Code)
+            .WithData("ProductName", product.Name)
+            .WithData("ComponentId", component.Id)
+            .WithData("ComponentCode", component.Code)
+            .WithData("ComponentName", component.Name)
+            .WithData("ComponentUnit", component.Unit)
+            .WithData("RequiredQuantity", requiredQuantity)
+            .WithData("AvailableQuantity", totalAvailable);
+
+        if (stockItem != null)
+        {
+            salesException.WithData("StockItemId", stockItem.Id);
+        }
+
+        if (firstLot != null)
+        {
+            salesException
+                .WithData("InventoryLotId", firstLot.Id)
+                .WithData("LotNo", firstLot.LotNo)
+                .WithData("LotAvailableQuantity", firstLot.AvailableQuantity);
+        }
+
+        if (invalidField != null)
+        {
+            salesException.WithData("InvalidField", invalidField);
+            if (invalidValue != null)
+            {
+                salesException.WithData("InvalidValue", invalidValue);
+            }
+        }
+
+        return salesException;
     }
 
     private async Task RollbackConfirmedOrderInventoryAsync(SalesOrder order)

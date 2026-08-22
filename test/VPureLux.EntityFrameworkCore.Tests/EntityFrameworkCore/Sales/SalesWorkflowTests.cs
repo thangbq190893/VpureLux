@@ -493,6 +493,49 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     [Fact]
+    public async Task Confirm_Should_Skip_Tracked_Depleted_Fifo_Lot_When_Later_Line_Uses_Same_Component()
+    {
+        var context = await CreateBaseAsync();
+        var component = await _components.CreateAsync(new CreateComponentDto
+        {
+            Code = Unique("SFL"),
+            Name = "Shared FIFO Line Component",
+            Unit = "Piece"
+        });
+        var stockItem = await GetComponentStockItemAsync(component.Id);
+        var firstLotNo = Unique("SFLA");
+        var secondLotNo = Unique("SFLB");
+        await PostReceiptAsync(context.Warehouse.Id, stockItem.Id, 2, 100, firstLotNo);
+        await PostReceiptAsync(context.Warehouse.Id, stockItem.Id, 50, 200, secondLotNo);
+        var (firstProduct, _) = await CreateProductForComponentAsync(component);
+        var (secondProduct, _) = await CreateProductForComponentAsync(component);
+        var (thirdProduct, _) = await CreateProductForComponentAsync(component);
+        var order = await _sales.CreateAsync(Input(context, firstProduct.Id, 1, 1_000));
+        await _sales.AddLineAsync(order.Id, new CreateSalesOrderLineDto
+        {
+            ProductId = secondProduct.Id,
+            Quantity = 1,
+            ActualSellingPrice = 1_000
+        });
+        await _sales.AddLineAsync(order.Id, new CreateSalesOrderLineDto
+        {
+            ProductId = thirdProduct.Id,
+            Quantity = 1,
+            ActualSellingPrice = 1_000
+        });
+
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+
+        var confirmed = await _sales.GetAsync(order.Id);
+        confirmed.Lines.Count.ShouldBe(3);
+        var issuedLots = await GetLotsAsync(stockItem.Id);
+        issuedLots.Single(x => x.LotNo == firstLotNo).AvailableQuantity.ShouldBe(0);
+        issuedLots.Single(x => x.LotNo == secondLotNo).AvailableQuantity.ShouldBe(49);
+        var balance = (await _inventoryQuery.GetBalancesAsync(context.Warehouse.Id, stockItem.Id)).Single();
+        balance.QuantityOnHand.ShouldBe(49);
+    }
+
+    [Fact]
     public async Task Confirmed_Paid_Cancel_Should_Be_Blocked_And_Leave_Inventory_Unchanged()
     {
         var context = await CreateBaseAsync();
