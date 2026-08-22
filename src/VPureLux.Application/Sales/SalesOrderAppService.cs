@@ -12,6 +12,7 @@ using VPureLux.Customers;
 using VPureLux.Inventory;
 using VPureLux.Permissions;
 using VPureLux.Pricing;
+using VPureLux.Warranty;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -38,6 +39,7 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
     private readonly ISalesOrderPaymentRepository _payments;
     private readonly SalesApplicationMapper _mapper;
     private readonly ILogger<SalesOrderAppService> _logger;
+    private readonly WarrantySalesIntegrationService _warrantySalesIntegration;
 
     public SalesOrderAppService(
         ISalesOrderRepository salesOrders,
@@ -56,7 +58,8 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
         SalesManager salesManager,
         ISalesOrderPaymentRepository payments,
         SalesApplicationMapper mapper,
-        ILogger<SalesOrderAppService> logger)
+        ILogger<SalesOrderAppService> logger,
+        WarrantySalesIntegrationService warrantySalesIntegration)
     {
         _salesOrders = salesOrders;
         _customers = customers;
@@ -75,6 +78,7 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
         _payments = payments;
         _mapper = mapper;
         _logger = logger;
+        _warrantySalesIntegration = warrantySalesIntegration;
     }
 
     public async Task<PagedResultDto<SalesOrderDto>> GetListAsync(GetSalesOrderListInput input)
@@ -241,6 +245,7 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
 
         order.ApplyCustomerSnapshot(customer.Code, customer.Name, customerGroup.Id, customerGroup.Code, customerGroup.Name);
         order.Confirm(input.IdempotencyKey, Clock.Now);
+        await _warrantySalesIntegration.CreateAssetsAndRemindersForConfirmedOrderAsync(order);
         await _salesOrders.UpdateAsync(order, autoSave: true);
         var resultVisibility = await GetFinancialVisibilityAsync();
         return ToConfirmationResult(order, resultVisibility.Cost, resultVisibility.Profit);

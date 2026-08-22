@@ -193,11 +193,34 @@ public class VPureLuxMenuContributor : IMenuContributor
             order: 11
         ).RequirePermissions(VPureLuxPermissions.Sales.View));
 
+        var warranty = new ApplicationMenuItem(
+            VPureLuxMenus.Warranty,
+            l["Menu:Warranty"],
+            icon: "fa fa-bell",
+            order: 12
+        ).RequirePermissions(VPureLuxPermissions.Warranty.View);
+
+        warranty.AddItem(new ApplicationMenuItem(
+            VPureLuxMenus.WarrantyReminders,
+            l["Warranty:Reminders"],
+            "~/Warranty",
+            icon: "fa fa-calendar-check"
+        ).RequirePermissions(VPureLuxPermissions.Warranty.View));
+
+        warranty.AddItem(new ApplicationMenuItem(
+            VPureLuxMenus.WarrantyPolicies,
+            l["Warranty:Policies"],
+            "~/Warranty/Policies",
+            icon: "fa fa-wrench"
+        ).RequirePermissions(VPureLuxPermissions.Warranty.ManagePolicies));
+
+        context.Menu.AddItem(warranty);
+
         var reports = new ApplicationMenuItem(
             VPureLuxMenus.Reports,
             l["Menu:Reports"],
             icon: "fa fa-chart-bar",
-            order: 12
+            order: 13
         );
 
         reports.AddItem(new ApplicationMenuItem(
@@ -221,7 +244,7 @@ public class VPureLuxMenuContributor : IMenuContributor
             l["Menu:Audit"],
             "~/Audit",
             icon: "fa fa-history",
-            order: 13
+            order: 14
         ).RequirePermissions(VPureLuxPermissions.Audit.View));
 
         //Saas

@@ -12,6 +12,7 @@ using VPureLux.Customers.CustomerGroups;
 using VPureLux.Inventory;
 using VPureLux.Pricing;
 using VPureLux.Sales;
+using VPureLux.Warranty;
 using Volo.Abp;
 using Volo.Abp.EntityFrameworkCore;
 using Xunit;
@@ -34,6 +35,7 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     private readonly IComponentSuggestedSellingPriceAppService _componentPrices;
     private readonly IProductSuggestedPriceAppService _prices;
     private readonly ISalesOrderPaymentRepository _payments;
+    private readonly IWarrantyAppService _warranty;
 
     public SalesWorkflowTests()
     {
@@ -50,6 +52,7 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         _componentPrices = GetRequiredService<IComponentSuggestedSellingPriceAppService>();
         _prices = GetRequiredService<IProductSuggestedPriceAppService>();
         _payments = GetRequiredService<ISalesOrderPaymentRepository>();
+        _warranty = GetRequiredService<IWarrantyAppService>();
     }
 
     [Fact]
@@ -205,6 +208,59 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         persistedLine.LineType.ShouldBe(SalesOrderLineType.Product);
         persistedLine.ProductId.ShouldBe(looseSku.Id);
         persistedLine.ProductId.ShouldNotBe(pp.Id);
+    }
+
+    [Fact]
+    public async Task Confirm_Should_Create_Warranty_Assets_And_Replacement_Reminders_From_Bom_Snapshot()
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 25_000);
+        var (product, _) = await CreateProductForComponentAsync(component);
+        await _warranty.SetPolicyAsync(component.Id, new SetComponentReplacementPolicyDto
+        {
+            IsEnabled = true,
+            CycleMonths = 3,
+            WarningDaysBeforeDue = 10
+        });
+
+        var order = await _sales.CreateAsync(Input(context, product.Id, 2, 100_000));
+        var key = Guid.NewGuid().ToString("N");
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = key });
+
+        await WithUnitOfWorkAsync(async () =>
+        {
+            var db = await GetRequiredService<IDbContextProvider<VPureLuxDbContext>>().GetDbContextAsync();
+            var assets = await db.CustomerAssets
+                .AsNoTracking()
+                .Where(x => x.SalesOrderId == order.Id)
+                .OrderBy(x => x.AssetNo)
+                .ToListAsync();
+            var reminders = await db.AssetReplacementReminders
+                .AsNoTracking()
+                .Where(x => x.SalesOrderId == order.Id)
+                .OrderBy(x => x.DueDate)
+                .ToListAsync();
+
+            assets.Count.ShouldBe(2);
+            assets.ShouldAllBe(x => x.CustomerId == context.Customer.Id);
+            assets.ShouldAllBe(x => x.ProductId == product.Id);
+            assets.ShouldAllBe(x => x.OrderNoSnapshot == order.OrderNo);
+            reminders.Count.ShouldBe(2);
+            reminders.ShouldAllBe(x => x.ComponentId == component.Id);
+            reminders.ShouldAllBe(x => x.CycleMonthsSnapshot == 3);
+            reminders.ShouldAllBe(x => x.WarningDaysBeforeDueSnapshot == 10);
+            reminders.ShouldAllBe(x => x.Status == AssetReplacementReminderStatus.Pending);
+            reminders.ShouldAllBe(x => x.DueDate == DateTime.Now.Date.AddMonths(3));
+        });
+
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = key });
+
+        await WithUnitOfWorkAsync(async () =>
+        {
+            var db = await GetRequiredService<IDbContextProvider<VPureLuxDbContext>>().GetDbContextAsync();
+            (await db.CustomerAssets.CountAsync(x => x.SalesOrderId == order.Id)).ShouldBe(2);
+            (await db.AssetReplacementReminders.CountAsync(x => x.SalesOrderId == order.Id)).ShouldBe(2);
+        });
     }
 
     [Fact]

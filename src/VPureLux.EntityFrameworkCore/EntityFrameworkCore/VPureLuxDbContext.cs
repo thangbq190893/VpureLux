@@ -33,6 +33,7 @@ using VPureLux.Sales;
 using VPureLux.Audit;
 using VPureLux.Suppliers;
 using VPureLux.OperatingCosts;
+using VPureLux.Warranty;
 
 namespace VPureLux.EntityFrameworkCore;
 
@@ -66,6 +67,9 @@ public class VPureLuxDbContext :
     public DbSet<Supplier> Suppliers { get; set; }
     public DbSet<OperatingCostCategory> OperatingCostCategories { get; set; }
     public DbSet<OperatingCostEntry> OperatingCostEntries { get; set; }
+    public DbSet<ComponentReplacementPolicy> ComponentReplacementPolicies { get; set; }
+    public DbSet<CustomerAsset> CustomerAssets { get; set; }
+    public DbSet<AssetReplacementReminder> AssetReplacementReminders { get; set; }
 
     #region Entities from the modules
 
@@ -154,6 +158,9 @@ public class VPureLuxDbContext :
         builder.ApplyConfiguration(new SupplierConfiguration());
         builder.ApplyConfiguration(new OperatingCostCategoryConfiguration());
         builder.ApplyConfiguration(new OperatingCostEntryConfiguration());
+        builder.ApplyConfiguration(new ComponentReplacementPolicyConfiguration());
+        builder.ApplyConfiguration(new CustomerAssetConfiguration());
+        builder.ApplyConfiguration(new AssetReplacementReminderConfiguration());
 
         if (Database.ProviderName?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true)
         {

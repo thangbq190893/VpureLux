@@ -1,0 +1,73 @@
+@page
+@model VPureLux.Web.Pages.Warranty.IndexModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{
+    ViewData["Title"] = L["Warranty:Title"];
+}
+
+@section scripts {
+    <abp-script src="/Pages/Warranty/Index.js" />
+}
+
+<div class="vpl-page vpl-inquiry-page" data-warranty-index data-can-manage-reminders="@Model.CanManageReminders.ToString().ToLowerInvariant()">
+    <div class="vpl-page-header">
+        <h2 class="vpl-page-title mb-0">@L["Warranty:Title"]</h2>
+        <div class="vpl-btn-toolbar">
+            <a class="btn btn-outline-secondary" asp-page="/Warranty/Policies">@L["Warranty:Policies"]</a>
+        </div>
+    </div>
+
+    <abp-card class="vpl-inquiry-filter-card vpl-card-dense mb-3">
+        <abp-card-header>
+            <h5 class="mb-0">@L["Search"]</h5>
+        </abp-card-header>
+        <abp-card-body>
+            <form id="WarrantySearchForm" class="row g-2 mb-0">
+                <div class="col-md-4">
+                    <input id="WarrantySearchText" class="form-control" placeholder="@L["Warranty:SearchPlaceholder"]" />
+                </div>
+                <div class="col-md-2">
+                    <select id="WarrantyStatus" class="form-select">
+                        <option value="">@L["All"]</option>
+                        <option value="1">@L["Warranty:Status:Pending"]</option>
+                        <option value="2">@L["Warranty:Status:Completed"]</option>
+                        <option value="3">@L["Warranty:Status:Skipped"]</option>
+                        <option value="4">@L["Warranty:Status:Cancelled"]</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input id="WarrantyDueFrom" type="date" class="form-control" />
+                </div>
+                <div class="col-md-2">
+                    <input id="WarrantyDueTo" type="date" class="form-control" />
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-secondary" type="submit">@L["Search"]</button>
+                    <button class="btn btn-light" type="button" id="WarrantyClearButton">@L["Clear"]</button>
+                </div>
+            </form>
+        </abp-card-body>
+    </abp-card>
+
+    <form id="WarrantyTokenForm" method="post"></form>
+
+    <abp-card class="vpl-inquiry-results-card vpl-card-dense">
+        <abp-card-body>
+            <abp-table id="WarrantyRemindersTable" striped-rows="true" class="vpl-table-dense">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>@L["Warranty:DueDate"]</th>
+                        <th>@L["Warranty:Status"]</th>
+                        <th>@L["Warranty:Customer"]</th>
+                        <th>@L["Warranty:Product"]</th>
+                        <th>@L["Warranty:Component"]</th>
+                        <th>@L["Warranty:Quantity"]</th>
+                        <th>@L["Warranty:AssetNo"]</th>
+                        <th>@L["Warranty:Order"]</th>
+                    </tr>
+                </thead>
+            </abp-table>
+        </abp-card-body>
+    </abp-card>
+</div>

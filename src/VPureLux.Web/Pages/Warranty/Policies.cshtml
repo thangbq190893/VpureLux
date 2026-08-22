@@ -1,0 +1,64 @@
+@page
+@model VPureLux.Web.Pages.Warranty.PoliciesModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{
+    ViewData["Title"] = L["Warranty:Policies"];
+}
+
+@section scripts {
+    <abp-script src="/Pages/Warranty/Policies.js" />
+}
+
+<div class="vpl-page vpl-inquiry-page" data-warranty-policies>
+    <div class="vpl-page-header">
+        <h2 class="vpl-page-title mb-0">@L["Warranty:Policies"]</h2>
+        <div class="vpl-btn-toolbar">
+            <a class="btn btn-outline-secondary" asp-page="/Warranty/Index">@L["Warranty:Reminders"]</a>
+        </div>
+    </div>
+
+    <abp-card class="vpl-inquiry-filter-card vpl-card-dense mb-3">
+        <abp-card-header>
+            <h5 class="mb-0">@L["Search"]</h5>
+        </abp-card-header>
+        <abp-card-body>
+            <form id="WarrantyPolicySearchForm" class="row g-2 mb-0">
+                <div class="col-md-5">
+                    <input id="WarrantyPolicySearchText" class="form-control" placeholder="@L["Warranty:PolicySearchPlaceholder"]" />
+                </div>
+                <div class="col-md-3">
+                    <select id="WarrantyPolicyEnabled" class="form-select">
+                        <option value="">@L["All"]</option>
+                        <option value="true">@L["Warranty:IsEnabled"]</option>
+                        <option value="false">@L["Warranty:NoPolicy"]</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-secondary" type="submit">@L["Search"]</button>
+                    <button class="btn btn-light" type="button" id="WarrantyPolicyClearButton">@L["Clear"]</button>
+                </div>
+            </form>
+        </abp-card-body>
+    </abp-card>
+
+    <form id="WarrantyPolicyTokenForm" method="post"></form>
+
+    <abp-card class="vpl-inquiry-results-card vpl-card-dense">
+        <abp-card-body>
+            <abp-table id="WarrantyPoliciesTable" striped-rows="true" class="vpl-table-dense">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>@L["Catalog:ComponentCode"]</th>
+                        <th>@L["Catalog:ComponentName"]</th>
+                        <th>@L["Catalog:Unit"]</th>
+                        <th>@L["Warranty:IsEnabled"]</th>
+                        <th>@L["Warranty:CycleMonths"]</th>
+                        <th>@L["Warranty:WarningDaysBeforeDue"]</th>
+                        <th>@L["Warranty:Note"]</th>
+                    </tr>
+                </thead>
+            </abp-table>
+        </abp-card-body>
+    </abp-card>
+</div>

@@ -129,6 +129,14 @@ public static class VPureLuxPermissions
         }
     }
 
+    public static class Warranty
+    {
+        public const string Default = GroupName + ".Warranty";
+        public const string View = Default + ".View";
+        public const string ManagePolicies = Default + ".ManagePolicies";
+        public const string ManageReminders = Default + ".ManageReminders";
+    }
+
     public static class Reports
     {
         public const string Default = GroupName + ".Reports";
