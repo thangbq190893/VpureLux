@@ -21,7 +21,10 @@ class Program
                 .MinimumLevel.Override("VPureLux", LogEventLevel.Information)
 #endif
                 .Enrich.FromLogContext()
-            .WriteTo.Async(c => c.File("Logs/logs.txt"))
+            .WriteTo.Async(c => c.File(
+                "Logs/log-.txt",
+                rollingInterval: RollingInterval.Hour,
+                retainedFileCountLimit: 168))
             .WriteTo.Async(c => c.Console())
             .CreateLogger();
 
