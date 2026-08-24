@@ -419,16 +419,27 @@ Status: HOLD
 ## 7. Active Work Record
 
 Task ID: W-008
-Agent/task name: Codex - Warranty Catalog UX correction, regression, publish, and rollout
+Agent/task name: Codex - Replacement-cycle visibility correction, regression, publish, and rollout
 Started at (Asia/Saigon): 2026-08-24
 Branch and starting commit: main / aec9f91
-Goal for this run: Move Product-machine and Component replacement-policy configuration into the existing Catalog create/edit forms, remove the redundant configuration list entry points, preserve companion-table storage and the installation workflow, then verify and redeploy production.
-Files expected to change: Catalog DTOs/AppServices, Product and Component create/edit Razor forms, Catalog list PageModels/scripts, Warranty menu contribution, focused Catalog/Warranty tests, and this handoff file. No core Product/Component table or migration change is expected.
+Goal for this run: Correct the `Chu ky thay the` list so it displays only Components explicitly enabled for replacement tracking in Catalog, while preserving server-side search/paging and existing configuration data, then verify and redeploy production.
+Files expected to change: Warranty Policies PageModel/view/script, focused Warranty Web tests, and this handoff file. No domain entity, database schema, migration, or business-data change is expected.
 Database/data impact: Test database `VPL` was backed up and migrated from 12 to 18 migrations. After an explicit production deployment instruction, production database `VPureLux` was backed up and migrated from 17 to 18 migrations with the schema-only CustomerCare foundation. Captured business row counts remained unchanged.
-Verification planned: focused Catalog/Warranty EF and Web tests, permission and no-N+1 assertions, JavaScript syntax, Release Web build/publish, diff/status review, production health/static/log smoke, and confirmation that the runtime still targets `VPureLux` without running a migration.
-Current blocker: No technical blocker. The Catalog UX correction is deployed and automated/unauthenticated smoke is green; authenticated operator UAT of Product/Component save plus Pending Installation remains required before W-008 and W-GATE can be marked DONE.
+Verification planned: focused Warranty Web regression, existing Warranty query/EF tests, JavaScript syntax, Release Web build/publish, diff/status review, production health/static/log smoke, and confirmation that the runtime still targets `VPureLux` without running a migration.
+Current blocker: No technical blocker. The replacement-cycle visibility fix is deployed and automated smoke is green. Authenticated operator refresh/UAT remains required before W-008 and W-GATE can be marked DONE.
 
 ## 8. Handoff Log
+
+### 2026-08-24 - W-008 Replacement-Cycle List Filtered And Redeployed
+
+- Agent: Codex
+- Reported defect/root cause: `Warranty/Policies` sent a nullable `IsEnabled` filter and exposed an `All` option. The existing SQL `LEFT JOIN` therefore returned every active Component, including Components without a replacement policy or with a disabled policy.
+- Fix: The Policies PageModel now always sets `IsEnabled = true` before calling `WarrantyAppService`; the status selector and its client payload were removed. Search, Count, sorting, Skip, and Take remain server-side, and the repository applies the enabled predicate before paging.
+- Regression evidence: Warranty Web tests passed 8/8, Warranty EF tests passed 9/9, and the focused enabled-policy paging test passed 1/1. Release Web build passed with zero warnings/errors, `node --check` and `git diff --check` passed, and no migration/model file changed.
+- Commit/deployment: Code commit `300cf6e` was pushed to `main`. It was published from a detached clean worktree and deployed as `/opt/vpurelux/releases/web-20260824-154709`; rollback is `/opt/vpurelux/releases/web-20260824-151442`. The local and VPS archive SHA-256 values matched before extraction.
+- Database/data boundary: No DbMigrator or SQL write command ran. Runtime database was proven as `VPureLux`. A production read-only query found 149 active Components, 0 enabled replacement policies, and 149 disabled/unconfigured Components, so the corrected screen is expected to be empty until operators enable materials from Catalog.
+- Production smoke: Service is active. Health, root, login, Policies JavaScript, and Font Awesome solid font returned HTTP 200; three warm health checks returned 200 in 20-39 ms. The deployed script has no client `isEnabled` override, and journal/application logs contain zero errors after deployment. Browser navigation reached login but had no authenticated session, so authenticated DataTable UAT is intentionally still open.
+- Required next action: Hard-refresh, enable one controlled material in `Danh muc -> Vat tu`, then verify that only that material appears in `Chu ky thay the`. Keep W-008/W-GATE open until the user accepts this and the installation/reminder workflow.
 
 ### 2026-08-24 - W-008 Catalog Configuration UX Redeployed
 
