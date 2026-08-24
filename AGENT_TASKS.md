@@ -6,7 +6,7 @@ Every agent must read and update this file so another agent can continue without
 Last updated: 2026-08-24 (Asia/Saigon)
 Current product stage: Warranty/CustomerCare completion
 Current active task: W-008
-Next task: W-008 test Web deployment and smoke test
+Next task: W-008 authenticated production UAT and user acceptance
 Service implementation gate: CLOSED until W-GATE is DONE
 
 ## 1. Mandatory Agent Protocol
@@ -424,11 +424,25 @@ Started at (Asia/Saigon): 2026-08-24
 Branch and starting commit: main / aec9f91
 Goal for this run: Prove the Warranty/CustomerCare wave is regression-safe, inspect migration/publish outputs, update operations/module documentation, commit/push, and deploy only to a proven isolated test database target.
 Files expected to change: regression/UAT evidence, module and operations documentation, this handoff file, and generated Release publish artifacts outside source control.
-Database/data impact: The approved test database `VPL` was backed up and migrated from 12 to 18 migrations. No business rows existed or changed. Production database `VPureLux` remains unchanged at 17 migrations.
+Database/data impact: Test database `VPL` was backed up and migrated from 12 to 18 migrations. After an explicit production deployment instruction, production database `VPureLux` was backed up and migrated from 17 to 18 migrations with the schema-only CustomerCare foundation. Captured business row counts remained unchanged.
 Verification planned: full focused Domain/EF/Web suites, Sales/BOM/Inventory/report regression, no pending EF model changes, schema-only migration SQL review, Release publish/static assets, runtime target proof, commit/push, isolated DB migration and smoke tests.
-Current blocker: Database rehearsal is complete against the explicitly approved test database `VPL`. Web test deployment cannot start because this workstation has no usable SSH key/password for `180.93.99.150`. Deploy to a separate test directory, environment file, systemd service, and port; do not replace `/opt/vpurelux/app` or point the test service at production database `VPureLux`.
+Current blocker: No technical deployment blocker. Production deployment and unauthenticated visual/static/health smoke tests are complete. Authenticated Sales/CustomerCare UAT and explicit user acceptance remain required before W-008 and W-GATE can be marked DONE.
 
 ## 8. Handoff Log
+
+### 2026-08-24 - W-008 Production Deployment Complete (Authenticated UAT Pending)
+
+- Agent: Codex
+- Authorization change: The user explicitly requested deployment to the existing production service after local regression, superseding the initially isolated Web-test rollout. The temporary test Web service was stopped and fully removed before completion.
+- Production backup: `/var/opt/mssql/data/VPureLux-pre-customercare-20260824-135807.bak`; created with `COPY_ONLY` and checksum and passed `RESTORE VERIFYONLY`.
+- Production migration: `VPureLux` advanced from 17 migrations (`20260822181709_AddWarrantyReplacementModule`) to 18 (`20260824050543_AddCustomerCareFoundation`). Only the reviewed schema-only CustomerCare migration was applied.
+- Data reconciliation: Before/after counts are unchanged: Customers 37, Sales Orders 30, Sales Order lines 170, Inventory transactions 247, Inventory transaction lines 1193, Inventory lots 302, and BOM items 709. New machine settings, assets, positions, reminders, maintenance events, and sync failures all remain zero after the intake worker ran; no historical Sales backfill occurred.
+- Production release: `/opt/vpurelux/releases/web-20260824-135947`; active symlink `/opt/vpurelux/app`. Rollback release retained at `/opt/vpurelux/releases/web-20260823-013141`. Deployed application code corresponds to commit `9bf129a`; later commits only update handoff documentation.
+- Runtime: `vpurelux-web` is active on port 5000 behind Nginx port 80 and still targets database `VPureLux`. CustomerCare and Sales intake gates are enabled with a deployment-time go-live boundary, so only newly confirmed Sales qualify for automatic intake.
+- Smoke evidence: Health, root page, login page, Warranty JS, and the Font Awesome solid webfont return HTTP 200. Browser visual inspection confirmed menu/home/login icons render and reported no console warnings/errors. Three sequential post-start health probes returned 200 in approximately 40-47 ms with no new errors.
+- Health-note: One probe returned transient 503/`TaskCanceledException` while three health requests overlapped during startup; two concurrent requests returned 200 at the same instant. Sequential checks after warm-up were consistently healthy, so this was recorded as startup probe contention rather than a deployment/schema failure.
+- Test cleanup: Removed `vpurelux-web-test`, its Nginx site, environment file, port 8080 listener, `/opt/vpurelux-test`, and the uploaded temporary archive. Production service remained healthy throughout cleanup.
+- Required next action: Run authenticated production UAT using a controlled new order: configure one machine product and replacement policy, confirm Sales, verify pending installation intake, confirm installation, exercise reminder lifecycle/history, and confirm one stable existing Sales approval path. Obtain user acceptance before marking W-008/W-GATE DONE or starting Service.
 
 ### 2026-08-24 - W-008 VPL Migration Rehearsal Complete (Web Deployment Awaiting SSH)
 
