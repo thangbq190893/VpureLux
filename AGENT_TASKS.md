@@ -419,16 +419,28 @@ Status: HOLD
 ## 7. Active Work Record
 
 Task ID: W-008
-Agent/task name: Codex - Replacement-cycle visibility correction, regression, publish, and rollout
+Agent/task name: Codex - Warranty notification center completion, regression, publish, and rollout
 Started at (Asia/Saigon): 2026-08-24
 Branch and starting commit: main / aec9f91
-Goal for this run: Correct the `Chu ky thay the` list so it displays only Components explicitly enabled for replacement tracking in Catalog, while preserving server-side search/paging and existing configuration data, then verify and redeploy production.
-Files expected to change: Warranty Policies PageModel/view/script, focused Warranty Web tests, and this handoff file. No domain entity, database schema, migration, or business-data change is expected.
+Goal for this run: Complete the current Warranty module with an in-app ABP toolbar notification bell that summarizes active Warning and Overdue replacement reminders, refreshes without duplicate notification rows, and deep-links into the correctly filtered server-side reminder DataTable, then verify and redeploy production.
+Files expected to change: Warranty read models/repository contract and EF projection, Warranty AppService contract/DTO, Warranty Index PageModel/script, ABP toolbar contributor and notification ViewComponent assets, localization, focused Warranty EF/Web tests, and this handoff file. No entity table or migration is expected.
 Database/data impact: Test database `VPL` was backed up and migrated from 12 to 18 migrations. After an explicit production deployment instruction, production database `VPureLux` was backed up and migrated from 17 to 18 migrations with the schema-only CustomerCare foundation. Captured business row counts remained unchanged.
-Verification planned: focused Warranty Web regression, existing Warranty query/EF tests, JavaScript syntax, Release Web build/publish, diff/status review, production health/static/log smoke, and confirmation that the runtime still targets `VPureLux` without running a migration.
-Current blocker: No technical blocker. The replacement-cycle visibility fix is deployed and automated smoke is green. Authenticated operator refresh/UAT remains required before W-008 and W-GATE can be marked DONE.
+Verification planned: focused notification summary EF tests, Warranty Web/permission/UI tests, JavaScript syntax, broader Warranty/Sales regression, Release Web build/publish, desktop/mobile toolbar inspection, diff/status review, production health/static/log smoke, and confirmation that the runtime still targets `VPureLux` without running a migration.
+Current blocker: No technical blocker. The Warranty notification center is implemented and deployed; authenticated operator UAT remains required before W-008/W-GATE can be marked DONE. External SMS/Zalo/email delivery and per-user read receipts remain outside the approved first phase.
 
 ## 8. Handoff Log
+
+### 2026-08-24 - W-008 Warranty Notifications Deployed (Operator UAT Pending)
+
+- Agent: Codex
+- Behavior delivered: Authenticated users with `VPureLux.Warranty.View` now receive an ABP toolbar bell. It shows the total actionable replacement reminders, separates `Qua han` and `Canh bao`, caps the badge at `99+`, refreshes every 60 seconds while the page is visible, and deep-links to the Warranty server-side DataTable with the corresponding timing filter selected. Empty state and `Xem tat ca canh bao` are included. No browser popup, duplicate notification table, or per-user notification receipt was added.
+- Query/architecture: The toolbar calls the Warranty application contract through a ViewComponent. The EF read repository calculates Warning and Overdue counts in one `AsNoTracking` grouped SQL aggregate over pending reminders whose `WarningDate` has arrived. The existing Warranty authorization protects both rendering and the Razor handler. No N+1 query and no database schema change were introduced.
+- Verification: Warranty + Sales EF integration passed 46/46; Warranty Web source/UI regression passed 9/9; Release Web build passed with 0 warnings/errors in the working tree; JavaScript syntax, Vietnamese localization JSON, `git diff --check`, and EF pending-model check passed. Local authenticated browser inspection against test DB `VPL` confirmed the bell/dropdown, empty state, `timingStatus=3` deep-link selecting `Qua han`, responsive layout without overlap, and zero console warnings/errors.
+- Test-runner caveat: The combined Web Warranty/Sales run and the isolated `SalesPagesTests` runner were stopped because `testhost` continuously consumed CPU and grew beyond 7 GB/3 GB RAM without returning results. This is recorded as a Web test-runner resource leak; focused Warranty Web and the integrated Sales/Warranty EF coverage completed successfully.
+- Commit/deployment: Code commit `817e6fd` was pushed to `main`. It was published from a detached clean worktree and deployed as `/opt/vpurelux/releases/web-20260824-165930`; rollback is `/opt/vpurelux/releases/web-20260824-154709`. The local and VPS archive SHA-256 matched: `F415B92581043B2F7E173F45C2CABB874D39A40CA75A6B9D378FFE4530D98901`.
+- Database/data boundary: No migration, DbMigrator, SQL write, backfill, or business-data edit ran for this notification deployment. EF reports no model drift. Local visual verification used test DB `VPL`; production was accessed only for runtime/read-only proof and normal application startup/smoke. Production runtime remains database `VPureLux`.
+- Production smoke: Service is active. Health, root, login, notification JavaScript/CSS, and Font Awesome solid font returned HTTP 200. Three warm health checks returned 200 in 24-44 ms. The deployed commit marker is `817e6fd`, the 60-second poll script is present, and journal contains zero errors since restart.
+- Required next action: Hard-refresh an authenticated production session. With one controlled material policy/reminder, verify badge counts and both Warning/Overdue links. Keep W-008/W-GATE open until the user accepts the complete installation/reminder/notification workflow; do not start Service before that acceptance.
 
 ### 2026-08-24 - W-008 Replacement-Cycle List Filtered And Redeployed
 
