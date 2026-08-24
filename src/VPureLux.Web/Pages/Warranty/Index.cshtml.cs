@@ -45,6 +45,11 @@ public class IndexModel : VPureLuxPageModel
             result.Items.Select(ToRow).ToList()));
     }
 
+    public async Task<JsonResult> OnGetNotificationSummaryAsync()
+    {
+        return new JsonResult(await _warrantyAppService.GetNotificationSummaryAsync());
+    }
+
     private WarrantyReminderRow ToRow(VPureLux.Warranty.WarrantyReminderListDto reminder) =>
         new(
             reminder.Id,

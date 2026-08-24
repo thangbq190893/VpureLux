@@ -157,6 +157,13 @@ public class WarrantyReminderFilter
     public int MaxResultCount { get; set; } = 10;
 }
 
+public class WarrantyNotificationSummary
+{
+    public long WarningCount { get; set; }
+    public long OverdueCount { get; set; }
+    public long TotalCount => WarningCount + OverdueCount;
+}
+
 public class WarrantyReminderListItem
 {
     public Guid Id { get; set; }

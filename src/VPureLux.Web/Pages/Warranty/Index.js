@@ -13,6 +13,10 @@
     const $timingStatus = $('#WarrantyTimingStatus');
     const $dueFrom = $('#WarrantyDueFrom');
     const $dueTo = $('#WarrantyDueTo');
+    const initialTimingStatus = new URLSearchParams(window.location.search).get('timingStatus');
+    if (['1', '2', '3', '4'].includes(initialTimingStatus)) {
+        $timingStatus.val(initialTimingStatus);
+    }
 
     function encode(value) {
         return $('<div/>').text(value || '').html();

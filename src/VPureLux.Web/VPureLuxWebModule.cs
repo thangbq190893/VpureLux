@@ -260,6 +260,7 @@ public class VPureLuxWebModule : AbpModule
                 bundle =>
                 {
                     bundle.AddFiles("/global-styles.css");
+                    bundle.AddFiles("/warranty-notifications.css");
                 }
             );
 
@@ -269,6 +270,7 @@ public class VPureLuxWebModule : AbpModule
                 {
                     bundle.AddFiles("/libs/bootstrap-datepicker/locales/bootstrap-datepicker.vi.min.js");
                     bundle.AddFiles("/global-scripts.js");
+                    bundle.AddFiles("/warranty-notifications.js");
                     if (hostingEnvironment.IsDevelopment())
                     {
                         bundle.AddFiles("/dev-login-helper.js");

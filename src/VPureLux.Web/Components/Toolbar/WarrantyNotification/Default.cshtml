@@ -1,0 +1,56 @@
+@using System.Globalization
+@using Microsoft.Extensions.Localization
+@using VPureLux.Localization
+@using VPureLux.Warranty
+@model WarrantyNotificationSummaryDto
+@inject IStringLocalizer<VPureLuxResource> L
+@{
+    var totalCount = Model.TotalCount;
+    var badgeText = totalCount > 99 ? "99+" : totalCount.ToString(CultureInfo.InvariantCulture);
+    var endpoint = Url.Page("/Warranty/Index", "NotificationSummary") ?? "/Warranty?handler=NotificationSummary";
+}
+
+<div class="dropdown vpl-warranty-notification"
+     data-warranty-notification
+     data-endpoint="@endpoint">
+    <button class="btn btn-link vpl-warranty-notification__button @(totalCount > 0 ? "vpl-warranty-notification__button--active" : string.Empty) @(Model.OverdueCount > 0 ? "vpl-warranty-notification__button--overdue" : string.Empty)"
+            type="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            aria-label="@L["Warranty:Notifications"]"
+            title="@L["Warranty:Notifications"]">
+        <i class="fa-solid fa-bell" aria-hidden="true"></i>
+        <span class="badge text-bg-danger vpl-warranty-notification__badge @(totalCount == 0 ? "d-none" : string.Empty)"
+              data-notification-badge
+              aria-live="polite">@badgeText</span>
+    </button>
+
+    <div class="dropdown-menu dropdown-menu-end vpl-warranty-notification__menu">
+        <h6 class="dropdown-header">@L["Warranty:Notifications"]</h6>
+        <div data-notification-alert-list class="@(totalCount == 0 ? "d-none" : string.Empty)">
+            <a class="dropdown-item vpl-warranty-notification__item @(Model.OverdueCount == 0 ? "d-none" : string.Empty)"
+               asp-page="/Warranty/Index"
+               asp-route-timingStatus="@((byte)WarrantyReminderTimingStatus.Overdue)"
+               data-notification-overdue-link>
+                <span class="vpl-warranty-notification__item-icon text-danger"><i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i></span>
+                <span class="flex-grow-1">@L["Warranty:Timing:Overdue"]</span>
+                <span class="badge text-bg-danger" data-notification-overdue-count>@Model.OverdueCount</span>
+            </a>
+            <a class="dropdown-item vpl-warranty-notification__item @(Model.WarningCount == 0 ? "d-none" : string.Empty)"
+               asp-page="/Warranty/Index"
+               asp-route-timingStatus="@((byte)WarrantyReminderTimingStatus.Warning)"
+               data-notification-warning-link>
+                <span class="vpl-warranty-notification__item-icon text-warning"><i class="fa-solid fa-clock" aria-hidden="true"></i></span>
+                <span class="flex-grow-1">@L["Warranty:Timing:Warning"]</span>
+                <span class="badge text-bg-warning text-dark" data-notification-warning-count>@Model.WarningCount</span>
+            </a>
+        </div>
+        <div class="vpl-warranty-notification__empty @(totalCount > 0 ? "d-none" : string.Empty)" data-notification-empty>
+            @L["Warranty:NotificationsEmpty"]
+        </div>
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-item text-center vpl-warranty-notification__all" asp-page="/Warranty/Index">
+            @L["Warranty:NotificationsViewAll"]
+        </a>
+    </div>
+</div>

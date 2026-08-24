@@ -145,6 +145,27 @@ public class EfCoreWarrantyReadRepository : IWarrantyReadRepository, ITransientD
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<WarrantyNotificationSummary> GetNotificationSummaryAsync(
+        DateTime asOfDate,
+        CancellationToken cancellationToken = default)
+    {
+        var dbContext = await _dbContextProvider.GetDbContextAsync();
+        var date = asOfDate.Date;
+        return await dbContext.AssetReplacementReminders
+            .AsNoTracking()
+            .Where(reminder =>
+                reminder.Status == AssetReplacementReminderStatus.Pending &&
+                reminder.WarningDate.HasValue &&
+                reminder.WarningDate.Value <= date)
+            .GroupBy(_ => 1)
+            .Select(group => new WarrantyNotificationSummary
+            {
+                OverdueCount = group.Sum(reminder => reminder.DueDate < date ? 1L : 0L),
+                WarningCount = group.Sum(reminder => reminder.DueDate >= date ? 1L : 0L)
+            })
+            .SingleOrDefaultAsync(cancellationToken) ?? new WarrantyNotificationSummary();
+    }
+
     private async Task<IQueryable<WarrantyPolicyListItem>> CreatePolicyQueryAsync(WarrantyPolicyFilter filter)
     {
         var dbContext = await _dbContextProvider.GetDbContextAsync();

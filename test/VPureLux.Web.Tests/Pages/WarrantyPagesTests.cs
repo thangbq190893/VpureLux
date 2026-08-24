@@ -161,6 +161,30 @@ public class WarrantyPagesTests
         history.ShouldContain("abp.libs.datatables.createAjax");
     }
 
+    [Fact]
+    public void Warranty_notifications_should_use_abp_toolbar_and_deep_link_to_server_filters()
+    {
+        var toolbar = Read("src/VPureLux.Web/Menus/VPureLuxToolbarContributor.cs");
+        var component = Read("src/VPureLux.Web/Components/Toolbar/WarrantyNotification/WarrantyNotificationViewComponent.cs");
+        var markup = Read("src/VPureLux.Web/Components/Toolbar/WarrantyNotification/Default.cshtml");
+        var notificationScript = Read("src/VPureLux.Web/wwwroot/warranty-notifications.js");
+        var reminderScript = Read("src/VPureLux.Web/Pages/Warranty/Index.js");
+        var repository = Read("src/VPureLux.EntityFrameworkCore/Warranty/EfCoreWarrantyReadRepository.cs");
+
+        toolbar.ShouldContain("WarrantyNotificationViewComponent");
+        toolbar.ShouldContain("RequirePermissions(VPureLuxPermissions.Warranty.View)");
+        component.ShouldContain("GetNotificationSummaryAsync");
+        markup.ShouldContain("fa-solid fa-bell");
+        markup.ShouldContain("asp-route-timingStatus");
+        notificationScript.ShouldContain("pollIntervalMilliseconds = 60000");
+        notificationScript.ShouldContain("credentials: 'same-origin'");
+        notificationScript.ShouldNotContain("window.alert");
+        notificationScript.ShouldNotContain("window.confirm");
+        reminderScript.ShouldContain("new URLSearchParams(window.location.search)");
+        repository.ShouldContain(".GroupBy(_ => 1)");
+        repository.ShouldContain("AssetReplacementReminderStatus.Pending");
+    }
+
     private static string Read(string relativePath)
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

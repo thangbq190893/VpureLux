@@ -80,6 +80,13 @@ public class WarrantyReminderListDto : EntityDto<Guid>
     public string? Note { get; set; }
 }
 
+public class WarrantyNotificationSummaryDto
+{
+    public long WarningCount { get; set; }
+    public long OverdueCount { get; set; }
+    public long TotalCount => WarningCount + OverdueCount;
+}
+
 public class SetComponentReplacementPolicyDto
 {
     [Display(Name = "Warranty:IsEnabled")]

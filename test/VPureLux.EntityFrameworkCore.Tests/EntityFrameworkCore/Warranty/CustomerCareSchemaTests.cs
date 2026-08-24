@@ -10,6 +10,7 @@ using VPureLux.Customers.CustomerGroups;
 using VPureLux.Warranty;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.EntityFrameworkCore;
+using Volo.Abp.Timing;
 using Xunit;
 
 namespace VPureLux.EntityFrameworkCore.Warranty;
@@ -155,6 +156,80 @@ public class CustomerCareSchemaTests : VPureLuxEntityFrameworkCoreTestBase
         page.TotalCount.ShouldBe(1);
         page.Items.ShouldHaveSingleItem().ComponentId.ShouldBe(enabled.Id);
         page.Items.Single().IsEnabled.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Notification_summary_should_count_only_warning_and_overdue_reminders()
+    {
+        var groups = GetRequiredService<ICustomerGroupAppService>();
+        var customers = GetRequiredService<ICustomerAppService>();
+        var components = GetRequiredService<IComponentAppService>();
+        var warranty = GetRequiredService<IWarrantyAppService>();
+        var today = GetRequiredService<IClock>().Now.Date;
+        var before = await warranty.GetNotificationSummaryAsync();
+        var group = await groups.CreateAsync(new CreateCustomerGroupDto
+        {
+            Code = Unique("NTG"),
+            Name = "Notification group"
+        });
+        var customer = await customers.CreateAsync(new CreateCustomerDto
+        {
+            Code = Unique("NTC"),
+            Name = "Notification customer",
+            CustomerGroupId = group.Id
+        });
+        var component = await components.CreateAsync(new CreateComponentDto
+        {
+            Code = Unique("NTF"),
+            Name = "Notification replacement core",
+            Unit = "Piece"
+        });
+        await warranty.SetPolicyAsync(component.Id, new SetComponentReplacementPolicyDto
+        {
+            IsEnabled = true,
+            CycleMonths = 3,
+            WarningDaysBeforeDue = 14
+        });
+
+        var created = await warranty.CreateExternalAssetAsync(new CreateExternalCustomerAssetDto
+        {
+            CustomerId = customer.Id,
+            Model = "Notification test machine",
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Positions =
+            [
+                new ExternalAssetPositionInput
+                {
+                    PositionCode = "CORE-OVERDUE",
+                    PositionName = "Overdue core",
+                    ComponentId = component.Id,
+                    Quantity = 1,
+                    ReplacementBaselineDate = today.AddMonths(-3).AddDays(-1)
+                },
+                new ExternalAssetPositionInput
+                {
+                    PositionCode = "CORE-WARNING",
+                    PositionName = "Warning core",
+                    ComponentId = component.Id,
+                    Quantity = 1,
+                    ReplacementBaselineDate = today.AddMonths(-3).AddDays(7)
+                },
+                new ExternalAssetPositionInput
+                {
+                    PositionCode = "CORE-NOT-DUE",
+                    PositionName = "Not due core",
+                    ComponentId = component.Id,
+                    Quantity = 1,
+                    ReplacementBaselineDate = today.AddMonths(-3).AddDays(30)
+                }
+            ]
+        });
+        var after = await warranty.GetNotificationSummaryAsync();
+
+        created.CreatedReminderCount.ShouldBe(3);
+        after.OverdueCount.ShouldBe(before.OverdueCount + 1);
+        after.WarningCount.ShouldBe(before.WarningCount + 1);
+        after.TotalCount.ShouldBe(before.TotalCount + 2);
     }
 
     [Fact]

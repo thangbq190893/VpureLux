@@ -73,4 +73,8 @@ public interface IWarrantyReadRepository
     Task<long> GetReminderCountAsync(WarrantyReminderFilter filter, CancellationToken cancellationToken = default);
 
     Task<List<WarrantyReminderListItem>> GetReminderListAsync(WarrantyReminderFilter filter, CancellationToken cancellationToken = default);
+
+    Task<WarrantyNotificationSummary> GetNotificationSummaryAsync(
+        DateTime asOfDate,
+        CancellationToken cancellationToken = default);
 }

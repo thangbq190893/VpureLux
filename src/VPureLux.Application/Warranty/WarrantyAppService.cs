@@ -902,6 +902,16 @@ public class WarrantyAppService : ApplicationService, IWarrantyAppService
             items.Select(ToDto).ToList());
     }
 
+    public async Task<WarrantyNotificationSummaryDto> GetNotificationSummaryAsync()
+    {
+        var summary = await _readRepository.GetNotificationSummaryAsync(Clock.Now.Date);
+        return new WarrantyNotificationSummaryDto
+        {
+            WarningCount = summary.WarningCount,
+            OverdueCount = summary.OverdueCount
+        };
+    }
+
     public async Task<PagedResultDto<AssetMaintenanceEventListDto>> GetAssetHistoryAsync(
         GetAssetMaintenanceHistoryInput input)
     {

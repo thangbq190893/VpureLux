@@ -46,6 +46,8 @@ public interface IWarrantyAppService : IApplicationService
 
     Task<PagedResultDto<WarrantyReminderListDto>> GetReminderListAsync(GetWarrantyReminderListInput input);
 
+    Task<WarrantyNotificationSummaryDto> GetNotificationSummaryAsync();
+
     Task CompleteReminderAsync(Guid id, CompleteReplacementReminderDto input);
 
     Task SkipReminderAsync(Guid id, SkipReplacementReminderDto input);
