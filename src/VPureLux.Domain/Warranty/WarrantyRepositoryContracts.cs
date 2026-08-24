@@ -10,6 +10,10 @@ public interface IComponentReplacementPolicyRepository : IRepository<ComponentRe
 {
     Task<ComponentReplacementPolicy?> FindByComponentIdAsync(Guid componentId, CancellationToken cancellationToken = default);
 
+    Task<List<ComponentReplacementPolicy>> GetByComponentIdsAsync(
+        IReadOnlyCollection<Guid> componentIds,
+        CancellationToken cancellationToken = default);
+
     Task<List<ComponentReplacementPolicy>> GetEnabledByComponentIdsAsync(
         IReadOnlyCollection<Guid> componentIds,
         CancellationToken cancellationToken = default);
@@ -18,6 +22,10 @@ public interface IComponentReplacementPolicyRepository : IRepository<ComponentRe
 public interface IProductMachineSettingRepository : IRepository<ProductMachineSetting, Guid>
 {
     Task<ProductMachineSetting?> FindByProductIdAsync(Guid productId, CancellationToken cancellationToken = default);
+
+    Task<List<ProductMachineSetting>> GetByProductIdsAsync(
+        IReadOnlyCollection<Guid> productIds,
+        CancellationToken cancellationToken = default);
 }
 
 public interface ICustomerCareSyncFailureRepository : IRepository<CustomerCareSyncFailure, Guid>

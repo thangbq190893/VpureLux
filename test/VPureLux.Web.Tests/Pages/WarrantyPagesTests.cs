@@ -41,6 +41,29 @@ public class WarrantyPagesTests
     }
 
     [Fact]
+    public void Catalog_lists_should_expose_machine_and_replacement_configuration_without_n_plus_one()
+    {
+        var productModel = Read("src/VPureLux.Web/Pages/Catalog/Products/Index.cshtml.cs");
+        var productScript = Read("src/VPureLux.Web/Pages/Catalog/Products/Index.js");
+        var componentModel = Read("src/VPureLux.Web/Pages/Catalog/Components/Index.cshtml.cs");
+        var componentScript = Read("src/VPureLux.Web/Pages/Catalog/Components/Index.js");
+        var permissionSeed = Read("src/VPureLux.Application/Permissions/VPureLuxPermissionDataSeedContributor.cs");
+
+        productModel.ShouldContain("GetMachineSettingsByProductIdsAsync");
+        productScript.ShouldContain("Warranty/MachineSettingModal");
+        productScript.ShouldContain("data: 'isMachine'");
+        componentModel.ShouldContain("GetPoliciesByComponentIdsAsync");
+        componentScript.ShouldContain("Warranty/PolicyModal");
+        componentScript.ShouldContain("data: 'isReplacementTracked'");
+        productModel.ShouldNotContain("foreach");
+        componentModel.ShouldNotContain("foreach");
+        permissionSeed.ShouldContain("Warranty.ManageMachines");
+        permissionSeed.ShouldContain("Warranty.ManageInstallations");
+        permissionSeed.ShouldContain("Warranty.ManageAssets");
+        permissionSeed.ShouldContain("Warranty.ManageSyncFailures");
+    }
+
+    [Fact]
     public void Intake_worker_and_failure_page_should_keep_sales_decoupled_and_retry_explicitly()
     {
         var worker = Read("src/VPureLux.Web/Warranty/CustomerCareSalesIntakeWorker.cs");

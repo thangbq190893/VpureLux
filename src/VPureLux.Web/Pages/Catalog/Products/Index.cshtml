@@ -5,6 +5,7 @@
     ViewData["Title"] = L["Catalog:Products"];
     var canEdit = Model.CanEdit.ToString().ToLowerInvariant();
     var canViewPricingContext = Model.CanViewPricingContext.ToString().ToLowerInvariant();
+    var canManageMachineSettings = Model.CanManageMachineSettings.ToString().ToLowerInvariant();
 }
 
 @section scripts {
@@ -19,6 +20,7 @@
      data-table-selector="#ProductsTable"
      data-can-edit="@canEdit"
      data-can-view-pricing-context="@canViewPricingContext"
+     data-can-manage-machine-settings="@canManageMachineSettings"
      data-saved-message="@L["Catalog:ProductSavedSuccessfully"]"
      data-activated-message="@L["Catalog:ProductActivatedSuccessfully"]"
      data-deactivated-message="@L["Catalog:ProductDeactivatedSuccessfully"]"
@@ -56,6 +58,10 @@
                     <th>@L["Catalog:Code"]</th>
                     <th>@L["Catalog:Name"]</th>
                     <th>@L["Catalog:Status"]</th>
+                    @if (Model.CanManageMachineSettings)
+                    {
+                        <th>@L["Warranty:IsMachine"]</th>
+                    }
                     @if (Model.CanViewPricingContext)
                     {
                         <th class="text-end">@L["Catalog:CurrentProductSuggestedPrice"]</th>

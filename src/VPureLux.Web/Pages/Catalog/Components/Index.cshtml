@@ -5,6 +5,7 @@
     ViewData["Title"] = L["Catalog:Components"];
     var canEdit = Model.CanEdit.ToString().ToLowerInvariant();
     var canViewPricingContext = Model.CanViewPricingContext.ToString().ToLowerInvariant();
+    var canManageReplacementPolicies = Model.CanManageReplacementPolicies.ToString().ToLowerInvariant();
 }
 
 @section scripts {
@@ -19,6 +20,7 @@
      data-table-selector="#ComponentsTable"
      data-can-edit="@canEdit"
      data-can-view-pricing-context="@canViewPricingContext"
+     data-can-manage-replacement-policies="@canManageReplacementPolicies"
      data-saved-message="@L["Catalog:ComponentSavedSuccessfully"]"
      data-activated-message="@L["Catalog:ComponentActivatedSuccessfully"]"
      data-deactivated-message="@L["Catalog:ComponentDeactivatedSuccessfully"]"
@@ -57,6 +59,11 @@
                     <th>@L["Catalog:Name"]</th>
                     <th>@L["Catalog:Unit"]</th>
                     <th>@L["Catalog:Status"]</th>
+                    @if (Model.CanManageReplacementPolicies)
+                    {
+                        <th>@L["Warranty:TrackedForReplacement"]</th>
+                        <th>@L["Warranty:ReplacementSchedule"]</th>
+                    }
                     @if (Model.CanViewPricingContext)
                     {
                         <th class="text-end">@L["Catalog:CurrentComponentSuggestedPrice"]</th>

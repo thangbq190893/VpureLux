@@ -9,6 +9,10 @@
 
     const canEdit = page.dataset.canEdit === 'true';
     const canViewPricingContext = page.dataset.canViewPricingContext === 'true';
+    const canManageReplacementPolicies = page.dataset.canManageReplacementPolicies === 'true';
+    const replacementPolicyModal = canManageReplacementPolicies
+        ? new abp.ModalManager({ viewUrl: abp.appPath + 'Warranty/PolicyModal' })
+        : null;
     const $keyword = $('#ComponentsKeyword');
 
     function encode(value) {
@@ -92,6 +96,20 @@
                         }
                     },
                     {
+                        text: l('Warranty:EditPolicy'),
+                        visible: function () {
+                            return canManageReplacementPolicies;
+                        },
+                        action: function (data) {
+                            const record = recordOf(data);
+                            replacementPolicyModal.open({
+                                componentId: record.id,
+                                componentCode: record.code,
+                                componentName: record.name
+                            });
+                        }
+                    },
+                    {
                         text: l('Deactivate'),
                         visible: function (data) {
                             const record = recordOf(data);
@@ -158,6 +176,34 @@
         }
     ];
 
+    if (canManageReplacementPolicies) {
+        columnDefs.push(
+            {
+                data: 'isReplacementTracked',
+                orderable: false,
+                className: 'text-center',
+                render: function (data) {
+                    return data
+                        ? '<span class="badge bg-success">' + encode(l('Yes')) + '</span>'
+                        : '<span class="badge bg-secondary">' + encode(l('No')) + '</span>';
+                }
+            },
+            {
+                data: null,
+                orderable: false,
+                className: 'text-nowrap',
+                render: function (_data, _type, row) {
+                    if (!row.isReplacementTracked) {
+                        return '<span class="text-muted">-</span>';
+                    }
+
+                    return '<strong>' + encode(row.replacementCycleMonths) + ' ' + encode(l('Warranty:Months')) + '</strong>' +
+                        '<div class="text-muted small">' + encode(l('Warranty:WarningDaysBeforeDue')) + ': ' +
+                        encode(row.warningDaysBeforeDue) + '</div>';
+                }
+            });
+    }
+
     if (canViewPricingContext) {
         columnDefs.push({
             data: 'currentSuggestedSellingPrice',
@@ -189,6 +235,13 @@
         }),
         columnDefs: columnDefs
     }));
+
+    if (replacementPolicyModal) {
+        replacementPolicyModal.onResult(function () {
+            abp.notify.success(l('Warranty:PolicySavedSuccessfully'));
+            dataTable.ajax.reload(null, false);
+        });
+    }
 
     $('#ComponentsSearchForm').on('submit', function (event) {
         event.preventDefault();

@@ -81,6 +81,21 @@ public class WarrantyAppService : ApplicationService, IWarrantyAppService
     }
 
     [Authorize(VPureLuxPermissions.Warranty.ManageMachines)]
+    public async Task<List<ProductMachineSettingDto>> GetMachineSettingsByProductIdsAsync(
+        IReadOnlyCollection<Guid> productIds)
+    {
+        var ids = productIds.Where(id => id != Guid.Empty).Distinct().ToArray();
+        if (ids.Length == 0)
+        {
+            return [];
+        }
+
+        return (await _machineSettings.GetByProductIdsAsync(ids))
+            .Select(ToDto)
+            .ToList();
+    }
+
+    [Authorize(VPureLuxPermissions.Warranty.ManageMachines)]
     public async Task<ProductMachineSettingDto> SetMachineSettingAsync(
         Guid productId,
         SetProductMachineSettingDto input)
@@ -819,6 +834,21 @@ public class WarrantyAppService : ApplicationService, IWarrantyAppService
     {
         var policy = await _policies.FindByComponentIdAsync(componentId);
         return policy == null ? null : ToDto(policy);
+    }
+
+    [Authorize(VPureLuxPermissions.Warranty.ManagePolicies)]
+    public async Task<List<ComponentReplacementPolicyDto>> GetPoliciesByComponentIdsAsync(
+        IReadOnlyCollection<Guid> componentIds)
+    {
+        var ids = componentIds.Where(id => id != Guid.Empty).Distinct().ToArray();
+        if (ids.Length == 0)
+        {
+            return [];
+        }
+
+        return (await _policies.GetByComponentIdsAsync(ids))
+            .Select(ToDto)
+            .ToList();
     }
 
     [Authorize(VPureLuxPermissions.Warranty.ManagePolicies)]

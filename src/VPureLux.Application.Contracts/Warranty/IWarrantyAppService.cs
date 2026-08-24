@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -11,11 +12,15 @@ public interface IWarrantyAppService : IApplicationService
 
     Task<ComponentReplacementPolicyDto?> GetPolicyByComponentIdAsync(Guid componentId);
 
+    Task<List<ComponentReplacementPolicyDto>> GetPoliciesByComponentIdsAsync(IReadOnlyCollection<Guid> componentIds);
+
     Task<ComponentReplacementPolicyDto> SetPolicyAsync(Guid componentId, SetComponentReplacementPolicyDto input);
 
     Task<PagedResultDto<ProductMachineSettingListDto>> GetMachineSettingListAsync(GetProductMachineSettingListInput input);
 
     Task<ProductMachineSettingDto?> GetMachineSettingByProductIdAsync(Guid productId);
+
+    Task<List<ProductMachineSettingDto>> GetMachineSettingsByProductIdsAsync(IReadOnlyCollection<Guid> productIds);
 
     Task<ProductMachineSettingDto> SetMachineSettingAsync(Guid productId, SetProductMachineSettingDto input);
 

@@ -34,6 +34,10 @@ public class WarrantyPermissionTests : VPureLuxEntityFrameworkCoreTestBase
             .ShouldBe(VPureLuxPermissions.Warranty.ManagePolicies);
         Permission(nameof(WarrantyAppService.SetMachineSettingAsync))
             .ShouldBe(VPureLuxPermissions.Warranty.ManageMachines);
+        Permission(nameof(WarrantyAppService.GetMachineSettingsByProductIdsAsync))
+            .ShouldBe(VPureLuxPermissions.Warranty.ManageMachines);
+        Permission(nameof(WarrantyAppService.GetPoliciesByComponentIdsAsync))
+            .ShouldBe(VPureLuxPermissions.Warranty.ManagePolicies);
         Permission(nameof(WarrantyAppService.RetrySyncFailureAsync))
             .ShouldBe(VPureLuxPermissions.Warranty.ManageSyncFailures);
         Permission(nameof(WarrantyAppService.ConfirmInstallationAsync))

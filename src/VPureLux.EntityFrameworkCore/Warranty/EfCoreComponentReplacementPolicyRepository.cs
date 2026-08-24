@@ -25,6 +25,20 @@ public class EfCoreComponentReplacementPolicyRepository :
             .FirstOrDefaultAsync(x => x.ComponentId == componentId, GetCancellationToken(cancellationToken));
     }
 
+    public async Task<List<ComponentReplacementPolicy>> GetByComponentIdsAsync(
+        IReadOnlyCollection<Guid> componentIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (componentIds.Count == 0)
+        {
+            return [];
+        }
+
+        return await (await GetDbSetAsync())
+            .Where(x => componentIds.Contains(x.ComponentId))
+            .ToListAsync(GetCancellationToken(cancellationToken));
+    }
+
     public async Task<List<ComponentReplacementPolicy>> GetEnabledByComponentIdsAsync(
         IReadOnlyCollection<Guid> componentIds,
         CancellationToken cancellationToken = default)

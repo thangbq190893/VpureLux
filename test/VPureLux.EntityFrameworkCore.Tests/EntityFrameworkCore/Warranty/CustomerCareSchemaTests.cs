@@ -18,6 +18,55 @@ namespace VPureLux.EntityFrameworkCore.Warranty;
 public class CustomerCareSchemaTests : VPureLuxEntityFrameworkCoreTestBase
 {
     [Fact]
+    public async Task Catalog_configuration_lookups_should_batch_load_only_requested_settings()
+    {
+        var products = GetRequiredService<IProductAppService>();
+        var components = GetRequiredService<IComponentAppService>();
+        var warranty = GetRequiredService<IWarrantyAppService>();
+        var machine = await products.CreateAsync(new CreateProductDto
+        {
+            Code = Unique("BCM"),
+            Name = "Batch machine"
+        });
+        var regularProduct = await products.CreateAsync(new CreateProductDto
+        {
+            Code = Unique("BCP"),
+            Name = "Batch regular product"
+        });
+        var trackedComponent = await components.CreateAsync(new CreateComponentDto
+        {
+            Code = Unique("BCC"),
+            Name = "Batch tracked component",
+            Unit = "Piece"
+        });
+        var regularComponent = await components.CreateAsync(new CreateComponentDto
+        {
+            Code = Unique("BCN"),
+            Name = "Batch regular component",
+            Unit = "Piece"
+        });
+
+        await warranty.SetMachineSettingAsync(machine.Id, new SetProductMachineSettingDto { IsMachine = true });
+        await warranty.SetPolicyAsync(trackedComponent.Id, new SetComponentReplacementPolicyDto
+        {
+            IsEnabled = true,
+            CycleMonths = 6,
+            WarningDaysBeforeDue = 14
+        });
+
+        var machineSettings = await warranty.GetMachineSettingsByProductIdsAsync([machine.Id, regularProduct.Id]);
+        var policies = await warranty.GetPoliciesByComponentIdsAsync([trackedComponent.Id, regularComponent.Id]);
+
+        machineSettings.Count.ShouldBe(1);
+        machineSettings.Single().ProductId.ShouldBe(machine.Id);
+        machineSettings.Single().IsMachine.ShouldBeTrue();
+        policies.Count.ShouldBe(1);
+        policies.Single().ComponentId.ShouldBe(trackedComponent.Id);
+        policies.Single().CycleMonths.ShouldBe(6);
+        policies.Single().WarningDaysBeforeDue.ShouldBe(14);
+    }
+
+    [Fact]
     public async Task Machine_settings_should_default_false_and_page_filter_in_database()
     {
         var products = GetRequiredService<IProductAppService>();

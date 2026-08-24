@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -23,4 +25,18 @@ public class EfCoreProductMachineSettingRepository :
         await (await GetDbSetAsync()).FirstOrDefaultAsync(
             x => x.ProductId == productId,
             GetCancellationToken(cancellationToken));
+
+    public async Task<List<ProductMachineSetting>> GetByProductIdsAsync(
+        IReadOnlyCollection<Guid> productIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (productIds.Count == 0)
+        {
+            return [];
+        }
+
+        return await (await GetDbSetAsync())
+            .Where(x => productIds.Contains(x.ProductId))
+            .ToListAsync(GetCancellationToken(cancellationToken));
+    }
 }

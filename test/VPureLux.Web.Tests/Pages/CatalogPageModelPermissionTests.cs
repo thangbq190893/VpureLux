@@ -8,6 +8,7 @@ using Shouldly;
 using VPureLux.Catalog.Components;
 using VPureLux.Catalog.Products;
 using VPureLux.Pricing;
+using VPureLux.Warranty;
 using Xunit;
 
 namespace VPureLux.Pages;
@@ -19,6 +20,7 @@ public class CatalogPageModelPermissionTests
     {
         var appService = Substitute.For<IComponentAppService>();
         var pricingService = Substitute.For<IComponentSuggestedSellingPriceLookupService>();
+        var warrantyService = Substitute.For<IWarrantyAppService>();
         var authorizationService = Substitute.For<IAuthorizationService>();
         appService.GetListAsync(Arg.Any<GetComponentListInput>())
             .Returns(new Volo.Abp.Application.Dtos.PagedResultDto<ComponentDto>());
@@ -28,7 +30,11 @@ public class CatalogPageModelPermissionTests
                 Arg.Any<string>())
             .Returns(AuthorizationResult.Failed());
 
-        var model = new Web.Pages.Catalog.Components.IndexModel(appService, pricingService, authorizationService)
+        var model = new Web.Pages.Catalog.Components.IndexModel(
+            appService,
+            pricingService,
+            warrantyService,
+            authorizationService)
         {
             PageContext = CreatePageContext()
         };
@@ -37,6 +43,7 @@ public class CatalogPageModelPermissionTests
 
         model.CanCreate.ShouldBeFalse();
         model.CanEdit.ShouldBeFalse();
+        model.CanManageReplacementPolicies.ShouldBeFalse();
     }
 
     [Fact]
@@ -44,6 +51,7 @@ public class CatalogPageModelPermissionTests
     {
         var appService = Substitute.For<IProductAppService>();
         var pricingContextService = Substitute.For<IProductPricingContextLookupService>();
+        var warrantyService = Substitute.For<IWarrantyAppService>();
         var authorizationService = Substitute.For<IAuthorizationService>();
         appService.GetListAsync(Arg.Any<GetProductListInput>())
             .Returns(new Volo.Abp.Application.Dtos.PagedResultDto<ProductDto>());
@@ -53,7 +61,11 @@ public class CatalogPageModelPermissionTests
                 Arg.Any<string>())
             .Returns(AuthorizationResult.Failed());
 
-        var model = new Web.Pages.Catalog.Products.IndexModel(appService, pricingContextService, authorizationService)
+        var model = new Web.Pages.Catalog.Products.IndexModel(
+            appService,
+            pricingContextService,
+            warrantyService,
+            authorizationService)
         {
             PageContext = CreatePageContext()
         };
@@ -62,6 +74,7 @@ public class CatalogPageModelPermissionTests
 
         model.CanCreate.ShouldBeFalse();
         model.CanEdit.ShouldBeFalse();
+        model.CanManageMachineSettings.ShouldBeFalse();
     }
 
     private static PageContext CreatePageContext()

@@ -9,6 +9,10 @@
 
     const canEdit = page.dataset.canEdit === 'true';
     const canViewPricingContext = page.dataset.canViewPricingContext === 'true';
+    const canManageMachineSettings = page.dataset.canManageMachineSettings === 'true';
+    const machineSettingModal = canManageMachineSettings
+        ? new abp.ModalManager({ viewUrl: abp.appPath + 'Warranty/MachineSettingModal' })
+        : null;
     const $keyword = $('#ProductsKeyword');
 
     function encode(value) {
@@ -100,6 +104,20 @@
                         }
                     },
                     {
+                        text: l('Warranty:ConfigureMachine'),
+                        visible: function () {
+                            return canManageMachineSettings;
+                        },
+                        action: function (data) {
+                            const record = recordOf(data);
+                            machineSettingModal.open({
+                                productId: record.id,
+                                productCode: record.code,
+                                productName: record.name
+                            });
+                        }
+                    },
+                    {
                         text: l('Deactivate'),
                         visible: function (data) {
                             const record = recordOf(data);
@@ -160,6 +178,19 @@
         }
     ];
 
+    if (canManageMachineSettings) {
+        columnDefs.push({
+            data: 'isMachine',
+            orderable: false,
+            className: 'text-center',
+            render: function (data) {
+                return data
+                    ? '<span class="badge bg-success">' + encode(l('Yes')) + '</span>'
+                    : '<span class="badge bg-secondary">' + encode(l('No')) + '</span>';
+            }
+        });
+    }
+
     if (canViewPricingContext) {
         columnDefs.push(
             {
@@ -199,6 +230,13 @@
         }),
         columnDefs: columnDefs
     }));
+
+    if (machineSettingModal) {
+        machineSettingModal.onResult(function () {
+            abp.notify.success(l('Warranty:MachineSettingSavedSuccessfully'));
+            dataTable.ajax.reload(null, false);
+        });
+    }
 
     $('#ProductsSearchForm').on('submit', function (event) {
         event.preventDefault();
