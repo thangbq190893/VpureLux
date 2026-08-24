@@ -141,6 +141,21 @@ public static class VPureLuxPermissions
         public const string ManageReminders = Default + ".ManageReminders";
     }
 
+    public static class Service
+    {
+        public const string Default = GroupName + ".Service";
+        public const string View = Default + ".View";
+        public const string Create = Default + ".Create";
+        public const string Edit = Default + ".Edit";
+        public const string Confirm = Default + ".Confirm";
+        public const string Complete = Default + ".Complete";
+        public const string Cancel = Default + ".Cancel";
+        public const string ManagePayments = Default + ".ManagePayments";
+        public const string ManageWorks = Default + ".ManageWorks";
+        public const string ViewCost = Default + ".ViewCost";
+        public const string ViewProfit = Default + ".ViewProfit";
+    }
+
     public static class Reports
     {
         public const string Default = GroupName + ".Reports";
@@ -155,6 +170,18 @@ public static class VPureLuxPermissions
         public static class Profit
         {
             public const string Default = Reports.Default + ".Profit";
+            public const string View = Default + ".View";
+        }
+
+        public static class Service
+        {
+            public const string Default = Reports.Default + ".Service";
+            public const string View = Default + ".View";
+        }
+
+        public static class Consolidated
+        {
+            public const string Default = Reports.Default + ".Consolidated";
             public const string View = Default + ".View";
         }
     }

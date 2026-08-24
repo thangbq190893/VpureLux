@@ -1,0 +1,11 @@
+@page
+@model VPureLux.Web.Pages.Service.PaymentModalModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Modal
+@using VPureLux.Sales
+@{ Layout = null; }
+<form method="post" asp-page="/Service/PaymentModal"><input asp-for="Id" type="hidden" /><input asp-for="Input.IdempotencyKey" type="hidden" /><abp-modal><abp-modal-header title="@L["Service:AddPayment"]"></abp-modal-header><abp-modal-body>
+    <abp-input asp-for="Input.Amount" label="@L["Service:Amount"]" /><abp-input asp-for="Input.PaymentDate" type="date" label="@L["Service:PaymentDate"]" />
+    <label asp-for="Input.PaymentMethod" class="form-label">@L["Service:PaymentMethod"]</label><select asp-for="Input.PaymentMethod" class="form-select mb-3">@foreach (var method in Enum.GetValues<SalesPaymentMethod>()) { <option value="@method">@L[$"Sales:PaymentMethod:{method}"]</option> }</select>
+    <abp-input asp-for="Input.ReferenceNo" label="@L["Service:ReferenceNo"]" /><abp-input asp-for="Input.Note" label="@L["Service:Note"]" /><div asp-validation-summary="ModelOnly" class="text-danger"></div>
+</abp-modal-body><abp-modal-footer buttons="@(AbpModalButtons.Cancel|AbpModalButtons.Save)"></abp-modal-footer></abp-modal></form>

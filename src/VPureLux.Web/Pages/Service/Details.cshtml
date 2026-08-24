@@ -1,0 +1,47 @@
+@page "{id:guid}"
+@model VPureLux.Web.Pages.Service.DetailsModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using VPureLux.Service
+@{ ViewData["Title"] = Model.Order.OrderNo; }
+@section scripts { <abp-script src="/Pages/Service/Details.js" /> }
+
+<div class="vpl-page" data-service-details data-order-id="@Model.Order.Id">
+    <div class="vpl-page-header">
+        <div><h2 class="vpl-page-title mb-1">@Model.Order.OrderNo</h2><div class="text-muted">@Model.Order.CustomerCode - @Model.Order.CustomerName | @Model.Order.AssetNo - @Model.Order.AssetName</div></div>
+        <div class="vpl-btn-toolbar">
+            @if (Model.CanEdit && Model.Order.Status == ServiceOrderStatus.Draft) { <a class="btn btn-outline-primary" asp-page="/Service/Edit" asp-route-id="@Model.Order.Id"><i class="fa fa-pen"></i> @L["Edit"]</a> }
+            @if (Model.CanConfirm && Model.Order.Status == ServiceOrderStatus.Draft) { <button class="btn btn-primary" data-service-action="Confirm"><i class="fa fa-check"></i> @L["Service:Confirm"]</button> }
+            @if (Model.CanConfirm && Model.Order.Status == ServiceOrderStatus.Confirmed) { <button class="btn btn-primary" data-service-action="Start"><i class="fa fa-play"></i> @L["Service:Start"]</button> }
+            @if (Model.CanComplete && Model.Order.Status is ServiceOrderStatus.Confirmed or ServiceOrderStatus.InProgress) { <button class="btn btn-success" id="CompleteServiceButton"><i class="fa fa-check-double"></i> @L["Service:Complete"]</button> }
+            @if (Model.CanPay && Model.Order.Status != ServiceOrderStatus.Cancelled) { <button class="btn btn-outline-success" id="AddServicePaymentButton"><i class="fa fa-money-bill"></i> @L["Service:AddPayment"]</button> }
+            @if (Model.CanCancel && Model.Order.Status is not (ServiceOrderStatus.Completed or ServiceOrderStatus.Cancelled)) { <button class="btn btn-outline-danger" data-service-action="Cancel"><i class="fa fa-ban"></i> @L["Service:Cancel"]</button> }
+            <a class="btn btn-light" asp-page="/Service/Index"><i class="fa fa-arrow-left"></i> @L["Back"]</a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-7"><abp-card class="vpl-card-dense h-100"><abp-card-body><dl class="row mb-0">
+            <dt class="col-4">@L["Service:Status"]</dt><dd class="col-8"><span class="badge @Model.StatusBadge">@L[$"Service:Status:{Model.Order.Status}"]</span></dd>
+            <dt class="col-4">@L["Service:OrderDate"]</dt><dd class="col-8">@Model.FormatDate(Model.Order.OrderDate)</dd>
+            <dt class="col-4">@L["Service:ScheduledAt"]</dt><dd class="col-8">@Model.FormatDateTime(Model.Order.ScheduledAt)</dd>
+            <dt class="col-4">@L["Service:Address"]</dt><dd class="col-8">@Model.Order.ServiceAddress</dd>
+            <dt class="col-4">@L["Service:Note"]</dt><dd class="col-8">@Model.Order.Note</dd>
+        </dl></abp-card-body></abp-card></div>
+        <div class="col-lg-5"><abp-card class="vpl-card-dense h-100"><abp-card-body><dl class="row mb-0">
+            <dt class="col-6">@L["Service:Revenue"]</dt><dd class="col-6 text-end fw-semibold">@Model.FormatMoney(Model.Order.TotalRevenueAmount)</dd>
+            @if (Model.CanViewCost) { <dt class="col-6">@L["Service:Cost"]</dt><dd class="col-6 text-end">@Model.FormatMoney(Model.Order.TotalCostAmount)</dd> }
+            @if (Model.CanViewProfit) { <dt class="col-6">@L["Service:Profit"]</dt><dd class="col-6 text-end">@Model.FormatMoney(Model.Order.TotalProfitAmount)</dd> }
+            <dt class="col-6">@L["Service:Paid"]</dt><dd class="col-6 text-end text-success">@Model.FormatMoney(Model.Order.PaidAmount)</dd>
+            <dt class="col-6">@L["Service:Remaining"]</dt><dd class="col-6 text-end">@Model.FormatMoney(Model.Order.TotalRevenueAmount - Model.Order.PaidAmount)</dd>
+        </dl></abp-card-body></abp-card></div>
+    </div>
+
+    <abp-card class="vpl-card-dense mb-3"><abp-card-header><strong>@L["Service:Item"]</strong></abp-card-header><abp-card-body><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>#</th><th>@L["Service:LineType"]</th><th>@L["Service:Item"]</th><th class="text-end">@L["Service:PlannedQuantity"]</th><th class="text-end">@L["Service:ActualQuantity"]</th><th class="text-end">@L["Service:UnitPrice"]</th><th class="text-end">@L["Service:Amount"]</th></tr></thead><tbody>
+        @foreach (var line in Model.Order.Lines) { <tr><td>@line.LineNo</td><td>@L[$"Service:{line.LineType}"]</td><td><strong>@line.ItemCode</strong> - @line.ItemName</td><td class="text-end">@line.PlannedQuantity @line.Unit</td><td class="text-end">@(Model.Order.Status == ServiceOrderStatus.Completed ? $"{line.ActualQuantity} {line.Unit}" : "-")</td><td class="text-end">@Model.FormatMoney(line.UnitPrice)</td><td class="text-end">@Model.FormatMoney(Model.Order.Status == ServiceOrderStatus.Completed ? line.RevenueAmount : line.UnitPrice * line.PlannedQuantity)</td></tr> }
+    </tbody></table></div></abp-card-body></abp-card>
+
+    @if (Model.Payments.Count > 0)
+    {
+        <abp-card class="vpl-card-dense"><abp-card-header><strong>@L["Service:Payments"]</strong></abp-card-header><abp-card-body><div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>@L["Service:PaymentDate"]</th><th>@L["Service:PaymentMethod"]</th><th>@L["Service:ReferenceNo"]</th><th>@L["Service:Note"]</th><th>@L["Service:Status"]</th><th class="text-end">@L["Service:Amount"]</th><th></th></tr></thead><tbody>@foreach (var payment in Model.Payments) { <tr><td>@Model.FormatDate(payment.PaymentDate)</td><td>@L[$"Sales:PaymentMethod:{payment.PaymentMethod}"]</td><td>@payment.ReferenceNo</td><td>@payment.Note</td><td>@L[$"Service:PaymentStatus:{payment.Status}"]</td><td class="text-end">@Model.FormatMoney(payment.Amount)</td><td class="text-end">@if (Model.CanPay && payment.Status == ServicePaymentStatus.Posted) { <button type="button" class="btn btn-sm btn-outline-danger" data-void-payment="@payment.Id" title="@L["Service:VoidPayment"]"><i class="fa fa-ban"></i></button> }</td></tr> }</tbody></table></div></abp-card-body></abp-card>
+    }
+</div>

@@ -49,7 +49,7 @@ Entities marked *(owned/value)* are configured with `builder.Ignore<>()` or as o
 - **Notes/risks:** active-version uniqueness, backdating and effective-period rules via error codes `PRICE_001..006`. A column rename migration exists (`RenameComponentPurchasePriceToComponentSuggestedSellingPrice`).
 
 ## Inventory
-- **Purpose:** warehouses, stock items, lots, transactions (receipt/issue/adjustment) and balances.
+- **Purpose:** warehouses, stock items, lots, transactions (receipt/issue/adjustment/Sales issue/Service issue) and balances.
 - **Key entities:** `Warehouse`, `StockItem`, `InventoryLot`, `InventoryTransaction`, `InventoryBalance`, plus `InventoryTransactionLine`, `InventoryLotAllocation` *(owned/value — `Ignore`d as standalone)*.
 - **Application services:** `WarehouseAppService`, `StockItemAppService`, `InventoryTransactionAppService`, `InventoryQueryAppService`; domain `InventoryManager`, `StockItemManager`.
 - **Contracts:** `Inventory/InventoryServiceContracts.cs` (interfaces) + DTOs.
@@ -78,6 +78,23 @@ Entities marked *(owned/value)* are configured with `builder.Ignore<>()` or as o
 - **Tests:** Domain (`Warranty/CustomerCareDomainTests`); EF Core (`Warranty/CustomerCareSchemaTests`, `Warranty/WarrantyPermissionTests`, Sales workflow intake/installation regression); Web (`Pages/WarrantyPagesTests`).
 - **Important rules:** Sales confirmation never calls CustomerCare synchronously. Intake is disabled by default and requires both gates plus an explicit go-live instant. A reminder requires a confirmed baseline, mapped active Component, and enabled policy. Reminder cycle/warning values are snapshots. External machines may keep unmapped positions and missing baselines; no date is fabricated. All lifecycle actions append an idempotent maintenance event.
 - **Migration:** `20260824050543_AddCustomerCareFoundation` is schema-only and does not alter stable Sales/Product/Component/BOM/Inventory/Customer tables.
+
+## Service
+- **Purpose:** plan and complete customer-machine visits without turning labor into Catalog Products or changing the stable Sales workflow.
+- **Key entities:** `ServiceOrder`, `ServiceOrderLine` *(owned)*, `ServiceWork`, `ServicePayment`.
+- **Application services:** `ServiceAppService`, `ServiceWorkAppService`; domain posting uses `InventoryManager`; reporting uses `BusinessRevenueAppService`.
+- **Contracts:** `IServiceAppService`, `IServiceWorkAppService`, DTOs under `Application.Contracts/Service`, and Service/consolidated report contracts under `Application.Contracts/Reports`.
+- **Razor Pages:** `Pages/Service/{Index,Create,Edit,Details,CompleteModal,PaymentModal,Works,WorkModal}`. `CustomerAsset` details deep-links into Service creation, so there is no duplicate customer-product screen.
+- **Permissions:** `Service.{View,Create,Edit,Confirm,Complete,Cancel,ManagePayments,ManageWorks,ViewCost,ViewProfit}` and `Reports.{Service.View,Consolidated.View}`.
+- **Tests:** Domain (`Service/ServiceDomainTests`); EF Core (`Service/ServiceModelAndPermissionTests`, `Service/ServiceWorkflowTests`); Web (`Pages/ServicePagesTests`).
+- **Important rules:** state flow is Draft -> Confirmed -> InProgress -> Completed/Cancelled. Completion is idempotent and atomic: only actual Material quantities issue FIFO stock, only performed lines count as revenue, and mapped replacement positions restart from the actual completion date using the current enabled policy. Labor is non-inventory. Advances stay outside revenue until completion; Posted payments may be Voided. Lists and lookups are database-paged/projected.
+- **Migration:** `20260824113235_AddServiceModule` creates only the four Service tables and their indexes/foreign keys; it contains no backfill or DML and does not alter stable tables.
+
+## Reports
+- **Purpose:** preserve existing Sales reporting while adding separate completed-Service revenue and a consolidated Sales + Service management view with source dimension.
+- **Application service:** `BusinessRevenueAppService`; EF read model `EfCoreBusinessRevenueReadRepository` performs server-side union/filter/count/sort/page/summary queries.
+- **Razor Pages:** `Pages/Reports/ServiceRevenue`, `Pages/Reports/BusinessRevenue` with shared server-side DataTable presentation.
+- **Important rules:** only confirmed Sales and completed Service are revenue. Service advances do not appear as revenue. Cost/profit values remain permission-gated.
 
 ## Audit (business audit)
 - **Purpose:** domain-level business audit log (separate from ABP framework audit logging).

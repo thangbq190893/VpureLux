@@ -37,6 +37,22 @@ public class EfCoreInventoryLotRepository : EfCoreRepository<VPureLuxDbContext, 
             .OrderBy(x => x.ReceivedAt).ThenBy(x => x.CreationTime).ThenBy(x => x.Id)
             .ToListAsync(GetCancellationToken(cancellationToken));
 
+    public async Task<List<InventoryLot>> GetAvailableFifoLotsAsync(
+        Guid warehouseId,
+        IReadOnlyCollection<Guid> stockItemIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (stockItemIds.Count == 0)
+        {
+            return new List<InventoryLot>();
+        }
+
+        return await (await GetDbSetAsync())
+            .Where(x => x.WarehouseId == warehouseId && stockItemIds.Contains(x.StockItemId) && x.AvailableQuantity > 0)
+            .OrderBy(x => x.StockItemId).ThenBy(x => x.ReceivedAt).ThenBy(x => x.CreationTime).ThenBy(x => x.Id)
+            .ToListAsync(GetCancellationToken(cancellationToken));
+    }
+
     public async Task<List<InventoryLot>> GetListAsync(
         Guid? warehouseId = null,
         Guid? stockItemId = null,

@@ -230,11 +230,19 @@ public class VPureLuxMenuContributor : IMenuContributor
 
         context.Menu.AddItem(warranty);
 
+        context.Menu.AddItem(new ApplicationMenuItem(
+            VPureLuxMenus.Service,
+            l["Menu:Service"],
+            "~/Service",
+            icon: "fa fa-screwdriver-wrench",
+            order: 13
+        ).RequirePermissions(VPureLuxPermissions.Service.View));
+
         var reports = new ApplicationMenuItem(
             VPureLuxMenus.Reports,
             l["Menu:Reports"],
             icon: "fa fa-chart-bar",
-            order: 13
+            order: 14
         );
 
         reports.AddItem(new ApplicationMenuItem(
@@ -251,6 +259,20 @@ public class VPureLuxMenuContributor : IMenuContributor
             icon: "fa fa-bar-chart"
         ).RequirePermissions(VPureLuxPermissions.Reports.Profit.View));
 
+        reports.AddItem(new ApplicationMenuItem(
+            VPureLuxMenus.ReportsServiceRevenue,
+            l["Reports:ServiceRevenue"],
+            "~/Reports/ServiceRevenue",
+            icon: "fa fa-screwdriver-wrench"
+        ).RequirePermissions(VPureLuxPermissions.Reports.Service.View));
+
+        reports.AddItem(new ApplicationMenuItem(
+            VPureLuxMenus.ReportsBusinessRevenue,
+            l["Reports:BusinessRevenue"],
+            "~/Reports/BusinessRevenue",
+            icon: "fa fa-chart-column"
+        ).RequirePermissions(VPureLuxPermissions.Reports.Consolidated.View));
+
         context.Menu.AddItem(reports);
 
         context.Menu.AddItem(new ApplicationMenuItem(
@@ -258,7 +280,7 @@ public class VPureLuxMenuContributor : IMenuContributor
             l["Menu:Audit"],
             "~/Audit",
             icon: "fa fa-history",
-            order: 14
+            order: 15
         ).RequirePermissions(VPureLuxPermissions.Audit.View));
 
         //Saas

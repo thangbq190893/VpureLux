@@ -1604,6 +1604,358 @@ namespace VPureLux.Migrations
                     b.ToTable("AppSalesOrderPayments", (string)null);
                 });
 
+            modelBuilder.Entity("VPureLux.Service.ServiceOrder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AssetNameSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("AssetNoSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CompletionIdempotencyKey")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime?>("ConfirmedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<Guid>("CustomerAssetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CustomerCodeSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CustomerNameSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DeletionTime");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<Guid?>("InventoryTransactionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("OrderDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("OrderNo")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime?>("ScheduledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ServiceAddress")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.Property<Guid?>("TechnicianUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("TotalCostAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalProfitAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalRevenueAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("WarehouseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompletionIdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("UX_ServiceOrders_CompletionIdempotencyKey")
+                        .HasFilter("[CompletionIdempotencyKey] IS NOT NULL AND [IsDeleted] = 0");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("InventoryTransactionId");
+
+                    b.HasIndex("OrderNo")
+                        .IsUnique()
+                        .HasDatabaseName("UX_ServiceOrders_OrderNo");
+
+                    b.HasIndex("TechnicianUserId");
+
+                    b.HasIndex("WarehouseId");
+
+                    b.HasIndex("CustomerAssetId", "OrderDate")
+                        .HasDatabaseName("IX_ServiceOrders_AssetId_OrderDate");
+
+                    b.HasIndex("Status", "OrderDate")
+                        .HasDatabaseName("IX_ServiceOrders_Status_OrderDate");
+
+                    b.ToTable("AppServiceOrders", (string)null);
+                });
+
+            modelBuilder.Entity("VPureLux.Service.ServicePayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DeletionTime");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("PaymentDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte>("PaymentMethod")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("ReferenceNo")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("ServiceOrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("UX_ServicePayments_IdempotencyKey");
+
+                    b.HasIndex("ServiceOrderId")
+                        .HasDatabaseName("IX_ServicePayments_OrderId");
+
+                    b.HasIndex("CustomerId", "PaymentDate")
+                        .HasDatabaseName("IX_ServicePayments_CustomerId_PaymentDate");
+
+                    b.ToTable("AppServicePayments", (string)null);
+                });
+
+            modelBuilder.Entity("VPureLux.Service.ServiceWork", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<decimal>("DefaultPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DeletionTime");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("UX_ServiceWorks_Code");
+
+                    b.HasIndex("Status", "Name")
+                        .HasDatabaseName("IX_ServiceWorks_Status_Name");
+
+                    b.ToTable("AppServiceWorks", (string)null);
+                });
+
             modelBuilder.Entity("VPureLux.Suppliers.Supplier", b =>
                 {
                     b.Property<Guid>("Id")
@@ -7416,6 +7768,151 @@ namespace VPureLux.Migrations
                     b.HasOne("VPureLux.Sales.SalesOrder", null)
                         .WithMany()
                         .HasForeignKey("SalesOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VPureLux.Service.ServiceOrder", b =>
+                {
+                    b.HasOne("VPureLux.Warranty.CustomerAsset", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerAssetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VPureLux.Customers.Customer", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VPureLux.Inventory.InventoryTransaction", null)
+                        .WithMany()
+                        .HasForeignKey("InventoryTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Volo.Abp.Identity.IdentityUser", null)
+                        .WithMany()
+                        .HasForeignKey("TechnicianUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("VPureLux.Inventory.Warehouse", null)
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsMany("VPureLux.Service.ServiceOrderLine", "Lines", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<int>("ActualQuantity")
+                                .HasColumnType("int");
+
+                            b1.Property<Guid?>("ComponentId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<decimal>("CostAmountSnapshot")
+                                .HasPrecision(18, 2)
+                                .HasColumnType("decimal(18,2)");
+
+                            b1.Property<Guid?>("CustomerAssetComponentId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("ItemCodeSnapshot")
+                                .IsRequired()
+                                .HasMaxLength(64)
+                                .HasColumnType("nvarchar(64)");
+
+                            b1.Property<string>("ItemNameSnapshot")
+                                .IsRequired()
+                                .HasMaxLength(256)
+                                .HasColumnType("nvarchar(256)");
+
+                            b1.Property<int>("LineNo")
+                                .HasColumnType("int");
+
+                            b1.Property<byte>("LineType")
+                                .HasColumnType("tinyint");
+
+                            b1.Property<string>("Note")
+                                .HasMaxLength(1000)
+                                .HasColumnType("nvarchar(1000)");
+
+                            b1.Property<int>("PlannedQuantity")
+                                .HasColumnType("int");
+
+                            b1.Property<decimal>("RevenueAmount")
+                                .HasPrecision(18, 2)
+                                .HasColumnType("decimal(18,2)");
+
+                            b1.Property<Guid>("ServiceOrderId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid?>("ServiceWorkId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<decimal>("UnitPrice")
+                                .HasPrecision(18, 2)
+                                .HasColumnType("decimal(18,2)");
+
+                            b1.Property<string>("UnitSnapshot")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("nvarchar(32)");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("ComponentId");
+
+                            b1.HasIndex("CustomerAssetComponentId");
+
+                            b1.HasIndex("ServiceWorkId");
+
+                            b1.HasIndex("LineType", "ComponentId")
+                                .HasDatabaseName("IX_ServiceOrderLines_Type_ComponentId");
+
+                            b1.HasIndex("ServiceOrderId", "LineNo")
+                                .IsUnique()
+                                .HasDatabaseName("UX_ServiceOrderLines_OrderId_LineNo");
+
+                            b1.ToTable("AppServiceOrderLines", (string)null);
+
+                            b1.HasOne("VPureLux.Catalog.Component", null)
+                                .WithMany()
+                                .HasForeignKey("ComponentId")
+                                .OnDelete(DeleteBehavior.Restrict);
+
+                            b1.HasOne("VPureLux.Warranty.CustomerAssetComponent", null)
+                                .WithMany()
+                                .HasForeignKey("CustomerAssetComponentId")
+                                .OnDelete(DeleteBehavior.Restrict);
+
+                            b1.WithOwner()
+                                .HasForeignKey("ServiceOrderId");
+
+                            b1.HasOne("VPureLux.Service.ServiceWork", null)
+                                .WithMany()
+                                .HasForeignKey("ServiceWorkId")
+                                .OnDelete(DeleteBehavior.Restrict);
+                        });
+
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("VPureLux.Service.ServicePayment", b =>
+                {
+                    b.HasOne("VPureLux.Customers.Customer", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VPureLux.Service.ServiceOrder", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceOrderId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

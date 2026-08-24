@@ -1,0 +1,41 @@
+@page
+@model VPureLux.Web.Pages.Service.IndexModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using VPureLux.Service
+@{ ViewData["Title"] = L["Service:Title"]; }
+@section scripts { <abp-script src="/Pages/Service/Index.js" /> }
+
+<div class="vpl-page" data-service-index data-can-cancel="@Model.CanCancel.ToString().ToLowerInvariant()">
+    <div class="vpl-page-header">
+        <h2 class="vpl-page-title mb-0">@L["Service:Title"]</h2>
+        <div class="vpl-btn-toolbar">
+            @if (Model.CanManageWorks)
+            {
+                <a class="btn btn-outline-secondary" asp-page="/Service/Works"><i class="fa fa-list-check"></i> @L["Service:Works"]</a>
+            }
+            @if (Model.CanCreate)
+            {
+                <a class="btn btn-primary" asp-page="/Service/Create"><i class="fa fa-plus"></i> @L["Service:Create"]</a>
+            }
+        </div>
+    </div>
+
+    <abp-card class="vpl-card-dense mb-3">
+        <abp-card-body>
+            <form id="ServiceSearchForm" class="row g-2 align-items-end mb-0">
+                <div class="col-md-6"><label class="form-label" for="ServiceSearchText">@L["Search"]</label><input id="ServiceSearchText" class="form-control form-control-sm" placeholder="@L["Service:SearchPlaceholder"]" /></div>
+                <div class="col-md-3"><label class="form-label" for="ServiceStatus">@L["Service:Status"]</label><select id="ServiceStatus" class="form-select form-select-sm"><option value="">@L["All"]</option>@foreach (var status in Enum.GetValues<ServiceOrderStatus>()) { <option value="@status">@L[$"Service:Status:{status}"]</option> }</select></div>
+                <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-search"></i> @L["Search"]</button></div>
+                <div class="col-auto"><button type="button" id="ServiceClearButton" class="btn btn-light btn-sm">@L["Clear"]</button></div>
+            </form>
+        </abp-card-body>
+    </abp-card>
+
+    <abp-card class="vpl-card-dense">
+        <abp-card-body>
+            <abp-table id="ServiceOrdersTable" striped-rows="true" class="vpl-table-dense" style="min-width:760px">
+                <thead><tr><th style="width:3rem"></th><th style="width:9rem">@L["Service:OrderNo"]</th><th>@L["Service:CustomerMachine"]</th><th style="width:8rem">@L["Service:Status"]</th><th style="width:14rem" class="text-end">@L["Service:Payments"]</th></tr></thead>
+            </abp-table>
+        </abp-card-body>
+    </abp-card>
+</div>

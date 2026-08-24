@@ -1,0 +1,25 @@
+@model VPureLux.Web.Pages.Reports.BusinessRevenuePageViewModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+<div class="vpl-page" data-business-revenue data-mode="@Model.Mode">
+    <div class="vpl-page-header"><h2 class="vpl-page-title mb-0">@L[Model.TitleKey]</h2></div>
+    <abp-card class="vpl-card-dense mb-3"><abp-card-body><form id="BusinessRevenueSearchForm" class="row g-2 align-items-end mb-0">
+        <div class="col-md-3"><label class="form-label" for="RevenueFromDate">@L["Reports:FromDate"]</label><input id="RevenueFromDate" type="date" class="form-control form-control-sm" value="@Model.FromDate" /></div>
+        <div class="col-md-3"><label class="form-label" for="RevenueToDate">@L["Reports:ToDate"]</label><input id="RevenueToDate" type="date" class="form-control form-control-sm" value="@Model.ToDate" /></div>
+        <div class="col-md-4"><label class="form-label" for="RevenueSearchText">@L["Search"]</label><input id="RevenueSearchText" class="form-control form-control-sm" placeholder="@L["Service:SearchPlaceholder"]" /></div>
+        <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-search"></i> @L["Search"]</button></div>
+    </form></abp-card-body></abp-card>
+    <div class="row g-3 mb-3">
+        @if (Model.Mode == "consolidated")
+        {
+            <div class="col-sm-6 col-xl"><abp-card class="vpl-card-dense h-100"><abp-card-body><div class="text-muted small">@L["Reports:SalesRevenueAmount"]</div><div class="fs-5 fw-semibold" id="RevenueSales">0</div></abp-card-body></abp-card></div>
+        }
+        <div class="col-sm-6 col-xl"><abp-card class="vpl-card-dense h-100"><abp-card-body><div class="text-muted small">@L["Reports:ServiceRevenueAmount"]</div><div class="fs-5 fw-semibold" id="RevenueService">0</div></abp-card-body></abp-card></div>
+        @if (Model.Mode == "consolidated")
+        {
+            <div class="col-sm-6 col-xl"><abp-card class="vpl-card-dense h-100"><abp-card-body><div class="text-muted small">@L["Reports:TotalRevenue"]</div><div class="fs-5 fw-semibold" id="RevenueTotal">0</div></abp-card-body></abp-card></div>
+        }
+        <div class="col-sm-6 col-xl"><abp-card class="vpl-card-dense h-100"><abp-card-body><div class="text-muted small">@L["Reports:PaidAmount"]</div><div class="fs-5 fw-semibold" id="RevenuePaid">0</div></abp-card-body></abp-card></div>
+        <div class="col-sm-6 col-xl"><abp-card class="vpl-card-dense h-100"><abp-card-body><div class="text-muted small">@L["Reports:RemainingAmount"]</div><div class="fs-5 fw-semibold" id="RevenueRemaining">0</div></abp-card-body></abp-card></div>
+    </div>
+    <abp-card class="vpl-card-dense"><abp-card-body><abp-table id="BusinessRevenueTable" striped-rows="true" class="vpl-table-dense"><thead><tr><th></th><th>@L["Reports:RevenueSource"]</th><th>@L["Reports:DocumentNo"]</th><th>@L["Reports:DocumentDate"]</th><th>@L["Service:Customer"]</th><th class="text-end">@L["Service:Revenue"]</th><th class="text-end">@L["Service:Cost"]</th><th class="text-end">@L["Service:Profit"]</th><th class="text-end">@L["Service:Paid"]</th><th class="text-end">@L["Service:Remaining"]</th></tr></thead></abp-table></abp-card-body></abp-card>
+</div>

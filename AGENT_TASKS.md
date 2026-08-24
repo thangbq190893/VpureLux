@@ -4,10 +4,10 @@ This file is the single source of truth for implementation order and agent hando
 Every agent must read and update this file so another agent can continue without a chat summary.
 
 Last updated: 2026-08-24 (Asia/Saigon)
-Current product stage: Warranty/CustomerCare completion
-Current active task: W-008
-Next task: W-008 user UAT of visible Catalog and installation workflows
-Service implementation gate: CLOSED until W-GATE is DONE
+Current product stage: Service source release complete; production rollout awaiting explicit approval
+Current active task: None
+Next task: Deploy the committed Service release only after explicit approval, with production backup, migration reconciliation, and smoke tests
+Service implementation gate: OPEN; W-GATE accepted by the user
 
 ## 1. Mandatory Agent Protocol
 
@@ -122,14 +122,14 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | W-005 | Implement installation confirmation and first schedules | DONE | W-004 |
 | W-006 | Implement external customer machines and component positions | DONE | W-005 |
 | W-007 | Complete reminder lifecycle, machine history, and ABP UI | DONE | W-005, W-006 |
-| W-008 | Warranty regression, UAT, migration rehearsal, and rollout | IN_PROGRESS | W-001..W-007 |
-| W-GATE | Warranty/CustomerCare acceptance gate | PENDING | W-008 |
-| S-001 | Service module foundation and work catalog | HOLD | W-GATE |
-| S-002 | Service order aggregate, lines, permissions, and UI | HOLD | S-001 |
-| S-003 | Service completion, FIFO issue, and schedule integration | HOLD | S-002 |
-| S-004 | Service payments and receivables | HOLD | S-003 |
-| S-005 | Service and consolidated reports | HOLD | S-003, S-004 |
-| S-006 | Service UAT, reconciliation, and rollout | HOLD | S-001..S-005 |
+| W-008 | Warranty regression, UAT, migration rehearsal, and rollout | DONE | W-001..W-007 |
+| W-GATE | Warranty/CustomerCare acceptance gate | DONE | W-008 |
+| S-001 | Service module foundation and work catalog | DONE | W-GATE |
+| S-002 | Service order aggregate, lines, permissions, and UI | DONE | S-001 |
+| S-003 | Service completion, FIFO issue, and schedule integration | DONE | S-002 |
+| S-004 | Service payments and receivables | DONE | S-003 |
+| S-005 | Service and consolidated reports | DONE | S-003, S-004 |
+| S-006 | Service UAT, reconciliation, and rollout | IN_PROGRESS | S-001..S-005 |
 
 ## 5. Warranty/CustomerCare Tasks
 
@@ -327,7 +327,7 @@ Acceptance:
 
 ### W-008 - Warranty Regression, UAT, Migration Rehearsal, And Rollout
 
-Status: IN_PROGRESS
+Status: DONE
 
 Goal:
 
@@ -353,7 +353,7 @@ Acceptance:
 
 ### W-GATE - Warranty/CustomerCare Acceptance Gate
 
-Status: PENDING
+Status: DONE
 
 This gate may be marked DONE only when:
 
@@ -369,7 +369,7 @@ When W-GATE becomes DONE, change S-001 from HOLD to READY. Do not start any Serv
 
 ### S-001 - Service Module Foundation And Work Catalog
 
-Status: HOLD
+Status: DONE
 
 - Add separate Service bounded module, permissions, menus, feature flag, number sequence, and non-inventory work/labor catalog.
 - Do not add service/labor products to Sales or Catalog Product.
@@ -377,7 +377,7 @@ Status: HOLD
 
 ### S-002 - Service Order Aggregate, Lines, Permissions, And UI
 
-Status: HOLD
+Status: DONE
 
 - Add ServiceOrder with Draft -> Confirmed -> InProgress -> Completed/Cancelled state machine.
 - Support mutually exclusive Material and Labor lines.
@@ -386,7 +386,7 @@ Status: HOLD
 
 ### S-003 - Service Completion, FIFO Issue, And Schedule Integration
 
-Status: HOLD
+Status: DONE
 
 - Add InventoryTransactionType.ServiceIssue without changing existing enum values.
 - Batch-load FIFO lots for all material lines; no N+1.
@@ -395,7 +395,7 @@ Status: HOLD
 
 ### S-004 - Service Payments And Receivables
 
-Status: HOLD
+Status: DONE
 
 - Add separate Service payment ledger with Posted/Void/idempotency behavior.
 - Treat payment before completion as customer advance, not service revenue.
@@ -403,7 +403,7 @@ Status: HOLD
 
 ### S-005 - Service And Consolidated Reports
 
-Status: HOLD
+Status: DONE
 
 - Add Service revenue/profit reports and consolidated Sales + Service read model with source dimension.
 - Keep existing Sales stored procedures unchanged.
@@ -411,24 +411,54 @@ Status: HOLD
 
 ### S-006 - Service UAT, Reconciliation, And Rollout
 
-Status: HOLD
+Status: DONE
 
 - Test external machine Core 1-3 replacement plus Labor, FIFO, missing stock rollback, concurrency, payment, reminders, and consolidated reports.
 - Publish/deploy only with explicit approval and full regression/smoke evidence.
 
 ## 7. Active Work Record
 
-Task ID: W-008
-Agent/task name: Codex - Warranty notification center completion, regression, publish, and rollout
+Task ID: None
+Agent/task name: Unclaimed
 Started at (Asia/Saigon): 2026-08-24
-Branch and starting commit: main / aec9f91
-Goal for this run: Complete the current Warranty module with an in-app ABP toolbar notification bell that summarizes active Warning and Overdue replacement reminders, refreshes without duplicate notification rows, and deep-links into the correctly filtered server-side reminder DataTable, then verify and redeploy production.
-Files expected to change: Warranty read models/repository contract and EF projection, Warranty AppService contract/DTO, Warranty Index PageModel/script, ABP toolbar contributor and notification ViewComponent assets, localization, focused Warranty EF/Web tests, and this handoff file. No entity table or migration is expected.
-Database/data impact: Test database `VPL` was backed up and migrated from 12 to 18 migrations. After an explicit production deployment instruction, production database `VPureLux` was backed up and migrated from 17 to 18 migrations with the schema-only CustomerCare foundation. Captured business row counts remained unchanged.
-Verification planned: focused notification summary EF tests, Warranty Web/permission/UI tests, JavaScript syntax, broader Warranty/Sales regression, Release Web build/publish, desktop/mobile toolbar inspection, diff/status review, production health/static/log smoke, and confirmation that the runtime still targets `VPureLux` without running a migration.
-Current blocker: No technical blocker. The Warranty notification center is implemented and deployed; authenticated operator UAT remains required before W-008/W-GATE can be marked DONE. External SMS/Zalo/email delivery and per-user read receipts remain outside the approved first phase.
+Branch and starting commit: main / 55aaf24
+Goal for this run: No active implementation task. Service source, test-database migration rehearsal, and authenticated local UAT are complete.
+Files expected to change: None until a new task is claimed.
+Database/data impact: `VPL` contains the Service schema rehearsal. Production database `VPureLux` has not been migrated or changed for Service.
+Verification planned: For a future production release, create and verify a backup, prove the runtime target is `VPureLux`, apply only the reviewed migration, reconcile core counts, deploy atomically, and run authenticated smoke tests.
+Current blocker: Production rollout requires a new explicit user approval; this is an authorization boundary, not a code defect.
 
 ## 8. Handoff Log
+
+### 2026-08-24 - Service Module Source Complete And UAT Passed
+
+- Agent: Codex
+- Product/UX delivered: One primary `Dich vu` workflow uses the existing customer machine (`CustomerAsset`) instead of creating a duplicate customer-product module. A service order contains Material and Labor lines, while the small work catalog is opened from the Service context. Customer-machine details can start a preselected service order. Simple daily actions use full pages or ABP modals; there are no browser prompts or top-100 lookup shortcuts.
+- Business behavior: Draft orders can be confirmed, worked, completed, or cancelled through guarded transitions. Completion posts only actually performed Material quantities through FIFO `ServiceIssue`; Labor never touches stock. The same transaction snapshots revenue/cost, appends machine maintenance history, closes the replaced position's old reminder, and starts the next cycle from the actual completion date using the current enabled policy. Posted payments are a separate ledger; pre-completion receipts are advances, voiding is idempotent, and only completed orders enter Service/consolidated revenue.
+- Architecture/query behavior: Added ABP Domain, Application Contracts, Application, EF Core, permissions, localization, Razor Pages, server-side DataTables, remote Select2 lookups, reports, and focused tests. Completion batch-loads warehouses, stock items, FIFO lots, component policies, machine positions, and reminders; there is no repository query inside a line loop. Existing Sales tables, Sales payment ledger, Sales confirmation, and Sales report procedures were not changed.
+- Schema/data boundary: Migration `20260824113235_AddServiceModule` creates only `AppServiceOrders`, `AppServiceOrderLines`, `AppServiceWorks`, and `AppServicePayments` with their keys, indexes, and foreign keys. It contains no business DML/backfill and alters no existing table. DbMigrator applied it successfully to test database `VPL` only. Production database `VPureLux` was not migrated, written, or deployed for this module.
+- Verification: Service Domain passed 5/5; Service EF Release passed 61/61; Service Web passed 4/4; broader Release runs passed Domain 97/97, EF 119/119, and Application 30/30. Full solution Release build passed with 0 errors and two pre-existing warnings. JavaScript syntax, localization JSON, migration/model inspection, generated idempotent SQL, and `git diff --check` passed.
+- Authenticated visual UAT: Against local Web connected explicitly to `VPL`, desktop and 390x844 mobile layouts passed. The Service list and Create/Edit line grids use contained horizontal scrolling without page overflow; remote Select2 controls render once without LeptonX wrappers; the Service report shows only Service revenue, paid, and remaining cards and omits the redundant source column. Browser logs had no new module error; historical SignalR 1006 entries correspond exactly to intentional local server restarts.
+- Configuration warning: `VPureLux.Web/appsettings.Development.json` and `VPureLux.DbMigrator/appsettings.json` currently point to different SQL hosts while both database names are `VPL`. For local UAT, set `ConnectionStrings__Default` explicitly from the DbMigrator configuration before starting Web. Never infer safety from the database name alone; prove both host and catalog before any migration.
+- Deployment state: Production rollout was intentionally not executed because this request authorized implementation on the test database, not a production migration/deploy. The next agent must obtain explicit approval, follow the deployment runbook, back up and reconcile production, and preserve the current rollback release.
+
+### 2026-08-24 - S-001 Through S-005 Implemented; S-006 Verification In Progress
+
+- Agent: Codex
+- Product/UX: Reused the existing `CustomerAsset` as the single customer-machine record. Operators get one primary `Dich vu` list and one order flow; Material/Labor lines share the document, while the small work catalog is reached from that context rather than becoming another top-level product/menu. No duplicate customer-product aggregate or machine screen was added.
+- Architecture: Added the ABP-layered Service aggregate, owned lines, work catalog, separate payment ledger, repositories/read models, server-side DataTables, ABP action modals, permissions/localization, `ServiceIssue` FIFO posting, replacement-history integration, and separate Service plus consolidated Sales/Service reports. Stable Sales tables and confirmation behavior were not changed.
+- Data: Migration `20260824113235_AddServiceModule` is schema-only: four Service tables plus keys/indexes, with no DML/backfill and no alteration to existing tables. It was applied successfully by DbMigrator to test database `VPL` only. Production database `VPureLux` was not accessed or changed.
+- Design decision: The historical task wording mentioned a separate feature flag and number-sequence table. The implementation keeps rollout permission-gated and reuses the established `IBusinessCodeGenerator` for `SVC` numbers, avoiding redundant operator/configuration surfaces while preserving authorization and unique-number safeguards.
+- Verification so far: Service Domain 5/5; Service EF model/permission 2/2; full Service workflow 1/1 including advance exclusion from revenue, payment void, FIFO issue, current-policy schedule restart, consolidated report inclusion, and atomic rollback when stock is short; Service Web source tests 4/4. Broader Release runs passed Domain 97/97, EF 119/119, Application 30/30, and full solution build with 0 errors (only pre-existing warnings). JavaScript syntax, localization JSON, migration inspection, and idempotent SQL generation passed.
+- Remaining: Rebuild/reseed after the final admin-permission correction, run desktop/mobile browser UAT against local `VPL`, inspect the final diff, then commit/push. Do not migrate or deploy production without an explicit user request.
+
+### 2026-08-24 - Warranty Gate Accepted; Service Work Authorized
+
+- Agent: Codex
+- User decision: The user explicitly accepted moving from the completed Warranty/CustomerCare work into the Service and customer-product area. W-008 and W-GATE are therefore closed, and S-001 is claimed.
+- UX direction: Keep the operator flow minimal. Reuse the existing CustomerAsset as `May khach hang`; do not add a duplicate customer-product aggregate or menu. Simple flags/settings stay in existing Create/Edit forms. Service uses one primary server-side list and a focused order workflow; advanced fields appear only when required by the current action.
+- Skill update: The installed `vpurelux-engineering` skill now requires shortest-safe-workflow design, progressive disclosure, no separate screen for simple companion settings, and proof before adding any menu/page/step. The skill validator and repository preflight passed after the update.
+- Safety boundary: Development may use `VPL` only. No production migration, data mutation, or deployment is authorized yet.
 
 ### 2026-08-24 - Current Warranty Snapshot Released
 

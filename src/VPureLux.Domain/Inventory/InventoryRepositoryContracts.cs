@@ -26,6 +26,10 @@ public interface IInventoryLotRepository : IRepository<InventoryLot, Guid>
         Guid warehouseId,
         Guid stockItemId,
         CancellationToken cancellationToken = default);
+    Task<List<InventoryLot>> GetAvailableFifoLotsAsync(
+        Guid warehouseId,
+        IReadOnlyCollection<Guid> stockItemIds,
+        CancellationToken cancellationToken = default);
     Task<List<InventoryLot>> GetListAsync(
         Guid? warehouseId = null,
         Guid? stockItemId = null,

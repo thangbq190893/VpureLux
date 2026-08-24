@@ -34,6 +34,7 @@ using VPureLux.Audit;
 using VPureLux.Suppliers;
 using VPureLux.OperatingCosts;
 using VPureLux.Warranty;
+using VPureLux.Service;
 
 namespace VPureLux.EntityFrameworkCore;
 
@@ -74,6 +75,9 @@ public class VPureLuxDbContext :
     public DbSet<AssetMaintenanceEvent> AssetMaintenanceEvents { get; set; }
     public DbSet<AssetReplacementReminder> AssetReplacementReminders { get; set; }
     public DbSet<CustomerCareSyncFailure> CustomerCareSyncFailures { get; set; }
+    public DbSet<ServiceWork> ServiceWorks { get; set; }
+    public DbSet<ServiceOrder> ServiceOrders { get; set; }
+    public DbSet<ServicePayment> ServicePayments { get; set; }
 
     #region Entities from the modules
 
@@ -169,6 +173,10 @@ public class VPureLuxDbContext :
         builder.ApplyConfiguration(new AssetMaintenanceEventConfiguration());
         builder.ApplyConfiguration(new AssetReplacementReminderConfiguration());
         builder.ApplyConfiguration(new CustomerCareSyncFailureConfiguration());
+        builder.ApplyConfiguration(new ServiceWorkConfiguration());
+        builder.Ignore<ServiceOrderLine>();
+        builder.ApplyConfiguration(new ServiceOrderConfiguration());
+        builder.ApplyConfiguration(new ServicePaymentConfiguration());
 
         if (Database.ProviderName?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true)
         {
@@ -197,6 +205,12 @@ public class VPureLuxDbContext :
                 .IsConcurrencyToken()
                 .ValueGeneratedNever();
             builder.Entity<CustomerCareSyncFailure>().Property(x => x.RowVersion)
+                .IsConcurrencyToken()
+                .ValueGeneratedNever();
+            builder.Entity<ServiceOrder>().Property(x => x.RowVersion)
+                .IsConcurrencyToken()
+                .ValueGeneratedNever();
+            builder.Entity<ServicePayment>().Property(x => x.RowVersion)
                 .IsConcurrencyToken()
                 .ValueGeneratedNever();
         }

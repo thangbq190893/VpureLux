@@ -118,11 +118,27 @@ public class VPureLuxPermissionDefinitionProvider : PermissionDefinitionProvider
         warranty.AddChild(VPureLuxPermissions.Warranty.ManageAssets, L("Permission:Warranty.ManageAssets"));
         warranty.AddChild(VPureLuxPermissions.Warranty.ManageReminders, L("Permission:Warranty.ManageReminders"));
 
+        var service = myGroup.AddPermission(VPureLuxPermissions.Service.Default, L("Permission:Service"));
+        service.AddChild(VPureLuxPermissions.Service.View, L("Permission:Service.View"));
+        service.AddChild(VPureLuxPermissions.Service.Create, L("Permission:Service.Create"));
+        service.AddChild(VPureLuxPermissions.Service.Edit, L("Permission:Service.Edit"));
+        service.AddChild(VPureLuxPermissions.Service.Confirm, L("Permission:Service.Confirm"));
+        service.AddChild(VPureLuxPermissions.Service.Complete, L("Permission:Service.Complete"));
+        service.AddChild(VPureLuxPermissions.Service.Cancel, L("Permission:Service.Cancel"));
+        service.AddChild(VPureLuxPermissions.Service.ManagePayments, L("Permission:Service.ManagePayments"));
+        service.AddChild(VPureLuxPermissions.Service.ManageWorks, L("Permission:Service.ManageWorks"));
+        service.AddChild(VPureLuxPermissions.Service.ViewCost, L("Permission:Service.ViewCost"));
+        service.AddChild(VPureLuxPermissions.Service.ViewProfit, L("Permission:Service.ViewProfit"));
+
         var reports = myGroup.AddPermission(VPureLuxPermissions.Reports.Default, L("Permission:Reports"));
         var salesReports = reports.AddChild(VPureLuxPermissions.Reports.Sales.Default, L("Permission:Reports.Sales"));
         salesReports.AddChild(VPureLuxPermissions.Reports.Sales.View, L("Permission:Reports.Sales.View"));
         var profitReports = reports.AddChild(VPureLuxPermissions.Reports.Profit.Default, L("Permission:Reports.Profit"));
         profitReports.AddChild(VPureLuxPermissions.Reports.Profit.View, L("Permission:Reports.Profit.View"));
+        var serviceReports = reports.AddChild(VPureLuxPermissions.Reports.Service.Default, L("Permission:Reports.Service"));
+        serviceReports.AddChild(VPureLuxPermissions.Reports.Service.View, L("Permission:Reports.Service.View"));
+        var consolidatedReports = reports.AddChild(VPureLuxPermissions.Reports.Consolidated.Default, L("Permission:Reports.Consolidated"));
+        consolidatedReports.AddChild(VPureLuxPermissions.Reports.Consolidated.View, L("Permission:Reports.Consolidated.View"));
         reports.AddChild(VPureLuxPermissions.Reports.Export, L("Permission:Reports.Export"));
 
         var audit = myGroup.AddPermission(VPureLuxPermissions.Audit.Default, L("Permission:Audit"));

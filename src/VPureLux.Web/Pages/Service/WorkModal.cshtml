@@ -1,0 +1,6 @@
+@page
+@model VPureLux.Web.Pages.Service.WorkModalModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Modal
+@{ Layout = null; }
+<form method="post" asp-page="/Service/WorkModal"><input asp-for="Id" type="hidden" /><abp-modal><abp-modal-header title="@L[Model.Id.HasValue ? "Edit" : "Create"]"></abp-modal-header><abp-modal-body><abp-input asp-for="Input.Code" label="@L["Service:WorkCode"]" readonly="@Model.Id.HasValue" /><abp-input asp-for="Input.Name" label="@L["Service:WorkName"]" /><abp-input asp-for="Input.DefaultPrice" label="@L["Service:DefaultPrice"]" /><abp-input asp-for="Input.Note" label="@L["Service:Note"]" /><div asp-validation-summary="ModelOnly" class="text-danger"></div></abp-modal-body><abp-modal-footer buttons="@(AbpModalButtons.Cancel|AbpModalButtons.Save)"></abp-modal-footer></abp-modal></form>

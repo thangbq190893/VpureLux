@@ -1,0 +1,6 @@
+@page
+@model VPureLux.Web.Pages.Reports.BusinessRevenueModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{ ViewData["Title"] = L["Reports:BusinessRevenue"]; }
+@section scripts { <abp-script src="/Pages/Reports/BusinessRevenue.js" /> }
+<partial name="_BusinessRevenueView" model="Model.View" />

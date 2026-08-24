@@ -1,0 +1,43 @@
+@page
+@model VPureLux.Web.Pages.Service.CreateModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using VPureLux.Service
+@{ ViewData["Title"] = L["Service:Create"]; }
+@section scripts { <abp-script src="/Pages/Shared/DynamicRowSelects.js" /><abp-script src="/Pages/Service/EditForm.js" /> }
+
+<div class="vpl-page" data-service-edit-form>
+    <div class="vpl-page-header"><h2 class="vpl-page-title mb-0">@L["Service:Create"]</h2><a class="btn btn-outline-secondary" asp-page="/Service/Index"><i class="fa fa-arrow-left"></i> @L["Back"]</a></div>
+    <form method="post" id="ServiceOrderForm">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+        <abp-card class="vpl-card-dense mb-3"><abp-card-body>
+            <div class="row g-3">
+                <div class="col-lg-6"><label asp-for="Input.CustomerAssetId" class="form-label">@L["Service:CustomerAsset"]</label><select asp-for="Input.CustomerAssetId" id="ServiceAssetId" class="form-select js-select2" data-placeholder="@L["Service:SelectAsset"]">@if (Model.SelectedAsset != null) { <option selected value="@Model.SelectedAsset.Id">@Model.SelectedAsset.CustomerCode - @Model.SelectedAsset.CustomerName | @Model.SelectedAsset.AssetNo - @Model.SelectedAsset.AssetName</option> }</select><span asp-validation-for="Input.CustomerAssetId" class="text-danger"></span></div>
+                <div class="col-lg-3"><label asp-for="Input.WarehouseId" class="form-label">@L["Service:Warehouse"]</label><select asp-for="Input.WarehouseId" asp-items="Model.Warehouses" class="form-select"></select><span asp-validation-for="Input.WarehouseId" class="text-danger"></span></div>
+                <div class="col-lg-3"><label asp-for="Input.ScheduledAt" class="form-label">@L["Service:ScheduledAt"]</label><input asp-for="Input.ScheduledAt" type="datetime-local" class="form-control" /></div>
+                <div class="col-lg-8"><label asp-for="Input.ServiceAddress" class="form-label">@L["Service:Address"]</label><input asp-for="Input.ServiceAddress" id="ServiceAddress" class="form-control" /></div>
+                <div class="col-lg-4"><label asp-for="Input.Note" class="form-label">@L["Service:Note"]</label><input asp-for="Input.Note" class="form-control" /></div>
+            </div>
+        </abp-card-body></abp-card>
+
+        <abp-card class="vpl-card-dense mb-3"><abp-card-header><div class="d-flex justify-content-between align-items-center"><strong>@L["Service:Item"]</strong><div class="d-flex gap-2"><button type="button" class="btn btn-outline-primary btn-sm" data-add-service-line="Material"><i class="fa fa-box"></i> @L["Service:AddMaterial"]</button><button type="button" class="btn btn-outline-primary btn-sm" data-add-service-line="Labor"><i class="fa fa-screwdriver-wrench"></i> @L["Service:AddLabor"]</button></div></div></abp-card-header><abp-card-body>
+            <div class="table-responsive"><table class="table table-sm align-middle mb-0" id="ServiceLinesTable" style="min-width:760px"><thead><tr><th style="width:7rem">@L["Service:LineType"]</th><th>@L["Service:Item"]</th><th style="width:15rem">@L["Service:Position"]</th><th style="width:7rem">@L["Service:PlannedQuantity"]</th><th style="width:11rem">@L["Service:UnitPrice"]</th><th style="width:3rem"></th></tr></thead><tbody>
+            @for (var i = 0; i < Model.Input.Lines.Count; i++)
+            {
+                var line = Model.Input.Lines[i];
+                <tr data-service-line data-line-type="@line.LineType">
+                    <td><span class="badge bg-light text-dark">@L[$"Service:{line.LineType}"]</span><input type="hidden" name="Input.Lines[@i].LineType" value="@line.LineType" /></td>
+                    <td><select name="Input.Lines[@i].CatalogItemId" class="form-select service-item-select js-select2"><option selected value="@line.CatalogItemId">@line.CatalogItemId</option></select></td>
+                    <td><select name="Input.Lines[@i].CustomerAssetComponentId" class="form-select service-position-select"><option value="">@L["Service:SelectPosition"]</option></select></td>
+                    <td><input name="Input.Lines[@i].Quantity" value="@line.Quantity" type="number" min="1" step="1" class="form-control text-end service-quantity" /></td>
+                    <td><input name="Input.Lines[@i].UnitPrice" value="@line.UnitPrice" type="number" min="0" step="1000" class="form-control text-end service-price" /></td>
+                    <td><button type="button" class="btn btn-sm btn-link text-danger" data-remove-service-line title="@L["Delete"]"><i class="fa fa-trash"></i></button></td>
+                </tr>
+            }
+            </tbody></table></div>
+            <div id="ServiceNoLines" class="text-muted text-center py-3 d-none">@L["Service:NoLines"]</div>
+        </abp-card-body></abp-card>
+        <div class="d-flex justify-content-end gap-2"><a class="btn btn-light" asp-page="/Service/Index">@L["Cancel"]</a><button class="btn btn-primary" type="submit"><i class="fa fa-save"></i> @L["Save"]</button></div>
+    </form>
+</div>
+
+<template id="ServiceLineTemplate"><tr data-service-line data-line-type="__TYPE__"><td><span class="badge bg-light text-dark">__TYPE_LABEL__</span><input type="hidden" data-name="LineType" value="__TYPE__" /></td><td><select data-name="CatalogItemId" class="form-select service-item-select js-select2"></select></td><td><select data-name="CustomerAssetComponentId" class="form-select service-position-select"><option value="">@L["Service:SelectPosition"]</option></select></td><td><input data-name="Quantity" value="1" type="number" min="1" step="1" class="form-control text-end service-quantity" /></td><td><input data-name="UnitPrice" value="0" type="number" min="0" step="1000" class="form-control text-end service-price" /></td><td><button type="button" class="btn btn-sm btn-link text-danger" data-remove-service-line title="@L["Delete"]"><i class="fa fa-trash"></i></button></td></tr></template>

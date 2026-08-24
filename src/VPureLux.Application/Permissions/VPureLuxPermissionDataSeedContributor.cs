@@ -43,7 +43,22 @@ public class VPureLuxPermissionDataSeedContributor : IDataSeedContributor, ITran
                 VPureLuxPermissions.Warranty.ManageSyncFailures,
                 VPureLuxPermissions.Warranty.ManageInstallations,
                 VPureLuxPermissions.Warranty.ManageAssets,
-                VPureLuxPermissions.Warranty.ManageReminders
+                VPureLuxPermissions.Warranty.ManageReminders,
+                VPureLuxPermissions.Service.Default,
+                VPureLuxPermissions.Service.View,
+                VPureLuxPermissions.Service.Create,
+                VPureLuxPermissions.Service.Edit,
+                VPureLuxPermissions.Service.Confirm,
+                VPureLuxPermissions.Service.Complete,
+                VPureLuxPermissions.Service.Cancel,
+                VPureLuxPermissions.Service.ManagePayments,
+                VPureLuxPermissions.Service.ManageWorks,
+                VPureLuxPermissions.Service.ViewCost,
+                VPureLuxPermissions.Service.ViewProfit,
+                VPureLuxPermissions.Reports.Service.Default,
+                VPureLuxPermissions.Reports.Service.View,
+                VPureLuxPermissions.Reports.Consolidated.Default,
+                VPureLuxPermissions.Reports.Consolidated.View
             ],
             context.TenantId);
     }

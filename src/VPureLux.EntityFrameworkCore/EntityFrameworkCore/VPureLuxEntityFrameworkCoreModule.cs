@@ -27,6 +27,7 @@ using VPureLux.Inventory;
 using VPureLux.Reports;
 using VPureLux.Sales;
 using VPureLux.Audit;
+using VPureLux.Service;
 
 namespace VPureLux.EntityFrameworkCore;
 
@@ -74,11 +75,16 @@ public class VPureLuxEntityFrameworkCoreModule : AbpModule
             options.AddRepository<InventoryLot, EfCoreInventoryLotRepository>();
             options.AddRepository<InventoryTransaction, EfCoreInventoryTransactionRepository>();
             options.AddRepository<SalesOrder, EfCoreSalesOrderRepository>();
+            options.AddRepository<ServiceOrder, EfCoreServiceOrderRepository>();
+            options.AddRepository<ServiceWork, EfCoreServiceWorkRepository>();
+            options.AddRepository<ServicePayment, EfCoreServicePaymentRepository>();
         });
 
         context.Services.AddTransient<IInventoryBalanceRepository, EfCoreInventoryBalanceRepository>();
         context.Services.AddTransient<IBusinessAuditLogRepository, EfCoreBusinessAuditLogRepository>();
         context.Services.AddTransient<ISalesReportReadRepository, EfCoreSalesReportReadRepository>();
+        context.Services.AddTransient<IServiceReadRepository, EfCoreServiceReadRepository>();
+        context.Services.AddTransient<IBusinessRevenueReadRepository, EfCoreBusinessRevenueReadRepository>();
 
         if (AbpStudioAnalyzeHelper.IsInAnalyzeMode)
         {

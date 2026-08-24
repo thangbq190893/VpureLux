@@ -1,0 +1,12 @@
+@page
+@model VPureLux.Web.Pages.Service.CompleteModalModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Modal
+@{ Layout = null; }
+<form method="post" asp-page="/Service/CompleteModal"><input asp-for="Id" type="hidden" /><input asp-for="Input.IdempotencyKey" type="hidden" />
+<abp-modal size="Large"><abp-modal-header title="@L["Service:Complete"]"></abp-modal-header><abp-modal-body>
+    <div class="alert alert-info">@L["Service:CompletionHint"]</div><abp-input asp-for="Input.CompletedAt" type="datetime-local" label="@L["Service:CompletedAt"]" />
+    <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@L["Service:Item"]</th><th class="text-end">@L["Service:PlannedQuantity"]</th><th style="width:10rem">@L["Service:ActualQuantity"]</th></tr></thead><tbody>
+    @for (var i = 0; i < Model.Input.Lines.Count; i++) { <tr><td><input asp-for="Input.Lines[i].LineId" type="hidden" /><strong>@Model.Lines[i].ItemCode</strong> - @Model.Lines[i].ItemName</td><td class="text-end">@Model.Lines[i].PlannedQuantity @Model.Lines[i].Unit</td><td><input asp-for="Input.Lines[i].ActualQuantity" type="number" min="0" max="@Model.Lines[i].PlannedQuantity" step="1" class="form-control text-end" /></td></tr> }
+    </tbody></table></div><div asp-validation-summary="ModelOnly" class="text-danger"></div>
+</abp-modal-body><abp-modal-footer buttons="@(AbpModalButtons.Cancel|AbpModalButtons.Save)"></abp-modal-footer></abp-modal></form>

@@ -76,6 +76,19 @@ public static class VPureLuxDomainErrorCodes
     public const string SalesConfirmedOrderCancelRequiresUnpaid = "SALES_014";
     public const string SalesConfirmationIdempotencyConflict = DuplicateConfirmationKey;
 
+    public const string ServiceOrderNotFound = "SERVICE_001";
+    public const string ServiceOrderCannotBeModified = "SERVICE_002";
+    public const string ServiceOrderCannotBeCompleted = "SERVICE_003";
+    public const string ServiceOrderCompletionConflict = "SERVICE_004";
+    public const string ServiceWorkCodeAlreadyExists = "SERVICE_005";
+    public const string ServiceWorkInactive = "SERVICE_006";
+    public const string ServicePaymentRequiresActiveOrder = "SERVICE_007";
+    public const string ServicePaymentOverpaymentNotAllowed = "SERVICE_008";
+    public const string ServicePaymentIdempotencyConflict = "SERVICE_009";
+    public const string ServiceAssetCustomerMismatch = "SERVICE_010";
+    public const string ServiceMaterialPositionMismatch = "SERVICE_011";
+    public const string ServiceConcurrentModification = "SERVICE_012";
+
     public const string AuditPayloadTooLarge = "AUDIT_001";
 
     public const string BusinessCodeGenerationUnavailable = "BCODE_001";
