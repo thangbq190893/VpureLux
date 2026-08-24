@@ -74,6 +74,19 @@ public class WarrantyPagesTests
     }
 
     [Fact]
+    public void Replacement_cycle_page_should_list_only_components_enabled_for_tracking()
+    {
+        var pageModel = Read("src/VPureLux.Web/Pages/Warranty/Policies.cshtml.cs");
+        var markup = Read("src/VPureLux.Web/Pages/Warranty/Policies.cshtml");
+        var script = Read("src/VPureLux.Web/Pages/Warranty/Policies.js");
+
+        pageModel.ShouldContain("input.IsEnabled = true;");
+        markup.ShouldNotContain("WarrantyPolicyEnabled");
+        script.ShouldContain("serverSide: true");
+        script.ShouldNotContain("isEnabled:");
+    }
+
+    [Fact]
     public void Intake_worker_and_failure_page_should_keep_sales_decoupled_and_retry_explicitly()
     {
         var worker = Read("src/VPureLux.Web/Warranty/CustomerCareSalesIntakeWorker.cs");

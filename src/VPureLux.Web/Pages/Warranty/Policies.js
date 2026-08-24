@@ -9,7 +9,6 @@
 
     const policyModal = new abp.ModalManager({ viewUrl: abp.appPath + 'Warranty/PolicyModal' });
     const $searchText = $('#WarrantyPolicySearchText');
-    const $enabled = $('#WarrantyPolicyEnabled');
 
     function encode(value) {
         return $('<div/>').text(value === null || value === undefined ? '' : value).html();
@@ -34,8 +33,7 @@
             });
         }, function () {
             return {
-                searchText: $searchText.val(),
-                isEnabled: $enabled.val()
+                searchText: $searchText.val()
             };
         }),
         columnDefs: [
@@ -84,7 +82,6 @@
 
     $('#WarrantyPolicyClearButton').on('click', function () {
         $searchText.val('');
-        $enabled.val('');
         dataTable.ajax.reload();
     });
 })();

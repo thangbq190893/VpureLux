@@ -106,6 +106,58 @@ public class CustomerCareSchemaTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     [Fact]
+    public async Task Replacement_policy_page_should_filter_enabled_components_before_paging()
+    {
+        var components = GetRequiredService<IComponentAppService>();
+        var warranty = GetRequiredService<IWarrantyAppService>();
+        var prefix = Unique("RPF");
+        var enabled = await components.CreateAsync(new CreateComponentDto
+        {
+            Code = prefix + "A",
+            Name = "Enabled replacement component",
+            Unit = "Piece"
+        });
+        var disabled = await components.CreateAsync(new CreateComponentDto
+        {
+            Code = prefix + "B",
+            Name = "Disabled replacement component",
+            Unit = "Piece"
+        });
+        await components.CreateAsync(new CreateComponentDto
+        {
+            Code = prefix + "C",
+            Name = "Unconfigured component",
+            Unit = "Piece"
+        });
+
+        await warranty.SetPolicyAsync(enabled.Id, new SetComponentReplacementPolicyDto
+        {
+            IsEnabled = true,
+            CycleMonths = 6,
+            WarningDaysBeforeDue = 14
+        });
+        await warranty.SetPolicyAsync(disabled.Id, new SetComponentReplacementPolicyDto
+        {
+            IsEnabled = false,
+            CycleMonths = 12,
+            WarningDaysBeforeDue = 30
+        });
+
+        var page = await warranty.GetPolicyListAsync(new GetWarrantyPolicyListInput
+        {
+            SearchText = prefix,
+            IsEnabled = true,
+            Sorting = "componentCode asc",
+            SkipCount = 0,
+            MaxResultCount = 1
+        });
+
+        page.TotalCount.ShouldBe(1);
+        page.Items.ShouldHaveSingleItem().ComponentId.ShouldBe(enabled.Id);
+        page.Items.Single().IsEnabled.ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task Should_persist_external_asset_positions_history_and_sync_failure_without_sales_source()
     {
         var groups = GetRequiredService<ICustomerGroupAppService>();

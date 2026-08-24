@@ -31,6 +31,7 @@ public class PoliciesModel : VPureLuxPageModel
 
     public async Task<JsonResult> OnGetListAsync(VPureLux.Warranty.GetWarrantyPolicyListInput input)
     {
+        input.IsEnabled = true;
         var result = await _warrantyAppService.GetPolicyListAsync(input);
         return new JsonResult(new PagedResultDto<WarrantyPolicyRow>(
             result.TotalCount,
