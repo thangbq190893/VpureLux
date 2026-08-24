@@ -437,9 +437,9 @@ Current blocker: Test deployment cannot start because this workstation has no us
 - Verification performed: Domain 93/93 passed; Application 30/30 passed; EF Core 175/175 passed including Sales/BOM/Inventory/reports and new CustomerCare flows; focused Warranty Web 6/6 passed. Full Web additionally exposed one pre-existing `DynamicRowDropdownRowsTests` source assertion and then stopped producing output, so the hung process was terminated. The failing source file was not changed in this wave.
 - Migration evidence: EF reports no pending model changes. Idempotent SQL for `20260824050543_AddCustomerCareFoundation` has no business INSERT/UPDATE/DELETE/MERGE, drop, or rename; only the standard `__EFMigrationsHistory` insert appears.
 - Publish evidence: Release Web and DbMigrator artifacts exist under ignored `artifacts/warranty-wave`; all Warranty page JS files, `openiddict.pfx`, and Font Awesome webfont assets are present.
-- Database changed: No active database connection, migration execution, or data mutation. All integration persistence used SQLite in-memory.
+- Database changed: No migration execution or data mutation. A read-only SQL inventory found `VPL` at `20260706173514_AddSalesOrderPayments` and `VPureLux` at `20260822181709_AddWarrantyReplacementModule`; neither is proven to be the approved test database, so both were left untouched. All integration persistence used SQLite in-memory.
 - Server/deployment changed: No. SSH BatchMode failed and no credential environment variable/key is available. The active server/database was not touched.
-- Required next action: Obtain SSH access and prove a separate test DB/environment (`VPureLux_Test`, separate env file/service/port). Then migrate and deploy the test instance with both CustomerCare gates disabled, smoke-test it, and request user acceptance before marking W-008/W-GATE done.
+- Required next action: Obtain SSH access and explicit confirmation of which database is test (or create an explicitly named `VPureLux_Test`), plus a separate env file/service/port. Then migrate and deploy the test instance with both CustomerCare gates disabled, smoke-test it, and request user acceptance before marking W-008/W-GATE done.
 
 ### 2026-08-24 - W-007 Reminder Lifecycle And Machine History
 
