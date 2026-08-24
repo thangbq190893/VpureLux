@@ -426,9 +426,19 @@ Goal for this run: Move Product-machine and Component replacement-policy configu
 Files expected to change: Catalog DTOs/AppServices, Product and Component create/edit Razor forms, Catalog list PageModels/scripts, Warranty menu contribution, focused Catalog/Warranty tests, and this handoff file. No core Product/Component table or migration change is expected.
 Database/data impact: Test database `VPL` was backed up and migrated from 12 to 18 migrations. After an explicit production deployment instruction, production database `VPureLux` was backed up and migrated from 17 to 18 migrations with the schema-only CustomerCare foundation. Captured business row counts remained unchanged.
 Verification planned: focused Catalog/Warranty EF and Web tests, permission and no-N+1 assertions, JavaScript syntax, Release Web build/publish, diff/status review, production health/static/log smoke, and confirmation that the runtime still targets `VPureLux` without running a migration.
-Current blocker: None. The latest user feedback is an active UAT defect: configuration exists but is placed in redundant Warranty screens instead of the normal Product/Component create/edit workflow.
+Current blocker: No technical blocker. The Catalog UX correction is deployed and automated/unauthenticated smoke is green; authenticated operator UAT of Product/Component save plus Pending Installation remains required before W-008 and W-GATE can be marked DONE.
 
 ## 8. Handoff Log
+
+### 2026-08-24 - W-008 Catalog Configuration UX Redeployed
+
+- Agent: Codex
+- Commit/deployment: Commit `c6e7839` was pushed to `main`. Production release is `/opt/vpurelux/releases/web-20260824-151442`; rollback release is `/opt/vpurelux/releases/web-20260824-143228`.
+- Artifact isolation: Published from a detached clean worktree at exactly `c6e7839`, then copied only the required local `openiddict.pfx` and generated `wwwroot/libs`. Pre-existing uncommitted BOM/Inventory files and local `appsettings.Production.json` were not included. The archive SHA-256 matched on the VPS before extraction.
+- Database boundary: Runtime environment was proven as `VPureLux` before switching the symlink. No DbMigrator or SQL write command ran, because EF reports no model change and this correction uses existing companion tables. A read-only post-deploy snapshot shows Customers 37, Sales Orders 31, Sales lines 171, Inventory transactions 249, Inventory lines 1195, lots 303, BOM items 707, and machine settings/policies/assets/reminders all 0. The core counts differ from older evidence while users are actively testing; this deployment did not capture a same-turn pre-count and makes no claim that those user changes came from deployment.
+- Production smoke: Service is active. Root, login, replacement-policy JS, and Font Awesome solid font return HTTP 200. Three warm health checks returned 200 in 27-30 ms. Journal and hourly application log contain zero errors since deployment. RAM has about 7.2 GiB available and disk has 17 GiB free. Browser DOM shows the expected home/menu icon glyphs and console has no warnings/errors; screenshot capture timed out twice, so no screenshot evidence is claimed.
+- Verification carried forward: Release build passed; Catalog EF 13/13, integrated Catalog/Warranty/Sales EF 58/58, Catalog/Warranty Web 28/28, final configuration/join tests 2/2, JS syntax, diff check, and EF pending-model check all passed.
+- Required operator UAT: In `Danh mục -> Sản phẩm`, open Create/Edit and verify `Là máy cần quản lý lắp đặt` is saved without another screen. In `Danh mục -> Vật tư`, open Create/Edit, enable `Theo dõi bảo hành/thay thế`, verify cycle/warning/note appear and save. Confirm a controlled new machine sale, then use `Bảo hành -> Máy chờ lắp đặt -> Xác nhận lắp đặt` and verify first reminders start only after installation. Keep Service locked until explicit acceptance.
 
 ### 2026-08-24 - W-008 Catalog Configuration UX Corrected (Deployment Pending)
 
