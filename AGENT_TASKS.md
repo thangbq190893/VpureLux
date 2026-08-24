@@ -6,7 +6,7 @@ Every agent must read and update this file so another agent can continue without
 Last updated: 2026-08-24 (Asia/Saigon)
 Current product stage: Warranty/CustomerCare completion
 Current active task: W-008
-Next task: W-008 authenticated production UAT and user acceptance
+Next task: W-008 user UAT of visible Catalog and installation workflows
 Service implementation gate: CLOSED until W-GATE is DONE
 
 ## 1. Mandatory Agent Protocol
@@ -429,6 +429,20 @@ Verification planned: full focused Domain/EF/Web suites, Sales/BOM/Inventory/rep
 Current blocker: No technical deployment blocker. Production deployment and unauthenticated visual/static/health smoke tests are complete. Authenticated Sales/CustomerCare UAT and explicit user acceptance remain required before W-008 and W-GATE can be marked DONE.
 
 ## 8. Handoff Log
+
+### 2026-08-24 - W-008 Catalog/Installation Workflows Exposed And Redeployed
+
+- Agent: Codex
+- Reported defect: The user could not find Product-is-machine, Component replacement tracking, or installation confirmation after deployment.
+- Root cause: Backend/pages existed, but the admin permission seed granted only Warranty View, ManagePolicies, and ManageReminders. It omitted ManageMachines, ManageInstallations, ManageAssets, and ManageSyncFailures, so ABP `RequirePermissions` hid the corresponding menu items. Product and Component configuration also existed only as separate Warranty lists instead of being visible in the primary Catalog lists the user expected.
+- Code fix: Added all missing admin seed grants. Catalog Products now shows an `IsMachine` column and opens `MachineSettingModal` from its row actions. Catalog Components now shows replacement-tracking status plus cycle/warning lead and opens `PolicyModal` from its row actions. Existing `Warranty -> Pending Installations -> Confirm Installation` remains the controlled start event that creates first reminders only after installation.
+- Query behavior: Product and Component page handlers pass the current server-paged IDs to dedicated batch application methods. Each companion setting/policy set is loaded with one filtered SQL query; there is no repository call inside the row projection or loop.
+- Verification: Release Web build passed with only two pre-existing OpenIddict nullable warnings. Focused EF Warranty + Sales tests passed 29/29; focused Web Warranty + Catalog permission tests passed 9/9. Both changed JavaScript files pass `node --check`; localization JSON parses; `git diff --check` passes.
+- Commit/deployment: Code commit `6eefa04` was pushed to `main`. Production release is `/opt/vpurelux/releases/web-20260824-143228`; rollback release is `/opt/vpurelux/releases/web-20260824-135947`.
+- Permission/data impact: DbMigrator was run idempotently from its published working directory. Admin permission grants increased from 216 to 220 and all eight Warranty grants now exist. No schema migration was added. Customers 37, Sales Orders 30, Sales lines 170, Inventory transactions 247, Inventory lines 1193, lots 302, and BOM items 709 remain unchanged. Machine settings/assets/positions/reminders/sync failures remain zero.
+- Production smoke: Service is active and still points to `VPureLux`. Health and Product/Component/PendingInstallation JS return HTTP 200. Three sequential health checks completed in 32-41 ms; after one worker period, logs contain no new error.
+- Operator flow: In Catalog Products, use the row action to check `IsMachine`. In Catalog Components, use the row action to enable replacement tracking and set cycle + warning days. Confirm a new Sales order after the configured go-live boundary; after intake, open `Warranty -> Pending Installations`, choose `Confirm Installation`, review actual component positions, and submit. Only then are the installation event and eligible reminders created.
+- Required next action: User logs out/in or hard-refreshes once, performs the operator flow above with controlled production data, and reports acceptance or defects. Keep W-008/W-GATE open until this UAT is accepted; do not begin Service yet.
 
 ### 2026-08-24 - W-008 Production Deployment Complete (Authenticated UAT Pending)
 
