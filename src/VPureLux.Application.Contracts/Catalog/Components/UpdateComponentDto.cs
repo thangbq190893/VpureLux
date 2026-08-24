@@ -14,4 +14,6 @@ public class UpdateComponentDto
     [Required]
     [StringLength(CatalogConsts.MaxUnitLength)]
     public string Unit { get; set; } = string.Empty;
+
+    public ComponentReplacementPolicyInputDto? ReplacementPolicy { get; set; }
 }

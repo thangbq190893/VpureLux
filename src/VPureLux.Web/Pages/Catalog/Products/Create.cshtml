@@ -1,8 +1,16 @@
 @page
 @model VPureLux.Web.Pages.Catalog.Products.CreateModel
+@using VPureLux.Permissions
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = L["Catalog:NewProduct"];
+    var canManageMachineSettings = (await AuthorizationService.AuthorizeAsync(
+        User, null, VPureLuxPermissions.Warranty.ManageMachines)).Succeeded;
+    if (canManageMachineSettings)
+    {
+        Model.Input.MachineSetting ??= new VPureLux.Catalog.Products.ProductMachineSettingInputDto();
+    }
 }
 
 <abp-card>
@@ -16,6 +24,12 @@
             <span asp-validation-for="Input.Code" class="text-danger d-block mb-3"></span>
             <abp-input asp-for="Input.Name" />
             <abp-input asp-for="Input.Description" />
+            @if (canManageMachineSettings)
+            {
+                <div class="border-top pt-3 mt-3">
+                    <abp-input asp-for="Input.MachineSetting!.IsMachine" />
+                </div>
+            }
             <label class="form-label" for="Image">@L["Catalog:UploadImage"]</label>
             <input asp-for="Image" type="file" accept=".jpg,.jpeg,.png,.webp" class="form-control"
                    data-catalog-image-input data-preview-target="#image-preview" />

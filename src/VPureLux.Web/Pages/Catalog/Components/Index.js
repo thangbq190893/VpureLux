@@ -10,9 +10,6 @@
     const canEdit = page.dataset.canEdit === 'true';
     const canViewPricingContext = page.dataset.canViewPricingContext === 'true';
     const canManageReplacementPolicies = page.dataset.canManageReplacementPolicies === 'true';
-    const replacementPolicyModal = canManageReplacementPolicies
-        ? new abp.ModalManager({ viewUrl: abp.appPath + 'Warranty/PolicyModal' })
-        : null;
     const $keyword = $('#ComponentsKeyword');
 
     function encode(value) {
@@ -93,20 +90,6 @@
                         action: function (data) {
                             const record = recordOf(data);
                             location.href = abp.appPath + 'Catalog/Components/Edit/' + record.id;
-                        }
-                    },
-                    {
-                        text: l('Warranty:EditPolicy'),
-                        visible: function () {
-                            return canManageReplacementPolicies;
-                        },
-                        action: function (data) {
-                            const record = recordOf(data);
-                            replacementPolicyModal.open({
-                                componentId: record.id,
-                                componentCode: record.code,
-                                componentName: record.name
-                            });
                         }
                     },
                     {
@@ -235,13 +218,6 @@
         }),
         columnDefs: columnDefs
     }));
-
-    if (replacementPolicyModal) {
-        replacementPolicyModal.onResult(function () {
-            abp.notify.success(l('Warranty:PolicySavedSuccessfully'));
-            dataTable.ajax.reload(null, false);
-        });
-    }
 
     $('#ComponentsSearchForm').on('submit', function (event) {
         event.preventDefault();

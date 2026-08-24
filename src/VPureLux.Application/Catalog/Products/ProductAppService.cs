@@ -4,10 +4,12 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using VPureLux.Catalog.Products;
 using VPureLux.Permissions;
+using VPureLux.Warranty;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Auditing;
+using Volo.Abp.Authorization;
 
 namespace VPureLux.Catalog.Products;
 
@@ -20,17 +22,20 @@ public class ProductAppService : ApplicationService, IProductAppService
     private readonly CatalogManager _catalogManager;
     private readonly CatalogApplicationMapper _mapper;
     private readonly ICatalogImageProcessor _imageProcessor;
+    private readonly IProductMachineSettingRepository _machineSettings;
 
     public ProductAppService(
         IProductRepository productRepository,
         CatalogManager catalogManager,
         CatalogApplicationMapper mapper,
-        ICatalogImageProcessor imageProcessor)
+        ICatalogImageProcessor imageProcessor,
+        IProductMachineSettingRepository machineSettings)
     {
         _productRepository = productRepository;
         _catalogManager = catalogManager;
         _mapper = mapper;
         _imageProcessor = imageProcessor;
+        _machineSettings = machineSettings;
     }
 
     [Authorize(VPureLuxPermissions.Catalog.Products.View)]
@@ -53,21 +58,26 @@ public class ProductAppService : ApplicationService, IProductAppService
         queryable = ApplySorting(queryable, input.Sorting);
 
         var totalCount = await AsyncExecuter.CountAsync(queryable);
+        var machineSettings = await _machineSettings.GetQueryableAsync();
+        var pageQuery = queryable
+            .Skip(input.SkipCount)
+            .Take(input.MaxResultCount);
         var items = await AsyncExecuter.ToListAsync(
-            queryable
-                .Skip(input.SkipCount)
-                .Take(input.MaxResultCount)
-                .Select(x => new ProductDto
+            from product in pageQuery
+            join setting in machineSettings on product.Id equals setting.ProductId into productSettings
+            from setting in productSettings.DefaultIfEmpty()
+            select new ProductDto
                 {
-                    Id = x.Id,
-                    Code = x.Code,
-                    Name = x.Name,
-                    Description = x.Description,
-                    Status = x.Status,
-                    CreationTime = x.CreationTime,
-                    HasImage = x.Image!.ImageHash != null,
-                    ImageHash = x.Image.ImageHash
-                }));
+                    Id = product.Id,
+                    Code = product.Code,
+                    Name = product.Name,
+                    Description = product.Description,
+                    Status = product.Status,
+                    IsMachine = setting != null && setting.IsMachine,
+                    CreationTime = product.CreationTime,
+                    HasImage = product.Image!.ImageHash != null,
+                    ImageHash = product.Image.ImageHash
+                });
 
         return new PagedResultDto<ProductDto>(totalCount, items);
     }
@@ -75,7 +85,8 @@ public class ProductAppService : ApplicationService, IProductAppService
     [Authorize(VPureLuxPermissions.Catalog.Products.View)]
     public async Task<ProductDto> GetAsync(Guid id)
     {
-        return _mapper.ToDto(await GetProductAsync(id));
+        var product = await GetProductAsync(id);
+        return ToDto(product, await _machineSettings.FindByProductIdAsync(id));
     }
 
     [Authorize(VPureLuxPermissions.Catalog.Products.Create)]
@@ -89,7 +100,18 @@ public class ProductAppService : ApplicationService, IProductAppService
 
         await _productRepository.InsertAsync(product, autoSave: true);
 
-        return _mapper.ToDto(product);
+        ProductMachineSetting? setting = null;
+        if (input.MachineSetting != null)
+        {
+            await EnsureMachineSettingPermissionAsync();
+            if (input.MachineSetting.IsMachine)
+            {
+                setting = new ProductMachineSetting(GuidGenerator.Create(), product.Id, true);
+                await _machineSettings.InsertAsync(setting, autoSave: true);
+            }
+        }
+
+        return ToDto(product, setting);
     }
 
     [Authorize(VPureLuxPermissions.Catalog.Products.Edit)]
@@ -101,7 +123,23 @@ public class ProductAppService : ApplicationService, IProductAppService
         await _catalogManager.UpdateProductAsync(product, code, input.Name, input.Description);
         await _productRepository.UpdateAsync(product, autoSave: true);
 
-        return _mapper.ToDto(product);
+        var setting = await _machineSettings.FindByProductIdAsync(id);
+        if (input.MachineSetting != null)
+        {
+            await EnsureMachineSettingPermissionAsync();
+            if (setting == null && input.MachineSetting.IsMachine)
+            {
+                setting = new ProductMachineSetting(GuidGenerator.Create(), product.Id, true);
+                await _machineSettings.InsertAsync(setting, autoSave: true);
+            }
+            else if (setting != null)
+            {
+                setting.Update(input.MachineSetting.IsMachine, setting.Note);
+                await _machineSettings.UpdateAsync(setting, autoSave: true);
+            }
+        }
+
+        return ToDto(product, setting);
     }
 
     [Authorize(VPureLuxPermissions.Catalog.Products.Edit)]
@@ -234,6 +272,21 @@ public class ProductAppService : ApplicationService, IProductAppService
         }
 
         throw new BusinessException(VPureLuxDomainErrorCodes.ProductCodeRequired);
+    }
+
+    private async Task EnsureMachineSettingPermissionAsync()
+    {
+        if (!(await AuthorizationService.AuthorizeAsync(VPureLuxPermissions.Warranty.ManageMachines)).Succeeded)
+        {
+            throw new AbpAuthorizationException();
+        }
+    }
+
+    private ProductDto ToDto(Product product, ProductMachineSetting? setting)
+    {
+        var dto = _mapper.ToDto(product);
+        dto.IsMachine = setting?.IsMachine == true;
+        return dto;
     }
 
     private static CatalogImageDto ToImageDto(

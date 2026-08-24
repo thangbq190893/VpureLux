@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 using VPureLux.Catalog.Products;
 using VPureLux.Permissions;
 using VPureLux.Pricing;
-using VPureLux.Warranty;
 using Volo.Abp.Application.Dtos;
 
 namespace VPureLux.Web.Pages.Catalog.Products;
@@ -18,7 +17,6 @@ public class IndexModel : VPureLuxPageModel
 
     private readonly IProductAppService _productAppService;
     private readonly IProductPricingContextLookupService _productPricingContextLookupService;
-    private readonly IWarrantyAppService _warrantyAppService;
     private readonly IAuthorizationService _authorizationService;
 
     [BindProperty(SupportsGet = true)]
@@ -32,12 +30,10 @@ public class IndexModel : VPureLuxPageModel
     public IndexModel(
         IProductAppService productAppService,
         IProductPricingContextLookupService productPricingContextLookupService,
-        IWarrantyAppService warrantyAppService,
         IAuthorizationService authorizationService)
     {
         _productAppService = productAppService;
         _productPricingContextLookupService = productPricingContextLookupService;
-        _warrantyAppService = warrantyAppService;
         _authorizationService = authorizationService;
     }
 
@@ -68,21 +64,11 @@ public class IndexModel : VPureLuxPageModel
                 Clock.Now)
             : new Dictionary<Guid, ProductPricingContextDto>();
 
-        var canManageMachineSettings = (await _authorizationService.AuthorizeAsync(
-            User,
-            VPureLuxPermissions.Warranty.ManageMachines)).Succeeded;
-        var machineSettings = canManageMachineSettings
-            ? (await _warrantyAppService.GetMachineSettingsByProductIdsAsync(
-                result.Items.Select(x => x.Id).ToArray()))
-                .ToDictionary(x => x.ProductId)
-            : new Dictionary<Guid, ProductMachineSettingDto>();
-
         return new JsonResult(new PagedResultDto<ProductCatalogRow>(
             result.TotalCount,
             result.Items.Select(product =>
             {
                 contexts.TryGetValue(product.Id, out var context);
-                machineSettings.TryGetValue(product.Id, out var machineSetting);
                 return new ProductCatalogRow(
                     product.Id,
                     product.Code,
@@ -93,7 +79,7 @@ public class IndexModel : VPureLuxPageModel
                     product.ImageHash,
                     context?.CurrentProductSuggestedPrice,
                     context?.HasPublishedBom == true,
-                    machineSetting?.IsMachine == true);
+                    product.IsMachine);
             }).ToList()));
     }
 

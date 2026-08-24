@@ -14,4 +14,6 @@ public class UpdateProductDto
 
     [StringLength(CatalogConsts.MaxDescriptionLength)]
     public string? Description { get; set; }
+
+    public ProductMachineSettingInputDto? MachineSetting { get; set; }
 }

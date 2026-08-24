@@ -215,25 +215,11 @@ public class VPureLuxMenuContributor : IMenuContributor
         ).RequirePermissions(VPureLuxPermissions.Warranty.ManageAssets));
 
         warranty.AddItem(new ApplicationMenuItem(
-            VPureLuxMenus.WarrantyMachines,
-            l["Warranty:Machines"],
-            "~/Warranty/Machines",
-            icon: "fa fa-filter"
-        ).RequirePermissions(VPureLuxPermissions.Warranty.ManageMachines));
-
-        warranty.AddItem(new ApplicationMenuItem(
             VPureLuxMenus.WarrantyPendingInstallations,
             l["Warranty:PendingInstallations"],
             "~/Warranty/PendingInstallations",
             icon: "fa fa-screwdriver-wrench"
         ).RequirePermissions(VPureLuxPermissions.Warranty.ManageInstallations));
-
-        warranty.AddItem(new ApplicationMenuItem(
-            VPureLuxMenus.WarrantyPolicies,
-            l["Warranty:Policies"],
-            "~/Warranty/Policies",
-            icon: "fa fa-wrench"
-        ).RequirePermissions(VPureLuxPermissions.Warranty.ManagePolicies));
 
         warranty.AddItem(new ApplicationMenuItem(
             VPureLuxMenus.WarrantySyncFailures,

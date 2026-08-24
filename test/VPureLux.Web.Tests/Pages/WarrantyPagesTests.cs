@@ -8,21 +8,13 @@ namespace VPureLux.Pages;
 public class WarrantyPagesTests
 {
     [Fact]
-    public void Configuration_lists_should_use_abp_modals_and_server_side_datatables()
+    public void Warranty_menu_should_not_duplicate_catalog_configuration_workflows()
     {
-        var policies = Read("src/VPureLux.Web/Pages/Warranty/Policies.js");
-        var machines = Read("src/VPureLux.Web/Pages/Warranty/Machines.js");
+        var menu = Read("src/VPureLux.Web/Menus/VPureLuxMenuContributor.cs");
 
-        foreach (var source in new[] { policies, machines })
-        {
-            source.ShouldContain("new abp.ModalManager");
-            source.ShouldContain("serverSide: true");
-            source.ShouldContain("abp.libs.datatables.createAjax");
-            source.ShouldContain("dataTable.ajax.reload(null, false)");
-            source.ShouldNotContain("window.prompt");
-            source.ShouldNotContain("window.alert");
-            source.ShouldNotContain("window.confirm");
-        }
+        menu.ShouldNotContain("VPureLuxMenus.WarrantyMachines");
+        menu.ShouldNotContain("VPureLuxMenus.WarrantyPolicies");
+        menu.ShouldContain("VPureLuxMenus.WarrantyPendingInstallations");
     }
 
     [Fact]
@@ -41,22 +33,40 @@ public class WarrantyPagesTests
     }
 
     [Fact]
-    public void Catalog_lists_should_expose_machine_and_replacement_configuration_without_n_plus_one()
+    public void Catalog_forms_should_own_machine_and_replacement_configuration_without_n_plus_one()
     {
         var productModel = Read("src/VPureLux.Web/Pages/Catalog/Products/Index.cshtml.cs");
         var productScript = Read("src/VPureLux.Web/Pages/Catalog/Products/Index.js");
         var componentModel = Read("src/VPureLux.Web/Pages/Catalog/Components/Index.cshtml.cs");
         var componentScript = Read("src/VPureLux.Web/Pages/Catalog/Components/Index.js");
+        var productService = Read("src/VPureLux.Application/Catalog/Products/ProductAppService.cs");
+        var componentService = Read("src/VPureLux.Application/Catalog/Components/ComponentAppService.cs");
+        var productCreate = Read("src/VPureLux.Web/Pages/Catalog/Products/CreateModal.cshtml");
+        var productEdit = Read("src/VPureLux.Web/Pages/Catalog/Products/EditModal.cshtml");
+        var componentCreate = Read("src/VPureLux.Web/Pages/Catalog/Components/CreateModal.cshtml");
+        var componentEdit = Read("src/VPureLux.Web/Pages/Catalog/Components/EditModal.cshtml");
         var permissionSeed = Read("src/VPureLux.Application/Permissions/VPureLuxPermissionDataSeedContributor.cs");
 
-        productModel.ShouldContain("GetMachineSettingsByProductIdsAsync");
-        productScript.ShouldContain("Warranty/MachineSettingModal");
+        productModel.ShouldNotContain("IWarrantyAppService");
+        productService.ShouldContain("join setting in machineSettings");
+        productService.ShouldContain("productSettings.DefaultIfEmpty()");
+        productScript.ShouldNotContain("Warranty/MachineSettingModal");
         productScript.ShouldContain("data: 'isMachine'");
-        componentModel.ShouldContain("GetPoliciesByComponentIdsAsync");
-        componentScript.ShouldContain("Warranty/PolicyModal");
+        componentModel.ShouldNotContain("IWarrantyAppService");
+        componentService.ShouldContain("join policy in replacementPolicies");
+        componentService.ShouldContain("componentPolicies.DefaultIfEmpty()");
+        componentScript.ShouldNotContain("Warranty/PolicyModal");
         componentScript.ShouldContain("data: 'isReplacementTracked'");
-        productModel.ShouldNotContain("foreach");
-        componentModel.ShouldNotContain("foreach");
+        foreach (var source in new[] { productCreate, productEdit })
+        {
+            source.ShouldContain("Input.MachineSetting!.IsMachine");
+        }
+        foreach (var source in new[] { componentCreate, componentEdit })
+        {
+            source.ShouldContain("Input.ReplacementPolicy!.IsEnabled");
+            source.ShouldContain("Input.ReplacementPolicy.CycleMonths");
+            source.ShouldContain("Input.ReplacementPolicy.WarningDaysBeforeDue");
+        }
         permissionSeed.ShouldContain("Warranty.ManageMachines");
         permissionSeed.ShouldContain("Warranty.ManageInstallations");
         permissionSeed.ShouldContain("Warranty.ManageAssets");

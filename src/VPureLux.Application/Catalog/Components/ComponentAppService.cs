@@ -6,10 +6,12 @@ using Microsoft.AspNetCore.Authorization;
 using VPureLux.BusinessCodes;
 using VPureLux.Catalog.Components;
 using VPureLux.Permissions;
+using VPureLux.Warranty;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Auditing;
+using Volo.Abp.Authorization;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Timing;
 
@@ -28,6 +30,7 @@ public class ComponentAppService : ApplicationService, IComponentAppService
     private readonly ICatalogImageProcessor _imageProcessor;
     private readonly IBusinessCodeGenerator _businessCodeGenerator;
     private readonly IClock _clock;
+    private readonly IComponentReplacementPolicyRepository _replacementPolicies;
 
     public ComponentAppService(
         IComponentRepository componentRepository,
@@ -35,7 +38,8 @@ public class ComponentAppService : ApplicationService, IComponentAppService
         CatalogApplicationMapper mapper,
         ICatalogImageProcessor imageProcessor,
         IBusinessCodeGenerator businessCodeGenerator,
-        IClock clock)
+        IClock clock,
+        IComponentReplacementPolicyRepository replacementPolicies)
     {
         _componentRepository = componentRepository;
         _catalogManager = catalogManager;
@@ -43,6 +47,7 @@ public class ComponentAppService : ApplicationService, IComponentAppService
         _imageProcessor = imageProcessor;
         _businessCodeGenerator = businessCodeGenerator;
         _clock = clock;
+        _replacementPolicies = replacementPolicies;
     }
 
     [Authorize(VPureLuxPermissions.Catalog.Components.View)]
@@ -66,22 +71,30 @@ public class ComponentAppService : ApplicationService, IComponentAppService
         queryable = ApplySorting(queryable, input.Sorting);
 
         var totalCount = await AsyncExecuter.CountAsync(queryable);
+        var replacementPolicies = await _replacementPolicies.GetQueryableAsync();
+        var pageQuery = queryable
+            .Skip(input.SkipCount)
+            .Take(input.MaxResultCount);
         var items = await AsyncExecuter.ToListAsync(
-            queryable
-                .Skip(input.SkipCount)
-                .Take(input.MaxResultCount)
-                .Select(x => new ComponentDto
+            from component in pageQuery
+            join policy in replacementPolicies on component.Id equals policy.ComponentId into componentPolicies
+            from policy in componentPolicies.DefaultIfEmpty()
+            select new ComponentDto
                 {
-                    Id = x.Id,
-                    Code = x.Code,
-                    Name = x.Name,
-                    Description = x.Description,
-                    Unit = x.Unit,
-                    Status = x.Status,
-                    CreationTime = x.CreationTime,
-                    HasImage = x.Image!.ImageHash != null,
-                    ImageHash = x.Image.ImageHash
-                }));
+                    Id = component.Id,
+                    Code = component.Code,
+                    Name = component.Name,
+                    Description = component.Description,
+                    Unit = component.Unit,
+                    Status = component.Status,
+                    IsReplacementTracked = policy != null && policy.IsEnabled,
+                    ReplacementCycleMonths = policy == null ? null : policy.CycleMonths,
+                    WarningDaysBeforeDue = policy == null ? null : policy.WarningDaysBeforeDue,
+                    ReplacementPolicyNote = policy == null ? null : policy.Note,
+                    CreationTime = component.CreationTime,
+                    HasImage = component.Image!.ImageHash != null,
+                    ImageHash = component.Image.ImageHash
+                });
 
         return new PagedResultDto<ComponentDto>(totalCount, items);
     }
@@ -89,7 +102,8 @@ public class ComponentAppService : ApplicationService, IComponentAppService
     [Authorize(VPureLuxPermissions.Catalog.Components.View)]
     public async Task<ComponentDto> GetAsync(Guid id)
     {
-        return _mapper.ToDto(await GetComponentAsync(id));
+        var component = await GetComponentAsync(id);
+        return ToDto(component, await _replacementPolicies.FindByComponentIdAsync(id));
     }
 
     [Authorize(VPureLuxPermissions.Catalog.Components.Create)]
@@ -104,7 +118,18 @@ public class ComponentAppService : ApplicationService, IComponentAppService
 
         await _componentRepository.InsertAsync(component, autoSave: true);
 
-        return _mapper.ToDto(component);
+        ComponentReplacementPolicy? policy = null;
+        if (input.ReplacementPolicy != null)
+        {
+            await EnsureReplacementPolicyPermissionAsync();
+            if (input.ReplacementPolicy.IsEnabled)
+            {
+                policy = CreateReplacementPolicy(component.Id, input.ReplacementPolicy);
+                await _replacementPolicies.InsertAsync(policy, autoSave: true);
+            }
+        }
+
+        return ToDto(component, policy);
     }
 
     [Authorize(VPureLuxPermissions.Catalog.Components.Edit)]
@@ -115,7 +140,27 @@ public class ComponentAppService : ApplicationService, IComponentAppService
         await _catalogManager.UpdateComponentAsync(component, input.Name, input.Description, input.Unit);
         await _componentRepository.UpdateAsync(component, autoSave: true);
 
-        return _mapper.ToDto(component);
+        var policy = await _replacementPolicies.FindByComponentIdAsync(id);
+        if (input.ReplacementPolicy != null)
+        {
+            await EnsureReplacementPolicyPermissionAsync();
+            if (policy == null && input.ReplacementPolicy.IsEnabled)
+            {
+                policy = CreateReplacementPolicy(component.Id, input.ReplacementPolicy);
+                await _replacementPolicies.InsertAsync(policy, autoSave: true);
+            }
+            else if (policy != null)
+            {
+                policy.Update(
+                    input.ReplacementPolicy.CycleMonths,
+                    input.ReplacementPolicy.WarningDaysBeforeDue,
+                    input.ReplacementPolicy.Note,
+                    input.ReplacementPolicy.IsEnabled);
+                await _replacementPolicies.UpdateAsync(policy, autoSave: true);
+            }
+        }
+
+        return ToDto(component, policy);
     }
 
     [Authorize(VPureLuxPermissions.Catalog.Components.Edit)]
@@ -262,6 +307,35 @@ public class ComponentAppService : ApplicationService, IComponentAppService
             SeedMaxAsync = async cancellationToken =>
                 (int?)await _componentRepository.GetMaxCodeSequenceAsync(codePrefix, cancellationToken)
         });
+    }
+
+    private async Task EnsureReplacementPolicyPermissionAsync()
+    {
+        if (!(await AuthorizationService.AuthorizeAsync(VPureLuxPermissions.Warranty.ManagePolicies)).Succeeded)
+        {
+            throw new AbpAuthorizationException();
+        }
+    }
+
+    private ComponentReplacementPolicy CreateReplacementPolicy(
+        Guid componentId,
+        ComponentReplacementPolicyInputDto input) =>
+        new(
+            GuidGenerator.Create(),
+            componentId,
+            input.CycleMonths,
+            input.WarningDaysBeforeDue,
+            input.Note,
+            input.IsEnabled);
+
+    private ComponentDto ToDto(Component component, ComponentReplacementPolicy? policy)
+    {
+        var dto = _mapper.ToDto(component);
+        dto.IsReplacementTracked = policy?.IsEnabled == true;
+        dto.ReplacementCycleMonths = policy?.CycleMonths;
+        dto.WarningDaysBeforeDue = policy?.WarningDaysBeforeDue;
+        dto.ReplacementPolicyNote = policy?.Note;
+        return dto;
     }
 
     private static CatalogImageDto ToImageDto(

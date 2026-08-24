@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Shouldly;
 using VPureLux.Catalog;
 using VPureLux.Catalog.Products;
+using VPureLux.Warranty;
 using Volo.Abp;
 using Volo.Abp.Validation;
 using Xunit;
@@ -14,10 +15,12 @@ namespace VPureLux.EntityFrameworkCore.Catalog;
 public class ProductAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
 {
     private readonly IProductAppService _productAppService;
+    private readonly IProductMachineSettingRepository _machineSettings;
 
     public ProductAppServiceTests()
     {
         _productAppService = GetRequiredService<IProductAppService>();
+        _machineSettings = GetRequiredService<IProductMachineSettingRepository>();
     }
 
     [Fact]
@@ -116,6 +119,50 @@ public class ProductAppServiceTests : VPureLuxEntityFrameworkCoreTestBase
 
         await _productAppService.ActivateAsync(product.Id);
         (await _productAppService.GetAsync(product.Id)).Status.ShouldBe(CatalogItemStatus.Active);
+    }
+
+    [Fact]
+    public async Task Should_Manage_Machine_Setting_Inside_Product_Create_And_Edit()
+    {
+        var code = "MACHINE-" + System.Guid.NewGuid().ToString("N")[..8];
+        var product = await _productAppService.CreateAsync(new CreateProductDto
+        {
+            Code = code,
+            Name = "Machine configured in Catalog",
+            MachineSetting = new ProductMachineSettingInputDto
+            {
+                IsMachine = true
+            }
+        });
+
+        product.IsMachine.ShouldBeTrue();
+        (await _productAppService.GetAsync(product.Id)).IsMachine.ShouldBeTrue();
+        (await _machineSettings.FindByProductIdAsync(product.Id))!.IsMachine.ShouldBeTrue();
+        var listItem = (await _productAppService.GetListAsync(new GetProductListInput
+        {
+            Keyword = code
+        })).Items.Single(x => x.Id == product.Id);
+        listItem.IsMachine.ShouldBeTrue();
+
+        var renamed = await _productAppService.UpdateAsync(product.Id, new UpdateProductDto
+        {
+            Code = code,
+            Name = "Machine renamed without configuration payload"
+        });
+        renamed.IsMachine.ShouldBeTrue();
+
+        var updated = await _productAppService.UpdateAsync(product.Id, new UpdateProductDto
+        {
+            Code = code,
+            Name = renamed.Name,
+            MachineSetting = new ProductMachineSettingInputDto
+            {
+                IsMachine = false
+            }
+        });
+
+        updated.IsMachine.ShouldBeFalse();
+        (await _machineSettings.FindByProductIdAsync(product.Id))!.IsMachine.ShouldBeFalse();
     }
 
 }

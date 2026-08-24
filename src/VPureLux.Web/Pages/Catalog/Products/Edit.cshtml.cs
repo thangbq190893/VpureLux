@@ -38,7 +38,11 @@ public class EditModel : VPureLuxPageModel
         {
             Code = product.Code,
             Name = product.Name,
-            Description = product.Description
+            Description = product.Description,
+            MachineSetting = new ProductMachineSettingInputDto
+            {
+                IsMachine = product.IsMachine
+            }
         };
     }
 

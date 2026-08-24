@@ -1,9 +1,17 @@
 @page "{id:guid}"
 @model VPureLux.Web.Pages.Catalog.Components.EditModel
+@using VPureLux.Permissions
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = L["Edit"];
     var imageActionSuccessMessageKey = TempData["CatalogImageSuccessMessage"] as string;
+    var canManageReplacementPolicies = (await AuthorizationService.AuthorizeAsync(
+        User, null, VPureLuxPermissions.Warranty.ManagePolicies)).Succeeded;
+    if (canManageReplacementPolicies)
+    {
+        Model.Input.ReplacementPolicy ??= new VPureLux.Catalog.Components.ComponentReplacementPolicyInputDto();
+    }
 }
 
 <abp-card data-catalog-image-page
@@ -17,6 +25,24 @@
             <abp-input asp-for="Input.Name" />
             <abp-input asp-for="Input.Description" />
             <abp-input asp-for="Input.Unit" />
+            @if (canManageReplacementPolicies)
+            {
+                <div class="border-top pt-3 mt-3" data-replacement-policy-editor>
+                    <abp-input asp-for="Input.ReplacementPolicy!.IsEnabled" />
+                    <div data-replacement-policy-fields
+                         class="@(Model.Input.ReplacementPolicy!.IsEnabled ? string.Empty : "d-none")">
+                        <abp-row>
+                            <abp-column size-md="_6">
+                                <abp-input asp-for="Input.ReplacementPolicy.CycleMonths" />
+                            </abp-column>
+                            <abp-column size-md="_6">
+                                <abp-input asp-for="Input.ReplacementPolicy.WarningDaysBeforeDue" />
+                            </abp-column>
+                        </abp-row>
+                        <abp-input asp-for="Input.ReplacementPolicy.Note" />
+                    </div>
+                </div>
+            }
             @if (Model.HasImage)
             {
                 <img id="image-preview" src="/api/catalog/components/@Model.Id/thumbnail" loading="lazy"
@@ -51,4 +77,5 @@
 
 @section scripts {
     <abp-script src="/Pages/Catalog/catalog-image-preview.js" />
+    <abp-script src="/Pages/Catalog/replacement-policy-fields.js" />
 }

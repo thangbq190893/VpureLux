@@ -1,9 +1,17 @@
 @page
 @model VPureLux.Web.Pages.Catalog.Products.CreateModalModel
+@using VPureLux.Permissions
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @using Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Modal
 @{
     Layout = null;
+    var canManageMachineSettings = (await AuthorizationService.AuthorizeAsync(
+        User, null, VPureLuxPermissions.Warranty.ManageMachines)).Succeeded;
+    if (canManageMachineSettings)
+    {
+        Model.Input.MachineSetting ??= new VPureLux.Catalog.Products.ProductMachineSettingInputDto();
+    }
 }
 
 <form method="post" asp-page="/Catalog/Products/CreateModal">
@@ -15,6 +23,12 @@
             <span asp-validation-for="Input.Code" class="text-danger d-block mb-3"></span>
             <abp-input asp-for="Input.Name" />
             <abp-input asp-for="Input.Description" />
+            @if (canManageMachineSettings)
+            {
+                <div class="border-top pt-3 mt-3">
+                    <abp-input asp-for="Input.MachineSetting!.IsMachine" />
+                </div>
+            }
             <p class="text-muted mb-0">@L["Catalog:ImageManagedOnFullPage"]</p>
         </abp-modal-body>
         <abp-modal-footer buttons="@(AbpModalButtons.Cancel|AbpModalButtons.Save)"></abp-modal-footer>

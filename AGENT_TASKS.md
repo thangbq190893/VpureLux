@@ -419,16 +419,27 @@ Status: HOLD
 ## 7. Active Work Record
 
 Task ID: W-008
-Agent/task name: Codex - Warranty regression, migration rehearsal, publish, and rollout
+Agent/task name: Codex - Warranty Catalog UX correction, regression, publish, and rollout
 Started at (Asia/Saigon): 2026-08-24
 Branch and starting commit: main / aec9f91
-Goal for this run: Prove the Warranty/CustomerCare wave is regression-safe, inspect migration/publish outputs, update operations/module documentation, commit/push, and deploy only to a proven isolated test database target.
-Files expected to change: regression/UAT evidence, module and operations documentation, this handoff file, and generated Release publish artifacts outside source control.
+Goal for this run: Move Product-machine and Component replacement-policy configuration into the existing Catalog create/edit forms, remove the redundant configuration list entry points, preserve companion-table storage and the installation workflow, then verify and redeploy production.
+Files expected to change: Catalog DTOs/AppServices, Product and Component create/edit Razor forms, Catalog list PageModels/scripts, Warranty menu contribution, focused Catalog/Warranty tests, and this handoff file. No core Product/Component table or migration change is expected.
 Database/data impact: Test database `VPL` was backed up and migrated from 12 to 18 migrations. After an explicit production deployment instruction, production database `VPureLux` was backed up and migrated from 17 to 18 migrations with the schema-only CustomerCare foundation. Captured business row counts remained unchanged.
-Verification planned: full focused Domain/EF/Web suites, Sales/BOM/Inventory/report regression, no pending EF model changes, schema-only migration SQL review, Release publish/static assets, runtime target proof, commit/push, isolated DB migration and smoke tests.
-Current blocker: No technical deployment blocker. Production deployment and unauthenticated visual/static/health smoke tests are complete. Authenticated Sales/CustomerCare UAT and explicit user acceptance remain required before W-008 and W-GATE can be marked DONE.
+Verification planned: focused Catalog/Warranty EF and Web tests, permission and no-N+1 assertions, JavaScript syntax, Release Web build/publish, diff/status review, production health/static/log smoke, and confirmation that the runtime still targets `VPureLux` without running a migration.
+Current blocker: None. The latest user feedback is an active UAT defect: configuration exists but is placed in redundant Warranty screens instead of the normal Product/Component create/edit workflow.
 
 ## 8. Handoff Log
+
+### 2026-08-24 - W-008 Catalog Configuration UX Corrected (Deployment Pending)
+
+- Agent: Codex
+- User feedback: Product-machine was only configurable through a redundant Warranty screen/row action, while Component replacement configuration was not discoverable in the normal material workflow.
+- UX correction: Product create/edit now contains the `IsMachine` checkbox directly. Component create/edit now contains `TrackedForReplacement`; cycle, warning lead, and note appear only when tracking is checked. Both the ABP create/edit modals used by the list and the full-page image-management fallbacks contain the same controls.
+- Navigation: Removed the separate `Warranty -> Machines` and `Warranty -> Policies` menu entries and removed their Catalog row actions. Status columns remain on the Product/Component DataTables for quick scanning. `Warranty -> Pending Installations` remains because installation confirmation is a real operational transition and the only start event for first schedules.
+- Architecture/data: Core Product and Component tables remain unchanged. Catalog AppServices write the existing `AppProductMachineSettings` and `AppComponentReplacementPolicies` companion tables in the same Unit of Work. Optional nested configuration DTOs prevent a Catalog edit by a user without Warranty configuration permission from disabling existing settings. Catalog lists use database `LEFT JOIN` projections with Count/Skip/Take; no per-row configuration query remains in PageModels.
+- Verification: Release Web build passed. Catalog EF tests passed 13/13, focused integrated Catalog/Warranty/Sales EF regression passed 58/58, focused Catalog/Warranty Web tests passed 28/28, and the two new configuration/join tests passed after their final assertions. Three touched JavaScript files pass `node --check`; `git diff --check` passes; EF reports no pending model changes and no migration file changed. Local health returned HTTP 200 against the test `VPL` configuration; no production data was touched during development verification.
+- Database impact: No migration, no production SQL, and no production business-data change. Local app startup wrote only its normal health/localization operational state to test database `VPL`.
+- Next action: Commit/push this isolated change, publish from a clean commit worktree so unrelated dirty BOM/Inventory files are excluded, deploy a new immutable production Web release without running DbMigrator, then verify health/static assets/logs and retain the current release for rollback.
 
 ### 2026-08-24 - W-008 Catalog/Installation Workflows Exposed And Redeployed
 

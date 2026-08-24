@@ -241,6 +241,48 @@ public class CatalogPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
+    public async Task Catalog_Create_And_Edit_Forms_Should_Contain_Customer_Care_Configuration()
+    {
+        var product = await GetRequiredService<IProductAppService>().CreateAsync(new CreateProductDto
+        {
+            Code = Unique("CAT-CFG-P"),
+            Name = "Configured product"
+        });
+        var component = await GetRequiredService<IComponentAppService>().CreateAsync(new CreateComponentDto
+        {
+            Name = "Configured component",
+            Unit = "pcs"
+        });
+
+        foreach (var route in new[]
+        {
+            "/Catalog/Products/Create",
+            "/Catalog/Products/CreateModal",
+            $"/Catalog/Products/Edit/{product.Id}",
+            $"/Catalog/Products/EditModal?id={product.Id}"
+        })
+        {
+            var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync(route));
+            html.ShouldContain("name=\"Input.MachineSetting.IsMachine\"");
+        }
+
+        foreach (var route in new[]
+        {
+            "/Catalog/Components/Create",
+            "/Catalog/Components/CreateModal",
+            $"/Catalog/Components/Edit/{component.Id}",
+            $"/Catalog/Components/EditModal?id={component.Id}"
+        })
+        {
+            var html = WebUtility.HtmlDecode(await GetResponseAsStringAsync(route));
+            html.ShouldContain("name=\"Input.ReplacementPolicy.IsEnabled\"");
+            html.ShouldContain("name=\"Input.ReplacementPolicy.CycleMonths\"");
+            html.ShouldContain("name=\"Input.ReplacementPolicy.WarningDaysBeforeDue\"");
+            html.ShouldContain("data-replacement-policy-fields");
+        }
+    }
+
+    [Fact]
     public async Task Product_Create_Pages_Should_Render_Manual_Required_Code_Input()
     {
         var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();

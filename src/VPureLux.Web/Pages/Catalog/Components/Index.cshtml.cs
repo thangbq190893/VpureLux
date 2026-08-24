@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 using VPureLux.Catalog.Components;
 using VPureLux.Permissions;
 using VPureLux.Pricing;
-using VPureLux.Warranty;
 using Volo.Abp.Application.Dtos;
 
 namespace VPureLux.Web.Pages.Catalog.Components;
@@ -18,7 +17,6 @@ public class IndexModel : VPureLuxPageModel
 
     private readonly IComponentAppService _componentAppService;
     private readonly IComponentSuggestedSellingPriceLookupService _componentPriceLookupService;
-    private readonly IWarrantyAppService _warrantyAppService;
     private readonly IAuthorizationService _authorizationService;
 
     [BindProperty(SupportsGet = true)]
@@ -32,12 +30,10 @@ public class IndexModel : VPureLuxPageModel
     public IndexModel(
         IComponentAppService componentAppService,
         IComponentSuggestedSellingPriceLookupService componentPriceLookupService,
-        IWarrantyAppService warrantyAppService,
         IAuthorizationService authorizationService)
     {
         _componentAppService = componentAppService;
         _componentPriceLookupService = componentPriceLookupService;
-        _warrantyAppService = warrantyAppService;
         _authorizationService = authorizationService;
     }
 
@@ -69,21 +65,11 @@ public class IndexModel : VPureLuxPageModel
                 Clock.Now)
             : new Dictionary<Guid, ComponentSuggestedSellingPriceVersionDto>();
 
-        var canManageReplacementPolicies = (await _authorizationService.AuthorizeAsync(
-            User,
-            VPureLuxPermissions.Warranty.ManagePolicies)).Succeeded;
-        var replacementPolicies = canManageReplacementPolicies
-            ? (await _warrantyAppService.GetPoliciesByComponentIdsAsync(
-                result.Items.Select(x => x.Id).ToArray()))
-                .ToDictionary(x => x.ComponentId)
-            : new Dictionary<Guid, ComponentReplacementPolicyDto>();
-
         return new JsonResult(new PagedResultDto<ComponentCatalogRow>(
             result.TotalCount,
             result.Items.Select(component =>
             {
                 var currentPrice = currentPrices.GetValueOrDefault(component.Id);
-                replacementPolicies.TryGetValue(component.Id, out var replacementPolicy);
                 return new ComponentCatalogRow(
                     component.Id,
                     component.Code,
@@ -94,9 +80,9 @@ public class IndexModel : VPureLuxPageModel
                     component.HasImage,
                     component.ImageHash,
                     currentPrice?.Price,
-                    replacementPolicy?.IsEnabled == true,
-                    replacementPolicy?.CycleMonths,
-                    replacementPolicy?.WarningDaysBeforeDue);
+                    component.IsReplacementTracked,
+                    component.ReplacementCycleMonths,
+                    component.WarningDaysBeforeDue);
             }).ToList()));
     }
 

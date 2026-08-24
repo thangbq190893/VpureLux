@@ -14,4 +14,12 @@ public class CreateProductDto
 
     [StringLength(CatalogConsts.MaxDescriptionLength)]
     public string? Description { get; set; }
+
+    public ProductMachineSettingInputDto? MachineSetting { get; set; }
+}
+
+public class ProductMachineSettingInputDto
+{
+    [Display(Name = "Warranty:IsMachine")]
+    public bool IsMachine { get; set; }
 }

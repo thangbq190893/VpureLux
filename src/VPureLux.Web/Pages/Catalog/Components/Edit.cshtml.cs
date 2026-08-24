@@ -41,7 +41,14 @@ public class EditModel : VPureLuxPageModel
         {
             Name = component.Name,
             Description = component.Description,
-            Unit = component.Unit
+            Unit = component.Unit,
+            ReplacementPolicy = new ComponentReplacementPolicyInputDto
+            {
+                IsEnabled = component.IsReplacementTracked,
+                CycleMonths = component.ReplacementCycleMonths ?? 3,
+                WarningDaysBeforeDue = component.WarningDaysBeforeDue ?? 7,
+                Note = component.ReplacementPolicyNote
+            }
         };
     }
 

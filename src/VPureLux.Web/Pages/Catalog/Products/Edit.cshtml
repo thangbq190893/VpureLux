@@ -1,9 +1,17 @@
 @page "{id:guid}"
 @model VPureLux.Web.Pages.Catalog.Products.EditModel
+@using VPureLux.Permissions
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = L["Edit"];
     var imageActionSuccessMessageKey = TempData["CatalogImageSuccessMessage"] as string;
+    var canManageMachineSettings = (await AuthorizationService.AuthorizeAsync(
+        User, null, VPureLuxPermissions.Warranty.ManageMachines)).Succeeded;
+    if (canManageMachineSettings)
+    {
+        Model.Input.MachineSetting ??= new VPureLux.Catalog.Products.ProductMachineSettingInputDto();
+    }
 }
 
 <abp-card data-catalog-image-page
@@ -16,6 +24,12 @@
             <abp-input asp-for="Input.Code" />
             <abp-input asp-for="Input.Name" />
             <abp-input asp-for="Input.Description" />
+            @if (canManageMachineSettings)
+            {
+                <div class="border-top pt-3 mt-3">
+                    <abp-input asp-for="Input.MachineSetting!.IsMachine" />
+                </div>
+            }
             @if (Model.HasImage)
             {
                 <img id="image-preview" src="/api/catalog/products/@Model.Id/thumbnail" loading="lazy"

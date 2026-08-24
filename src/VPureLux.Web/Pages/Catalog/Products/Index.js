@@ -10,9 +10,6 @@
     const canEdit = page.dataset.canEdit === 'true';
     const canViewPricingContext = page.dataset.canViewPricingContext === 'true';
     const canManageMachineSettings = page.dataset.canManageMachineSettings === 'true';
-    const machineSettingModal = canManageMachineSettings
-        ? new abp.ModalManager({ viewUrl: abp.appPath + 'Warranty/MachineSettingModal' })
-        : null;
     const $keyword = $('#ProductsKeyword');
 
     function encode(value) {
@@ -101,20 +98,6 @@
                         action: function (data) {
                             const record = recordOf(data);
                             location.href = abp.appPath + 'Catalog/Products/Edit/' + record.id;
-                        }
-                    },
-                    {
-                        text: l('Warranty:ConfigureMachine'),
-                        visible: function () {
-                            return canManageMachineSettings;
-                        },
-                        action: function (data) {
-                            const record = recordOf(data);
-                            machineSettingModal.open({
-                                productId: record.id,
-                                productCode: record.code,
-                                productName: record.name
-                            });
                         }
                     },
                     {
@@ -230,13 +213,6 @@
         }),
         columnDefs: columnDefs
     }));
-
-    if (machineSettingModal) {
-        machineSettingModal.onResult(function () {
-            abp.notify.success(l('Warranty:MachineSettingSavedSuccessfully'));
-            dataTable.ajax.reload(null, false);
-        });
-    }
 
     $('#ProductsSearchForm').on('submit', function (event) {
         event.preventDefault();
