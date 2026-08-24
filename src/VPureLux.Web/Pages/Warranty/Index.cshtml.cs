@@ -45,33 +45,10 @@ public class IndexModel : VPureLuxPageModel
             result.Items.Select(ToRow).ToList()));
     }
 
-    public async Task<JsonResult> OnPostCompleteAsync(Guid id)
-    {
-        await _warrantyAppService.CompleteReminderAsync(id, new VPureLux.Warranty.CompleteReplacementReminderDto());
-        return new JsonResult(new { success = true });
-    }
-
-    public async Task<JsonResult> OnPostSkipAsync(Guid id, string? note)
-    {
-        await _warrantyAppService.SkipReminderAsync(id, new VPureLux.Warranty.SkipReplacementReminderDto { Note = note });
-        return new JsonResult(new { success = true });
-    }
-
-    public async Task<JsonResult> OnPostRescheduleAsync(Guid id, DateTime dueDate, string? note)
-    {
-        await _warrantyAppService.RescheduleReminderAsync(
-            id,
-            new VPureLux.Warranty.RescheduleReplacementReminderDto
-            {
-                DueDate = dueDate,
-                Note = note
-            });
-        return new JsonResult(new { success = true });
-    }
-
     private WarrantyReminderRow ToRow(VPureLux.Warranty.WarrantyReminderListDto reminder) =>
         new(
             reminder.Id,
+            reminder.CustomerAssetId,
             reminder.AssetNo,
             $"{reminder.CustomerCode} - {reminder.CustomerName}",
             $"{reminder.ProductCode} - {reminder.ProductName}",
@@ -81,9 +58,13 @@ public class IndexModel : VPureLuxPageModel
             reminder.DueDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             reminder.CycleMonths,
             reminder.WarningDaysBeforeDue,
-            _localizer[$"Warranty:Status:{reminder.Status}"].Value,
-            GetStatusBadgeClass(reminder.Status),
-            $"{reminder.OrderNo} / {_localizer["Warranty:LineNo"].Value} {reminder.LineNo}",
+            reminder.Status == VPureLux.Warranty.AssetReplacementReminderStatus.Pending
+                ? _localizer[$"Warranty:Timing:{reminder.TimingStatus}"].Value
+                : _localizer[$"Warranty:Status:{reminder.Status}"].Value,
+            GetStatusBadgeClass(reminder.Status, reminder.TimingStatus),
+            reminder.OrderNo.IsNullOrWhiteSpace()
+                ? string.Empty
+                : $"{reminder.OrderNo} / {_localizer["Warranty:LineNo"].Value} {reminder.LineNo}",
             reminder.Note,
             reminder.Status == VPureLux.Warranty.AssetReplacementReminderStatus.Pending);
 
@@ -95,9 +76,13 @@ public class IndexModel : VPureLuxPageModel
             : value.ToString("#,0.####", Vi);
     }
 
-    private static string GetStatusBadgeClass(VPureLux.Warranty.AssetReplacementReminderStatus status) => status switch
+    private static string GetStatusBadgeClass(
+        VPureLux.Warranty.AssetReplacementReminderStatus status,
+        VPureLux.Warranty.WarrantyReminderTimingStatus timingStatus) => status switch
     {
-        VPureLux.Warranty.AssetReplacementReminderStatus.Pending => "text-bg-warning text-dark",
+        VPureLux.Warranty.AssetReplacementReminderStatus.Pending when timingStatus == VPureLux.Warranty.WarrantyReminderTimingStatus.Overdue => "text-bg-danger",
+        VPureLux.Warranty.AssetReplacementReminderStatus.Pending when timingStatus == VPureLux.Warranty.WarrantyReminderTimingStatus.Warning => "text-bg-warning text-dark",
+        VPureLux.Warranty.AssetReplacementReminderStatus.Pending => "text-bg-info text-dark",
         VPureLux.Warranty.AssetReplacementReminderStatus.Completed => "text-bg-success",
         VPureLux.Warranty.AssetReplacementReminderStatus.Skipped => "text-bg-secondary",
         VPureLux.Warranty.AssetReplacementReminderStatus.Cancelled => "text-bg-dark",
@@ -106,6 +91,7 @@ public class IndexModel : VPureLuxPageModel
 
     public sealed record WarrantyReminderRow(
         Guid Id,
+        Guid CustomerAssetId,
         string AssetNo,
         string Customer,
         string Product,

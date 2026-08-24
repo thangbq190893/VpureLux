@@ -1,0 +1,48 @@
+@page
+@model VPureLux.Web.Pages.Warranty.PendingInstallationsModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{
+    ViewData["Title"] = L["Warranty:PendingInstallations"];
+}
+
+@section scripts {
+    <abp-script src="/Pages/Warranty/PendingInstallations.js" />
+}
+
+<div class="vpl-page vpl-inquiry-page" data-warranty-pending-installations>
+    <div class="vpl-page-header">
+        <h2 class="vpl-page-title mb-0">@L["Warranty:PendingInstallations"]</h2>
+    </div>
+
+    <abp-card class="vpl-inquiry-filter-card vpl-card-dense mb-3">
+        <abp-card-body>
+            <form id="PendingInstallationSearchForm" class="row g-2 mb-0">
+                <div class="col-md-9">
+                    <input id="PendingInstallationSearchText" class="form-control" placeholder="@L["Warranty:PendingInstallationSearchPlaceholder"]" />
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-secondary" type="submit">@L["Search"]</button>
+                    <button class="btn btn-light" type="button" id="PendingInstallationClearButton">@L["Clear"]</button>
+                </div>
+            </form>
+        </abp-card-body>
+    </abp-card>
+
+    <abp-card class="vpl-inquiry-results-card vpl-card-dense">
+        <abp-card-body>
+            <abp-table id="PendingInstallationsTable" striped-rows="true" class="vpl-table-dense">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>@L["Warranty:AssetNo"]</th>
+                        <th>@L["Warranty:Customer"]</th>
+                        <th>@L["Warranty:Product"]</th>
+                        <th>@L["Warranty:Order"]</th>
+                        <th>@L["Warranty:SoldDate"]</th>
+                        <th>@L["Warranty:PositionCount"]</th>
+                    </tr>
+                </thead>
+            </abp-table>
+        </abp-card-body>
+    </abp-card>
+</div>

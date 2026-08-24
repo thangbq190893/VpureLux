@@ -68,8 +68,12 @@ public class VPureLuxDbContext :
     public DbSet<OperatingCostCategory> OperatingCostCategories { get; set; }
     public DbSet<OperatingCostEntry> OperatingCostEntries { get; set; }
     public DbSet<ComponentReplacementPolicy> ComponentReplacementPolicies { get; set; }
+    public DbSet<ProductMachineSetting> ProductMachineSettings { get; set; }
     public DbSet<CustomerAsset> CustomerAssets { get; set; }
+    public DbSet<CustomerAssetComponent> CustomerAssetComponents { get; set; }
+    public DbSet<AssetMaintenanceEvent> AssetMaintenanceEvents { get; set; }
     public DbSet<AssetReplacementReminder> AssetReplacementReminders { get; set; }
+    public DbSet<CustomerCareSyncFailure> CustomerCareSyncFailures { get; set; }
 
     #region Entities from the modules
 
@@ -159,8 +163,12 @@ public class VPureLuxDbContext :
         builder.ApplyConfiguration(new OperatingCostCategoryConfiguration());
         builder.ApplyConfiguration(new OperatingCostEntryConfiguration());
         builder.ApplyConfiguration(new ComponentReplacementPolicyConfiguration());
+        builder.ApplyConfiguration(new ProductMachineSettingConfiguration());
         builder.ApplyConfiguration(new CustomerAssetConfiguration());
+        builder.ApplyConfiguration(new CustomerAssetComponentConfiguration());
+        builder.ApplyConfiguration(new AssetMaintenanceEventConfiguration());
         builder.ApplyConfiguration(new AssetReplacementReminderConfiguration());
+        builder.ApplyConfiguration(new CustomerCareSyncFailureConfiguration());
 
         if (Database.ProviderName?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true)
         {
@@ -174,6 +182,21 @@ public class VPureLuxDbContext :
                 .IsConcurrencyToken()
                 .ValueGeneratedNever();
             builder.Entity<SalesOrderPayment>().Property(x => x.RowVersion)
+                .IsConcurrencyToken()
+                .ValueGeneratedNever();
+            builder.Entity<ProductMachineSetting>().Property(x => x.RowVersion)
+                .IsConcurrencyToken()
+                .ValueGeneratedNever();
+            builder.Entity<CustomerAsset>().Property(x => x.RowVersion)
+                .IsConcurrencyToken()
+                .ValueGeneratedNever();
+            builder.Entity<CustomerAssetComponent>().Property(x => x.RowVersion)
+                .IsConcurrencyToken()
+                .ValueGeneratedNever();
+            builder.Entity<AssetReplacementReminder>().Property(x => x.RowVersion)
+                .IsConcurrencyToken()
+                .ValueGeneratedNever();
+            builder.Entity<CustomerCareSyncFailure>().Property(x => x.RowVersion)
                 .IsConcurrencyToken()
                 .ValueGeneratedNever();
         }

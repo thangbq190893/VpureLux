@@ -1,0 +1,84 @@
+@page
+@model VPureLux.Web.Pages.Warranty.Assets.CreateExternalModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{ ViewData["Title"] = L["Warranty:CreateExternalAsset"]; }
+
+@section scripts { <abp-script src="/Pages/Warranty/Assets/CreateExternal.js" /> }
+
+<div class="vpl-page" data-external-asset-editor>
+    <div class="vpl-page-header d-flex justify-content-between align-items-center mb-3">
+        <h2 class="vpl-page-title mb-0">@L["Warranty:CreateExternalAsset"]</h2>
+        <a class="btn btn-outline-secondary btn-sm" asp-page="/Warranty/Assets/Index"><i class="fa fa-arrow-left"></i> @L["Back"]</a>
+    </div>
+    <form method="post">
+        <input asp-for="Input.IdempotencyKey" type="hidden" />
+        <abp-validation-summary />
+        <abp-card class="vpl-card-dense mb-3">
+            <abp-card-body>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="Input.CustomerId" class="form-label">@L["Warranty:Customer"]</label>
+                        <select asp-for="Input.CustomerId" asp-items="Model.CustomerOptions" class="form-select js-external-asset-select"></select>
+                    </div>
+                    <div class="col-md-3"><abp-input asp-for="Input.Brand" /></div>
+                    <div class="col-md-3"><abp-input asp-for="Input.Model" /></div>
+                    <div class="col-md-3"><abp-input asp-for="Input.SerialNo" /></div>
+                    <div class="col-md-3"><abp-input asp-for="Input.ExternalReference" /></div>
+                    <div class="col-md-6"><abp-input asp-for="Input.InstallationAddress" /></div>
+                    <div class="col-12"><abp-input asp-for="Input.Note" /></div>
+                </div>
+            </abp-card-body>
+        </abp-card>
+
+        <abp-card class="vpl-card-dense mb-3">
+            <abp-card-header class="d-flex justify-content-between align-items-center">
+                <strong>@L["Warranty:ActualPositions"]</strong>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="AddExternalAssetPosition"><i class="fa fa-plus"></i> @L["Warranty:AddPosition"]</button>
+            </abp-card-header>
+            <abp-card-body>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle mb-0">
+                        <thead class="table-light"><tr>
+                            <th style="min-width: 9rem">@L["Warranty:PositionCode"]</th>
+                            <th style="min-width: 12rem">@L["Warranty:PositionName"]</th>
+                            <th style="min-width: 20rem">@L["Warranty:Component"]</th>
+                            <th style="width: 7rem">@L["Warranty:Quantity"]</th>
+                            <th style="min-width: 11rem">@L["Warranty:ReplacementBaselineDate"]</th>
+                            <th style="min-width: 11rem">@L["Warranty:Note"]</th><th style="width: 3rem"></th>
+                        </tr></thead>
+                        <tbody id="ExternalAssetPositionsBody">
+                            @for (var i = 0; i < Model.Input.Positions.Count; i++)
+                            {
+                                <tr data-external-position>
+                                    <td><input asp-for="Input.Positions[i].PositionCode" class="form-control form-control-sm" /></td>
+                                    <td><input asp-for="Input.Positions[i].PositionName" class="form-control form-control-sm" /></td>
+                                    <td><select asp-for="Input.Positions[i].ComponentId" asp-items="Model.ComponentOptions" class="form-select form-select-sm js-external-asset-select"></select></td>
+                                    <td><input asp-for="Input.Positions[i].Quantity" type="number" min="1" step="1" class="form-control form-control-sm" /></td>
+                                    <td><input asp-for="Input.Positions[i].ReplacementBaselineDate" type="date" class="form-control form-control-sm" /></td>
+                                    <td><input asp-for="Input.Positions[i].Note" class="form-control form-control-sm" /></td>
+                                    <td><button type="button" class="btn btn-outline-danger btn-sm" data-remove-external-position title="@L["Delete"]"><i class="fa fa-trash"></i></button></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </abp-card-body>
+        </abp-card>
+        <div class="d-flex gap-2 justify-content-end">
+            <a class="btn btn-secondary" asp-page="/Warranty/Assets/Index">@L["Cancel"]</a>
+            <button class="btn btn-primary" type="submit"><i class="fa fa-save"></i> @L["Save"]</button>
+        </div>
+    </form>
+
+    <template id="ExternalAssetPositionTemplate">
+        <tr data-external-position>
+            <td><input name="Input.Positions[__index__].PositionCode" class="form-control form-control-sm" required maxlength="64" /></td>
+            <td><input name="Input.Positions[__index__].PositionName" class="form-control form-control-sm" required maxlength="256" /></td>
+            <td><select name="Input.Positions[__index__].ComponentId" class="form-select form-select-sm js-external-asset-select">@foreach (var option in Model.ComponentOptions) { <option value="@option.Value">@option.Text</option> }</select></td>
+            <td><input name="Input.Positions[__index__].Quantity" type="number" min="1" step="1" value="1" class="form-control form-control-sm" required /></td>
+            <td><input name="Input.Positions[__index__].ReplacementBaselineDate" type="date" class="form-control form-control-sm" /></td>
+            <td><input name="Input.Positions[__index__].Note" class="form-control form-control-sm" maxlength="512" /></td>
+            <td><button type="button" class="btn btn-outline-danger btn-sm" data-remove-external-position title="@L["Delete"]"><i class="fa fa-trash"></i></button></td>
+        </tr>
+    </template>
+</div>

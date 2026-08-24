@@ -208,11 +208,39 @@ public class VPureLuxMenuContributor : IMenuContributor
         ).RequirePermissions(VPureLuxPermissions.Warranty.View));
 
         warranty.AddItem(new ApplicationMenuItem(
+            VPureLuxMenus.WarrantyAssets,
+            l["Warranty:CustomerAssets"],
+            "~/Warranty/Assets",
+            icon: "fa fa-faucet-drip"
+        ).RequirePermissions(VPureLuxPermissions.Warranty.ManageAssets));
+
+        warranty.AddItem(new ApplicationMenuItem(
+            VPureLuxMenus.WarrantyMachines,
+            l["Warranty:Machines"],
+            "~/Warranty/Machines",
+            icon: "fa fa-filter"
+        ).RequirePermissions(VPureLuxPermissions.Warranty.ManageMachines));
+
+        warranty.AddItem(new ApplicationMenuItem(
+            VPureLuxMenus.WarrantyPendingInstallations,
+            l["Warranty:PendingInstallations"],
+            "~/Warranty/PendingInstallations",
+            icon: "fa fa-screwdriver-wrench"
+        ).RequirePermissions(VPureLuxPermissions.Warranty.ManageInstallations));
+
+        warranty.AddItem(new ApplicationMenuItem(
             VPureLuxMenus.WarrantyPolicies,
             l["Warranty:Policies"],
             "~/Warranty/Policies",
             icon: "fa fa-wrench"
         ).RequirePermissions(VPureLuxPermissions.Warranty.ManagePolicies));
+
+        warranty.AddItem(new ApplicationMenuItem(
+            VPureLuxMenus.WarrantySyncFailures,
+            l["Warranty:SyncFailures"],
+            "~/Warranty/SyncFailures",
+            icon: "fa fa-triangle-exclamation"
+        ).RequirePermissions(VPureLuxPermissions.Warranty.ManageSyncFailures));
 
         context.Menu.AddItem(warranty);
 

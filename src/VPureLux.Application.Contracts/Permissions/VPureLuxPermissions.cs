@@ -134,6 +134,10 @@ public static class VPureLuxPermissions
         public const string Default = GroupName + ".Warranty";
         public const string View = Default + ".View";
         public const string ManagePolicies = Default + ".ManagePolicies";
+        public const string ManageMachines = Default + ".ManageMachines";
+        public const string ManageSyncFailures = Default + ".ManageSyncFailures";
+        public const string ManageInstallations = Default + ".ManageInstallations";
+        public const string ManageAssets = Default + ".ManageAssets";
         public const string ManageReminders = Default + ".ManageReminders";
     }
 

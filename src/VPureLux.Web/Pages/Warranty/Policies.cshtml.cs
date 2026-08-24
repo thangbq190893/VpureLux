@@ -37,20 +37,6 @@ public class PoliciesModel : VPureLuxPageModel
             result.Items.Select(ToRow).ToList()));
     }
 
-    public async Task<JsonResult> OnPostSaveAsync(Guid componentId, bool isEnabled, int cycleMonths, int warningDaysBeforeDue, string? note)
-    {
-        await _warrantyAppService.SetPolicyAsync(
-            componentId,
-            new VPureLux.Warranty.SetComponentReplacementPolicyDto
-            {
-                IsEnabled = isEnabled,
-                CycleMonths = cycleMonths,
-                WarningDaysBeforeDue = warningDaysBeforeDue,
-                Note = note
-            });
-        return new JsonResult(new { success = true });
-    }
-
     private WarrantyPolicyRow ToRow(VPureLux.Warranty.WarrantyPolicyListDto policy) =>
         new(
             policy.ComponentId,

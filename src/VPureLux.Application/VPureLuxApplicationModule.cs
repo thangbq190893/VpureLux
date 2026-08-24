@@ -6,6 +6,8 @@ using Volo.Abp.Mapperly;
 using Volo.Abp.FeatureManagement;
 using Volo.Abp.Modularity;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
+using VPureLux.CustomerCare;
 using Volo.Abp.AuditLogging;
 using Volo.Abp.Gdpr;
 using Volo.Abp.LanguageManagement;
@@ -39,5 +41,9 @@ namespace VPureLux;
     )]
 public class VPureLuxApplicationModule : AbpModule
 {
-
+    public override void ConfigureServices(ServiceConfigurationContext context)
+    {
+        var configuration = context.Services.GetConfiguration();
+        Configure<CustomerCareOptions>(configuration.GetSection(CustomerCareOptions.SectionName));
+    }
 }

@@ -68,6 +68,17 @@ Entities marked *(owned/value)* are configured with `builder.Ignore<>()` or as o
 - **Tests:** Domain (`Sales/SalesDomainTests`); EF Core (`Sales/SalesWorkflowTests`, `Sales/SalesRepositoryAndPermissionTests`); Web (`Pages/SalesPagesTests`, `Api/SalesApiTests`). Root: `SALES_MODULE_IMPLEMENTATION_SPECIFICATION.md`.
 - **Notes/risks:** `SalesOrder` uses `RowVersion`; confirm/cancel idempotency and BOM-must-be-published rules via `SALES_001..010`. Cost/profit are permission-gated (`ViewCost`, `ViewProfit`).
 
+## Warranty / CustomerCare
+- **Purpose:** manage replacement policies, machine eligibility, idempotent Sales intake, installation confirmation, customer machines bought inside/outside the company, actual component positions, reminder lifecycle, and per-machine maintenance history.
+- **Key entities:** `ComponentReplacementPolicy`, `ProductMachineSetting`, `CustomerAsset`, `CustomerAssetComponent`, `AssetReplacementReminder`, `AssetMaintenanceEvent`, `CustomerCareSyncFailure`.
+- **Application services:** `WarrantyAppService`, `CustomerCareSalesIntakeService`; Web periodic worker `CustomerCareSalesIntakeWorker`.
+- **Contracts:** `IWarrantyAppService` and DTOs under `Application.Contracts/Warranty`; runtime gate options under `Domain.Shared/CustomerCare`.
+- **Razor Pages:** `Pages/Warranty/{Index,Policies,Machines,PendingInstallations,Install,SyncFailures,ReminderActionModal}` and `Pages/Warranty/Assets/{Index,CreateExternal,Edit,Details}`.
+- **Permissions:** `Warranty.{View,ManagePolicies,ManageMachines,ManageSyncFailures,ManageInstallations,ManageAssets,ManageReminders}`.
+- **Tests:** Domain (`Warranty/CustomerCareDomainTests`); EF Core (`Warranty/CustomerCareSchemaTests`, `Warranty/WarrantyPermissionTests`, Sales workflow intake/installation regression); Web (`Pages/WarrantyPagesTests`).
+- **Important rules:** Sales confirmation never calls CustomerCare synchronously. Intake is disabled by default and requires both gates plus an explicit go-live instant. A reminder requires a confirmed baseline, mapped active Component, and enabled policy. Reminder cycle/warning values are snapshots. External machines may keep unmapped positions and missing baselines; no date is fabricated. All lifecycle actions append an idempotent maintenance event.
+- **Migration:** `20260824050543_AddCustomerCareFoundation` is schema-only and does not alter stable Sales/Product/Component/BOM/Inventory/Customer tables.
+
 ## Audit (business audit)
 - **Purpose:** domain-level business audit log (separate from ABP framework audit logging).
 - **Key entities:** `BusinessAuditLog`.

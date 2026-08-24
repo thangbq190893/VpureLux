@@ -1,0 +1,26 @@
+@page
+@model VPureLux.Web.Pages.Warranty.ReminderActionModalModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Modal
+@{ Layout = null; }
+
+<form method="post" asp-page="/Warranty/ReminderActionModal">
+    <input asp-for="Id" type="hidden" /><input asp-for="AssetId" type="hidden" />
+    <input asp-for="Action" type="hidden" /><input asp-for="DueDate" type="hidden" />
+    <input asp-for="Input.IdempotencyKey" type="hidden" />
+    <abp-modal>
+        <abp-modal-header title="@L[Model.TitleKey]"></abp-modal-header>
+        <abp-modal-body>
+            @if (Model.Action is "Complete" or "Reschedule")
+            {
+                <abp-input asp-for="Input.ActionDate" type="@(Model.Action == "Complete" ? "datetime-local" : "date")" label="@L[Model.Action == "Complete" ? "Warranty:CompletedAt" : "Warranty:NewDueDate"]" />
+            }
+            <abp-input asp-for="Input.Reason" label="@L["Warranty:ActionReason"]" />
+            @if (Model.Action == "Complete")
+            {
+                <div class="alert alert-info mb-0">@L["Warranty:TransitionalCompleteNote"]</div>
+            }
+        </abp-modal-body>
+        <abp-modal-footer buttons="@(AbpModalButtons.Cancel|AbpModalButtons.Save)"></abp-modal-footer>
+    </abp-modal>
+</form>

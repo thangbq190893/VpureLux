@@ -1,5 +1,13 @@
 # AGENTS.md
 
+## Mandatory VPureLux engineering skill
+
+For every task that analyzes, changes, reviews, tests, publishes, deploys, or troubleshoots VPureLux code, load and follow `$vpurelux-engineering` from `C:\Users\Admin\.codex\skills\vpurelux-engineering\SKILL.md` before editing. Run its read-only preflight and apply its architecture, data-safety, testing, UI, and deployment gates. This requirement also applies to small fixes.
+
+## Mandatory product task handoff
+
+Read `AGENT_TASKS.md` before starting product work. Claim only a `READY` task, keep at most one task `IN_PROGRESS`, and update its Active Work Record, status, verification evidence, and Handoff Log before ending the turn. Warranty/CustomerCare must pass `W-GATE` before any Service task begins.
+
 ## Cursor Cloud specific instructions
 
 VPureLux is a single **ABP Framework (v10.4.1) layered monolith ERP** built on **.NET 10** + ASP.NET Core MVC/Razor Pages (LeptonX theme). See `README.md` for the canonical solution structure, build, cert, and DbMigrator steps. The notes below only capture non-obvious, environment-specific caveats.

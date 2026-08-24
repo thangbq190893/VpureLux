@@ -1,0 +1,25 @@
+@page "{productId:guid?}"
+@model VPureLux.Web.Pages.Warranty.MachineSettingModalModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Modal
+@{
+    Layout = null;
+}
+
+<form method="post" asp-page="/Warranty/MachineSettingModal">
+    <input type="hidden" asp-for="ProductId" />
+    <input type="hidden" asp-for="ProductCode" />
+    <input type="hidden" asp-for="ProductName" />
+    <abp-modal>
+        <abp-modal-header title="@L["Warranty:ConfigureMachine"]"></abp-modal-header>
+        <abp-modal-body>
+            <div class="mb-3">
+                <label class="form-label">@L["Warranty:Product"]</label>
+                <input class="form-control" value="@Model.ProductCode - @Model.ProductName" disabled />
+            </div>
+            <abp-input asp-for="Input.IsMachine" />
+            <abp-input asp-for="Input.Note" />
+        </abp-modal-body>
+        <abp-modal-footer buttons="@(AbpModalButtons.Cancel|AbpModalButtons.Save)"></abp-modal-footer>
+    </abp-modal>
+</form>

@@ -13,6 +13,7 @@ using VPureLux.MultiTenancy;
 using VPureLux.Permissions;
 using VPureLux.Web.Menus;
 using VPureLux.Web.HealthChecks;
+using VPureLux.Warranty;
 using VPureLux.Web.ModelBinding;
 using Microsoft.OpenApi;
 using Volo.Abp;
@@ -28,6 +29,7 @@ using Volo.Abp.LeptonX.Shared;
 using Volo.Abp.Autofac;
 using Volo.Abp.Mapperly;
 using Volo.Abp.Modularity;
+using Volo.Abp.BackgroundWorkers;
 using Volo.Abp.PermissionManagement;
 using Volo.Abp.PermissionManagement.Web;
 using Volo.Abp.UI.Navigation.Urls;
@@ -55,6 +57,7 @@ using Volo.Chat;
 using Volo.Abp.OpenIddict.Pro.Web;
 using Volo.CmsKit.Pro.Admin.Web;
 using System;
+using System.Threading.Tasks;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.DataProtection;
 using StackExchange.Redis;
@@ -87,6 +90,7 @@ namespace VPureLux.Web;
     typeof(VPureLuxEntityFrameworkCoreModule),
     typeof(AbpAutofacModule),
     typeof(AbpCachingStackExchangeRedisModule),
+    typeof(AbpBackgroundWorkersModule),
     typeof(AbpDistributedLockingModule),
     typeof(AbpStudioClientAspNetCoreModule),
     typeof(AbpIdentityWebModule),
@@ -512,5 +516,12 @@ public class VPureLuxWebModule : AbpModule
         app.UseAuditing();
         app.UseAbpSerilogEnrichers();
         app.UseConfiguredEndpoints();
+    }
+
+    public override async Task OnPostApplicationInitializationAsync(ApplicationInitializationContext context)
+    {
+        await context.ServiceProvider
+            .GetRequiredService<IBackgroundWorkerManager>()
+            .AddAsync(context.ServiceProvider.GetRequiredService<CustomerCareSalesIntakeWorker>());
     }
 }

@@ -1694,10 +1694,94 @@ namespace VPureLux.Migrations
                     b.ToTable("AppSuppliers", (string)null);
                 });
 
+            modelBuilder.Entity("VPureLux.Warranty.AssetMaintenanceEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ComponentCodeSnapshot")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid?>("ComponentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ComponentNameSnapshot")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<Guid?>("CustomerAssetComponentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CustomerAssetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("EventType")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("SourceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("SourceType")
+                        .HasColumnType("tinyint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ComponentId");
+
+                    b.HasIndex("CustomerAssetComponentId")
+                        .HasDatabaseName("IX_AssetMaintenanceEvents_AssetComponentId");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("UX_AssetMaintenanceEvents_IdempotencyKey");
+
+                    b.HasIndex("CustomerAssetId", "OccurredAt")
+                        .HasDatabaseName("IX_AssetMaintenanceEvents_Asset_OccurredAt");
+
+                    b.ToTable("AppAssetMaintenanceEvents", (string)null);
+                });
+
             modelBuilder.Entity("VPureLux.Warranty.AssetReplacementReminder", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CloseReason")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
 
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("datetime2");
@@ -1738,6 +1822,9 @@ namespace VPureLux.Migrations
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("CreatorId");
 
+                    b.Property<Guid?>("CustomerAssetComponentId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("CustomerAssetId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1759,6 +1846,10 @@ namespace VPureLux.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("ExtraProperties");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
@@ -1785,14 +1876,33 @@ namespace VPureLux.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
-                    b.Property<Guid>("SalesOrderId")
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid?>("SalesOrderId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("SalesOrderLineId")
+                    b.Property<Guid?>("SalesOrderLineId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SourceReferenceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SourceReferenceType")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<byte>("Status")
                         .HasColumnType("tinyint");
+
+                    b.Property<byte?>("TriggerSource")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateTime?>("WarningDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("WarningDaysBeforeDueSnapshot")
                         .HasColumnType("int");
@@ -1802,8 +1912,18 @@ namespace VPureLux.Migrations
                     b.HasIndex("ComponentId")
                         .HasDatabaseName("IX_AssetReplacementReminders_ComponentId");
 
+                    b.HasIndex("CustomerAssetComponentId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_AssetReplacementReminders_OpenPosition")
+                        .HasFilter("[CustomerAssetComponentId] IS NOT NULL AND [Status] = 1 AND [IsDeleted] = 0");
+
                     b.HasIndex("CustomerAssetId")
                         .HasDatabaseName("IX_AssetReplacementReminders_CustomerAssetId");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("UX_AssetReplacementReminders_IdempotencyKey")
+                        .HasFilter("[IdempotencyKey] IS NOT NULL AND [IsDeleted] = 0");
 
                     b.HasIndex("SalesOrderId")
                         .HasDatabaseName("IX_AssetReplacementReminders_SalesOrderId");
@@ -1813,6 +1933,9 @@ namespace VPureLux.Migrations
 
                     b.HasIndex("Status", "DueDate")
                         .HasDatabaseName("IX_AssetReplacementReminders_Status_DueDate");
+
+                    b.HasIndex("Status", "WarningDate")
+                        .HasDatabaseName("IX_AssetReplacementReminders_Status_WarningDate");
 
                     b.ToTable("AppAssetReplacementReminders", (string)null);
                 });
@@ -1900,6 +2023,10 @@ namespace VPureLux.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
 
+                    b.Property<string>("Brand")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -1936,6 +2063,184 @@ namespace VPureLux.Migrations
                         .HasColumnType("datetime2")
                         .HasColumnName("DeletionTime");
 
+                    b.Property<string>("ExternalReference")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<string>("InstallationAddress")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<string>("InstallationIdempotencyKey")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime?>("InstalledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("InstalledByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<string>("OrderNoSnapshot")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("ProductCodeSnapshot")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid?>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ProductNameSnapshot")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid?>("SalesOrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SalesOrderLineId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("SalesOrderLineNoSnapshot")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SerialNo")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime?>("SoldDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte?>("Source")
+                        .HasColumnType("tinyint");
+
+                    b.Property<int?>("SourceUnitIndex")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateTime?>("WarrantyStartDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssetNo")
+                        .IsUnique()
+                        .HasDatabaseName("UX_CustomerAssets_AssetNo");
+
+                    b.HasIndex("CustomerId")
+                        .HasDatabaseName("IX_CustomerAssets_CustomerId");
+
+                    b.HasIndex("InstallationIdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("UX_CustomerAssets_InstallationIdempotencyKey")
+                        .HasFilter("[InstallationIdempotencyKey] IS NOT NULL AND [IsDeleted] = 0");
+
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("IX_CustomerAssets_ProductId");
+
+                    b.HasIndex("SalesOrderId")
+                        .HasDatabaseName("IX_CustomerAssets_SalesOrderId");
+
+                    b.HasIndex("SalesOrderLineId")
+                        .HasDatabaseName("IX_CustomerAssets_SalesOrderLineId");
+
+                    b.HasIndex("SerialNo")
+                        .HasDatabaseName("IX_CustomerAssets_SerialNo_Review")
+                        .HasFilter("[SerialNo] IS NOT NULL AND [IsDeleted] = 0");
+
+                    b.HasIndex("SalesOrderLineId", "SourceUnitIndex")
+                        .IsUnique()
+                        .HasDatabaseName("UX_CustomerAssets_SourceLine_UnitIndex")
+                        .HasFilter("[SalesOrderLineId] IS NOT NULL AND [SourceUnitIndex] IS NOT NULL AND [IsDeleted] = 0");
+
+                    b.ToTable("AppCustomerAssets", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CustomerAssets_SourceReferences", "[Source] IS NULL OR [Source] = 2 OR ([ProductId] IS NOT NULL AND [SalesOrderId] IS NOT NULL AND [SalesOrderLineId] IS NOT NULL AND [SourceUnitIndex] > 0)");
+                        });
+                });
+
+            modelBuilder.Entity("VPureLux.Warranty.CustomerAssetComponent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ComponentCodeSnapshot")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid?>("ComponentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ComponentNameSnapshot")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("ComponentUnitSnapshot")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<Guid>("CustomerAssetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DeletionTime");
+
                     b.Property<string>("ExtraProperties")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
@@ -1959,61 +2264,236 @@ namespace VPureLux.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("nvarchar(512)");
 
-                    b.Property<string>("OrderNoSnapshot")
+                    b.Property<string>("PositionCode")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
-                    b.Property<string>("ProductCodeSnapshot")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ProductNameSnapshot")
+                    b.Property<string>("PositionName")
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
-                    b.Property<Guid>("SalesOrderId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("SalesOrderLineId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("SalesOrderLineNoSnapshot")
+                    b.Property<int>("Quantity")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("SoldDate")
+                    b.Property<DateTime?>("ReplacementBaselineDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<byte>("Status")
                         .HasColumnType("tinyint");
 
-                    b.Property<DateTime>("WarrantyStartDate")
+                    b.HasKey("Id");
+
+                    b.HasIndex("ComponentId")
+                        .HasDatabaseName("IX_CustomerAssetComponents_ComponentId");
+
+                    b.HasIndex("CustomerAssetId", "PositionCode")
+                        .IsUnique()
+                        .HasDatabaseName("UX_CustomerAssetComponents_ActivePosition")
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.HasIndex("Status", "ReplacementBaselineDate")
+                        .HasDatabaseName("IX_CustomerAssetComponents_Status_BaselineDate");
+
+                    b.ToTable("AppCustomerAssetComponents", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CustomerAssetComponents_Quantity", "[Quantity] > 0");
+                        });
+                });
+
+            modelBuilder.Entity("VPureLux.Warranty.CustomerCareSyncFailure", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DeletionTime");
+
+                    b.Property<string>("ErrorCode")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("ErrorContext")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("ErrorMessage")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<DateTime>("FirstOccurredAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<DateTime>("LastOccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("NextRetryAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid?>("SalesOrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SalesOrderLineId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AssetNo")
+                    b.HasIndex("IdempotencyKey")
                         .IsUnique()
-                        .HasDatabaseName("UX_CustomerAssets_AssetNo");
+                        .HasDatabaseName("UX_CustomerCareSyncFailures_IdempotencyKey");
 
-                    b.HasIndex("CustomerId")
-                        .HasDatabaseName("IX_CustomerAssets_CustomerId");
-
-                    b.HasIndex("ProductId")
-                        .HasDatabaseName("IX_CustomerAssets_ProductId");
-
-                    b.HasIndex("SalesOrderId")
-                        .HasDatabaseName("IX_CustomerAssets_SalesOrderId");
+                    b.HasIndex("SalesOrderId");
 
                     b.HasIndex("SalesOrderLineId")
-                        .HasDatabaseName("IX_CustomerAssets_SalesOrderLineId");
+                        .HasDatabaseName("IX_CustomerCareSyncFailures_SalesOrderLineId");
 
-                    b.ToTable("AppCustomerAssets", (string)null);
+                    b.HasIndex("Status", "NextRetryAt")
+                        .HasDatabaseName("IX_CustomerCareSyncFailures_Status_NextRetryAt");
+
+                    b.ToTable("AppCustomerCareSyncFailures", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CustomerCareSyncFailures_AttemptCount", "[AttemptCount] > 0");
+                        });
+                });
+
+            modelBuilder.Entity("VPureLux.Warranty.ProductMachineSetting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DeletionTime");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<bool>("IsMachine")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_ProductMachineSettings_ProductId")
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("AppProductMachineSettings", (string)null);
                 });
 
             modelBuilder.Entity("Volo.Abp.AuditLogging.AuditLog", b =>
@@ -6940,6 +7420,25 @@ namespace VPureLux.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("VPureLux.Warranty.AssetMaintenanceEvent", b =>
+                {
+                    b.HasOne("VPureLux.Catalog.Component", null)
+                        .WithMany()
+                        .HasForeignKey("ComponentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("VPureLux.Warranty.CustomerAssetComponent", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerAssetComponentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("VPureLux.Warranty.CustomerAsset", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerAssetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("VPureLux.Warranty.AssetReplacementReminder", b =>
                 {
                     b.HasOne("VPureLux.Catalog.Component", null)
@@ -6947,6 +7446,11 @@ namespace VPureLux.Migrations
                         .HasForeignKey("ComponentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("VPureLux.Warranty.CustomerAssetComponent", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerAssetComponentId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("VPureLux.Warranty.CustomerAsset", null)
                         .WithMany()
@@ -6957,8 +7461,7 @@ namespace VPureLux.Migrations
                     b.HasOne("VPureLux.Sales.SalesOrder", null)
                         .WithMany()
                         .HasForeignKey("SalesOrderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("VPureLux.Warranty.ComponentReplacementPolicy", b =>
@@ -6981,12 +7484,41 @@ namespace VPureLux.Migrations
                     b.HasOne("VPureLux.Catalog.Product", null)
                         .WithMany()
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("VPureLux.Sales.SalesOrder", null)
                         .WithMany()
                         .HasForeignKey("SalesOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("VPureLux.Warranty.CustomerAssetComponent", b =>
+                {
+                    b.HasOne("VPureLux.Catalog.Component", null)
+                        .WithMany()
+                        .HasForeignKey("ComponentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("VPureLux.Warranty.CustomerAsset", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerAssetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VPureLux.Warranty.CustomerCareSyncFailure", b =>
+                {
+                    b.HasOne("VPureLux.Sales.SalesOrder", null)
+                        .WithMany()
+                        .HasForeignKey("SalesOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("VPureLux.Warranty.ProductMachineSetting", b =>
+                {
+                    b.HasOne("VPureLux.Catalog.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

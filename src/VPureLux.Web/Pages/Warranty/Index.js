@@ -10,6 +10,7 @@
     const canManageReminders = page.dataset.canManageReminders === 'true';
     const $searchText = $('#WarrantySearchText');
     const $status = $('#WarrantyStatus');
+    const $timingStatus = $('#WarrantyTimingStatus');
     const $dueFrom = $('#WarrantyDueFrom');
     const $dueTo = $('#WarrantyDueTo');
 
@@ -17,46 +18,10 @@
         return $('<div/>').text(value || '').html();
     }
 
-    function tokenHeaders() {
-        const token = $('#WarrantyTokenForm').find('input[name="__RequestVerificationToken"]').val();
-        return token ? { RequestVerificationToken: token } : {};
-    }
-
-    function postAction(handler, row, data, successMessage) {
-        return abp.ajax({
-            url: abp.appPath + 'Warranty?handler=' + handler + '&id=' + encodeURIComponent(row.id),
-            type: 'POST',
-            headers: tokenHeaders(),
-            data: data || {}
-        }).then(function () {
-            abp.notify.success(successMessage);
-            dataTable.ajax.reload(null, false);
-        });
-    }
-
-    function completeReminder(row) {
-        abp.message.confirm(l('Warranty:ConfirmComplete'), l('Confirm')).then(function (confirmed) {
-            if (confirmed) {
-                postAction('Complete', row, null, l('Warranty:ReminderCompletedSuccessfully'));
-            }
-        });
-    }
-
-    function skipReminder(row) {
-        abp.message.confirm(l('Warranty:ConfirmSkip'), l('Confirm')).then(function (confirmed) {
-            if (confirmed) {
-                postAction('Skip', row, null, l('Warranty:ReminderSkippedSuccessfully'));
-            }
-        });
-    }
-
-    function rescheduleReminder(row) {
-        const dueDate = window.prompt(l('Warranty:NewDueDate'), row.dueDateIso || '');
-        if (!dueDate) {
-            return;
-        }
-
-        postAction('Reschedule', row, { dueDate: dueDate }, l('Warranty:ReminderRescheduledSuccessfully'));
+    const actionModal = new abp.ModalManager({ viewUrl: abp.appPath + 'Warranty/ReminderActionModal' });
+    actionModal.onResult(function () { dataTable.ajax.reload(null, false); });
+    function openAction(row, action) {
+        actionModal.open({ id: row.id, assetId: row.customerAssetId, action: action, dueDate: row.dueDateIso });
     }
 
     const dataTable = $(tableSelector).DataTable(abp.libs.datatables.normalizeConfiguration({
@@ -76,6 +41,7 @@
             return {
                 searchText: $searchText.val(),
                 status: $status.val(),
+                timingStatus: $timingStatus.val(),
                 dueFrom: $dueFrom.val(),
                 dueTo: $dueTo.val()
             };
@@ -94,6 +60,7 @@
                         '<button type="button" class="btn btn-outline-success js-warranty-complete">' + encode(l('Warranty:Complete')) + '</button>' +
                         '<button type="button" class="btn btn-outline-secondary js-warranty-reschedule">' + encode(l('Warranty:Reschedule')) + '</button>' +
                         '<button type="button" class="btn btn-outline-danger js-warranty-skip">' + encode(l('Warranty:Skip')) + '</button>' +
+                        '<button type="button" class="btn btn-outline-dark js-warranty-suspend">' + encode(l('Warranty:Suspend')) + '</button>' +
                         '</div>';
                 }
             },
@@ -117,22 +84,27 @@
     $(tableSelector).on('click', '.js-warranty-complete', function () {
         const row = dataTable.row($(this).closest('tr')).data();
         if (row) {
-            completeReminder(row);
+            openAction(row, 'Complete');
         }
     });
 
     $(tableSelector).on('click', '.js-warranty-skip', function () {
         const row = dataTable.row($(this).closest('tr')).data();
         if (row) {
-            skipReminder(row);
+            openAction(row, 'Skip');
         }
     });
 
     $(tableSelector).on('click', '.js-warranty-reschedule', function () {
         const row = dataTable.row($(this).closest('tr')).data();
         if (row) {
-            rescheduleReminder(row);
+            openAction(row, 'Reschedule');
         }
+    });
+
+    $(tableSelector).on('click', '.js-warranty-suspend', function () {
+        const row = dataTable.row($(this).closest('tr')).data();
+        if (row) openAction(row, 'Suspend');
     });
 
     $('#WarrantySearchForm').on('submit', function (event) {
@@ -143,6 +115,7 @@
     $('#WarrantyClearButton').on('click', function () {
         $searchText.val('');
         $status.val('');
+        $timingStatus.val('');
         $dueFrom.val('');
         $dueTo.val('');
         dataTable.ajax.reload();

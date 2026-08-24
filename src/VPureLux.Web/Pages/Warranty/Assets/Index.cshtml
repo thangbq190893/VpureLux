@@ -1,0 +1,44 @@
+@page
+@model VPureLux.Web.Pages.Warranty.Assets.IndexModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{ ViewData["Title"] = L["Warranty:CustomerAssets"]; }
+
+@section scripts { <abp-script src="/Pages/Warranty/Assets/Index.js" /> }
+
+<div class="vpl-page vpl-inquiry-page" data-customer-assets>
+    <div class="vpl-page-header d-flex justify-content-between align-items-center mb-3">
+        <h2 class="vpl-page-title mb-0">@L["Warranty:CustomerAssets"]</h2>
+        <a class="btn btn-primary btn-sm" asp-page="/Warranty/Assets/CreateExternal">
+            <i class="fa fa-plus"></i> @L["Warranty:CreateExternalAsset"]
+        </a>
+    </div>
+    <abp-card class="vpl-inquiry-filter-card vpl-card-dense mb-3">
+        <abp-card-body>
+            <form id="CustomerAssetSearchForm" class="row g-2 mb-0">
+                <div class="col-md-7"><input id="CustomerAssetSearchText" class="form-control" placeholder="@L["Warranty:AssetSearchPlaceholder"]" /></div>
+                <div class="col-md-2">
+                    <select id="CustomerAssetSource" class="form-select">
+                        <option value="">@L["All"]</option>
+                        <option value="1">@L["Warranty:Source:SoldByCompany"]</option>
+                        <option value="2">@L["Warranty:Source:External"]</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-secondary" type="submit">@L["Search"]</button>
+                    <button class="btn btn-light" type="button" id="CustomerAssetClearButton">@L["Clear"]</button>
+                </div>
+            </form>
+        </abp-card-body>
+    </abp-card>
+    <abp-card class="vpl-inquiry-results-card vpl-card-dense">
+        <abp-card-body>
+            <abp-table id="CustomerAssetsTable" striped-rows="true" class="vpl-table-dense">
+                <thead><tr>
+                    <th></th><th>@L["Warranty:AssetNo"]</th><th>@L["Warranty:Customer"]</th>
+                    <th>@L["Warranty:Model"]</th><th>@L["Warranty:Source"]</th>
+                    <th>@L["Warranty:PositionCount"]</th><th>@L["Warranty:NextDueDate"]</th>
+                </tr></thead>
+            </abp-table>
+        </abp-card-body>
+    </abp-card>
+</div>

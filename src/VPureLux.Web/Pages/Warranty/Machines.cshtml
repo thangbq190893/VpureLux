@@ -1,0 +1,57 @@
+@page
+@model VPureLux.Web.Pages.Warranty.MachinesModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{
+    ViewData["Title"] = L["Warranty:Machines"];
+}
+
+@section scripts {
+    <abp-script src="/Pages/Warranty/Machines.js" />
+}
+
+<div class="vpl-page vpl-inquiry-page" data-warranty-machines>
+    <div class="vpl-page-header">
+        <h2 class="vpl-page-title mb-0">@L["Warranty:Machines"]</h2>
+        <div class="vpl-btn-toolbar">
+            <a class="btn btn-outline-secondary" asp-page="/Warranty/Policies">@L["Warranty:Policies"]</a>
+        </div>
+    </div>
+
+    <abp-card class="vpl-inquiry-filter-card vpl-card-dense mb-3">
+        <abp-card-body>
+            <form id="WarrantyMachineSearchForm" class="row g-2 mb-0">
+                <div class="col-md-6">
+                    <input id="WarrantyMachineSearchText" class="form-control" placeholder="@L["Warranty:MachineSearchPlaceholder"]" />
+                </div>
+                <div class="col-md-3">
+                    <select id="WarrantyMachineEnabled" class="form-select">
+                        <option value="">@L["All"]</option>
+                        <option value="true">@L["Warranty:IsMachine"]</option>
+                        <option value="false">@L["Warranty:IsNotMachine"]</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-secondary" type="submit">@L["Search"]</button>
+                    <button class="btn btn-light" type="button" id="WarrantyMachineClearButton">@L["Clear"]</button>
+                </div>
+            </form>
+        </abp-card-body>
+    </abp-card>
+
+    <abp-card class="vpl-inquiry-results-card vpl-card-dense">
+        <abp-card-body>
+            <abp-table id="WarrantyMachinesTable" striped-rows="true" class="vpl-table-dense">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>@L["Catalog:ProductCode"]</th>
+                        <th>@L["Catalog:ProductName"]</th>
+                        <th>@L["Catalog:Status"]</th>
+                        <th>@L["Warranty:IsMachine"]</th>
+                        <th>@L["Warranty:Note"]</th>
+                    </tr>
+                </thead>
+            </abp-table>
+        </abp-card-body>
+    </abp-card>
+</div>

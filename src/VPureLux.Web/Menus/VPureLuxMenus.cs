@@ -31,7 +31,11 @@ public class VPureLuxMenus
     public const string Sales = Prefix + ".Sales";
     public const string Warranty = Prefix + ".Warranty";
     public const string WarrantyReminders = Warranty + ".Reminders";
+    public const string WarrantyAssets = Warranty + ".Assets";
     public const string WarrantyPolicies = Warranty + ".Policies";
+    public const string WarrantyMachines = Warranty + ".Machines";
+    public const string WarrantyPendingInstallations = Warranty + ".PendingInstallations";
+    public const string WarrantySyncFailures = Warranty + ".SyncFailures";
     public const string Reports = Prefix + ".Reports";
     public const string ReportsSalesRevenue = Reports + ".SalesRevenue";
     public const string ReportsSalesProfit = Reports + ".SalesProfit";

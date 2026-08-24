@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Shouldly;
 using VPureLux.Bom;
 using VPureLux.Catalog.Components;
 using VPureLux.Catalog.Products;
 using VPureLux.Customers;
 using VPureLux.Customers.CustomerGroups;
+using VPureLux.CustomerCare;
 using VPureLux.Inventory;
 using VPureLux.Pricing;
 using VPureLux.Sales;
@@ -211,8 +213,13 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     [Fact]
-    public async Task Confirm_Should_Create_Warranty_Assets_And_Replacement_Reminders_From_Bom_Snapshot()
+    public async Task Confirm_Should_Not_Run_CustomerCare_Synchronously()
     {
+        var options = GetRequiredService<IOptions<CustomerCareOptions>>().Value;
+        options.IsEnabled.ShouldBeFalse();
+        options.IsSalesIntakeEnabled.ShouldBeFalse();
+        options.SalesIntakeGoLiveFrom.ShouldBeNull();
+
         var context = await CreateBaseAsync();
         var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 25_000);
         var (product, _) = await CreateProductForComponentAsync(component);
@@ -227,40 +234,288 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         var key = Guid.NewGuid().ToString("N");
         await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = key });
 
-        await WithUnitOfWorkAsync(async () =>
-        {
-            var db = await GetRequiredService<IDbContextProvider<VPureLuxDbContext>>().GetDbContextAsync();
-            var assets = await db.CustomerAssets
-                .AsNoTracking()
-                .Where(x => x.SalesOrderId == order.Id)
-                .OrderBy(x => x.AssetNo)
-                .ToListAsync();
-            var reminders = await db.AssetReplacementReminders
-                .AsNoTracking()
-                .Where(x => x.SalesOrderId == order.Id)
-                .OrderBy(x => x.DueDate)
-                .ToListAsync();
-
-            assets.Count.ShouldBe(2);
-            assets.ShouldAllBe(x => x.CustomerId == context.Customer.Id);
-            assets.ShouldAllBe(x => x.ProductId == product.Id);
-            assets.ShouldAllBe(x => x.OrderNoSnapshot == order.OrderNo);
-            reminders.Count.ShouldBe(2);
-            reminders.ShouldAllBe(x => x.ComponentId == component.Id);
-            reminders.ShouldAllBe(x => x.CycleMonthsSnapshot == 3);
-            reminders.ShouldAllBe(x => x.WarningDaysBeforeDueSnapshot == 10);
-            reminders.ShouldAllBe(x => x.Status == AssetReplacementReminderStatus.Pending);
-            reminders.ShouldAllBe(x => x.DueDate == DateTime.Now.Date.AddMonths(3));
-        });
+        var confirmed = await _sales.GetAsync(order.Id);
+        confirmed.Status.ShouldBe(SalesOrderStatus.Confirmed);
+        confirmed.TotalRevenueAmount.ShouldBe(200_000);
 
         await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = key });
 
         await WithUnitOfWorkAsync(async () =>
         {
             var db = await GetRequiredService<IDbContextProvider<VPureLuxDbContext>>().GetDbContextAsync();
-            (await db.CustomerAssets.CountAsync(x => x.SalesOrderId == order.Id)).ShouldBe(2);
-            (await db.AssetReplacementReminders.CountAsync(x => x.SalesOrderId == order.Id)).ShouldBe(2);
+            (await db.CustomerAssets.CountAsync(x => x.SalesOrderId == order.Id)).ShouldBe(0);
+            (await db.AssetReplacementReminders.CountAsync(x => x.SalesOrderId == order.Id)).ShouldBe(0);
         });
+    }
+
+    [Fact]
+    public void Sales_AppService_Should_Not_Depend_On_Warranty_Or_CustomerCare()
+    {
+        var constructor = typeof(SalesOrderAppService).GetConstructors().ShouldHaveSingleItem();
+
+        constructor.GetParameters().Any(parameter =>
+            (parameter.ParameterType.Namespace ?? string.Empty).StartsWith("VPureLux.Warranty", StringComparison.Ordinal) ||
+            (parameter.ParameterType.Namespace ?? string.Empty).StartsWith("VPureLux.CustomerCare", StringComparison.Ordinal))
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task CustomerCare_intake_should_create_pending_machine_units_idempotently_after_sales_confirmation()
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 20, 10_000);
+        var (machine, _) = await CreateProductForComponentAsync(component);
+        var (nonMachine, _) = await CreateProductForComponentAsync(component);
+        await _warranty.SetMachineSettingAsync(machine.Id, new SetProductMachineSettingDto
+        {
+            IsMachine = true,
+            Note = "Machine intake test"
+        });
+        var order = await _sales.CreateAsync(Input(context, machine.Id, 2, 100_000));
+        var nonMachineOrder = await _sales.CreateAsync(Input(context, nonMachine.Id, 1, 50_000));
+        var goLive = DateTimeOffset.UtcNow.AddMinutes(-5);
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto
+        {
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+        await _sales.ConfirmAsync(nonMachineOrder.Id, new ConfirmSalesOrderDto
+        {
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+
+        var options = GetRequiredService<IOptions<CustomerCareOptions>>().Value;
+        options.IsEnabled = true;
+        options.IsSalesIntakeEnabled = true;
+        options.SalesIntakeGoLiveFrom = goLive;
+        try
+        {
+            var intake = GetRequiredService<CustomerCareSalesIntakeService>();
+            var first = await intake.RunBatchAsync(DateTimeOffset.UtcNow);
+            var replay = await intake.RunBatchAsync(DateTimeOffset.UtcNow);
+
+            first.CreatedAssetCount.ShouldBe(2);
+            first.CandidateCount.ShouldBe(1);
+            first.FailedLineCount.ShouldBe(0);
+            replay.CreatedAssetCount.ShouldBe(0);
+
+            await WithUnitOfWorkAsync(async () =>
+            {
+                var db = await GetRequiredService<IDbContextProvider<VPureLuxDbContext>>().GetDbContextAsync();
+                var assets = await db.CustomerAssets.AsNoTracking()
+                    .Where(x => x.SalesOrderId == order.Id)
+                    .OrderBy(x => x.SourceUnitIndex)
+                    .ToListAsync();
+                assets.Count.ShouldBe(2);
+                assets.Select(x => x.SourceUnitIndex).ShouldBe(new int?[] { 1, 2 });
+                assets.ShouldAllBe(x => x.Status == CustomerAssetStatus.PendingInstallation);
+                assets.ShouldAllBe(x => x.InstalledAt == null);
+                (await db.CustomerAssetComponents.CountAsync(x => assets.Select(a => a.Id).Contains(x.CustomerAssetId)))
+                    .ShouldBe(2);
+                (await db.CustomerAssets.CountAsync(x => x.SalesOrderId == nonMachineOrder.Id)).ShouldBe(0);
+            });
+        }
+        finally
+        {
+            DisableCustomerCareIntake(options);
+        }
+    }
+
+    [Fact]
+    public async Task Installation_should_create_first_schedules_once_from_actual_positions_and_policy_snapshots()
+    {
+        var context = await CreateBaseAsync();
+        var trackedComponent = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 10_000);
+        var disabledComponent = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 20_000);
+        var machine = await _products.CreateAsync(new CreateProductDto
+        {
+            Code = Unique("MCH"),
+            Name = "Installation schedule machine"
+        });
+        var soldBom = await _boms.CreateAsync(machine.Id, new CreateBomVersionDto
+        {
+            EffectiveFrom = DateTime.Now.Date,
+            Items =
+            [
+                new CreateBomItemDto { ComponentId = trackedComponent.Id, Quantity = 2 },
+                new CreateBomItemDto { ComponentId = disabledComponent.Id, Quantity = 1 }
+            ]
+        });
+        await _boms.PublishAsync(soldBom.Id);
+        await _warranty.SetMachineSettingAsync(machine.Id, new SetProductMachineSettingDto { IsMachine = true });
+        await _warranty.SetPolicyAsync(trackedComponent.Id, new SetComponentReplacementPolicyDto
+        {
+            IsEnabled = true,
+            CycleMonths = 3,
+            WarningDaysBeforeDue = 14
+        });
+        await _warranty.SetPolicyAsync(disabledComponent.Id, new SetComponentReplacementPolicyDto
+        {
+            IsEnabled = false,
+            CycleMonths = 6,
+            WarningDaysBeforeDue = 30
+        });
+
+        var order = await _sales.CreateAsync(Input(context, machine.Id, 1, 200_000));
+        var goLive = DateTimeOffset.UtcNow.AddMinutes(-5);
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto
+        {
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+        await _boms.ArchiveAsync(soldBom.Id);
+        var currentBom = await _boms.CreateAsync(machine.Id, new CreateBomVersionDto
+        {
+            EffectiveFrom = DateTime.Now.Date.AddDays(1),
+            Items = [new CreateBomItemDto { ComponentId = trackedComponent.Id, Quantity = 5 }]
+        });
+        await _boms.PublishAsync(currentBom.Id);
+
+        var options = GetRequiredService<IOptions<CustomerCareOptions>>().Value;
+        options.IsEnabled = true;
+        options.IsSalesIntakeEnabled = true;
+        options.SalesIntakeGoLiveFrom = goLive;
+        try
+        {
+            (await GetRequiredService<CustomerCareSalesIntakeService>()
+                .RunBatchAsync(DateTimeOffset.UtcNow)).CreatedAssetCount.ShouldBe(1);
+
+            var pending = await _warranty.GetPendingInstallationListAsync(new GetPendingInstallationListInput
+            {
+                SearchText = order.OrderNo,
+                MaxResultCount = 10
+            });
+            pending.TotalCount.ShouldBe(1);
+            pending.Items.Single().PositionCount.ShouldBe(2);
+
+            var editor = await _warranty.GetInstallationEditorAsync(pending.Items.Single().Id);
+            editor.Positions.Count.ShouldBe(2);
+            editor.Positions.Single(position => position.ComponentId == trackedComponent.Id).Quantity.ShouldBe(2);
+            await WithUnitOfWorkAsync(async () =>
+            {
+                var db = await GetRequiredService<IDbContextProvider<VPureLuxDbContext>>().GetDbContextAsync();
+                (await db.AssetReplacementReminders.CountAsync(x => x.CustomerAssetId == editor.Id)).ShouldBe(0);
+            });
+
+            var installedAt = new DateTime(2026, 8, 24, 9, 30, 0, DateTimeKind.Utc);
+            var idempotencyKey = Guid.NewGuid().ToString("N");
+            var input = new ConfirmAssetInstallationDto
+            {
+                InstalledAt = installedAt,
+                SerialNo = "RH8-INSTALL-001",
+                InstallationAddress = "Test installation address",
+                IdempotencyKey = idempotencyKey,
+                Positions = editor.Positions
+            };
+            input.Positions.Single(position => position.ComponentId == disabledComponent.Id).IsIncluded = false;
+            input.Positions.Add(new AssetInstallationPositionDto
+            {
+                PositionCode = "EXTRA-01",
+                PositionName = "Vị trí thực tế chưa map",
+                Quantity = 1,
+                IsIncluded = true
+            });
+
+            await _warranty.SetMachineSettingAsync(machine.Id, new SetProductMachineSettingDto { IsMachine = false });
+            await Should.ThrowAsync<BusinessException>(() => _warranty.ConfirmInstallationAsync(editor.Id, input));
+            await _warranty.SetMachineSettingAsync(machine.Id, new SetProductMachineSettingDto { IsMachine = true });
+
+            var first = await _warranty.ConfirmInstallationAsync(editor.Id, input);
+            var replay = await _warranty.ConfirmInstallationAsync(editor.Id, input);
+
+            first.IsReplay.ShouldBeFalse();
+            first.ActivePositionCount.ShouldBe(2);
+            first.CreatedReminderCount.ShouldBe(1);
+            replay.IsReplay.ShouldBeTrue();
+            replay.CreatedReminderCount.ShouldBe(1);
+
+            await WithUnitOfWorkAsync(async () =>
+            {
+                var db = await GetRequiredService<IDbContextProvider<VPureLuxDbContext>>().GetDbContextAsync();
+                var asset = await db.CustomerAssets.AsNoTracking().SingleAsync(x => x.Id == editor.Id);
+                asset.Status.ShouldBe(CustomerAssetStatus.Active);
+                asset.InstalledAt.ShouldBe(installedAt);
+                asset.SerialNo.ShouldBe("RH8-INSTALL-001");
+
+                var reminders = await db.AssetReplacementReminders.AsNoTracking()
+                    .Where(x => x.CustomerAssetId == editor.Id)
+                    .ToListAsync();
+                reminders.ShouldHaveSingleItem();
+                reminders.Single().ComponentId.ShouldBe(trackedComponent.Id);
+                reminders.Single().QuantityPerProductSnapshot.ShouldBe(2);
+                reminders.Single().DueDate.ShouldBe(installedAt.Date.AddMonths(3));
+                reminders.Single().WarningDate.ShouldBe(installedAt.Date.AddMonths(3).AddDays(-14));
+                reminders.Single().TriggerSource.ShouldBe(ReplacementReminderTriggerSource.Installation);
+                var positions = await db.CustomerAssetComponents.AsNoTracking()
+                    .Where(x => x.CustomerAssetId == editor.Id)
+                    .ToListAsync();
+                positions.Count.ShouldBe(3);
+                positions.Single(x => x.ComponentId == disabledComponent.Id).Status
+                    .ShouldBe(CustomerAssetComponentStatus.Inactive);
+                positions.Single(x => x.PositionCode == "EXTRA-01").Status
+                    .ShouldBe(CustomerAssetComponentStatus.MissingMapping);
+                (await db.AssetMaintenanceEvents.CountAsync(x =>
+                    x.CustomerAssetId == editor.Id && x.EventType == AssetMaintenanceEventType.Installation)).ShouldBe(1);
+            });
+        }
+        finally
+        {
+            DisableCustomerCareIntake(options);
+        }
+    }
+
+    [Fact]
+    public async Task CustomerCare_intake_should_isolate_invalid_machine_quantity_and_continue_batch()
+    {
+        var context = await CreateBaseAsync();
+        var badComponent = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 10_000);
+        var goodComponent = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 10_000);
+        var (badMachine, _) = await CreateProductForComponentAsync(badComponent);
+        var (goodMachine, _) = await CreateProductForComponentAsync(goodComponent);
+        await _warranty.SetMachineSettingAsync(badMachine.Id, new SetProductMachineSettingDto { IsMachine = true });
+        await _warranty.SetMachineSettingAsync(goodMachine.Id, new SetProductMachineSettingDto { IsMachine = true });
+
+        var goLive = DateTimeOffset.UtcNow.AddMinutes(-5);
+        var badOrder = await _sales.CreateAsync(Input(context, badMachine.Id, 1.5m, 100_000));
+        var goodOrder = await _sales.CreateAsync(Input(context, goodMachine.Id, 1, 100_000));
+        await _sales.ConfirmAsync(badOrder.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        await _sales.ConfirmAsync(goodOrder.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+
+        var options = GetRequiredService<IOptions<CustomerCareOptions>>().Value;
+        options.IsEnabled = true;
+        options.IsSalesIntakeEnabled = true;
+        options.SalesIntakeGoLiveFrom = goLive;
+        try
+        {
+            var result = await GetRequiredService<CustomerCareSalesIntakeService>()
+                .RunBatchAsync(DateTimeOffset.UtcNow);
+
+            result.CreatedAssetCount.ShouldBe(1);
+            result.FailedLineCount.ShouldBe(1);
+            await WithUnitOfWorkAsync(async () =>
+            {
+                var db = await GetRequiredService<IDbContextProvider<VPureLuxDbContext>>().GetDbContextAsync();
+                (await db.CustomerAssets.CountAsync(x => x.SalesOrderId == badOrder.Id)).ShouldBe(0);
+                (await db.CustomerAssets.CountAsync(x => x.SalesOrderId == goodOrder.Id)).ShouldBe(1);
+                var failure = await db.CustomerCareSyncFailures.AsNoTracking()
+                    .SingleAsync(x => x.SalesOrderId == badOrder.Id);
+                failure.Status.ShouldBe(CustomerCareSyncFailureStatus.Pending);
+                failure.AttemptCount.ShouldBe(1);
+                failure.ErrorContext!.ShouldContain(badMachine.Code);
+            });
+
+            var listed = await _warranty.GetSyncFailureListAsync(new GetCustomerCareSyncFailureListInput
+            {
+                SearchText = badMachine.Code,
+                Status = CustomerCareSyncFailureStatus.Pending,
+                MaxResultCount = 10
+            });
+            listed.TotalCount.ShouldBe(1);
+            listed.Items.Single().OrderNo.ShouldBe(badOrder.OrderNo);
+            await _warranty.RetrySyncFailureAsync(listed.Items.Single().Id);
+        }
+        finally
+        {
+            DisableCustomerCareIntake(options);
+        }
     }
 
     [Fact]
@@ -867,4 +1122,11 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     };
 
     private static string Unique(string prefix) => prefix + Guid.NewGuid().ToString("N")[..8];
+
+    private static void DisableCustomerCareIntake(CustomerCareOptions options)
+    {
+        options.IsEnabled = false;
+        options.IsSalesIntakeEnabled = false;
+        options.SalesIntakeGoLiveFrom = null;
+    }
 }

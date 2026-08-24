@@ -112,6 +112,10 @@ public class VPureLuxPermissionDefinitionProvider : PermissionDefinitionProvider
         var warranty = myGroup.AddPermission(VPureLuxPermissions.Warranty.Default, L("Permission:Warranty"));
         warranty.AddChild(VPureLuxPermissions.Warranty.View, L("Permission:Warranty.View"));
         warranty.AddChild(VPureLuxPermissions.Warranty.ManagePolicies, L("Permission:Warranty.ManagePolicies"));
+        warranty.AddChild(VPureLuxPermissions.Warranty.ManageMachines, L("Permission:Warranty.ManageMachines"));
+        warranty.AddChild(VPureLuxPermissions.Warranty.ManageSyncFailures, L("Permission:Warranty.ManageSyncFailures"));
+        warranty.AddChild(VPureLuxPermissions.Warranty.ManageInstallations, L("Permission:Warranty.ManageInstallations"));
+        warranty.AddChild(VPureLuxPermissions.Warranty.ManageAssets, L("Permission:Warranty.ManageAssets"));
         warranty.AddChild(VPureLuxPermissions.Warranty.ManageReminders, L("Permission:Warranty.ManageReminders"));
 
         var reports = myGroup.AddPermission(VPureLuxPermissions.Reports.Default, L("Permission:Reports"));
