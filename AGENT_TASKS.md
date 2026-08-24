@@ -5,8 +5,8 @@ Every agent must read and update this file so another agent can continue without
 
 Last updated: 2026-08-24 (Asia/Saigon)
 Current product stage: Warranty/CustomerCare completion
-Current active task: W-005
-Next task: W-005
+Current active task: W-008
+Next task: W-008 test Web deployment and smoke test
 Service implementation gate: CLOSED until W-GATE is DONE
 
 ## 1. Mandatory Agent Protocol
@@ -424,11 +424,24 @@ Started at (Asia/Saigon): 2026-08-24
 Branch and starting commit: main / aec9f91
 Goal for this run: Prove the Warranty/CustomerCare wave is regression-safe, inspect migration/publish outputs, update operations/module documentation, commit/push, and deploy only to a proven isolated test database target.
 Files expected to change: regression/UAT evidence, module and operations documentation, this handoff file, and generated Release publish artifacts outside source control.
-Database/data impact: No migration expected. Test-created CustomerCare rows only in SQLite in-memory; no production connection or data backfill.
+Database/data impact: The approved test database `VPL` was backed up and migrated from 12 to 18 migrations. No business rows existed or changed. Production database `VPureLux` remains unchanged at 17 migrations.
 Verification planned: full focused Domain/EF/Web suites, Sales/BOM/Inventory/report regression, no pending EF model changes, schema-only migration SQL review, Release publish/static assets, runtime target proof, commit/push, isolated DB migration and smoke tests.
-Current blocker: Test deployment cannot start because this workstation has no usable SSH key/password for `180.93.99.150`, and no separate test database/service target has been proven. Do not use the active `VPL` database or replace `/opt/vpurelux/app`.
+Current blocker: Database rehearsal is complete against the explicitly approved test database `VPL`. Web test deployment cannot start because this workstation has no usable SSH key/password for `180.93.99.150`. Deploy to a separate test directory, environment file, systemd service, and port; do not replace `/opt/vpurelux/app` or point the test service at production database `VPureLux`.
 
 ## 8. Handoff Log
+
+### 2026-08-24 - W-008 VPL Migration Rehearsal Complete (Web Deployment Awaiting SSH)
+
+- Agent: Codex
+- Database boundary confirmed by user: `VPL` is test; `VPureLux` is production. Every mutating SQL command was connected explicitly to `VPL`; `VPureLux` received read-only verification only.
+- Pre-migration state: `VPL` had 12 migrations ending at `20260706173514_AddSalesOrderPayments`, 72 MB data + 8 MB log, and zero rows in Customers, Sales Orders/lines, Inventory transactions/lines/lots, and BOM items.
+- Backup: A `COPY_ONLY` backup with checksum was created and passed `RESTORE VERIFYONLY` at `/var/opt/mssql/data/VPL-pre-warranty-20260824-134046.bak`. SQL Express rejected the first compression attempt before creating a file; the verified retry intentionally omitted compression.
+- Migration: Applied six pending migrations through EF directly, ending at `20260824050543_AddCustomerCareFoundation`. The migrations include Sales report procedures, BOM line number, Suppliers/Inventory Lot Suppliers, Operating Cost, Warranty Replacement, and CustomerCare foundation.
+- Migration incident: EF's generated idempotent script could not parse the stored-procedure migration because `CREATE OR ALTER PROCEDURE` was wrapped inside an `IF` batch. SQL transaction/history checks proved that attempt made no changes. Running `dotnet ef database update` sent the procedure commands as valid standalone batches and completed all six migrations.
+- Post-migration reconciliation: `VPL` has 18 migrations; both Sales report procedures exist; `AppBomItems.LineNo` exists; new CustomerCare tables exist and contain zero rows. All captured core business table counts remained zero.
+- Production proof: `VPureLux` still has 17 migrations ending at `20260822181709_AddWarrantyReplacementModule`; it was not migrated or written.
+- Server/deployment changed: SQL schema on test `VPL` only. Web artifact has not been uploaded or started because no SSH password/key is available in this workspace and the old instructions require manual password entry.
+- Required next action: Obtain an explicit SSH/WinSCP credential for `root@180.93.99.150`, then create an isolated test release/service/env/port pointing only to `VPL`, deploy commit `31f0e45`, and complete health/login/icon/Sales/CustomerCare/log smoke tests. Do not start Service work or close W-GATE before user acceptance.
 
 ### 2026-08-24 - W-008 Local Regression And Publish Rehearsal (Deployment Pending)
 
