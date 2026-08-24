@@ -430,6 +430,15 @@ Current blocker: No technical blocker. The Warranty notification center is imple
 
 ## 8. Handoff Log
 
+### 2026-08-24 - Current Warranty Snapshot Released
+
+- Agent: Codex
+- Release marker: Annotated Git tag `release-2026-08-24-warranty-notifications` identifies the accepted source snapshot. It includes the deployed Warranty notification implementation and all handoff records through this entry; it does not claim that the future Service module is implemented.
+- Documentation: Added the approved business and technical Service/CustomerCare design DOCX files under `docs/service-care-design/` so a new agent can review the same design inputs referenced by `AGENTS.md` and the VPureLux engineering skill.
+- Credential hygiene: Added `.codex/` and `**/appsettings.Production.json` to `.gitignore`. The local Codex system-skill cache and machine-specific production configuration remain outside Git and outside the release.
+- Verification: All apparent BOM/Inventory modifications were timestamp-only false positives; their working-tree hashes exactly matched the index and no code delta was committed. `dotnet build VPureLux.slnx -c Release --no-restore` passed with 0 errors and four pre-existing warnings, including the known `Scriban 7.2.1` advisory in the ConsoleTestApp dependency graph.
+- Runtime boundary: This source release adds no application-code, schema, migration, or business-data change beyond the already deployed Warranty notification commit `817e6fd`. Production remains on `/opt/vpurelux/releases/web-20260824-165930`; no redeploy or DbMigrator run is required for the documentation-only snapshot commit.
+
 ### 2026-08-24 - W-008 Warranty Notifications Deployed (Operator UAT Pending)
 
 - Agent: Codex

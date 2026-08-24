@@ -56,6 +56,7 @@ TestResults/
 *.swp
 *.swo
 .history/
+.codex/
 
 # --- OS files ---
 .DS_Store
@@ -83,6 +84,7 @@ yarn-error.log*
 *.key
 *.pem
 openiddict.pfx
+**/appsettings.Production.json
 
 # --- Docker / temp files ---
 *.tmp
