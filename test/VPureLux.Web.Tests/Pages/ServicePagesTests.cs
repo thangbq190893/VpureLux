@@ -61,6 +61,8 @@ public class ServicePagesTests
         var repository = Read("src/VPureLux.EntityFrameworkCore/Reports/EfCoreBusinessRevenueReadRepository.cs");
         var salesReport = Read("src/VPureLux.EntityFrameworkCore/Reports/EfCoreSalesReportReadRepository.cs");
         script.ShouldContain("serverSide: true");
+        script.ShouldContain("const summary = () =>");
+        script.ShouldNotContain("function summary()");
         repository.ShouldContain("sales.Concat(service)");
         repository.ShouldContain("ServiceOrderStatus.Completed");
         salesReport.ShouldNotContain("ServiceOrderStatus");
