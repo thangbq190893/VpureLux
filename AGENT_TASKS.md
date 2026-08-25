@@ -4,9 +4,9 @@ This file is the single source of truth for implementation order and agent hando
 Every agent must read and update this file so another agent can continue without a chat summary.
 
 Last updated: 2026-08-25 (Asia/Saigon)
-Current product stage: Service production release complete; operator UAT open
-Current active task: None
-Next task: Operator UAT with one controlled Service order containing Material and Labor, then verify FIFO stock, payment, machine history, next reminder, and consolidated revenue
+Current product stage: Service production UAT in progress
+Current active task: S-006
+Next task: Obtain explicit production UAT master-data selection, then run one controlled Material + Labor Service order and reconcile all side effects
 Service implementation gate: OPEN; W-GATE accepted by the user
 
 ## 1. Mandatory Agent Protocol
@@ -411,24 +411,32 @@ Status: DONE
 
 ### S-006 - Service UAT, Reconciliation, And Rollout
 
-Status: DONE
+Status: IN_PROGRESS
 
 - Test external machine Core 1-3 replacement plus Labor, FIFO, missing stock rollback, concurrency, payment, reminders, and consolidated reports.
 - Publish/deploy only with explicit approval and full regression/smoke evidence.
 
 ## 7. Active Work Record
 
-Task ID: None
-Agent/task name: Unclaimed
-Started at (Asia/Saigon): 2026-08-24
-Branch and starting commit: main / be4a5ad
-Goal for this run: No active implementation task. Service source, production migration/deployment, and authenticated read-only production UAT are complete.
-Files expected to change: None until a new task is claimed.
-Database/data impact: `VPL` contains the Service rehearsal and production `VPureLux` now contains the schema-only Service migration. Core business counts reconciled unchanged and all new Service tables were empty immediately after deployment.
-Verification planned: Operator-controlled production UAT should create one real Service document and verify its full stock, payment, machine-care, reminder, and report effects.
-Current blocker: No technical blocker. The remaining UAT requires an operator-approved real business transaction and must not be fabricated by an agent.
+Task ID: S-006
+Agent/task name: Codex - production Service operator UAT
+Started at (Asia/Saigon): 2026-08-25
+Branch and starting commit: main / 457fceb
+Goal for this run: Remove the remaining Nginx/WebSocket smoke issue, then run one explicitly approved controlled Service transaction and reconcile stock, payment, machine history, reminder, and reports.
+Files expected to change: This handoff file; application code/tests only if UAT exposes a reproducible defect.
+Database/data impact: Read-only discovery until the user explicitly selects or approves the exact production UAT customer machine, Service work, material, quantities, and prices. Do not invent records under a real customer.
+Verification planned: Authenticated browser UAT, pre/post SQL snapshots for only the selected records, health/log checks, and full transaction-side-effect reconciliation.
+Current blocker: Production has 0 customer machines/positions and 0 Service works, so a full Service order cannot be created without new master data. Await explicit UAT data approval; this is a data-selection boundary, not a technical defect.
 
 ## 8. Handoff Log
+
+### 2026-08-25 - Production UAT Preparation And WebSocket Fix
+
+- Agent: Codex
+- Nginx: Diagnosed the SignalR failure as `Upgrade` being forwarded while `Connection` was fixed to `keep-alive`. Backed up `/etc/nginx/sites-available/vpurelux` to `/etc/nginx/sites-available/vpurelux.pre-websocket-20260825-134138`, changed the proxy header to `Connection "upgrade"`, added `proxy_read_timeout 300s`, passed `nginx -t`, and reloaded Nginx without stopping Web.
+- Verification: Authenticated production browser UAT reopened Service and reported no WebSocket/transport or other console error. Nginx and `vpurelux-web` remained active; final health returned 200 in 29 ms. No application release, migration, or database write was required for this operations fix.
+- Read-only UAT discovery: Production currently has 0 customer machines, 0 machine positions, 0 open replacement reminders, and 0 Service works. It has 14 machine-enabled Products and 32 enabled Component replacement policies. No Customer code/name contains TEST/UAT/DEMO. Existing machine Sales belong to real named customers and were intentionally not reused or backfilled.
+- Safety boundary: Do not fabricate an external machine, labor catalog item, or completed inventory/financial transaction under a real customer. Full production UAT must wait for the user to approve a dedicated UAT customer/machine and exact Material/Labor values, or identify a real operator-owned service case.
 
 ### 2026-08-25 - Service Production Deployment Complete
 
