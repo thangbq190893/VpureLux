@@ -3,10 +3,10 @@
 This file is the single source of truth for implementation order and agent handoff.
 Every agent must read and update this file so another agent can continue without a chat summary.
 
-Last updated: 2026-08-24 (Asia/Saigon)
-Current product stage: Service source release complete; production rollout awaiting explicit approval
+Last updated: 2026-08-25 (Asia/Saigon)
+Current product stage: Service production release complete; operator UAT open
 Current active task: None
-Next task: Deploy the committed Service release only after explicit approval, with production backup, migration reconciliation, and smoke tests
+Next task: Operator UAT with one controlled Service order containing Material and Labor, then verify FIFO stock, payment, machine history, next reminder, and consolidated revenue
 Service implementation gate: OPEN; W-GATE accepted by the user
 
 ## 1. Mandatory Agent Protocol
@@ -421,14 +421,27 @@ Status: DONE
 Task ID: None
 Agent/task name: Unclaimed
 Started at (Asia/Saigon): 2026-08-24
-Branch and starting commit: main / 55aaf24
-Goal for this run: No active implementation task. Service source, test-database migration rehearsal, and authenticated local UAT are complete.
+Branch and starting commit: main / be4a5ad
+Goal for this run: No active implementation task. Service source, production migration/deployment, and authenticated read-only production UAT are complete.
 Files expected to change: None until a new task is claimed.
-Database/data impact: `VPL` contains the Service schema rehearsal. Production database `VPureLux` has not been migrated or changed for Service.
-Verification planned: For a future production release, create and verify a backup, prove the runtime target is `VPureLux`, apply only the reviewed migration, reconcile core counts, deploy atomically, and run authenticated smoke tests.
-Current blocker: Production rollout requires a new explicit user approval; this is an authorization boundary, not a code defect.
+Database/data impact: `VPL` contains the Service rehearsal and production `VPureLux` now contains the schema-only Service migration. Core business counts reconciled unchanged and all new Service tables were empty immediately after deployment.
+Verification planned: Operator-controlled production UAT should create one real Service document and verify its full stock, payment, machine-care, reminder, and report effects.
+Current blocker: No technical blocker. The remaining UAT requires an operator-approved real business transaction and must not be fabricated by an agent.
 
 ## 8. Handoff Log
+
+### 2026-08-25 - Service Production Deployment Complete
+
+- Agent: Codex
+- Authorization/target: The user explicitly authorized production deployment and supplied the SSH credential for `root@180.93.99.150`. Runtime was proven before any write as local SQL Server `127.0.0.1,1433`, database `VPureLux`; active Web was `/opt/vpurelux/releases/web-20260824-165930`.
+- Backup: Created `/var/opt/mssql/data/VPureLux-pre-service-20260825-105316.bak` with `COPY_ONLY` and `CHECKSUM`. `RESTORE VERIFYONLY WITH CHECKSUM` reported the backup set valid. File size is 35 MiB and SHA-256 is `4b0220dfb78bbe5b92cda5478bd88af0ed9a5e90a76cfd9e4db18b12b629c5ae`.
+- Migration/reconciliation: DbMigrator applied only `20260824113235_AddServiceModule` and completed host seed successfully. Before/after core counts are identical: Customers 37, Sales Orders 31, Sales lines 171, Inventory transactions 249, Inventory transaction lines 1195, Inventory lots 303, and BOM items 701. New Service Orders/lines/works/payments are all 0. Thirteen Service/report permission grants exist. No business backfill or data correction ran.
+- Source/artifacts: Service source commit `bcc1b36` and report hotfix commit `be4a5ad` are pushed to `main`. Both Web and DbMigrator were published from detached clean worktrees with no machine-local `appsettings.Production.json`; required certificate/static libraries were included. Local/VPS SHA-256 matched before extraction.
+- Deployment: Initial schema release was `/opt/vpurelux/releases/web-20260825-110141`. Authenticated production UAT then exposed an ABP minifier scope bug in `BusinessRevenue.js` (`ReferenceError: i is not defined`). Root cause was a function declaration hoisted outside the minifier-created block. It was changed to a lexical arrow expression, covered by a Web regression assertion, committed as `be4a5ad`, and redeployed. Final active release is `/opt/vpurelux/releases/web-20260825-111401`; immediate rollback is `/opt/vpurelux/releases/web-20260825-110141`; the earlier Warranty release remains `/opt/vpurelux/releases/web-20260824-165930`.
+- Verification: Pre-deploy Service regression passed Domain 5/5, EF 61/61, and Web 4/4. The hotfix passed `node --check`, rebuilt Web tests 4/4, and Release Web build with 0 warnings/errors. Three post-release health checks returned 200 in about 40-44 ms; root, login, Service JS, report JS, and Font Awesome font returned 200. Final one-minute calm-period check found 0 ERR/FTL, 0 HTTP 500, and health 200 in 30 ms.
+- Authenticated production UAT: Service list/menu and create action render without page overflow. Service revenue loads its table and three summary values. Consolidated revenue loads its table and current values (revenue 133,448,000; paid 67,579,000; remaining 65,869,000). Customer-machine and stable Sales lists load without HTTP 500. The report `ReferenceError` is absent after hotfix.
+- Residual operations note: Browser console still reports the pre-existing SignalR WebSocket transport failure through Nginx; normal pages and reports work and SignalR can fall back, but Nginx WebSocket proxy configuration should be reviewed separately before relying on realtime Chat. It is not a Service schema/data failure.
+- Next action: An operator should create one controlled production Service order for an existing customer machine with one Material and one Labor line, then confirm/complete/pay it and verify FIFO quantity, Service ledger, maintenance history, next replacement reminder, and both Service/consolidated reports. Do not fabricate this business transaction as an automated deployment smoke test.
 
 ### 2026-08-24 - Service Module Source Complete And UAT Passed
 
