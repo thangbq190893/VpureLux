@@ -44,14 +44,35 @@ public class ServicePagesTests
     [Fact]
     public void Completion_and_payment_should_use_abp_modals()
     {
+        var detailsPage = Read("src/VPureLux.Web/Pages/Service/Details.cshtml");
         var details = Read("src/VPureLux.Web/Pages/Service/Details.js");
         var completion = Read("src/VPureLux.Web/Pages/Service/CompleteModal.cshtml.cs");
         details.ShouldContain("new abp.ModalManager");
         details.ShouldContain("CompleteServiceButton");
         details.ShouldContain("AddServicePaymentButton");
         details.ShouldContain("data-void-payment");
+        detailsPage.ShouldContain("ServiceDetailsTokenForm");
+        details.ShouldContain("__RequestVerificationToken");
+        details.ShouldContain("RequestVerificationToken");
+        details.ShouldContain("headers: tokenHeaders");
         completion.ShouldContain("IdempotencyKey");
         completion.ShouldContain("CompleteAsync");
+    }
+
+    [Fact]
+    public void Service_ajax_post_pages_should_send_antiforgery_tokens()
+    {
+        var indexPage = Read("src/VPureLux.Web/Pages/Service/Index.cshtml");
+        var indexScript = Read("src/VPureLux.Web/Pages/Service/Index.js");
+        var worksPage = Read("src/VPureLux.Web/Pages/Service/Works.cshtml");
+        var worksScript = Read("src/VPureLux.Web/Pages/Service/Works.js");
+
+        indexPage.ShouldContain("ServiceIndexTokenForm");
+        indexScript.ShouldContain("__RequestVerificationToken");
+        indexScript.ShouldContain("headers: tokenHeaders");
+        worksPage.ShouldContain("ServiceWorksTokenForm");
+        worksScript.ShouldContain("__RequestVerificationToken");
+        worksScript.ShouldContain("headers: tokenHeaders");
     }
 
     [Fact]

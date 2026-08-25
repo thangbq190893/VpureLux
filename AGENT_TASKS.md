@@ -4,9 +4,9 @@ This file is the single source of truth for implementation order and agent hando
 Every agent must read and update this file so another agent can continue without a chat summary.
 
 Last updated: 2026-08-25 (Asia/Saigon)
-Current product stage: Service production UAT in progress
+Current product stage: Service VPL UAT complete; production Web hotfix pending
 Current active task: S-006
-Next task: Obtain explicit production UAT master-data selection, then run one controlled Material + Labor Service order and reconcile all side effects
+Next task: Obtain explicit approval for a Web-only production redeploy of the antiforgery hotfix; run no DbMigrator and write no production business data
 Service implementation gate: OPEN; W-GATE accepted by the user
 
 ## 1. Mandatory Agent Protocol
@@ -419,16 +419,30 @@ Status: IN_PROGRESS
 ## 7. Active Work Record
 
 Task ID: S-006
-Agent/task name: Codex - production Service operator UAT
+Agent/task name: Codex - full Service UAT on isolated VPL data
 Started at (Asia/Saigon): 2026-08-25
-Branch and starting commit: main / 457fceb
-Goal for this run: Remove the remaining Nginx/WebSocket smoke issue, then run one explicitly approved controlled Service transaction and reconcile stock, payment, machine history, reminder, and reports.
-Files expected to change: This handoff file; application code/tests only if UAT exposes a reproducible defect.
-Database/data impact: Read-only discovery until the user explicitly selects or approves the exact production UAT customer machine, Service work, material, quantities, and prices. Do not invent records under a real customer.
-Verification planned: Authenticated browser UAT, pre/post SQL snapshots for only the selected records, health/log checks, and full transaction-side-effect reconciliation.
-Current blocker: Production has 0 customer machines/positions and 0 Service works, so a full Service order cannot be created without new master data. Await explicit UAT data approval; this is a data-selection boundary, not a technical defect.
+Branch and starting commit: main / c3df0a1
+Goal for this run: Run the complete Service workflow on test database `VPL`, including positive flow, insufficient-stock rollback, payment/revenue boundaries, reminder/notify behavior, and database reconciliation, without accessing production data.
+Files changed: Service `Details`, `Index`, and `Works` Razor/JavaScript antiforgery handling; focused Web regression tests; this handoff file.
+Database/data impact: UAT records were intentionally created only in `VPL`. Production database `VPureLux` was neither queried nor written in this run. A verified `VPL` backup exists before UAT.
+Verification completed: Authenticated browser workflow, AppService reconciliation, direct read-only SQL against explicit database `VPL`, focused Domain/EF/Web tests, and Release Web build.
+Current blocker: The antiforgery fix found during UAT is not deployed to production. A production Web-only redeploy remains pending; do not run DbMigrator or write production business data for this fix.
 
 ## 8. Handoff Log
+
+### 2026-08-25 - Full Service UAT Passed On VPL; Antiforgery Hotfix Ready
+
+- Agent/authorization: Codex. The user explicitly authorized full testing on UAT database `VPL` and prohibited all production-data access. Every mutating database operation in this run targeted only `VPL`; database `VPureLux` was not queried or changed.
+- Safety/backup: Baseline on `VPL` was Customers 0, Components 0, Warehouses 0, lots 0, customer assets 0, Service works/orders/payments 0, with latest migration `20260824113235_AddServiceModule`. Created `/var/opt/mssql/data/VPL-pre-service-uat-20260825-170432.bak` using `COPY_ONLY` + `CHECKSUM`; `RESTORE VERIFYONLY WITH CHECKSUM` passed. Size is 11 MiB and SHA-256 is `239403b0b5e9f1e7bb9e8468c275fe558190dd9c50cc3df9762a2d52e3c35ce9`.
+- UAT master data: Customer `CUS-202608250001`; replacement-tracked Component `MAT-202608250001` with cycle 3 months and warning lead 15 days; warehouse `UAT-WH-01`; stock item `ae92473d-0474-a938-3624-3a234a9250ca`; receipt lot `LOT-202608250001`, quantity 10 at cost 100,000; external machine `EXT-2F4C53A7241C` with Core 1 mapped to the Component; work `UAT-LABOR-01` at 150,000.
+- Defect/root cause/fix: The first UI Confirm action returned a generic error because Service pages posted Razor handlers through `abp.ajax` without a `RequestVerificationToken`; the server log proved antiforgery validation returned HTTP 400, not a business 500. Added hidden Razor POST token forms and explicit antiforgery headers to Service Details actions/void payment, Index cancellation, and Works activation/deactivation. Added Web regression assertions for all three pages.
+- Happy path: `SVC-202608250001` progressed Draft -> Confirmed -> InProgress -> Completed through the authenticated UI. One Material at 300,000 plus one Labor at 150,000 produced revenue 450,000, cost 100,000, profit 350,000. A 100,000 advance was recorded before completion and remained excluded from revenue; a final 350,000 receipt made paid 450,000 and remaining 0.
+- Inventory/customer care: FIFO created one posted `ServiceIssue` transaction `e9a71e5a-1b2e-ec73-8573-3a234aa02f80` with one unit allocated from `LOT-202608250001` at 100,000. Balance and lot both moved 10 -> 9 and inventory value is 900,000. Machine history contains the Service replacement event sourced from `SVC-202608250001`. One pending reminder exists with due date 2026-11-25 and warning date 2026-11-10.
+- Notify/report verification: Temporarily rescheduled the UAT reminder to due-now; notification summary became Warning 1 / Total 1. Restored the due date to 2026-11-25; final notification count returned 0 and the 15-day warning date returned to 2026-11-10. Consolidated report contains exactly one completed document with Service revenue 450,000, cost 100,000, profit 350,000, paid 450,000, remaining 0; Sales revenue remains 0.
+- Failure/rollback path: `SVC-202608250002` requested 10 units while only 9 were available. Completion returned `INV_001`; the order remained Confirmed, stock remained 9, reminder count remained 1, and report document count remained 1. The test order was then cancelled and remains as an explicit cancelled UAT record.
+- Database reconciliation: A read-only `sqlcmd` batch connected with `-d VPL` and confirmed database name `VPL`, completed/cancelled statuses 4/5, two posted payments totaling 450,000, balance 9, lot available 9, exactly one posted Service issue costing 100,000, one pending reminder, and one Service-sourced maintenance event.
+- Verification: Service Web tests 5/5, Service Domain tests 5/5, Service workflow/model EF tests 3/3, Release Web build 0 warnings/0 errors, browser Service list/details/consolidated report/machine history all rendered expected values. The only browser error retained in history is the expected SignalR disconnect during the intentional local server restart.
+- Deployment boundary: Production was not accessed or redeployed in this UAT run. The currently deployed production release predates this antiforgery fix. Next action is a Web-only production hotfix deployment after explicit approval; no migration, DbMigrator, or production business-data write is required.
 
 ### 2026-08-25 - Production UAT Preparation And WebSocket Fix
 

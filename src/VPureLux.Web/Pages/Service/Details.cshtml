@@ -6,6 +6,7 @@
 @section scripts { <abp-script src="/Pages/Service/Details.js" /> }
 
 <div class="vpl-page" data-service-details data-order-id="@Model.Order.Id">
+    <form id="ServiceDetailsTokenForm" method="post" class="d-none"></form>
     <div class="vpl-page-header">
         <div><h2 class="vpl-page-title mb-1">@Model.Order.OrderNo</h2><div class="text-muted">@Model.Order.CustomerCode - @Model.Order.CustomerName | @Model.Order.AssetNo - @Model.Order.AssetName</div></div>
         <div class="vpl-btn-toolbar">

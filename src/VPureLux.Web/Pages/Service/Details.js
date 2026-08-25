@@ -5,6 +5,8 @@
     const id = page.dataset.orderId;
     const completeModal = new abp.ModalManager({ viewUrl: abp.appPath + 'Service/CompleteModal' });
     const paymentModal = new abp.ModalManager({ viewUrl: abp.appPath + 'Service/PaymentModal' });
+    const token = $('#ServiceDetailsTokenForm').find('input[name="__RequestVerificationToken"]').val();
+    const tokenHeaders = token ? { RequestVerificationToken: token } : {};
     completeModal.onResult(() => window.location.reload()); paymentModal.onResult(() => window.location.reload());
     document.getElementById('CompleteServiceButton')?.addEventListener('click', () => completeModal.open({ id: id }));
     document.getElementById('AddServicePaymentButton')?.addEventListener('click', () => paymentModal.open({ id: id }));
@@ -13,7 +15,8 @@
             if (!ok) return;
             abp.ajax({
                 url: abp.appPath + 'Service/Details/' + encodeURIComponent(id) + '?handler=VoidPayment&paymentId=' + encodeURIComponent(button.dataset.voidPayment),
-                type: 'POST'
+                type: 'POST',
+                headers: tokenHeaders
             }).then(() => window.location.reload());
         });
     }));
@@ -21,7 +24,7 @@
         const action = button.dataset.serviceAction;
         abp.message.confirm(l('Service:' + action), l('Confirm')).then(ok => {
             if (!ok) return;
-            abp.ajax({ url: abp.appPath + 'Service/Details/' + encodeURIComponent(id) + '?handler=' + action, type: 'POST' })
+            abp.ajax({ url: abp.appPath + 'Service/Details/' + encodeURIComponent(id) + '?handler=' + action, type: 'POST', headers: tokenHeaders })
                 .then(() => window.location.reload());
         });
     }));

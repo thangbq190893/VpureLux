@@ -6,6 +6,7 @@
 @section scripts { <abp-script src="/Pages/Service/Index.js" /> }
 
 <div class="vpl-page" data-service-index data-can-cancel="@Model.CanCancel.ToString().ToLowerInvariant()">
+    <form id="ServiceIndexTokenForm" method="post" class="d-none"></form>
     <div class="vpl-page-header">
         <h2 class="vpl-page-title mb-0">@L["Service:Title"]</h2>
         <div class="vpl-btn-toolbar">

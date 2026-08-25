@@ -6,6 +6,8 @@
     const recordOf = data => data && data.record ? data.record : (data || {});
     const $search = $('#ServiceSearchText');
     const $status = $('#ServiceStatus');
+    const token = $('#ServiceIndexTokenForm').find('input[name="__RequestVerificationToken"]').val();
+    const tokenHeaders = token ? { RequestVerificationToken: token } : {};
     const table = $('#ServiceOrdersTable').DataTable(abp.libs.datatables.normalizeConfiguration({
         processing: true, serverSide: true, paging: true, searching: false, autoWidth: false, order: [],
         ajax: abp.libs.datatables.createAjax(input => abp.ajax({ url: abp.appPath + 'Service?handler=List', type: 'GET', data: input }),
@@ -17,7 +19,7 @@
                     const record = recordOf(data);
                     abp.message.confirm(l('Service:Cancel'), l('Confirm')).then(ok => {
                         if (!ok) return;
-                        abp.ajax({ url: abp.appPath + 'Service?handler=Cancel&id=' + encodeURIComponent(record.id), type: 'POST' }).then(() => table.ajax.reload(null, false));
+                        abp.ajax({ url: abp.appPath + 'Service?handler=Cancel&id=' + encodeURIComponent(record.id), type: 'POST', headers: tokenHeaders }).then(() => table.ajax.reload(null, false));
                     });
                 }}
             ] } },

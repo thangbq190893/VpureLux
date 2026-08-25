@@ -3,5 +3,5 @@
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
 @{ ViewData["Title"] = L["Service:Works"]; }
 @section scripts { <abp-script src="/Pages/Service/Works.js" /> }
-<div class="vpl-page" data-service-works><div class="vpl-page-header"><h2 class="vpl-page-title mb-0">@L["Service:Works"]</h2><div class="vpl-btn-toolbar"><button class="btn btn-primary" id="CreateServiceWork"><i class="fa fa-plus"></i> @L["Create"]</button><a class="btn btn-light" asp-page="/Service/Index"><i class="fa fa-arrow-left"></i> @L["Back"]</a></div></div>
+<div class="vpl-page" data-service-works><form id="ServiceWorksTokenForm" method="post" class="d-none"></form><div class="vpl-page-header"><h2 class="vpl-page-title mb-0">@L["Service:Works"]</h2><div class="vpl-btn-toolbar"><button class="btn btn-primary" id="CreateServiceWork"><i class="fa fa-plus"></i> @L["Create"]</button><a class="btn btn-light" asp-page="/Service/Index"><i class="fa fa-arrow-left"></i> @L["Back"]</a></div></div>
 <abp-card class="vpl-card-dense"><abp-card-body><abp-table id="ServiceWorksTable" striped-rows="true" class="vpl-table-dense"><thead><tr><th></th><th>@L["Service:WorkCode"]</th><th>@L["Service:WorkName"]</th><th class="text-end">@L["Service:DefaultPrice"]</th><th>@L["Service:Status"]</th></tr></thead></abp-table></abp-card-body></abp-card></div>
