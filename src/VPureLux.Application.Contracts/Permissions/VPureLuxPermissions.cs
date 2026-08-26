@@ -120,6 +120,10 @@ public static class VPureLuxPermissions
         public const string ViewCost = Default + ".ViewCost";
         public const string ViewProfit = Default + ".ViewProfit";
         public const string ViewCustomerHistory = Default + ".ViewCustomerHistory";
+        public const string AdjustConfirmedBeforeInstallation = Default + ".AdjustConfirmedBeforeInstallation";
+        public const string CancelConfirmedBeforeInstallation = Default + ".CancelConfirmedBeforeInstallation";
+        public const string ConfirmReturnedGoods = Default + ".ConfirmReturnedGoods";
+        public const string ManageRefunds = Default + ".ManageRefunds";
 
         public static class Payments
         {

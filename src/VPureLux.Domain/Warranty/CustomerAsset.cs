@@ -252,4 +252,21 @@ public class CustomerAsset : FullAuditedAggregateRoot<Guid>
         InstallationIdempotencyKey = idempotencyKey;
         Status = CustomerAssetStatus.Active;
     }
+
+    public void CancelBeforeInstallation(string reason)
+    {
+        if (InstalledAt.HasValue)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.SalesInstallationLocksModification);
+        }
+        if (Status == CustomerAssetStatus.Cancelled)
+        {
+            return;
+        }
+        Status = CustomerAssetStatus.Cancelled;
+        reason = Check.NotNullOrWhiteSpace(reason, nameof(reason)).Trim();
+        Note = reason.Length <= WarrantyConsts.MaxNoteLength
+            ? reason
+            : reason[..WarrantyConsts.MaxNoteLength];
+    }
 }

@@ -74,6 +74,18 @@ public static class VPureLuxDomainErrorCodes
     public const string SalesPaymentOverpaymentNotAllowed = "SALES_012";
     public const string SalesPaymentIdempotencyConflict = "SALES_013";
     public const string SalesConfirmedOrderCancelRequiresUnpaid = "SALES_014";
+    public const string SalesRevisionNotAllowed = "SALES_015";
+    public const string SalesRevisionAlreadyActive = "SALES_016";
+    public const string SalesCancellationAlreadyActive = "SALES_017";
+    public const string SalesInstallationLocksModification = "SALES_018";
+    public const string SalesRevisionReturnConfirmationRequired = "SALES_019";
+    public const string SalesRevisionIdempotencyConflict = "SALES_020";
+    public const string SalesCancellationNotPendingReturn = "SALES_021";
+    public const string SalesRefundExceedsAmountDue = "SALES_022";
+    public const string SalesReasonRequired = "SALES_023";
+    public const string SalesOrderMustContainMachine = "SALES_024";
+    public const string SalesPostConfirmationLockUnavailable = "SALES_025";
+    public const string SalesPaymentAlreadyVoided = "SALES_026";
     public const string SalesConfirmationIdempotencyConflict = DuplicateConfirmationKey;
 
     public const string AuditPayloadTooLarge = "AUDIT_001";

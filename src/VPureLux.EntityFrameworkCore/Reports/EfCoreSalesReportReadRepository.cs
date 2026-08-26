@@ -112,7 +112,7 @@ public class EfCoreSalesReportReadRepository : ISalesReportReadRepository
                     l.Quantity,
                     l.RevenueAmount AS Revenue
                 FROM AppSalesOrders o
-                INNER JOIN AppSalesOrderLines l ON l.SalesOrderId = o.Id
+                INNER JOIN AppSalesOrderLines l ON l.SalesOrderId = o.Id AND l.IsEffective = 1
                 INNER JOIN AppWarehouses w ON w.Id = o.WarehouseId
                 WHERE o.IsDeleted = 0
                   AND o.Status = @ConfirmedStatus
@@ -301,7 +301,7 @@ public class EfCoreSalesReportReadRepository : ISalesReportReadRepository
                     CASE WHEN l.RevenueAmount = 0 THEN 0 ELSE l.ProfitAmount * 100.0 / l.RevenueAmount END AS ProfitMarginPercent,
                     0 AS MissingCost
                 FROM AppSalesOrders o
-                INNER JOIN AppSalesOrderLines l ON l.SalesOrderId = o.Id
+                INNER JOIN AppSalesOrderLines l ON l.SalesOrderId = o.Id AND l.IsEffective = 1
                 WHERE o.IsDeleted = 0
                   AND o.Status = @ConfirmedStatus
                   AND o.ConfirmedAt >= @FromDate

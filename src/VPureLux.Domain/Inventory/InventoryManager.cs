@@ -118,9 +118,22 @@ public class InventoryManager : DomainService
         InventoryTransaction transaction,
         InventoryTransactionLine line)
     {
+        var lots = await _lotRepository.GetAvailableFifoLotsAsync(transaction.WarehouseId, line.StockItemId);
+        return AllocateFifo(transaction, line, lots);
+    }
+
+    public IReadOnlyList<FifoAllocation> AllocateFifo(
+        InventoryTransaction transaction,
+        InventoryTransactionLine line,
+        IReadOnlyCollection<InventoryLot> availableLots)
+    {
         var remaining = line.Quantity;
         var result = new List<FifoAllocation>();
-        var lots = await _lotRepository.GetAvailableFifoLotsAsync(transaction.WarehouseId, line.StockItemId);
+        var lots = availableLots
+            .Where(x => x.WarehouseId == transaction.WarehouseId && x.StockItemId == line.StockItemId)
+            .OrderBy(x => x.ReceivedAt)
+            .ThenBy(x => x.CreationTime)
+            .ThenBy(x => x.Id);
 
         foreach (var lot in lots)
         {

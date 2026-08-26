@@ -29,7 +29,7 @@ public class SalesApplicationMapper : ITransientDependency
         TotalCostAmount = includeCost ? order.TotalCostAmount : null,
         TotalProfitAmount = includeProfit ? order.TotalProfitAmount : null,
         PaymentSummary = ToDto(paymentSummary ?? SalesOrderPaymentSummary.From(order.TotalRevenueAmount, 0)),
-        Lines = order.Lines.Select(x => ToDto(x, includeCost, includeProfit)).ToList()
+        Lines = order.EffectiveLines.Select(x => ToDto(x, includeCost, includeProfit)).ToList()
     };
 
     public SalesOrderLineDto ToDto(SalesOrderLine line, bool includeCost, bool includeProfit) => new()
@@ -81,7 +81,8 @@ public class SalesApplicationMapper : ITransientDependency
         TotalAmount = summary.TotalAmount,
         PaidAmount = summary.PaidAmount,
         RemainingAmount = summary.RemainingAmount,
-        PaymentStatus = summary.PaymentStatus
+        PaymentStatus = summary.PaymentStatus,
+        RefundDue = summary.RefundDue
     };
 
     public SalesOrderPaymentDto ToDto(SalesOrderPayment payment) => new()

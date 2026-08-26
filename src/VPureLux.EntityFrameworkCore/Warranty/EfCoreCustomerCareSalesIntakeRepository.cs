@@ -29,7 +29,7 @@ public class EfCoreCustomerCareSalesIntakeRepository : ICustomerCareSalesIntakeR
         var db = await _dbContextProvider.GetDbContextAsync();
         var headers = await (
                 from order in db.SalesOrders.AsNoTracking()
-                from line in order.Lines
+                from line in order.Lines.Where(item => item.IsEffective)
                 join setting in db.ProductMachineSettings.AsNoTracking()
                     on line.CatalogItemId equals setting.ProductId
                 where order.Status == SalesOrderStatus.Confirmed &&
@@ -67,12 +67,12 @@ public class EfCoreCustomerCareSalesIntakeRepository : ICustomerCareSalesIntakeR
         var lineIds = headers.Select(x => x.SalesOrderLineId).ToList();
         var sourceOrders = await db.SalesOrders
             .AsNoTracking()
-            .Where(order => order.Lines.Any(line => lineIds.Contains(line.Id)))
-            .Include(order => order.Lines.Where(line => lineIds.Contains(line.Id)))
+            .Where(order => order.Lines.Any(line => line.IsEffective && lineIds.Contains(line.Id)))
+            .Include(order => order.Lines.Where(line => line.IsEffective && lineIds.Contains(line.Id)))
             .ThenInclude(line => line.BomSnapshotItems)
             .ToListAsync(cancellationToken);
         var bomItems = sourceOrders
-            .SelectMany(order => order.Lines)
+            .SelectMany(order => order.Lines.Where(line => line.IsEffective))
             .SelectMany(line => line.BomSnapshotItems.Select(item => new
             {
                 SalesOrderLineId = line.Id,

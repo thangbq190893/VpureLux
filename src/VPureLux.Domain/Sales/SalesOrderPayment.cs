@@ -1,6 +1,7 @@
 using System;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
+using VPureLux.Sales.Events;
 
 namespace VPureLux.Sales;
 
@@ -16,6 +17,9 @@ public class SalesOrderPayment : FullAuditedAggregateRoot<Guid>
     public SalesOrderPaymentStatus Status { get; private set; }
     public string? IdempotencyKey { get; private set; }
     public byte[] RowVersion { get; private set; } = Array.Empty<byte>();
+    public Guid? VoidedBy { get; private set; }
+    public DateTime? VoidedAt { get; private set; }
+    public string? VoidReason { get; private set; }
 
     protected SalesOrderPayment() { }
 
@@ -50,4 +54,17 @@ public class SalesOrderPayment : FullAuditedAggregateRoot<Guid>
     }
 
     public bool ContributesToReceivable => Status == SalesOrderPaymentStatus.Posted;
+
+    public void Void(Guid? actorId, DateTime voidedAt, string reason)
+    {
+        if (Status == SalesOrderPaymentStatus.Voided)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.SalesPaymentAlreadyVoided);
+        }
+        Status = SalesOrderPaymentStatus.Voided;
+        VoidedBy = actorId;
+        VoidedAt = voidedAt;
+        VoidReason = SalesOrderRevision.NormalizeReason(reason);
+        AddLocalEvent(new SalesOrderPaymentVoidedEvent(Id, SalesOrderId, VoidReason));
+    }
 }

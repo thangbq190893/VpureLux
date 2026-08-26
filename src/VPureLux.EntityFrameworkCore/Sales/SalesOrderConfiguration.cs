@@ -54,10 +54,14 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
             ConfigureMoney(line.Property(x => x.CostAmountSnapshot));
             ConfigureMoney(line.Property(x => x.ProfitAmount));
             line.Property(x => x.MarginPercent).HasPrecision(SalesConsts.MarginPrecision, SalesConsts.MarginScale).IsRequired();
+            line.Property(x => x.IsEffective).HasDefaultValue(true).IsRequired();
+            line.HasOne<SalesOrderRevision>().WithMany().HasForeignKey(x => x.EffectiveRevisionId).OnDelete(DeleteBehavior.Restrict);
             line.HasOne<VPureLux.Bom.BomVersion>().WithMany().HasForeignKey(x => x.BomVersionId).OnDelete(DeleteBehavior.Restrict);
             line.HasOne<VPureLux.Pricing.ProductSuggestedPriceVersion>().WithMany().HasForeignKey(x => x.SuggestedPriceVersionId).OnDelete(DeleteBehavior.Restrict);
             line.HasOne<VPureLux.Inventory.InventoryTransaction>().WithMany().HasForeignKey(x => x.InventoryTransactionId).OnDelete(DeleteBehavior.Restrict);
-            line.HasIndex("SalesOrderId", nameof(SalesOrderLine.LineNo)).IsUnique().HasDatabaseName("UX_SalesOrderLines_OrderId_LineNo");
+            line.HasIndex("SalesOrderId", nameof(SalesOrderLine.LineNo)).IsUnique()
+                .HasFilter("[IsEffective] = 1")
+                .HasDatabaseName("UX_SalesOrderLines_OrderId_LineNo");
             line.HasIndex(x => new { x.LineType, x.CatalogItemId }).HasDatabaseName("IX_SalesOrderLines_LineType_CatalogItemId");
 
             line.OwnsMany(x => x.BomSnapshotItems, item =>

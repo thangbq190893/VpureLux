@@ -25,6 +25,10 @@ public class SalesRepositoryAndPermissionTests : VPureLuxEntityFrameworkCoreTest
                      VPureLuxPermissions.Sales.View, VPureLuxPermissions.Sales.Create, VPureLuxPermissions.Sales.Edit,
                      VPureLuxPermissions.Sales.OverridePrice, VPureLuxPermissions.Sales.Confirm, VPureLuxPermissions.Sales.Cancel,
                      VPureLuxPermissions.Sales.ViewCost, VPureLuxPermissions.Sales.ViewProfit, VPureLuxPermissions.Sales.ViewCustomerHistory,
+                     VPureLuxPermissions.Sales.AdjustConfirmedBeforeInstallation,
+                     VPureLuxPermissions.Sales.CancelConfirmedBeforeInstallation,
+                     VPureLuxPermissions.Sales.ConfirmReturnedGoods,
+                     VPureLuxPermissions.Sales.ManageRefunds,
                      VPureLuxPermissions.Sales.Payments.View, VPureLuxPermissions.Sales.Payments.Manage
                  })
         {
@@ -37,6 +41,14 @@ public class SalesRepositoryAndPermissionTests : VPureLuxEntityFrameworkCoreTest
         Permission(nameof(SalesOrderAppService.ConfirmAsync)).ShouldBe(VPureLuxPermissions.Sales.Confirm);
         Permission(nameof(SalesOrderAppService.CancelAsync)).ShouldBe(VPureLuxPermissions.Sales.Cancel);
         Permission(nameof(SalesOrderAppService.AddPaymentAsync)).ShouldBe(VPureLuxPermissions.Sales.Payments.Manage);
+        Permission(typeof(SalesPostConfirmationAppService).GetMethod(nameof(SalesPostConfirmationAppService.OpenRevisionAsync))!)
+            .ShouldBe(VPureLuxPermissions.Sales.AdjustConfirmedBeforeInstallation);
+        Permission(typeof(SalesPostConfirmationAppService).GetMethod(nameof(SalesPostConfirmationAppService.CancelConfirmedAsync))!)
+            .ShouldBe(VPureLuxPermissions.Sales.CancelConfirmedBeforeInstallation);
+        Permission(typeof(SalesPostConfirmationAppService).GetMethod(nameof(SalesPostConfirmationAppService.ConfirmReturnedGoodsAsync))!)
+            .ShouldBe(VPureLuxPermissions.Sales.ConfirmReturnedGoods);
+        Permission(typeof(SalesPostConfirmationAppService).GetMethod(nameof(SalesPostConfirmationAppService.RecordCancellationRefundAsync))!)
+            .ShouldBe(VPureLuxPermissions.Sales.ManageRefunds);
     }
 
     [Fact]
@@ -74,6 +86,9 @@ public class SalesRepositoryAndPermissionTests : VPureLuxEntityFrameworkCoreTest
             payment.GetIndexes().Single(x => x.GetDatabaseName() == SalesOrderPaymentConfiguration.IdempotencyKeyUniqueIndexName)
                 .IsUnique.ShouldBeTrue();
             payment.GetForeignKeys().ShouldAllBe(x => x.DeleteBehavior == DeleteBehavior.Restrict);
+            db.Model.FindEntityType(typeof(SalesOrderRevision))!.GetTableName().ShouldBe("AppSalesOrderRevisions");
+            db.Model.FindEntityType(typeof(SalesOrderCancellation))!.GetTableName().ShouldBe("AppSalesOrderCancellations");
+            db.Model.FindEntityType(typeof(SalesOrderRefund))!.GetTableName().ShouldBe("AppSalesOrderRefunds");
             db.Model.FindEntityType(typeof(NumberSequence))!.GetTableName().ShouldBe("AppNumberSequences");
         });
     }

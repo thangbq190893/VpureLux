@@ -43,6 +43,7 @@ public class SalesOrderPaymentSummaryDto
     public decimal PaidAmount { get; set; }
     public decimal RemainingAmount { get; set; }
     public SalesOrderReceivableStatus PaymentStatus { get; set; } = SalesOrderReceivableStatus.Unpaid;
+    public decimal RefundDue { get; set; }
 }
 
 public class SalesOrderPaymentDto : EntityDto<Guid>

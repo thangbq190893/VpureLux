@@ -8,10 +8,12 @@ using Microsoft.AspNetCore.Authorization;
 using VPureLux.Catalog;
 using VPureLux.Customers;
 using VPureLux.Permissions;
+using VPureLux.Sales;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Uow;
 
 namespace VPureLux.Warranty;
 
@@ -29,6 +31,11 @@ public class WarrantyAppService : ApplicationService, IWarrantyAppService
     private readonly IRepository<AssetMaintenanceEvent, Guid> _maintenanceEvents;
     private readonly IRepository<AssetReplacementReminder, Guid> _reminders;
     private readonly IWarrantyReadRepository _readRepository;
+    private readonly ISalesOrderRepository _salesOrders;
+    private readonly ISalesOrderRevisionRepository _salesRevisions;
+    private readonly ISalesOrderCancellationRepository _salesCancellations;
+    private readonly SalesOrderOperationCoordinator _salesOrderCoordinator;
+    private readonly IUnitOfWorkManager _unitOfWorkManager;
 
     public WarrantyAppService(
         IComponentReplacementPolicyRepository policies,
@@ -41,7 +48,12 @@ public class WarrantyAppService : ApplicationService, IWarrantyAppService
         IRepository<CustomerAssetComponent, Guid> assetComponents,
         IRepository<AssetMaintenanceEvent, Guid> maintenanceEvents,
         IRepository<AssetReplacementReminder, Guid> reminders,
-        IWarrantyReadRepository readRepository)
+        IWarrantyReadRepository readRepository,
+        ISalesOrderRepository salesOrders,
+        ISalesOrderRevisionRepository salesRevisions,
+        ISalesOrderCancellationRepository salesCancellations,
+        SalesOrderOperationCoordinator salesOrderCoordinator,
+        IUnitOfWorkManager unitOfWorkManager)
     {
         _policies = policies;
         _machineSettings = machineSettings;
@@ -54,6 +66,11 @@ public class WarrantyAppService : ApplicationService, IWarrantyAppService
         _maintenanceEvents = maintenanceEvents;
         _reminders = reminders;
         _readRepository = readRepository;
+        _salesOrders = salesOrders;
+        _salesRevisions = salesRevisions;
+        _salesCancellations = salesCancellations;
+        _salesOrderCoordinator = salesOrderCoordinator;
+        _unitOfWorkManager = unitOfWorkManager;
     }
 
     public async Task<PagedResultDto<ProductMachineSettingListDto>> GetMachineSettingListAsync(
@@ -220,11 +237,41 @@ public class WarrantyAppService : ApplicationService, IWarrantyAppService
     }
 
     [Authorize(VPureLuxPermissions.Warranty.ManageInstallations)]
+    [UnitOfWork(IsDisabled = true)]
     public async Task<ConfirmAssetInstallationResultDto> ConfirmInstallationAsync(
         Guid id,
         ConfirmAssetInstallationDto input)
     {
+        Guid operationId;
+        using (var unitOfWork = _unitOfWorkManager.Begin(requiresNew: true, isTransactional: false))
+        {
+            var asset = await _assets.GetAsync(id);
+            operationId = asset.SalesOrderId ?? asset.Id;
+            await unitOfWork.CompleteAsync();
+        }
+
+        return await _salesOrderCoordinator.ExecuteAsync(operationId, () => ConfirmInstallationCoreAsync(id, input));
+    }
+
+    private async Task<ConfirmAssetInstallationResultDto> ConfirmInstallationCoreAsync(
+        Guid id,
+        ConfirmAssetInstallationDto input)
+    {
         var asset = await _assets.GetAsync(id);
+        if (asset.SalesOrderId.HasValue)
+        {
+            var order = await _salesOrders.FindAsync(asset.SalesOrderId.Value, includeDetails: false)
+                ?? throw new BusinessException(VPureLuxDomainErrorCodes.SalesOrderNotFound);
+            if (order.Status != SalesOrderStatus.Confirmed)
+            {
+                throw new BusinessException(VPureLuxDomainErrorCodes.SalesRevisionNotAllowed);
+            }
+            if (await _salesRevisions.FindActiveByOrderIdAsync(order.Id) != null ||
+                await _salesCancellations.FindByOrderIdAsync(order.Id) != null)
+            {
+                throw new BusinessException(VPureLuxDomainErrorCodes.SalesRevisionAlreadyActive);
+            }
+        }
         var existingQuery = (await _assetComponents.GetQueryableAsync())
             .Where(position => position.CustomerAssetId == id);
         var existingPositions = await AsyncExecuter.ToListAsync(existingQuery);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using VPureLux.Sales.Events;
 using Volo.Abp;
@@ -30,6 +31,8 @@ public class SalesOrder : FullAuditedAggregateRoot<Guid>
     public decimal TotalProfitAmount { get; private set; }
     public byte[] RowVersion { get; private set; } = Array.Empty<byte>();
     public IReadOnlyCollection<SalesOrderLine> Lines => _lines.AsReadOnly();
+    [NotMapped]
+    public IReadOnlyCollection<SalesOrderLine> EffectiveLines => _lines.Where(x => x.IsEffective).OrderBy(x => x.LineNo).ToList().AsReadOnly();
 
     protected SalesOrder() { }
 
@@ -171,6 +174,109 @@ public class SalesOrder : FullAuditedAggregateRoot<Guid>
         Status = SalesOrderStatus.Cancelled;
         CancelledAt = cancelledAt;
         AddLocalEvent(new SalesOrderCancelledEvent(Id, OrderNo, CustomerId));
+    }
+
+    public void CancelConfirmed(DateTime cancelledAt)
+    {
+        if (Status == SalesOrderStatus.Cancelled)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.SalesOrderAlreadyCancelled);
+        }
+        if (Status != SalesOrderStatus.Confirmed)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.ValidationFailed);
+        }
+        Status = SalesOrderStatus.Cancelled;
+        CancelledAt = cancelledAt;
+        AddLocalEvent(new SalesOrderCancelledEvent(Id, OrderNo, CustomerId));
+    }
+
+    public SalesOrderLine AddEffectiveRevisionLine(
+        Guid lineId,
+        Guid revisionId,
+        int lineNo,
+        Guid productId,
+        Guid bomVersionId,
+        decimal quantity,
+        Guid? suggestedPriceVersionId,
+        decimal? suggestedPrice,
+        decimal actualSellingPrice,
+        string? overrideReason,
+        string itemCode,
+        string itemName,
+        string unit,
+        int? bomVersionNo,
+        Guid inventoryTransactionId,
+        decimal costAmount,
+        IEnumerable<SalesOrderBomSnapshotData> bomSnapshotItems)
+    {
+        EnsureConfirmedForRevision();
+        var line = new SalesOrderLine(
+            lineId, lineNo, productId, bomVersionId, quantity,
+            suggestedPriceVersionId, suggestedPrice, actualSellingPrice, overrideReason);
+        line.ApplyRevisionSnapshot(
+            revisionId, lineNo, productId, bomVersionId, quantity,
+            suggestedPriceVersionId, suggestedPrice, actualSellingPrice, overrideReason,
+            itemCode, itemName, unit, bomVersionNo, inventoryTransactionId, costAmount, bomSnapshotItems);
+        _lines.Add(line);
+        return line;
+    }
+
+    public void ApplyEffectiveRevisionLine(
+        Guid sourceLineId,
+        Guid revisionId,
+        int lineNo,
+        Guid productId,
+        Guid bomVersionId,
+        decimal quantity,
+        Guid? suggestedPriceVersionId,
+        decimal? suggestedPrice,
+        decimal actualSellingPrice,
+        string? overrideReason,
+        string itemCode,
+        string itemName,
+        string unit,
+        int? bomVersionNo,
+        Guid inventoryTransactionId,
+        decimal costAmount,
+        IEnumerable<SalesOrderBomSnapshotData> bomSnapshotItems)
+    {
+        EnsureConfirmedForRevision();
+        var line = EffectiveLines.SingleOrDefault(x => x.Id == sourceLineId)
+            ?? throw new BusinessException(VPureLuxDomainErrorCodes.EntityNotFound);
+        line.ApplyRevisionSnapshot(
+            revisionId, lineNo, productId, bomVersionId, quantity,
+            suggestedPriceVersionId, suggestedPrice, actualSellingPrice, overrideReason,
+            itemCode, itemName, unit, bomVersionNo, inventoryTransactionId, costAmount, bomSnapshotItems);
+    }
+
+    public void RemoveEffectiveRevisionLine(Guid sourceLineId, Guid revisionId)
+    {
+        EnsureConfirmedForRevision();
+        var line = EffectiveLines.SingleOrDefault(x => x.Id == sourceLineId)
+            ?? throw new BusinessException(VPureLuxDomainErrorCodes.EntityNotFound);
+        line.Supersede(revisionId);
+    }
+
+    public void RecalculateEffectiveTotals()
+    {
+        EnsureConfirmedForRevision();
+        var effective = EffectiveLines;
+        if (effective.Count == 0)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.ValidationFailed);
+        }
+        TotalRevenueAmount = effective.Sum(x => x.RevenueAmount);
+        TotalCostAmount = effective.Sum(x => x.CostAmountSnapshot);
+        TotalProfitAmount = effective.Sum(x => x.ProfitAmount);
+    }
+
+    private void EnsureConfirmedForRevision()
+    {
+        if (Status != SalesOrderStatus.Confirmed)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.SalesRevisionNotAllowed);
+        }
     }
 
     private SalesOrderLine FindLine(Guid lineId) =>

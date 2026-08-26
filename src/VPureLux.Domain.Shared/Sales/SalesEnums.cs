@@ -34,3 +34,25 @@ public enum SalesOrderReceivableStatus : byte
     Paid = 3,
     Overpaid = 4
 }
+
+public enum SalesOrderRevisionStatus : byte
+{
+    Draft = 1,
+    Applied = 2,
+    Cancelled = 3
+}
+
+public enum SalesOrderCancellationStockStatus : byte
+{
+    NotRequired = 1,
+    PendingReturn = 2,
+    Completed = 3,
+    Exception = 4
+}
+
+public enum SalesOrderCancellationPaymentStatus : byte
+{
+    NotRequired = 1,
+    PendingRefund = 2,
+    Completed = 3
+}

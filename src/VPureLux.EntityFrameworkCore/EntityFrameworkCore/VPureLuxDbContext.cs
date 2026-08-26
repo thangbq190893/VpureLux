@@ -62,6 +62,9 @@ public class VPureLuxDbContext :
     public DbSet<InventoryBalance> InventoryBalances { get; set; }
     public DbSet<SalesOrder> SalesOrders { get; set; }
     public DbSet<SalesOrderPayment> SalesOrderPayments { get; set; }
+    public DbSet<SalesOrderRevision> SalesOrderRevisions { get; set; }
+    public DbSet<SalesOrderCancellation> SalesOrderCancellations { get; set; }
+    public DbSet<SalesOrderRefund> SalesOrderRefunds { get; set; }
     public DbSet<NumberSequence> NumberSequences { get; set; }
     public DbSet<BusinessAuditLog> BusinessAuditLogs { get; set; }
     public DbSet<Supplier> Suppliers { get; set; }
@@ -155,8 +158,13 @@ public class VPureLuxDbContext :
         builder.ApplyConfiguration(new InventoryBalanceConfiguration());
         builder.Ignore<SalesOrderLine>();
         builder.Ignore<SalesOrderBomSnapshotItem>();
+        builder.Ignore<SalesOrderRevisionLine>();
+        builder.Ignore<SalesOrderRevisionAllocation>();
         builder.ApplyConfiguration(new SalesOrderConfiguration());
         builder.ApplyConfiguration(new SalesOrderPaymentConfiguration());
+        builder.ApplyConfiguration(new SalesOrderRevisionConfiguration());
+        builder.ApplyConfiguration(new SalesOrderCancellationConfiguration());
+        builder.ApplyConfiguration(new SalesOrderRefundConfiguration());
         builder.ApplyConfiguration(new NumberSequenceConfiguration());
         builder.ApplyConfiguration(new BusinessAuditLogConfiguration());
         builder.ApplyConfiguration(new SupplierConfiguration());
@@ -182,6 +190,12 @@ public class VPureLuxDbContext :
                 .IsConcurrencyToken()
                 .ValueGeneratedNever();
             builder.Entity<SalesOrderPayment>().Property(x => x.RowVersion)
+                .IsConcurrencyToken()
+                .ValueGeneratedNever();
+            builder.Entity<SalesOrderRevision>().Property(x => x.RowVersion)
+                .IsConcurrencyToken()
+                .ValueGeneratedNever();
+            builder.Entity<SalesOrderCancellation>().Property(x => x.RowVersion)
                 .IsConcurrencyToken()
                 .ValueGeneratedNever();
             builder.Entity<ProductMachineSetting>().Property(x => x.RowVersion)

@@ -37,6 +37,8 @@ public class SalesOrderLine : Entity<Guid>
     public decimal CostAmountSnapshot { get; private set; }
     public decimal ProfitAmount { get; private set; }
     public decimal MarginPercent { get; private set; }
+    public bool IsEffective { get; private set; } = true;
+    public Guid? EffectiveRevisionId { get; private set; }
     public IReadOnlyCollection<SalesOrderBomSnapshotItem> BomSnapshotItems => _bomSnapshotItems.AsReadOnly();
     public bool IsConfirmedSnapshot => InventoryTransactionId.HasValue;
 
@@ -141,6 +143,70 @@ public class SalesOrderLine : Entity<Guid>
                     item.TotalRequiredQuantity));
             }
         }
+    }
+
+    internal void ApplyRevisionSnapshot(
+        Guid revisionId,
+        int lineNo,
+        Guid productId,
+        Guid bomVersionId,
+        decimal quantity,
+        Guid? suggestedPriceVersionId,
+        decimal? suggestedPrice,
+        decimal actualSellingPrice,
+        string? overrideReason,
+        string itemCode,
+        string itemName,
+        string unit,
+        int? bomVersionNo,
+        Guid inventoryTransactionId,
+        decimal costAmount,
+        IEnumerable<SalesOrderBomSnapshotData> bomSnapshotItems)
+    {
+        if (revisionId == Guid.Empty || lineNo <= 0 || productId == Guid.Empty || bomVersionId == Guid.Empty || inventoryTransactionId == Guid.Empty)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.ValidationFailed);
+        }
+
+        LineNo = lineNo;
+        CatalogItemId = productId;
+        BomVersionId = bomVersionId;
+        SuggestedPriceVersionId = suggestedPriceVersionId;
+        SuggestedPriceSnapshot = NormalizeOptionalMoney(suggestedPrice);
+        Quantity = NormalizeQuantity(quantity);
+        SetActualSellingPrice(actualSellingPrice, overrideReason);
+        ItemCodeSnapshot = Check.NotNullOrWhiteSpace(itemCode, nameof(itemCode), SalesConsts.MaxCodeLength);
+        ItemNameSnapshot = Check.NotNullOrWhiteSpace(itemName, nameof(itemName), SalesConsts.MaxNameLength);
+        UnitSnapshot = Check.NotNullOrWhiteSpace(unit, nameof(unit), SalesConsts.MaxUnitLength);
+        BomVersionNoSnapshot = bomVersionNo;
+        InventoryTransactionId = inventoryTransactionId;
+        CostAmountSnapshot = RoundMoney(costAmount);
+        CostPriceSnapshot = RoundMoney(CostAmountSnapshot / Quantity);
+        RevenueAmount = RoundMoney(ActualSellingPrice * Quantity);
+        ProfitAmount = RoundMoney(RevenueAmount - CostAmountSnapshot);
+        MarginPercent = RevenueAmount == 0
+            ? 0
+            : decimal.Round(ProfitAmount / RevenueAmount * 100, SalesConsts.MarginScale, MidpointRounding.AwayFromZero);
+        EffectiveRevisionId = revisionId;
+        IsEffective = true;
+
+        _bomSnapshotItems.Clear();
+        foreach (var item in bomSnapshotItems)
+        {
+            _bomSnapshotItems.Add(new SalesOrderBomSnapshotItem(
+                Guid.NewGuid(), item.ComponentId, item.ComponentCode, item.ComponentName,
+                item.Unit, item.QuantityPerProduct, item.TotalRequiredQuantity));
+        }
+    }
+
+    internal void Supersede(Guid revisionId)
+    {
+        if (revisionId == Guid.Empty || !IsEffective)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.SalesOrderCannotBeModified);
+        }
+        IsEffective = false;
+        EffectiveRevisionId = revisionId;
     }
 
     private void SetActualSellingPrice(decimal value, string? overrideReason)

@@ -256,14 +256,8 @@ public class SalesOrderAppService : ApplicationService, ISalesOrderAppService
         }
         else if (order.Status == SalesOrderStatus.Confirmed)
         {
-            var summary = await GetPaymentSummaryAsync(order);
-            if (summary.PaymentStatus != SalesOrderReceivableStatus.Unpaid || summary.PaidAmount != 0)
-            {
-                throw new BusinessException(VPureLuxDomainErrorCodes.SalesConfirmedOrderCancelRequiresUnpaid);
-            }
-
-            await RollbackConfirmedOrderInventoryAsync(order);
-            order.CancelConfirmedUnpaid(Clock.Now);
+            throw new BusinessException(VPureLuxDomainErrorCodes.SalesRevisionNotAllowed)
+                .WithData("Reason", "Use the pre-installation confirmed-order cancellation command with a required reason.");
         }
         else
         {

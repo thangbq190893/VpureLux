@@ -19,6 +19,7 @@ public class SalesOrderPaymentConfiguration : IEntityTypeConfiguration<SalesOrde
         builder.Property(x => x.Status).HasConversion<byte>().IsRequired();
         builder.Property(x => x.ReferenceNo).HasMaxLength(SalesConsts.MaxPaymentReferenceNoLength).IsRequired();
         builder.Property(x => x.Note).HasColumnType($"nvarchar({SalesConsts.MaxPaymentNoteLength})");
+        builder.Property(x => x.VoidReason).HasColumnType($"nvarchar({SalesConsts.MaxReasonLength})");
         builder.Property(x => x.IdempotencyKey).HasMaxLength(SalesConsts.MaxIdempotencyKeyLength);
         builder.Property(x => x.RowVersion).IsRowVersion();
 

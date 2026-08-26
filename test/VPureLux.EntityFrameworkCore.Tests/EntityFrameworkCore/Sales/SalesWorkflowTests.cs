@@ -25,6 +25,7 @@ namespace VPureLux.EntityFrameworkCore.Sales;
 public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
 {
     private readonly ISalesOrderAppService _sales;
+    private readonly ISalesPostConfirmationAppService _postConfirmation;
     private readonly ICustomerAppService _customers;
     private readonly ICustomerGroupAppService _groups;
     private readonly IWarehouseAppService _warehouses;
@@ -42,6 +43,7 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     public SalesWorkflowTests()
     {
         _sales = GetRequiredService<ISalesOrderAppService>();
+        _postConfirmation = GetRequiredService<ISalesPostConfirmationAppService>();
         _customers = GetRequiredService<ICustomerAppService>();
         _groups = GetRequiredService<ICustomerGroupAppService>();
         _warehouses = GetRequiredService<IWarehouseAppService>();
@@ -702,6 +704,7 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 500);
         var stockItem = await GetComponentStockItemAsync(component.Id);
         var (product, _) = await CreateProductForComponentAsync(component);
+        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
         var order = await _sales.CreateAsync(Input(context, product.Id, 2, 1_000));
         await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
         var confirmed = await _sales.GetAsync(order.Id);
@@ -710,7 +713,20 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         var issuedLot = await GetSingleLotAsync(stockItem.Id);
         issuedLot.AvailableQuantity.ShouldBe(8);
 
-        await _sales.CancelAsync(order.Id);
+        var cancellation = await _postConfirmation.CancelConfirmedAsync(order.Id, new CancelConfirmedSalesOrderDto
+        {
+            ReasonGroup = "CustomerChangedMind",
+            Reason = "Customer cancelled before installation"
+        });
+
+        cancellation.StockStatus.ShouldBe(SalesOrderCancellationStockStatus.PendingReturn);
+        (await _inventoryQuery.GetBalancesAsync(context.Warehouse.Id, stockItem.Id)).Single().QuantityOnHand.ShouldBe(8);
+        cancellation = await _postConfirmation.ConfirmReturnedGoodsAsync(cancellation.Id, new ConfirmCancellationReturnedGoodsDto
+        {
+            IsEligibleForRestock = true,
+            Reason = "Warehouse received original goods",
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
 
         var cancelled = await _sales.GetAsync(order.Id);
         cancelled.Status.ShouldBe(SalesOrderStatus.Cancelled);
@@ -724,8 +740,8 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
 
         var ledger = await _inventoryQuery.GetLedgerAsync(context.Warehouse.Id, stockItem.Id);
         ledger.Count(x => x.Type == InventoryTransactionType.SalesIssue && x.ReferenceId == line.Id).ShouldBe(1);
-        var rollback = ledger.Single(x => x.Type == InventoryTransactionType.AdjustmentIncrease && x.ReferenceId == line.Id);
-        rollback.ReferenceType.ShouldBe("SalesOrderLine");
+        var rollback = ledger.Single(x => x.Type == InventoryTransactionType.AdjustmentIncrease && x.ReferenceId == cancellation.Id);
+        rollback.ReferenceType.ShouldBe(nameof(SalesOrderCancellation));
         rollback.Lines.Single().LotNo.ShouldBe(restoredLot.LotNo);
         rollback.Lines.Single().Quantity.ShouldBe(2);
         rollback.Lines.Single().UnitCost.ShouldBe(500);
@@ -748,6 +764,7 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         await PostReceiptAsync(context.Warehouse.Id, stockItem.Id, 7, 200, secondLotNo);
         var (firstProduct, _) = await CreateProductForComponentAsync(component, 2);
         var (secondProduct, _) = await CreateProductForComponentAsync(component, 3);
+        await _warranty.SetMachineSettingAsync(firstProduct.Id, new SetProductMachineSettingDto { IsMachine = true });
         var order = await _sales.CreateAsync(Input(context, firstProduct.Id, 2, 1_000));
         await _sales.AddLineAsync(order.Id, new CreateSalesOrderLineDto
         {
@@ -769,7 +786,17 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         issuedBalance.QuantityOnHand.ShouldBe(2);
         issuedBalance.InventoryValue.ShouldBe(400);
 
-        await _sales.CancelAsync(order.Id);
+        var cancellation = await _postConfirmation.CancelConfirmedAsync(order.Id, new CancelConfirmedSalesOrderDto
+        {
+            ReasonGroup = "CustomerChangedMind",
+            Reason = "Customer cancelled before installation"
+        });
+        await _postConfirmation.ConfirmReturnedGoodsAsync(cancellation.Id, new ConfirmCancellationReturnedGoodsDto
+        {
+            IsEligibleForRestock = true,
+            Reason = "Warehouse received all goods",
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
 
         var cancelled = await _sales.GetAsync(order.Id);
         cancelled.Status.ShouldBe(SalesOrderStatus.Cancelled);
@@ -786,20 +813,22 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         ledger.Count(x => x.Type == InventoryTransactionType.SalesIssue &&
                           confirmed.Lines.Select(line => line.Id).Contains(x.ReferenceId!.Value)).ShouldBe(2);
         var rollbackTransactions = ledger
-            .Where(x => x.Type == InventoryTransactionType.AdjustmentIncrease &&
-                        confirmed.Lines.Select(line => line.Id).Contains(x.ReferenceId!.Value))
+            .Where(x => x.Type == InventoryTransactionType.AdjustmentIncrease && x.ReferenceId == cancellation.Id)
             .ToList();
-        rollbackTransactions.Count.ShouldBe(2);
+        rollbackTransactions.Count.ShouldBe(1);
         rollbackTransactions.SelectMany(x => x.Lines).Where(x => x.LotNo == firstLotNo).Sum(x => x.Quantity).ShouldBe(5);
         rollbackTransactions.SelectMany(x => x.Lines).Where(x => x.LotNo == secondLotNo).Sum(x => x.Quantity).ShouldBe(5);
         rollbackTransactions.SelectMany(x => x.Lines).Where(x => x.LotNo == firstLotNo).ShouldAllBe(x => x.UnitCost == 100);
         rollbackTransactions.SelectMany(x => x.Lines).Where(x => x.LotNo == secondLotNo).ShouldAllBe(x => x.UnitCost == 200);
 
-        (await Should.ThrowAsync<BusinessException>(() => _sales.CancelAsync(order.Id)))
-            .Code.ShouldBe(VPureLuxDomainErrorCodes.SalesOrderAlreadyCancelled);
+        (await _postConfirmation.CancelConfirmedAsync(order.Id, new CancelConfirmedSalesOrderDto
+        {
+            ReasonGroup = "Replay",
+            Reason = "Replay"
+        })).Id.ShouldBe(cancellation.Id);
         var ledgerAfterSecondCancel = await _inventoryQuery.GetLedgerAsync(context.Warehouse.Id, stockItem.Id);
         ledgerAfterSecondCancel.Count(x => x.Type == InventoryTransactionType.AdjustmentIncrease &&
-                                           confirmed.Lines.Select(line => line.Id).Contains(x.ReferenceId!.Value)).ShouldBe(2);
+                                           x.ReferenceId == cancellation.Id).ShouldBe(1);
         (await _inventoryQuery.GetBalancesAsync(context.Warehouse.Id, stockItem.Id)).Single().QuantityOnHand.ShouldBe(12);
     }
 
@@ -866,12 +895,398 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
 
         var exception = await Should.ThrowAsync<BusinessException>(() => _sales.CancelAsync(order.Id));
 
-        exception.Code.ShouldBe(VPureLuxDomainErrorCodes.SalesConfirmedOrderCancelRequiresUnpaid);
+        exception.Code.ShouldBe(VPureLuxDomainErrorCodes.SalesRevisionNotAllowed);
         (await _sales.GetAsync(order.Id)).Status.ShouldBe(SalesOrderStatus.Confirmed);
         var balance = (await _inventoryQuery.GetBalancesAsync(context.Warehouse.Id, stockItem.Id)).Single();
         balance.QuantityOnHand.ShouldBe(8);
         balance.InventoryValue.ShouldBe(4_000);
         (await GetSingleLotAsync(stockItem.Id)).AvailableQuantity.ShouldBe(8);
+    }
+
+    [Fact]
+    public async Task Price_Only_Revision_Should_Carry_Payment_And_Not_Post_Inventory()
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 500);
+        var (product, _) = await CreateProductForComponentAsync(component);
+        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
+        var order = await _sales.CreateAsync(Input(context, product.Id, 2, 1_000));
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        await InsertPaymentAsync(order.Id, context.Customer.Id, 1_500, "REV-PAY");
+        var beforeTransactionCount = await InventoryTransactionCountAsync();
+
+        var revision = await _postConfirmation.OpenRevisionAsync(order.Id, new OpenSalesOrderRevisionDto { Reason = "Correct selling price" });
+        var revisionLine = revision.Lines.Single();
+        revision = await _postConfirmation.UpdateRevisionAsync(revision.Id, new UpdateSalesOrderRevisionDto
+        {
+            CustomerId = context.Customer.Id,
+            Lines =
+            [
+                new UpdateSalesOrderRevisionLineDto
+                {
+                    RevisionLineId = revisionLine.Id,
+                    ProductId = product.Id,
+                    Quantity = 2,
+                    ActualSellingPrice = 600,
+                    OverrideReason = "Manager correction"
+                }
+            ]
+        });
+        revision = await _postConfirmation.ApplyRevisionAsync(revision.Id, new ApplySalesOrderRevisionDto
+        {
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+
+        revision.Status.ShouldBe(SalesOrderRevisionStatus.Applied);
+        revision.RefundDue.ShouldBe(300);
+        (await _sales.GetAsync(order.Id)).TotalRevenueAmount.ShouldBe(1_200);
+        (await _sales.GetPaymentSummaryAsync(order.Id)).RefundDue.ShouldBe(300);
+        (await InventoryTransactionCountAsync()).ShouldBe(beforeTransactionCount);
+    }
+
+    [Fact]
+    public async Task Revision_Eligibility_Should_Enforce_Confirmed_Machine_Active_Process_And_Customer_Invariant()
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 100);
+        var (product, _) = await CreateProductForComponentAsync(component);
+        var draft = await _sales.CreateAsync(Input(context, product.Id, 1, 1_000));
+        (await Should.ThrowAsync<BusinessException>(() => _postConfirmation.OpenRevisionAsync(
+            draft.Id, new OpenSalesOrderRevisionDto { Reason = "Draft is not eligible" })))
+            .Code.ShouldBe(VPureLuxDomainErrorCodes.SalesRevisionNotAllowed);
+
+        await _sales.ConfirmAsync(draft.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        (await Should.ThrowAsync<BusinessException>(() => _postConfirmation.OpenRevisionAsync(
+            draft.Id, new OpenSalesOrderRevisionDto { Reason = "Non-machine is not eligible" })))
+            .Code.ShouldBe(VPureLuxDomainErrorCodes.SalesOrderMustContainMachine);
+
+        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
+        await InsertPaymentAsync(draft.Id, context.Customer.Id, 100, "OPEN-WITH-PAYMENT");
+        var revision = await _postConfirmation.OpenRevisionAsync(
+            draft.Id, new OpenSalesOrderRevisionDto { Reason = "Manager correction" });
+        (await Should.ThrowAsync<BusinessException>(() => _postConfirmation.OpenRevisionAsync(
+            draft.Id, new OpenSalesOrderRevisionDto { Reason = "Duplicate active revision" })))
+            .Code.ShouldBe(VPureLuxDomainErrorCodes.SalesRevisionAlreadyActive);
+        var line = revision.Lines.Single();
+        (await Should.ThrowAsync<BusinessException>(() => _postConfirmation.UpdateRevisionAsync(
+            revision.Id,
+            new UpdateSalesOrderRevisionDto
+            {
+                CustomerId = Guid.NewGuid(),
+                Lines = [new UpdateSalesOrderRevisionLineDto { RevisionLineId = line.Id, ProductId = product.Id, Quantity = 1, ActualSellingPrice = 1_000 }]
+            }))).Code.ShouldBe(VPureLuxDomainErrorCodes.SalesRevisionNotAllowed);
+    }
+
+    [Fact]
+    public async Task Product_Replacement_Revision_Should_Reverse_Old_And_Issue_New()
+    {
+        var context = await CreateBaseAsync();
+        var oldComponent = await CreateComponentWithStockAsync(context.Warehouse.Id, 5, 100);
+        var newComponent = await CreateComponentWithStockAsync(context.Warehouse.Id, 5, 300);
+        var oldStock = await GetComponentStockItemAsync(oldComponent.Id);
+        var newStock = await GetComponentStockItemAsync(newComponent.Id);
+        var (oldProduct, _) = await CreateProductForComponentAsync(oldComponent);
+        var (newProduct, _) = await CreateProductForComponentAsync(newComponent);
+        await _warranty.SetMachineSettingAsync(oldProduct.Id, new SetProductMachineSettingDto { IsMachine = true });
+        var order = await _sales.CreateAsync(Input(context, oldProduct.Id, 1, 1_000));
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var revision = await _postConfirmation.OpenRevisionAsync(order.Id, new OpenSalesOrderRevisionDto { Reason = "Replace product" });
+        var line = revision.Lines.Single();
+        await _postConfirmation.UpdateRevisionAsync(revision.Id, new UpdateSalesOrderRevisionDto
+        {
+            CustomerId = context.Customer.Id,
+            Lines = [new UpdateSalesOrderRevisionLineDto { RevisionLineId = line.Id, ProductId = newProduct.Id, Quantity = 1, ActualSellingPrice = 1_200 }]
+        });
+        await _postConfirmation.ConfirmRevisionReturnedGoodsAsync(revision.Id, new ConfirmRevisionReturnedGoodsDto
+        {
+            RevisionLineIds = [line.Id],
+            Reason = "Old machine returned"
+        });
+        var applied = await _postConfirmation.ApplyRevisionAsync(revision.Id, new ApplySalesOrderRevisionDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+
+        applied.Lines.Single().IssueInventoryTransactionId.ShouldNotBeNull();
+        applied.Lines.Single().ReversalInventoryTransactionId.ShouldNotBeNull();
+        (await _inventoryQuery.GetBalancesAsync(context.Warehouse.Id, oldStock.Id)).Single().QuantityOnHand.ShouldBe(5);
+        (await _inventoryQuery.GetBalancesAsync(context.Warehouse.Id, newStock.Id)).Single().QuantityOnHand.ShouldBe(4);
+        var effective = (await _sales.GetAsync(order.Id)).Lines.Single();
+        effective.ProductId.ShouldBe(newProduct.Id);
+        effective.CostAmountSnapshot.ShouldBe(300);
+    }
+
+    [Fact]
+    public async Task Installed_Machine_Should_Lock_Adjust_And_Cancel_While_Cancellation_Blocks_Install()
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 100);
+        var (product, _) = await CreateProductForComponentAsync(component);
+        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
+
+        var installedOrder = await _sales.CreateAsync(Input(context, product.Id, 1, 1_000));
+        await _sales.ConfirmAsync(installedOrder.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var installedAssetId = await CreatePendingAssetAsync(await _sales.GetAsync(installedOrder.Id));
+        await WithUnitOfWorkAsync(async () =>
+        {
+            var db = await GetRequiredService<IDbContextProvider<VPureLuxDbContext>>().GetDbContextAsync();
+            var asset = await db.CustomerAssets.SingleAsync(x => x.Id == installedAssetId);
+            asset.ConfirmInstallation(DateTime.UtcNow, "Test", Guid.NewGuid(), Guid.NewGuid().ToString("N"));
+            await db.SaveChangesAsync();
+        });
+        (await Should.ThrowAsync<BusinessException>(() => _postConfirmation.OpenRevisionAsync(
+            installedOrder.Id, new OpenSalesOrderRevisionDto { Reason = "Too late" })))
+            .Code.ShouldBe(VPureLuxDomainErrorCodes.SalesInstallationLocksModification);
+        (await Should.ThrowAsync<BusinessException>(() => _postConfirmation.CancelConfirmedAsync(
+            installedOrder.Id, new CancelConfirmedSalesOrderDto { ReasonGroup = "Customer", Reason = "Too late" })))
+            .Code.ShouldBe(VPureLuxDomainErrorCodes.SalesInstallationLocksModification);
+
+        var cancelledOrder = await _sales.CreateAsync(Input(context, product.Id, 1, 1_000));
+        await _sales.ConfirmAsync(cancelledOrder.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var pendingAssetId = await CreatePendingAssetAsync(await _sales.GetAsync(cancelledOrder.Id));
+        await _postConfirmation.CancelConfirmedAsync(cancelledOrder.Id, new CancelConfirmedSalesOrderDto
+        {
+            ReasonGroup = "Customer",
+            Reason = "Cancelled before install"
+        });
+        (await Should.ThrowAsync<BusinessException>(() => _warranty.ConfirmInstallationAsync(
+            pendingAssetId,
+            new ConfirmAssetInstallationDto
+            {
+                InstalledAt = DateTime.UtcNow,
+                IdempotencyKey = Guid.NewGuid().ToString("N"),
+                Positions = [new AssetInstallationPositionDto { PositionCode = "P1", PositionName = "Position 1", Quantity = 1 }]
+            }))).Code.ShouldBe(VPureLuxDomainErrorCodes.SalesRevisionNotAllowed);
+    }
+
+    [Fact]
+    public async Task Added_And_Removed_Lines_Should_Post_Only_Their_Own_Deltas()
+    {
+        var context = await CreateBaseAsync();
+        var componentA = await CreateComponentWithStockAsync(context.Warehouse.Id, 5, 100);
+        var componentB = await CreateComponentWithStockAsync(context.Warehouse.Id, 5, 200);
+        var componentC = await CreateComponentWithStockAsync(context.Warehouse.Id, 5, 300);
+        var stockA = await GetComponentStockItemAsync(componentA.Id);
+        var stockB = await GetComponentStockItemAsync(componentB.Id);
+        var stockC = await GetComponentStockItemAsync(componentC.Id);
+        var (productA, _) = await CreateProductForComponentAsync(componentA);
+        var (productB, _) = await CreateProductForComponentAsync(componentB);
+        var (productC, _) = await CreateProductForComponentAsync(componentC);
+        await _warranty.SetMachineSettingAsync(productA.Id, new SetProductMachineSettingDto { IsMachine = true });
+        var order = await _sales.CreateAsync(Input(context, productA.Id, 1, 1_000));
+        await _sales.AddLineAsync(order.Id, new CreateSalesOrderLineDto { ProductId = productB.Id, Quantity = 1, ActualSellingPrice = 1_000 });
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var revision = await _postConfirmation.OpenRevisionAsync(order.Id, new OpenSalesOrderRevisionDto { Reason = "Remove A and add C" });
+        var lineA = revision.Lines.Single(x => x.ProductId == productA.Id);
+        var lineB = revision.Lines.Single(x => x.ProductId == productB.Id);
+        await _postConfirmation.UpdateRevisionAsync(revision.Id, new UpdateSalesOrderRevisionDto
+        {
+            CustomerId = context.Customer.Id,
+            Lines =
+            [
+                new UpdateSalesOrderRevisionLineDto { RevisionLineId = lineA.Id, IsRemoved = true, ProductId = productA.Id, Quantity = 1, ActualSellingPrice = 1_000 },
+                new UpdateSalesOrderRevisionLineDto { RevisionLineId = lineB.Id, ProductId = productB.Id, Quantity = 1, ActualSellingPrice = 1_000 },
+                new UpdateSalesOrderRevisionLineDto { ProductId = productC.Id, Quantity = 1, ActualSellingPrice = 1_000 }
+            ]
+        });
+        await _postConfirmation.ConfirmRevisionReturnedGoodsAsync(revision.Id, new ConfirmRevisionReturnedGoodsDto
+        {
+            RevisionLineIds = [lineA.Id],
+            Reason = "A returned"
+        });
+        await _postConfirmation.ApplyRevisionAsync(revision.Id, new ApplySalesOrderRevisionDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+
+        var effective = await _sales.GetAsync(order.Id);
+        effective.Lines.Select(x => x.ProductId).ShouldBe(new[] { productB.Id, productC.Id }, ignoreOrder: true);
+        (await _inventoryQuery.GetBalancesAsync(context.Warehouse.Id, stockA.Id)).Single().QuantityOnHand.ShouldBe(5);
+        (await _inventoryQuery.GetBalancesAsync(context.Warehouse.Id, stockB.Id)).Single().QuantityOnHand.ShouldBe(4);
+        (await _inventoryQuery.GetBalancesAsync(context.Warehouse.Id, stockC.Id)).Single().QuantityOnHand.ShouldBe(4);
+        (await _inventoryQuery.GetLedgerAsync(context.Warehouse.Id, stockB.Id))
+            .Count(x => x.ReferenceType == nameof(SalesOrderRevisionLine)).ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task Install_Vs_Cancel_Should_Allow_Exactly_One_Outcome()
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 5, 100);
+        var (product, _) = await CreateProductForComponentAsync(component);
+        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
+        var order = await _sales.CreateAsync(Input(context, product.Id, 1, 1_000));
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var assetId = await CreatePendingAssetAsync(await _sales.GetAsync(order.Id));
+        var install = TryActionAsync(() => _warranty.ConfirmInstallationAsync(assetId, InstallationInput()));
+        var cancel = TryActionAsync(() => _postConfirmation.CancelConfirmedAsync(order.Id, new CancelConfirmedSalesOrderDto
+        {
+            ReasonGroup = "Customer",
+            Reason = "Concurrent cancellation"
+        }));
+
+        var outcomes = await Task.WhenAll(install, cancel);
+        outcomes.Count(x => x).ShouldBe(1);
+        var finalOrder = await _sales.GetAsync(order.Id);
+        var finalAsset = await WithUnitOfWorkAsync(async () =>
+        {
+            var db = await GetRequiredService<IDbContextProvider<VPureLuxDbContext>>().GetDbContextAsync();
+            return await db.CustomerAssets.AsNoTracking().SingleAsync(x => x.Id == assetId);
+        });
+        (finalOrder.Status == SalesOrderStatus.Cancelled || finalAsset.InstalledAt.HasValue).ShouldBeTrue();
+        (finalOrder.Status == SalesOrderStatus.Cancelled && finalAsset.InstalledAt.HasValue).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Install_Vs_Open_Revision_Should_Allow_Exactly_One_Outcome()
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 5, 100);
+        var (product, _) = await CreateProductForComponentAsync(component);
+        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
+        var order = await _sales.CreateAsync(Input(context, product.Id, 1, 1_000));
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var assetId = await CreatePendingAssetAsync(await _sales.GetAsync(order.Id));
+        var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var open = Task.Run(async () =>
+        {
+            await start.Task;
+            return await TryActionAsync(() => _postConfirmation.OpenRevisionAsync(
+                order.Id, new OpenSalesOrderRevisionDto { Reason = "Concurrent adjustment" }));
+        });
+        var install = Task.Run(async () =>
+        {
+            await start.Task;
+            return await TryActionAsync(() => _warranty.ConfirmInstallationAsync(assetId, InstallationInput()));
+        });
+
+        start.SetResult();
+        var outcomes = await Task.WhenAll(open, install);
+        outcomes.Count(x => x).ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Quantity_Increase_Revision_Should_Issue_Only_Delta_And_Replay_Idempotently()
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 100);
+        var stockItem = await GetComponentStockItemAsync(component.Id);
+        var (product, _) = await CreateProductForComponentAsync(component);
+        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
+        var order = await _sales.CreateAsync(Input(context, product.Id, 2, 1_000));
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var revision = await _postConfirmation.OpenRevisionAsync(order.Id, new OpenSalesOrderRevisionDto { Reason = "Increase quantity" });
+        var line = revision.Lines.Single();
+        await _postConfirmation.UpdateRevisionAsync(revision.Id, new UpdateSalesOrderRevisionDto
+        {
+            CustomerId = context.Customer.Id,
+            Lines = [new UpdateSalesOrderRevisionLineDto { RevisionLineId = line.Id, ProductId = product.Id, Quantity = 3, ActualSellingPrice = 1_000 }]
+        });
+        var key = Guid.NewGuid().ToString("N");
+        var applied = await _postConfirmation.ApplyRevisionAsync(revision.Id, new ApplySalesOrderRevisionDto { IdempotencyKey = key });
+        var replay = await _postConfirmation.ApplyRevisionAsync(revision.Id, new ApplySalesOrderRevisionDto { IdempotencyKey = key });
+
+        replay.Id.ShouldBe(applied.Id);
+        (await _inventoryQuery.GetBalancesAsync(context.Warehouse.Id, stockItem.Id)).Single().QuantityOnHand.ShouldBe(7);
+        (await _sales.GetAsync(order.Id)).Lines.Single().CostAmountSnapshot.ShouldBe(300);
+        (await _inventoryQuery.GetLedgerAsync(context.Warehouse.Id, stockItem.Id))
+            .Count(x => x.ReferenceType == nameof(SalesOrderRevisionLine)).ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Quantity_Decrease_Revision_Should_Require_Return_And_Reverse_Original_Cost()
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 125);
+        var stockItem = await GetComponentStockItemAsync(component.Id);
+        var (product, _) = await CreateProductForComponentAsync(component);
+        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
+        var order = await _sales.CreateAsync(Input(context, product.Id, 3, 1_000));
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var revision = await _postConfirmation.OpenRevisionAsync(order.Id, new OpenSalesOrderRevisionDto { Reason = "Decrease quantity" });
+        var line = revision.Lines.Single();
+        await _postConfirmation.UpdateRevisionAsync(revision.Id, new UpdateSalesOrderRevisionDto
+        {
+            CustomerId = context.Customer.Id,
+            Lines = [new UpdateSalesOrderRevisionLineDto { RevisionLineId = line.Id, ProductId = product.Id, Quantity = 2, ActualSellingPrice = 1_000 }]
+        });
+        (await Should.ThrowAsync<BusinessException>(() => _postConfirmation.ApplyRevisionAsync(
+            revision.Id, new ApplySalesOrderRevisionDto { IdempotencyKey = Guid.NewGuid().ToString("N") })))
+            .Code.ShouldBe(VPureLuxDomainErrorCodes.SalesRevisionReturnConfirmationRequired);
+        await _postConfirmation.ConfirmRevisionReturnedGoodsAsync(revision.Id, new ConfirmRevisionReturnedGoodsDto
+        {
+            RevisionLineIds = [line.Id],
+            Reason = "Warehouse received one unit"
+        });
+        await _postConfirmation.ApplyRevisionAsync(revision.Id, new ApplySalesOrderRevisionDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+
+        (await _inventoryQuery.GetBalancesAsync(context.Warehouse.Id, stockItem.Id)).Single().QuantityOnHand.ShouldBe(8);
+        var effectiveLine = (await _sales.GetAsync(order.Id)).Lines.Single();
+        effectiveLine.Quantity.ShouldBe(2);
+        effectiveLine.CostAmountSnapshot.ShouldBe(250);
+    }
+
+    [Fact]
+    public async Task Insufficient_Delta_Stock_Should_Roll_Back_Entire_Revision()
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 2, 100);
+        var stockItem = await GetComponentStockItemAsync(component.Id);
+        var (product, _) = await CreateProductForComponentAsync(component);
+        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
+        var order = await _sales.CreateAsync(Input(context, product.Id, 1, 1_000));
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var revision = await _postConfirmation.OpenRevisionAsync(order.Id, new OpenSalesOrderRevisionDto { Reason = "Too large increase" });
+        var line = revision.Lines.Single();
+        await _postConfirmation.UpdateRevisionAsync(revision.Id, new UpdateSalesOrderRevisionDto
+        {
+            CustomerId = context.Customer.Id,
+            Lines = [new UpdateSalesOrderRevisionLineDto { RevisionLineId = line.Id, ProductId = product.Id, Quantity = 5, ActualSellingPrice = 1_000 }]
+        });
+
+        await Should.ThrowAsync<BusinessException>(() => _postConfirmation.ApplyRevisionAsync(
+            revision.Id, new ApplySalesOrderRevisionDto { IdempotencyKey = Guid.NewGuid().ToString("N") }));
+
+        (await _postConfirmation.GetRevisionAsync(revision.Id)).Status.ShouldBe(SalesOrderRevisionStatus.Draft);
+        (await _sales.GetAsync(order.Id)).Lines.Single().Quantity.ShouldBe(1);
+        (await _inventoryQuery.GetBalancesAsync(context.Warehouse.Id, stockItem.Id)).Single().QuantityOnHand.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Paid_Cancellation_Should_Be_Effective_Immediately_With_Independent_Obligations()
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 5, 100);
+        var (product, _) = await CreateProductForComponentAsync(component);
+        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
+        var order = await _sales.CreateAsync(Input(context, product.Id, 1, 1_000));
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        await InsertPaymentAsync(order.Id, context.Customer.Id, 600, "CANCEL-PAID");
+
+        var cancellation = await _postConfirmation.CancelConfirmedAsync(order.Id, new CancelConfirmedSalesOrderDto
+        {
+            ReasonGroup = "CustomerChangedMind",
+            Reason = "Cancelled before installation"
+        });
+
+        (await _sales.GetAsync(order.Id)).Status.ShouldBe(SalesOrderStatus.Cancelled);
+        cancellation.StockStatus.ShouldBe(SalesOrderCancellationStockStatus.PendingReturn);
+        cancellation.PaymentStatus.ShouldBe(SalesOrderCancellationPaymentStatus.PendingRefund);
+        cancellation.RefundDue.ShouldBe(600);
+        (await _sales.GetPaymentsAsync(order.Id)).Single().Status.ShouldBe(SalesOrderPaymentStatus.Posted);
+        await _postConfirmation.RecordCancellationRefundAsync(cancellation.Id, new RecordSalesOrderRefundDto
+        {
+            Amount = 600,
+            RefundedAt = DateTime.UtcNow,
+            PaymentMethod = SalesPaymentMethod.Cash,
+            Reason = "Refunded customer",
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+        cancellation = await _postConfirmation.GetCancellationAsync(cancellation.Id);
+        cancellation.PaymentStatus.ShouldBe(SalesOrderCancellationPaymentStatus.Completed);
+        cancellation.ClosedAt.ShouldBeNull();
+        cancellation = await _postConfirmation.ConfirmReturnedGoodsAsync(cancellation.Id, new ConfirmCancellationReturnedGoodsDto
+        {
+            IsEligibleForRestock = true,
+            Reason = "Goods received",
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+        cancellation.ClosedAt.ShouldNotBeNull();
+        (await _sales.GetPaymentsAsync(order.Id)).Single().Status.ShouldBe(SalesOrderPaymentStatus.Posted);
     }
 
     [Fact]
@@ -1093,6 +1508,62 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
                 "Test payment",
                 Guid.NewGuid().ToString("N")), autoSave: true);
         });
+    }
+
+    private async Task<int> InventoryTransactionCountAsync() =>
+        await WithUnitOfWorkAsync(async () =>
+        {
+            var db = await GetRequiredService<IDbContextProvider<VPureLuxDbContext>>().GetDbContextAsync();
+            return await db.InventoryTransactions.CountAsync();
+        });
+
+    private async Task<Guid> CreatePendingAssetAsync(SalesOrderDto order)
+    {
+        var line = order.Lines.Single();
+        var asset = CustomerAsset.CreateSoldMachine(
+            Guid.NewGuid(), order.CustomerId, line.ProductId, order.Id, line.Id, line.LineNo, 1,
+            Unique("ASSET"), order.OrderNo, order.CustomerCodeSnapshot, order.CustomerNameSnapshot,
+            line.ItemCodeSnapshot, line.ItemNameSnapshot, order.ConfirmedAt ?? order.OrderDate);
+        await WithUnitOfWorkAsync(async () =>
+        {
+            var db = await GetRequiredService<IDbContextProvider<VPureLuxDbContext>>().GetDbContextAsync();
+            db.CustomerAssets.Add(asset);
+            await db.SaveChangesAsync();
+        });
+        return asset.Id;
+    }
+
+    private static ConfirmAssetInstallationDto InstallationInput() => new()
+    {
+        InstalledAt = DateTime.UtcNow,
+        IdempotencyKey = Guid.NewGuid().ToString("N"),
+        Positions = [new AssetInstallationPositionDto { PositionCode = "P1", PositionName = "Position 1", Quantity = 1 }]
+    };
+
+    private static async Task<bool> TryActionAsync(Func<Task> action)
+    {
+        try
+        {
+            await action();
+            return true;
+        }
+        catch (BusinessException)
+        {
+            return false;
+        }
+    }
+
+    private static async Task<bool> TryActionAsync<T>(Func<Task<T>> action)
+    {
+        try
+        {
+            await action();
+            return true;
+        }
+        catch (BusinessException)
+        {
+            return false;
+        }
     }
 
     private async Task<(ProductDto Product, BomVersionDto Bom)> CreateProductForComponentAsync(

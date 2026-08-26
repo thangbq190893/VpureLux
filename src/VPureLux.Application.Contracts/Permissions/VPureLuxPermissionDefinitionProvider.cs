@@ -105,6 +105,10 @@ public class VPureLuxPermissionDefinitionProvider : PermissionDefinitionProvider
         sales.AddChild(VPureLuxPermissions.Sales.ViewCost, L("Permission:Sales.ViewCost"));
         sales.AddChild(VPureLuxPermissions.Sales.ViewProfit, L("Permission:Sales.ViewProfit"));
         sales.AddChild(VPureLuxPermissions.Sales.ViewCustomerHistory, L("Permission:Sales.ViewCustomerHistory"));
+        sales.AddChild(VPureLuxPermissions.Sales.AdjustConfirmedBeforeInstallation, L("Permission:Sales.AdjustConfirmedBeforeInstallation"));
+        sales.AddChild(VPureLuxPermissions.Sales.CancelConfirmedBeforeInstallation, L("Permission:Sales.CancelConfirmedBeforeInstallation"));
+        sales.AddChild(VPureLuxPermissions.Sales.ConfirmReturnedGoods, L("Permission:Sales.ConfirmReturnedGoods"));
+        sales.AddChild(VPureLuxPermissions.Sales.ManageRefunds, L("Permission:Sales.ManageRefunds"));
         var salesPayments = sales.AddChild(VPureLuxPermissions.Sales.Payments.Default, L("Permission:Sales.Payments"));
         salesPayments.AddChild(VPureLuxPermissions.Sales.Payments.View, L("Permission:Sales.Payments.View"));
         salesPayments.AddChild(VPureLuxPermissions.Sales.Payments.Manage, L("Permission:Sales.Payments.Manage"));

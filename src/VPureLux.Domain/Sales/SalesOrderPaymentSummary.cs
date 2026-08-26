@@ -1,3 +1,5 @@
+using System;
+
 namespace VPureLux.Sales;
 
 public sealed record SalesOrderPaymentSummary(
@@ -6,6 +8,8 @@ public sealed record SalesOrderPaymentSummary(
     decimal RemainingAmount,
     SalesOrderReceivableStatus PaymentStatus)
 {
+    public decimal RefundDue => Math.Max(PaidAmount - TotalAmount, 0);
+
     public static SalesOrderPaymentSummary From(decimal totalAmount, decimal paidAmount)
     {
         var remaining = totalAmount - paidAmount;

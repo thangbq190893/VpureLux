@@ -14,6 +14,7 @@ public static class SalesConsts
     public const int MaxIdempotencyKeyLength = 100;
     public const int MaxPaymentReferenceNoLength = 100;
     public const int MaxPaymentNoteLength = 500;
+    public const int MaxReasonLength = 1000;
     public const int QuantityPrecision = 18;
     public const int QuantityScale = 4;
     public const int MoneyPrecision = 18;

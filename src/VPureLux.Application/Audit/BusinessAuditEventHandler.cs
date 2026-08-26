@@ -31,6 +31,9 @@ public class BusinessAuditEventHandler :
     ILocalEventHandler<InventoryReceiptPostedEvent>, ILocalEventHandler<InventoryIssuePostedEvent>,
     ILocalEventHandler<InventoryAdjustedEvent>, ILocalEventHandler<SalesOrderCreatedEvent>,
     ILocalEventHandler<SalesOrderConfirmedEvent>, ILocalEventHandler<SalesOrderCancelledEvent>,
+    ILocalEventHandler<SalesOrderRevisionOpenedEvent>, ILocalEventHandler<SalesOrderRevisionAppliedEvent>,
+    ILocalEventHandler<SalesOrderRevisionCancelledEvent>, ILocalEventHandler<SalesOrderCancellationApprovedEvent>,
+    ILocalEventHandler<SalesOrderRefundRecordedEvent>, ILocalEventHandler<SalesOrderPaymentVoidedEvent>,
     ITransientDependency
 {
     private readonly IBusinessAuditLogRepository _repository;
@@ -80,6 +83,12 @@ public class BusinessAuditEventHandler :
     public Task HandleEventAsync(SalesOrderCreatedEvent e) => WriteAsync(e, "Sales", AuditActionTypes.Create, "SalesOrder", e.SalesOrderId, e.OrderNo);
     public Task HandleEventAsync(SalesOrderConfirmedEvent e) => WriteAsync(e, "Sales", AuditActionTypes.Confirm, "SalesOrder", e.SalesOrderId, e.OrderNo, AuditSeverity.Critical);
     public Task HandleEventAsync(SalesOrderCancelledEvent e) => WriteAsync(e, "Sales", AuditActionTypes.Cancel, "SalesOrder", e.SalesOrderId, e.OrderNo, AuditSeverity.Important);
+    public Task HandleEventAsync(SalesOrderRevisionOpenedEvent e) => WriteAsync(e, "Sales", AuditActionTypes.Create, "SalesOrderRevision", e.RevisionId, $"Revision {e.RevisionNo}", AuditSeverity.Important);
+    public Task HandleEventAsync(SalesOrderRevisionAppliedEvent e) => WriteAsync(e, "Sales", AuditActionTypes.Update, "SalesOrderRevision", e.RevisionId, $"Revision {e.RevisionNo}", AuditSeverity.Critical);
+    public Task HandleEventAsync(SalesOrderRevisionCancelledEvent e) => WriteAsync(e, "Sales", AuditActionTypes.Cancel, "SalesOrderRevision", e.RevisionId, $"Revision {e.RevisionNo}", AuditSeverity.Important);
+    public Task HandleEventAsync(SalesOrderCancellationApprovedEvent e) => WriteAsync(e, "Sales", AuditActionTypes.Cancel, "SalesOrderCancellation", e.CancellationId, e.ReasonGroup, AuditSeverity.Critical);
+    public Task HandleEventAsync(SalesOrderRefundRecordedEvent e) => WriteAsync(e, "Sales", AuditActionTypes.Post, "SalesOrderRefund", e.RefundId, e.Amount.ToString(), AuditSeverity.Critical);
+    public Task HandleEventAsync(SalesOrderPaymentVoidedEvent e) => WriteAsync(e, "Sales", AuditActionTypes.Cancel, "SalesOrderPayment", e.PaymentId, e.Reason, AuditSeverity.Critical);
 
     private async Task WriteAsync<T>(
         T eventData, string module, string action, string entityType, Guid entityId,

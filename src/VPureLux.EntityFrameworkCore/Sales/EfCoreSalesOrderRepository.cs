@@ -111,7 +111,7 @@ public class EfCoreSalesOrderRepository :
             .Where(x => x.CustomerId == customerId && x.Status == SalesOrderStatus.Confirmed)
             .ToListAsync(GetCancellationToken(cancellationToken));
 
-        return orders.SelectMany(order => order.Lines.Select(line => new { Order = order, Line = line }))
+        return orders.SelectMany(order => order.EffectiveLines.Select(line => new { Order = order, Line = line }))
             .GroupBy(x => new { x.Order.CustomerId, ProductId = x.Line.CatalogItemId })
             .Select(group =>
             {

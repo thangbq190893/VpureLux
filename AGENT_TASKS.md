@@ -3,10 +3,10 @@
 This file is the single source of truth for implementation order and agent handoff.
 Every agent must read and update this file so another agent can continue without a chat summary.
 
-Last updated: 2026-08-24 (Asia/Saigon)
-Current product stage: Warranty/CustomerCare completion
-Current active task: W-008
-Next task: W-008 user UAT of visible Catalog and installation workflows
+Last updated: 2026-08-26 (Asia/Saigon)
+Current product stage: Sales pre-installation correction V1 backend foundation complete locally
+Current active task: None
+Next task: SALES-V1-PHASE2 - implement the minimal Manager/Warehouse UI and pending CustomerCare asset reconciliation; test on VPL only
 Service implementation gate: CLOSED until W-GATE is DONE
 
 ## 1. Mandatory Agent Protocol
@@ -418,17 +418,48 @@ Status: HOLD
 
 ## 7. Active Work Record
 
-Task ID: W-008
-Agent/task name: Codex - Warranty notification center completion, regression, publish, and rollout
-Started at (Asia/Saigon): 2026-08-24
-Branch and starting commit: main / aec9f91
-Goal for this run: Complete the current Warranty module with an in-app ABP toolbar notification bell that summarizes active Warning and Overdue replacement reminders, refreshes without duplicate notification rows, and deep-links into the correctly filtered server-side reminder DataTable, then verify and redeploy production.
-Files expected to change: Warranty read models/repository contract and EF projection, Warranty AppService contract/DTO, Warranty Index PageModel/script, ABP toolbar contributor and notification ViewComponent assets, localization, focused Warranty EF/Web tests, and this handoff file. No entity table or migration is expected.
-Database/data impact: Test database `VPL` was backed up and migrated from 12 to 18 migrations. After an explicit production deployment instruction, production database `VPureLux` was backed up and migrated from 17 to 18 migrations with the schema-only CustomerCare foundation. Captured business row counts remained unchanged.
-Verification planned: focused notification summary EF tests, Warranty Web/permission/UI tests, JavaScript syntax, broader Warranty/Sales regression, Release Web build/publish, desktop/mobile toolbar inspection, diff/status review, production health/static/log smoke, and confirmation that the runtime still targets `VPureLux` without running a migration.
-Current blocker: No technical blocker. The Warranty notification center is implemented and deployed; authenticated operator UAT remains required before W-008/W-GATE can be marked DONE. External SMS/Zalo/email delivery and per-user read receipts remain outside the approved first phase.
+Task ID: SALES-V1-PHASE1
+Agent/task name: Codex - post-confirm Sales adjustment/cancellation backend foundation
+Started at (Asia/Saigon): 2026-08-26
+Branch and starting commit: codex/warranty-release-review / 55aaf24 (`release-2026-08-24-warranty-notifications`)
+Goal for this run: Implement the approved Phase 1 backend foundation for Manager-only revision, delta inventory posting, payment carry-forward/refund due, effective cancellation with independent stock/refund obligations, and the shared pre-installation lock.
+Status: DONE locally; commit subject `feat(sales): add post-confirm adjustment and cancellation foundation`; no push or deployment.
+Files changed: Sales Domain.Shared/Domain/Application.Contracts/Application/HttpApi/EF Core, Warranty installation guard and pending-asset cancellation, Sales/Inventory report predicates, migration `20260826051356_AddSalesPreInstallationV1Foundation`, focused tests, approved business/flow documents, technical implementation note, and this handoff file. Web UI is intentionally excluded.
+Database/data impact: Schema-only migration adds Sales revision/cancellation/refund companion tables and effective-line/payment-void metadata. Migration Up has no business-data UPDATE/DELETE/backfill. Only the isolated SQLite test provider was used; no VPL server database and no production database/server were accessed.
+Verification completed: `dotnet build VPureLux.slnx --no-restore -m:2` passed with 0 errors; Application Sales 2/2, Domain Sales/Inventory 30/30, EF Sales/Inventory 84/84; `dotnet ef migrations has-pending-model-changes` reports none; `git diff --check` passed.
+Current blocker: None for Phase 1. Phase 2 must add minimal ABP UI and reconcile already-created pending CustomerCare assets when an applied revision changes machine product or unit count before any production enablement/UAT.
 
 ## 8. Handoff Log
+
+### 2026-08-26 - SALES-V1-PHASE1 Backend Foundation Completed Locally
+
+- Result: Added Manager-only post-confirm revision and cancellation foundations while retaining Confirm-time FIFO issue and the existing three Sales statuses.
+- Inventory: Delta issue/reversal uses batched context loads and original allocation/lot/cost facts; unchanged and price-only lines do not post inventory; failures roll back atomically; apply/return/refund paths are idempotent.
+- Payment/cancellation: Posted payments carry forward; refund due is derived; real payments stay immutable unless explicitly voided with permission/reason; cancellation is effective immediately with independent stock-return and refund obligations.
+- Lock/audit/reporting: Revision, cancellation and sold-machine installation share the `SalesOrderId` lock; business events reuse `AppBusinessAuditLogs`; reports and CustomerCare intake read effective lines only.
+- Persistence/API: Added schema-only migration `20260826051356_AddSalesPreInstallationV1Foundation` and explicit `SalesPostConfirmationController` endpoints. No production or remote database was used.
+- Verification: Full build 0 errors; Application Sales 2/2, Domain Sales/Inventory 30/30, EF Sales/Inventory 84/84; no pending EF model changes; diff check clean.
+- Deferred: Razor/DataTables/ABP modal UI, Cancel-and-clone, and pending CustomerCare asset reconciliation after an applied product/quantity revision.
+- User-owned file excluded from implementation commit: `docs/VPureLux_Sales_Flow_Design_Review_for_Codex_5_6_Sol.docx`.
+- Next action: Implement SALES-V1-PHASE2 on this foundation, validate only against test database `VPL`, then request explicit approval before any production migration or deployment.
+
+### 2026-08-26 - V1 Post-Confirm Business Boundary Accepted With Refinements
+
+- Input/review: The user supplied `docs/VPureLux_Sales_Flow_Design_Review_for_Codex_5_6_Sol.docx` as review material and then accepted the simplified direction with five refinements. The DOCX remains user-owned and unmodified.
+- Final boundary: Keep `Confirm = FIFO Issue`; do not add reservation/delivery/fulfillment architecture or redesign the core Sales lifecycle. User-facing Sales remains `Draft`, `Confirmed - Waiting Installation`, and `Cancelled`, with first installation represented as a derived modification lock rather than a new Sales status.
+- Revision: Use delta impact. Unchanged lines retain original FIFO allocations and cost snapshots. Price/information changes do not touch stock; quantity/product changes affect only the difference and enforce prerequisites by impact. Separate opening a revision from applying it; failed apply leaves the current order fully effective.
+- Payment/customer: Carry posted payments forward across revisions. Recalculate remaining/overpaid from the revised total and create a refund obligation when required; do not force net paid to zero. CustomerId stays immutable after Confirm; provide a convenience `Cancel and create new order` flow that copies only operator-entered business fields.
+- Cancellation: Manager approval makes cancellation effective immediately, blocks installation/revision, removes the order from active sales, and cancels/supersedes pending machines. Inventory return and payment refund/void remain truthful, independent follow-up tasks. UI shows outstanding obligations without adding Sales statuses; the internal process closes when both branches are resolved.
+- Documentation: Rewrote `docs/SALES_PRE_INSTALLATION_CHANGE_CANCELLATION_BUSINESS_SPEC.md` as the approved V1 business target and `docs/SALES_PRE_INSTALLATION_CHANGE_CANCELLATION_FLOWS.md` as the simplified flow model. No application code, migration, database, server, or deployment was touched.
+- Next action: Produce a minimal ABP-aligned technical design, schema-only migration review, task list, and VPL-only UAT matrix when explicitly requested. Treat reservation, delivery orders, Sales Completed status, line-level post-install lock, customer credit, and non-machine post-confirm revision as out of scope.
+
+### 2026-08-26 - Pre-Installation Sales Adjustment And Cancellation Business Design
+
+- Agent/scope: Codex reviewed the exact source snapshot tagged `release-2026-08-24-warranty-notifications` on branch `codex/warranty-release-review`. Newer Service work remains preserved on `main` at `220d41c`; no production deployment, database access, code change, migration, or data mutation occurred.
+- Business finding: Sales confirmation already posts FIFO inventory, financial snapshots, receivables, reporting state, and asynchronous machine intake. Therefore a confirmed order cannot be edited in place without reversal and reconciliation. Customer cancellation before installation has the same inventory/payment/machine side effects and must be treated as a controlled workflow.
+- Documents: Added `docs/SALES_PRE_INSTALLATION_CHANGE_CANCELLATION_BUSINESS_SPEC.md` and `docs/SALES_PRE_INSTALLATION_CHANGE_CANCELLATION_FLOWS.md`. They cover Manager-only revisions, cancellation, physical goods return, void versus real refund, pending-machine supersession, first-installation permanent lock, audit/concurrency, decision matrix, acceptance criteria, and Mermaid process/state/sequence diagrams.
+- Recommended boundary: Apply the first version only to orders containing at least one machine; any first completed installation locks the entire order. Keep non-machine confirmed orders immutable. Do not apply a revision until net posted payment is zero, and do not finalize cancellation until both inventory and payment settlement are complete.
+- Required next action: User reviews and approves decisions D01-D08. Only after approval should an agent produce a technical design, migration review, implementation task breakdown, and VPL-only test plan.
 
 ### 2026-08-24 - Current Warranty Snapshot Released
 
