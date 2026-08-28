@@ -24,3 +24,11 @@ public interface ISalesOrderRefundRepository : IRepository<SalesOrderRefund, Gui
     Task<SalesOrderRefund?> FindByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken = default);
     Task<decimal> GetRefundedAmountForRevisionAsync(Guid revisionId, CancellationToken cancellationToken = default);
 }
+
+public interface ISalesPostConfirmationReadRepository
+{
+    Task<long> GetReturnTaskCountAsync(SalesReturnTaskFilter filter, CancellationToken cancellationToken = default);
+    Task<List<SalesReturnTaskReadItem>> GetReturnTasksAsync(SalesReturnTaskFilter filter, CancellationToken cancellationToken = default);
+    Task<long> GetRefundTaskCountAsync(SalesRefundTaskFilter filter, CancellationToken cancellationToken = default);
+    Task<List<SalesRefundTaskReadItem>> GetRefundTasksAsync(SalesRefundTaskFilter filter, CancellationToken cancellationToken = default);
+}

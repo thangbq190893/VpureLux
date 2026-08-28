@@ -34,7 +34,7 @@
     }
 
     function cancelOrder(row, button) {
-        const message = row.cancelConfirmationMessage || l('Sales:CancelOrderMessage');
+        const message = l('Sales:CancelOrderMessage');
         abp.message.confirm(message, l('Confirm')).then(function (confirmed) {
             if (!confirmed) {
                 return;

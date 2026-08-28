@@ -1,0 +1,35 @@
+@page
+@model VPureLux.Web.Pages.Sales.CancelConfirmedModalModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Modal
+@{ Layout = null; }
+
+<form method="post" asp-page="/Sales/CancelConfirmedModal">
+    <input asp-for="Id" type="hidden" />
+    <abp-modal>
+        <abp-modal-header title="@L["Sales:CancelConfirmedTitle"]"></abp-modal-header>
+        <abp-modal-body>
+            <div class="mb-3">
+                <strong>@Model.OrderNo</strong>
+                <div class="text-muted">@Model.CustomerName</div>
+            </div>
+            <div class="row g-2 mb-3">
+                <div class="col-4"><span class="text-muted">@L["Sales:PaymentTotalAmount"]</span><br /><strong>@Model.FormatMoney(Model.State.TotalAmount)</strong></div>
+                <div class="col-4"><span class="text-muted">@L["Sales:PaymentPaidAmount"]</span><br /><strong>@Model.FormatMoney(Model.State.NetPaid)</strong></div>
+                <div class="col-4"><span class="text-muted">@L["Sales:RefundDue"]</span><br /><strong>@Model.FormatMoney(Model.State.NetPaid)</strong></div>
+            </div>
+            <label asp-for="Input.ReasonGroup" class="form-label">@L["Sales:CancellationReasonGroup"]</label>
+            <select asp-for="Input.ReasonGroup" class="form-select mb-3">
+                <option value="">@L["Select"]</option>
+                <option value="CustomerChangedMind">@L["Sales:CancellationReason:CustomerChangedMind"]</option>
+                <option value="WrongOrder">@L["Sales:CancellationReason:WrongOrder"]</option>
+                <option value="Unavailable">@L["Sales:CancellationReason:Unavailable"]</option>
+                <option value="Other">@L["Sales:CancellationReason:Other"]</option>
+            </select>
+            <span asp-validation-for="Input.ReasonGroup" class="text-danger"></span>
+            <abp-input asp-for="Input.Reason" label="@L["Sales:CancellationReason"]" />
+            <div class="alert alert-warning mb-0">@L["Sales:CancellationOperationalNote"]</div>
+        </abp-modal-body>
+        <abp-modal-footer buttons="@(AbpModalButtons.Cancel|AbpModalButtons.Save)"></abp-modal-footer>
+    </abp-modal>
+</form>

@@ -1,0 +1,28 @@
+@page
+@model VPureLux.Web.Pages.Sales.RefundModalModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using VPureLux.Sales
+@using Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Modal
+@{ Layout = null; }
+
+<form method="post" asp-page="/Sales/RefundModal">
+    <input asp-for="TaskType" type="hidden" /><input asp-for="OperationId" type="hidden" />
+    <input asp-for="Input.IdempotencyKey" type="hidden" />
+    <abp-modal>
+        <abp-modal-header title="@L["Sales:RecordRefund"] - @Model.OrderNo"></abp-modal-header>
+        <abp-modal-body>
+            <abp-input asp-for="Input.Amount" label="@L["Sales:RefundAmount"]" type="number" step="0.01" />
+            <abp-input asp-for="Input.RefundedAt" label="@L["Sales:RefundedAt"]" type="datetime-local" />
+            <label asp-for="Input.PaymentMethod" class="form-label">@L["Sales:PaymentMethod"]</label>
+            <select asp-for="Input.PaymentMethod" class="form-select mb-3">
+                <option value="@SalesPaymentMethod.Cash">@L["Sales:PaymentMethod:Cash"]</option>
+                <option value="@SalesPaymentMethod.BankTransfer">@L["Sales:PaymentMethod:BankTransfer"]</option>
+                <option value="@SalesPaymentMethod.Card">@L["Sales:PaymentMethod:Card"]</option>
+                <option value="@SalesPaymentMethod.Other">@L["Sales:PaymentMethod:Other"]</option>
+            </select>
+            <abp-input asp-for="Input.ReferenceNo" label="@L["Sales:PaymentReferenceNo"]" />
+            <abp-input asp-for="Input.Reason" label="@L["Sales:RefundReason"]" />
+        </abp-modal-body>
+        <abp-modal-footer buttons="@(AbpModalButtons.Cancel|AbpModalButtons.Save)"></abp-modal-footer>
+    </abp-modal>
+</form>

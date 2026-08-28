@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -189,7 +190,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
-    public async Task Sales_Index_Should_Expose_Cancel_For_Confirmed_Unpaid_Only()
+    public async Task Sales_Index_Should_Route_Confirmed_Cancellation_Through_Details_Workflow()
     {
         var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
         var context = await CreateSalesContextAsync("SALES-IDX-CAN");
@@ -229,9 +230,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
         });
         var rows = listResult.Value.ShouldBeOfType<PagedResultDto<IndexModel.SalesOrderRow>>();
 
-        rows.Items.Single(x => x.Id == unpaid.Id).CanCancel.ShouldBeTrue();
-        rows.Items.Single(x => x.Id == unpaid.Id).CancelConfirmationMessage
-            .ShouldBe(localizer["Sales:CancelConfirmedUnpaidOrderMessage"].Value);
+        rows.Items.Single(x => x.Id == unpaid.Id).CanCancel.ShouldBeFalse();
         rows.Items.Single(x => x.Id == partial.Id).CanCancel.ShouldBeFalse();
         var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Index.cshtml"));
         var scriptSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Index.js"));
@@ -1904,7 +1903,8 @@ public class SalesPagesTests : VPureLuxWebTestBase
             .Returns(new Dictionary<Guid, ProductPricingContextDto>());
         var unitOfWorkManager = Substitute.For<IUnitOfWorkManager>();
         var publicLinks = GetRequiredService<SalesOrderPublicLinkService>();
-        var model = new DetailsModel(service, authorization, customers, products, pricingContext, unitOfWorkManager, publicLinks);
+        var postConfirmation = Substitute.For<ISalesPostConfirmationAppService>();
+        var model = new DetailsModel(service, postConfirmation, authorization, customers, products, pricingContext, unitOfWorkManager, publicLinks);
         SetPageContext(model, GetRequiredService<IServiceProvider>());
         model.ProductContexts[Guid.NewGuid()] = new SalesProductContextViewModel();
         model.Id = orderId;
@@ -1987,9 +1987,8 @@ public class SalesPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
-    public async Task Sales_Details_Should_Allow_Cancel_For_Confirmed_Unpaid_And_Hide_For_Partially_Paid()
+    public async Task Sales_Details_Should_Use_Post_Confirmation_Cancel_For_Unpaid_And_Partially_Paid()
     {
-        var localizer = GetRequiredService<IStringLocalizer<VPureLuxResource>>();
         var context = await CreateSalesContextAsync("SALES-CAN-UI");
         var salesService = GetRequiredService<ISalesOrderAppService>();
         var unpaid = await salesService.CreateAsync(new CreateSalesOrderDto
@@ -2018,9 +2017,10 @@ public class SalesPagesTests : VPureLuxWebTestBase
         var unpaidHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Sales/Details/{unpaid.Id}"));
         var partialHtml = WebUtility.HtmlDecode(await GetResponseAsStringAsync($"/Sales/Details/{partial.Id}"));
 
-        unpaidHtml.ShouldContain("handler=Cancel");
-        unpaidHtml.ShouldContain(localizer["Sales:CancelConfirmedUnpaidOrderMessage"].Value);
-        partialHtml.ShouldNotContain(localizer["Sales:CancelConfirmedUnpaidOrderMessage"].Value);
+        unpaidHtml.ShouldContain("data-sales-cancel-confirmed");
+        partialHtml.ShouldContain("data-sales-cancel-confirmed");
+        unpaidHtml.ShouldNotContain("handler=Cancel");
+        partialHtml.ShouldNotContain("handler=Cancel");
     }
 
     [Fact]
@@ -2463,6 +2463,59 @@ public class SalesPagesTests : VPureLuxWebTestBase
 
             return result.Value.ShouldBeOfType<SalesStockAvailabilityResponse>();
         });
+    }
+
+    [Fact]
+    public async Task Post_Confirmation_Operator_UI_Should_Use_Abp_Modals_And_Server_Paged_Task_Lists()
+    {
+        var detailsPage = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Details.cshtml"));
+        var detailsScript = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Details.js"));
+        var indexModel = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Index.cshtml.cs"));
+        var adjustModel = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Adjust.cshtml.cs"));
+        var returnsScript = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Returns.js"));
+        var refundsScript = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Refunds.js"));
+        var returnModal = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/ReturnConfirmationModal.cshtml.cs"));
+        var refundModal = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/RefundModal.cshtml.cs"));
+
+        detailsPage.ShouldContain("data-sales-cancel-confirmed");
+        detailsPage.ShouldContain("asp-page=\"/Sales/Adjust\"");
+        detailsScript.ShouldContain("new abp.ModalManager");
+        detailsScript.ShouldNotContain("window.prompt");
+        indexModel.ShouldContain("order.Status == SalesOrderStatus.Draft");
+        indexModel.ShouldNotContain("SalesConfirmedOrderCancelRequiresUnpaid");
+
+        adjustModel.ShouldContain("OnGetProductLookupAsync");
+        adjustModel.ShouldContain("MaxResultCount = pageSize");
+        adjustModel.ShouldNotContain("MaxMaxResultCount");
+        returnsScript.ShouldContain("serverSide: true");
+        returnsScript.ShouldContain("abp.libs.datatables.createAjax");
+        returnsScript.ShouldContain("new abp.ModalManager");
+        refundsScript.ShouldContain("serverSide: true");
+        refundsScript.ShouldContain("abp.libs.datatables.createAjax");
+        refundsScript.ShouldContain("new abp.ModalManager");
+        returnModal.ShouldContain("Sales.ConfirmReturnedGoods");
+        refundModal.ShouldContain("Sales.ManageRefunds");
+    }
+
+    [Fact]
+    public void Revision_Quantity_Validation_Should_Work_Under_Vietnamese_Culture()
+    {
+        var quantityProperty = typeof(UpdateSalesOrderRevisionLineDto)
+            .GetProperty(nameof(UpdateSalesOrderRevisionLineDto.Quantity));
+        var range = quantityProperty!
+            .GetCustomAttribute<RangeAttribute>();
+        var previousCulture = CultureInfo.CurrentCulture;
+
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("vi-VN");
+            range.ShouldNotBeNull();
+            range!.IsValid(1m).ShouldBeTrue();
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previousCulture;
+        }
     }
 
     private async Task<SalesStockAvailabilityResponse> GetEditStockAvailabilityAsync(

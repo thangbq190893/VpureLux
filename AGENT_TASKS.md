@@ -4,9 +4,9 @@ This file is the single source of truth for implementation order and agent hando
 Every agent must read and update this file so another agent can continue without a chat summary.
 
 Last updated: 2026-08-28 (Asia/Saigon)
-Current product stage: Sales post-confirm correction V1 Phase 2 in progress
-Current active task: SALES-V1-PHASE2
-Next task: Correct Phase 1 eligibility assumptions, then implement CustomerCare reconciliation and operator UI; do not enter VPL before local validation passes
+Current product stage: Sales post-confirm correction V1 Phase 2 completed locally and validated on VPL UAT
+Current active task: None; SALES-V1-PHASE2 is complete and awaiting user review
+Next task: Obtain explicit user approval before any push or production deployment; production database migration and data access remain prohibited
 Service implementation gate: CLOSED until W-GATE is DONE
 
 ## 1. Mandatory Agent Protocol
@@ -423,13 +423,27 @@ Agent/task name: Codex - correct Sales eligibility, reconcile pending assets, an
 Started at (Asia/Saigon): 2026-08-28
 Branch and starting commit: codex/warranty-release-review / 74575be (`feat(sales): add post-confirm adjustment and cancellation foundation`)
 Goal for this run: Remove the incorrect machine-only Sales assumption, preserve payment carry-forward and warehouse prerequisites, reconcile only affected pending machine assets, and add minimal Manager/Warehouse/Accounting ABP workflows.
-Status: IN_PROGRESS. No push or deployment.
+Status: DONE. Implementation, local validation, and prefixed VPL UAT are complete. No push or production deployment.
 Phase 2 compatibility findings: `IsEffective` has a true database default and legacy read/report paths remain compatible. The behavior defects are five `requireMachine: true` calls, machine-scope validation/error/tests/docs, and the old Details cancel action calling Draft-only `CancelAsync` for Confirmed orders. `IsMachine` remains valid only in CustomerCare intake/reconciliation.
-Database/data impact: No migration expected and no legacy data mutation permitted. Local automated tests must use SQLite; VPL UAT is forbidden until all local build/tests pass. Production database/server access is forbidden.
-Verification completed: Mandatory preflight passed at 74575be; machine-coupling, Sales line read predicates, CustomerCare intake/assets, Phase 1 migration, payment compatibility, ABP DataTables/ModalManager patterns, current tests, and approved documents were audited.
-Current blocker: None. If implementation requires schema or legacy-data mutation, stop before creating a migration.
+Database/data impact: No new migration and no legacy business-data mutation. The existing Phase 1 migration `20260826051356_AddSalesPreInstallationV1Foundation` was made tolerant of stored-procedure definitions containing irregular whitespace, then applied to test database `VPL` because that database did not yet contain the committed Phase 1 schema. Only new `UATSALE2_20260828_` business data and the four Phase 1 Sales permissions for the VPL `admin` role were written. Production database `VPureLux` and the production server were not accessed.
+Verification completed: Full solution build passed with 0 errors and 2 existing warnings. Application 2/2, Domain 35/35, and EF 95/95 focused tests passed. The complete focused Web suite passed 112/112 before the final locale fix; the new Vietnamese-culture validation regression passed 1/1. A final combined Web rerun was stopped after its known testhost leak reached about 5.6 GB RAM without returning. EF reports no pending model changes, JavaScript syntax and localization JSON pass, and `git diff --check` is clean apart from line-ending notices.
+Current blocker: None. User review and explicit approval are required before push or production deployment.
 
 ## 8. Handoff Log
+
+### 2026-08-28 - SALES-V1-PHASE2 Completed Locally And On VPL UAT
+
+- Eligibility correction: Commit `fea7423` removed all machine-only eligibility from confirmed Sales correction/cancellation. Every Confirmed order may be adjusted or cancelled when permission, conflict, and installation-lock rules pass. `IsMachine` is used only for CustomerCare side effects; any installed machine asset still locks the whole order.
+- Sales behavior: Posted payments carry forward unchanged. Revised totals derive remaining amount/refund due. Every negative inventory delta requires Warehouse confirmation; reversal uses the original posted allocation, lot, quantity, and cost. Draft cancellation still uses `CancelAsync`; Confirmed cancellation routes to the post-confirm operation.
+- CustomerCare: Applied machine-line increases create only missing PendingInstallation assets; decreases/removals/replacements cancel only surplus affected pending assets; unchanged and price-only lines do nothing; installed and legacy assets are never rewritten. Non-machine lines never trigger reconciliation.
+- Operator UI: Added Manager adjustment page and Confirmed-cancel ABP modal, Warehouse return queue/modal, Accounting refund queue/modal, and payment-void modal. Return/refund lists use database Count/filter/sort/Skip/Take with server-side DataTables. Product lookup is remotely paged. No native prompt/alert/confirm or top-N pseudo-paging was introduced.
+- UAT defect fixed: The revision quantity `RangeAttribute` parsed decimal limits with `vi-VN` culture and returned HTTP 500. It now uses invariant-culture limits, matching existing Sales DTOs, with a focused regression test.
+- VPL evidence: New non-machine orders `SO-202608-000001` through `SO-202608-000006` covered price-only, paid quantity increase (10m paid 5m -> 12m, remaining 7m), paid decrease (10m paid 8m -> 6m, refund 2m), product replacement, line removal, and paid cancellation. Decrease was blocked before Warehouse confirmation. Original payments remain Posted; refunds are append-only; lot/cost preservation checks passed; completed return/refund queues returned zero.
+- Schema boundary: No new migration was created. The pre-existing Phase 1 migration was corrected to convert any SQL Server procedure definition to `ALTER PROCEDURE` robustly, then applied only to `VPL`. No backfill, rebuild, DELETE, or historical-order edit ran. Production `VPureLux` was not accessed.
+- Verification: Build 0 errors; Application 2/2; Domain 35/35; EF 95/95; Web 112/112 before the locale fix plus locale regression 1/1 after it; no pending EF model changes; JS/JSON/diff checks passed. A final combined Web rerun reproduced the documented testhost memory leak and was stopped at about 5.6 GB RAM.
+- Commits: Foundation correction `fea7423`; Phase 2 feature commit is the next local commit. Neither commit is pushed. No deployment was performed.
+- Excluded user-owned files: `docs/VPureLux_Sales_Flow_Design_Review_for_Codex_5_6_Sol.docx` and `docs/html.txt`.
+- Next action: Review the local Phase 2 commit. Push and production deployment require a new explicit instruction. Before any production rollout, verify the production migration history read-only and rehearse the existing Phase 1 migration against a production-schema clone.
 
 ### 2026-08-26 - SALES-V1-PHASE1 Backend Foundation Completed Locally
 

@@ -27,6 +27,7 @@ namespace VPureLux.Web.Pages.Sales;
 public class DetailsModel : VPureLuxPageModel
 {
     private readonly ISalesOrderAppService _service;
+    private readonly ISalesPostConfirmationAppService _postConfirmationService;
     private readonly IAuthorizationService _authorizationService;
     private readonly ICustomerAppService _customers;
     private readonly IProductAppService _products;
@@ -45,6 +46,11 @@ public class DetailsModel : VPureLuxPageModel
     public bool CanConfirm { get; private set; }
     public bool CanCancel { get; private set; }
     public bool CanAddPayment { get; private set; }
+    public bool CanStartAdjustment { get; private set; }
+    public bool CanContinueAdjustment { get; private set; }
+    public bool CanCancelConfirmed { get; private set; }
+    public bool CanVoidPayments { get; private set; }
+    public Guid? ActiveRevisionId { get; private set; }
     public bool IsDraft => Order.Status == SalesOrderStatus.Draft;
     public bool IsConfirmed => Order.Status == SalesOrderStatus.Confirmed;
     public decimal DraftEstimatedRevenueAmount { get; private set; }
@@ -61,6 +67,7 @@ public class DetailsModel : VPureLuxPageModel
 
     public DetailsModel(
         ISalesOrderAppService service,
+        ISalesPostConfirmationAppService postConfirmationService,
         IAuthorizationService authorizationService,
         ICustomerAppService customers,
         IProductAppService products,
@@ -69,6 +76,7 @@ public class DetailsModel : VPureLuxPageModel
         SalesOrderPublicLinkService publicLinks)
     {
         _service = service;
+        _postConfirmationService = postConfirmationService;
         _authorizationService = authorizationService;
         _customers = customers;
         _products = products;
@@ -209,14 +217,27 @@ public class DetailsModel : VPureLuxPageModel
             .ToDictionary(x => x.Id, x => $"{x.Code} - {x.Name}");
         await LoadProductContextsAsync();
         var draft = Order.Status == SalesOrderStatus.Draft;
-        var confirmedUnpaid = Order.Status == SalesOrderStatus.Confirmed &&
-            Order.PaymentSummary.PaymentStatus == SalesOrderReceivableStatus.Unpaid;
         var canCancelPermission = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.Cancel)).Succeeded;
         CanEdit = draft && (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.Edit)).Succeeded;
         CanConfirm = draft && (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.Confirm)).Succeeded;
-        CanCancel = (draft || confirmedUnpaid) && canCancelPermission;
+        CanCancel = draft && canCancelPermission;
         CanAddPayment = Order.Status == SalesOrderStatus.Confirmed &&
             (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.Payments.Manage)).Succeeded;
+        CanVoidPayments = Order.Status == SalesOrderStatus.Confirmed &&
+            (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.ManageRefunds)).Succeeded;
+        if (Order.Status == SalesOrderStatus.Confirmed)
+        {
+            var state = await _postConfirmationService.GetOrderStateAsync(Order.Id);
+            var canAdjust = (await _authorizationService.AuthorizeAsync(
+                User, VPureLuxPermissions.Sales.AdjustConfirmedBeforeInstallation)).Succeeded;
+            var canCancelConfirmed = (await _authorizationService.AuthorizeAsync(
+                User, VPureLuxPermissions.Sales.CancelConfirmedBeforeInstallation)).Succeeded;
+            ActiveRevisionId = state.ActiveRevisionId;
+            CanStartAdjustment = canAdjust && state.CanAdjust;
+            CanContinueAdjustment = canAdjust && state.ActiveRevisionId.HasValue &&
+                                    !state.HasInstalledMachine && !state.CancellationId.HasValue;
+            CanCancelConfirmed = canCancelConfirmed && state.CanCancel;
+        }
         PaymentMethodOptions = BuildPaymentMethodOptions();
         if (string.IsNullOrWhiteSpace(Payment.IdempotencyKey))
         {

@@ -67,9 +67,27 @@
                       asp-page-handler="Cancel"
                       class="d-inline"
                       data-sales-action-form
-                      data-confirm-message="@(Model.IsConfirmed ? L["Sales:CancelConfirmedUnpaidOrderMessage"] : L["Sales:CancelOrderMessage"])">
+                      data-confirm-message="@L["Sales:CancelOrderMessage"]">
                     <button class="btn btn-sm btn-danger">@L["Sales:Cancel"]</button>
                 </form>
+            }
+            @if (Model.CanStartAdjustment)
+            {
+                <a class="btn btn-sm btn-primary" asp-page="/Sales/Adjust" asp-route-id="@Model.Order.Id">
+                    <i class="fa fa-pen"></i> @L["Sales:AdjustConfirmedOrder"]
+                </a>
+            }
+            @if (Model.CanContinueAdjustment && Model.ActiveRevisionId.HasValue)
+            {
+                <a class="btn btn-sm btn-primary" asp-page="/Sales/Adjust" asp-route-id="@Model.Order.Id" asp-route-revisionId="@Model.ActiveRevisionId">
+                    <i class="fa fa-pen"></i> @L["Sales:ContinueAdjustment"]
+                </a>
+            }
+            @if (Model.CanCancelConfirmed)
+            {
+                <button type="button" class="btn btn-sm btn-danger" data-sales-cancel-confirmed data-order-id="@Model.Order.Id">
+                    <i class="fa fa-ban"></i> @L["Sales:Cancel"]
+                </button>
             }
             <form method="get"
                   asp-page="/Sales/Details"
@@ -321,6 +339,10 @@
                         <th>@L["Sales:PaymentReferenceNo"]</th>
                         <th>@L["Sales:PaymentNote"]</th>
                         <th>@L["Sales:PaymentRowStatus"]</th>
+                        @if (Model.CanVoidPayments)
+                        {
+                            <th class="text-end">@L["Actions"]</th>
+                        }
                     </tr>
                     </thead>
                     <tbody>
@@ -333,6 +355,17 @@
                             <td>@payment.ReferenceNo</td>
                             <td>@payment.Note</td>
                             <td>@L[$"Sales:PaymentRowStatus:{payment.Status}"]</td>
+                            @if (Model.CanVoidPayments)
+                            {
+                                <td class="text-end">
+                                    @if (payment.Status == VPureLux.Sales.SalesOrderPaymentStatus.Posted)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-sales-void-payment data-payment-id="@payment.Id">
+                                            <i class="fa fa-ban"></i> @L["Sales:VoidPayment"]
+                                        </button>
+                                    }
+                                </td>
+                            }
                         </tr>
                     }
                     </tbody>

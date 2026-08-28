@@ -13,6 +13,7 @@ using VPureLux.Pricing;
 using VPureLux.Warranty;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Application.Dtos;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Uow;
 
@@ -26,6 +27,7 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
     private readonly ISalesOrderCancellationRepository _cancellations;
     private readonly ISalesOrderRefundRepository _refunds;
     private readonly ISalesOrderPaymentRepository _payments;
+    private readonly ISalesPostConfirmationReadRepository _readRepository;
     private readonly IRepository<CustomerAsset, Guid> _assets;
     private readonly IProductRepository _products;
     private readonly IBomVersionRepository _boms;
@@ -36,6 +38,7 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
     private readonly IInventoryTransactionRepository _transactions;
     private readonly IInventoryBalanceRepository _balances;
     private readonly InventoryManager _inventoryManager;
+    private readonly SalesRevisionCustomerCareReconciler _customerCareReconciler;
     private readonly SalesOrderOperationCoordinator _coordinator;
     private readonly IUnitOfWorkManager _unitOfWorkManager;
 
@@ -45,6 +48,7 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
         ISalesOrderCancellationRepository cancellations,
         ISalesOrderRefundRepository refunds,
         ISalesOrderPaymentRepository payments,
+        ISalesPostConfirmationReadRepository readRepository,
         IRepository<CustomerAsset, Guid> assets,
         IProductRepository products,
         IBomVersionRepository boms,
@@ -55,6 +59,7 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
         IInventoryTransactionRepository transactions,
         IInventoryBalanceRepository balances,
         InventoryManager inventoryManager,
+        SalesRevisionCustomerCareReconciler customerCareReconciler,
         SalesOrderOperationCoordinator coordinator,
         IUnitOfWorkManager unitOfWorkManager)
     {
@@ -63,6 +68,7 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
         _cancellations = cancellations;
         _refunds = refunds;
         _payments = payments;
+        _readRepository = readRepository;
         _assets = assets;
         _products = products;
         _boms = boms;
@@ -73,6 +79,7 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
         _transactions = transactions;
         _balances = balances;
         _inventoryManager = inventoryManager;
+        _customerCareReconciler = customerCareReconciler;
         _coordinator = coordinator;
         _unitOfWorkManager = unitOfWorkManager;
     }
@@ -100,8 +107,24 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
             return ToDto(revision);
         });
 
-    public async Task<SalesOrderRevisionDto> GetRevisionAsync(Guid revisionId) =>
-        ToDto(await _revisions.GetAsync(revisionId, includeDetails: true));
+    public async Task<SalesOrderRevisionDto> GetRevisionAsync(Guid revisionId)
+    {
+        var revision = await _revisions.GetAsync(revisionId, includeDetails: true);
+        var dto = ToDto(revision);
+        var productIds = revision.Lines.Select(x => x.ProductId).Distinct().ToArray();
+        var products = await AsyncExecuter.ToListAsync((await _products.GetQueryableAsync())
+            .Where(x => productIds.Contains(x.Id)));
+        var productMap = products.ToDictionary(x => x.Id);
+        foreach (var line in dto.Lines)
+        {
+            if (productMap.TryGetValue(line.ProductId, out var product))
+            {
+                line.ProductCode = product.Code;
+                line.ProductName = product.Name;
+            }
+        }
+        return dto;
+    }
 
     [Authorize(VPureLuxPermissions.Sales.AdjustConfirmedBeforeInstallation)]
     [UnitOfWork(IsDisabled = true)]
@@ -249,6 +272,7 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
             {
                 await ApplyLineAsync(order, revision, revisionLine, context);
             }
+            await _customerCareReconciler.ReconcileAsync(order, revision);
             order.RecalculateEffectiveTotals();
             var netPaid = await _payments.GetPostedPaidAmountsAsync([order.Id]);
             revision.Apply(input.IdempotencyKey, CurrentUser.Id, Clock.Now, order.TotalRevenueAmount,
@@ -395,6 +419,170 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
         await _payments.UpdateAsync(payment, autoSave: true);
     }
 
+    public async Task<SalesPostConfirmationStateDto> GetOrderStateAsync(Guid salesOrderId)
+    {
+        var order = await GetOrderAsync(salesOrderId);
+        var activeRevision = await _revisions.FindActiveByOrderIdAsync(order.Id);
+        var cancellation = await _cancellations.FindByOrderIdAsync(order.Id);
+        var assetQuery = await _assets.GetQueryableAsync();
+        var installed = await AsyncExecuter.AnyAsync(
+            assetQuery.Where(x => x.SalesOrderId == order.Id && x.InstalledAt.HasValue));
+        var paid = await _payments.GetPostedPaidAmountsAsync([order.Id]);
+        var netPaid = paid.GetValueOrDefault(order.Id);
+        var canOperate = order.Status == SalesOrderStatus.Confirmed && !installed &&
+                         activeRevision == null && cancellation == null;
+        return new SalesPostConfirmationStateDto
+        {
+            SalesOrderId = order.Id,
+            Status = order.Status,
+            HasInstalledMachine = installed,
+            ActiveRevisionId = activeRevision?.Id,
+            CancellationId = cancellation?.Id,
+            CanAdjust = canOperate,
+            CanCancel = canOperate,
+            TotalAmount = order.TotalRevenueAmount,
+            NetPaid = netPaid,
+            RemainingAmount = Math.Max(order.TotalRevenueAmount - netPaid, 0),
+            RefundDue = Math.Max(netPaid - order.TotalRevenueAmount, 0),
+            Lines = order.EffectiveLines.Select(x => new SalesPostConfirmationLineSummaryDto
+            {
+                LineNo = x.LineNo,
+                ItemCode = x.ItemCodeSnapshot,
+                ItemName = x.ItemNameSnapshot,
+                Quantity = x.Quantity
+            }).ToList()
+        };
+    }
+
+    public async Task<SalesRevisionPreviewDto> GetRevisionPreviewAsync(Guid revisionId)
+    {
+        var revision = await _revisions.GetAsync(revisionId, includeDetails: true);
+        var order = await GetOrderAsync(revision.SalesOrderId);
+        var productIds = revision.Lines.Where(x => !x.IsRemoved).Select(x => x.ProductId).Distinct().ToArray();
+        var products = await AsyncExecuter.ToListAsync((await _products.GetQueryableAsync())
+            .Where(x => productIds.Contains(x.Id)));
+        var productMap = products.ToDictionary(x => x.Id);
+        var sourceMap = order.Lines.ToDictionary(x => x.Id);
+        var impacts = new List<SalesRevisionImpactDto>();
+        foreach (var line in revision.Lines.OrderBy(x => x.LineNo))
+        {
+            var source = line.SourceSalesOrderLineId.HasValue ? sourceMap[line.SourceSalesOrderLineId.Value] : null;
+            if (source == null)
+            {
+                AddImpact(impacts, SalesRevisionImpactType.Issue, productMap[line.ProductId].Code,
+                    productMap[line.ProductId].Name, line.Quantity);
+                continue;
+            }
+            if (line.IsRemoved || line.ProductId != line.BeforeProductId)
+            {
+                AddImpact(impacts, SalesRevisionImpactType.Return, source.ItemCodeSnapshot,
+                    source.ItemNameSnapshot, line.BeforeQuantity ?? source.Quantity);
+                if (!line.IsRemoved)
+                {
+                    AddImpact(impacts, SalesRevisionImpactType.Issue, productMap[line.ProductId].Code,
+                        productMap[line.ProductId].Name, line.Quantity);
+                }
+                continue;
+            }
+            var delta = line.Quantity - (line.BeforeQuantity ?? source.Quantity);
+            if (delta > 0)
+            {
+                AddImpact(impacts, SalesRevisionImpactType.Issue, source.ItemCodeSnapshot, source.ItemNameSnapshot, delta);
+            }
+            else if (delta < 0)
+            {
+                AddImpact(impacts, SalesRevisionImpactType.Return, source.ItemCodeSnapshot, source.ItemNameSnapshot, -delta);
+            }
+            else
+            {
+                AddImpact(impacts, SalesRevisionImpactType.Unchanged, source.ItemCodeSnapshot, source.ItemNameSnapshot, line.Quantity);
+            }
+        }
+        var newTotal = revision.Lines.Where(x => !x.IsRemoved).Sum(x => x.Quantity * x.ActualSellingPrice);
+        var paid = await _payments.GetPostedPaidAmountsAsync([order.Id]);
+        var netPaid = paid.GetValueOrDefault(order.Id);
+        return new SalesRevisionPreviewDto
+        {
+            RevisionId = revision.Id,
+            BeforeTotal = revision.BeforeTotal,
+            NewTotal = SalesOrderRevision.RoundMoney(newTotal),
+            NetPaid = netPaid,
+            RemainingAmount = SalesOrderRevision.RoundMoney(Math.Max(newTotal - netPaid, 0)),
+            RefundDue = SalesOrderRevision.RoundMoney(Math.Max(netPaid - newTotal, 0)),
+            PendingReturnCount = revision.Lines.Count(x => x.RequiresReturnConfirmation && !x.ReturnConfirmedAt.HasValue),
+            Impacts = impacts
+        };
+    }
+
+    [Authorize(VPureLuxPermissions.Sales.ConfirmReturnedGoods)]
+    public async Task<PagedResultDto<SalesReturnTaskDto>> GetReturnTasksAsync(GetSalesReturnTasksInput input)
+    {
+        var filter = new SalesReturnTaskFilter
+        {
+            SearchText = input.SearchText,
+            Sorting = input.Sorting,
+            SkipCount = input.SkipCount,
+            MaxResultCount = input.MaxResultCount
+        };
+        var total = await _readRepository.GetReturnTaskCountAsync(filter);
+        var rows = await _readRepository.GetReturnTasksAsync(filter);
+        return new PagedResultDto<SalesReturnTaskDto>(total, rows.Select(x => new SalesReturnTaskDto
+        {
+            TaskType = x.TaskType,
+            OperationId = x.OperationId,
+            RevisionLineId = x.RevisionLineId,
+            SalesOrderId = x.SalesOrderId,
+            OrderNo = x.OrderNo,
+            CustomerCode = x.CustomerCode,
+            CustomerName = x.CustomerName,
+            ItemName = x.ItemName,
+            Quantity = x.Quantity,
+            Reason = x.Reason,
+            IsException = x.IsException,
+            CreatedAt = x.CreatedAt
+        }).ToList());
+    }
+
+    [Authorize(VPureLuxPermissions.Sales.ManageRefunds)]
+    public async Task<PagedResultDto<SalesRefundTaskDto>> GetRefundTasksAsync(GetSalesRefundTasksInput input)
+    {
+        var filter = new SalesRefundTaskFilter
+        {
+            SearchText = input.SearchText,
+            Sorting = input.Sorting,
+            SkipCount = input.SkipCount,
+            MaxResultCount = input.MaxResultCount
+        };
+        var total = await _readRepository.GetRefundTaskCountAsync(filter);
+        var rows = await _readRepository.GetRefundTasksAsync(filter);
+        return new PagedResultDto<SalesRefundTaskDto>(total, rows.Select(x => new SalesRefundTaskDto
+        {
+            TaskType = x.TaskType,
+            OperationId = x.OperationId,
+            SalesOrderId = x.SalesOrderId,
+            OrderNo = x.OrderNo,
+            CustomerCode = x.CustomerCode,
+            CustomerName = x.CustomerName,
+            RefundDue = x.RefundDue,
+            RefundedAmount = x.RefundedAmount,
+            RemainingAmount = x.RemainingAmount,
+            CreatedAt = x.CreatedAt
+        }).ToList());
+    }
+
+    private static void AddImpact(
+        ICollection<SalesRevisionImpactDto> target,
+        SalesRevisionImpactType type,
+        string code,
+        string name,
+        decimal quantity) => target.Add(new SalesRevisionImpactDto
+        {
+            ImpactType = type,
+            ItemCode = code,
+            ItemName = name,
+            Quantity = quantity
+        });
+
     private async Task ApplyLineAsync(
         SalesOrder order,
         SalesOrderRevision revision,
@@ -459,6 +647,17 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
                 product.Code, product.Name, SalesConsts.DefaultProductUnit, bom.VersionNo.Value,
                 inventoryTransactionId, effectiveCost, snapshots);
             line.MarkApplied(added.Id, issueId, reversalId, effectiveCost, reversed);
+        }
+        else if (productChanged)
+        {
+            order.RemoveEffectiveRevisionLine(source.Id, revision.Id);
+            await _orders.UpdateAsync(order, autoSave: true);
+            var replacement = order.AddEffectiveRevisionLine(
+                GuidGenerator.Create(), revision.Id, line.LineNo, product.Id, bom.Id, line.Quantity,
+                line.SuggestedPriceVersionId, line.SuggestedPriceSnapshot, line.ActualSellingPrice, line.OverrideReason,
+                product.Code, product.Name, SalesConsts.DefaultProductUnit, bom.VersionNo.Value,
+                inventoryTransactionId, effectiveCost, snapshots);
+            line.MarkApplied(replacement.Id, issueId, reversalId, effectiveCost, reversed);
         }
         else
         {

@@ -1,0 +1,28 @@
+@page
+@model VPureLux.Web.Pages.Sales.ReturnsModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{ ViewData["Title"] = L["Sales:ReturnTasks"]; }
+
+@section scripts { <abp-script src="/Pages/Sales/Returns.js" /> }
+
+<div class="vpl-page vpl-inquiry-page" data-sales-returns>
+    <div class="vpl-page-header">
+        <h2 class="vpl-page-title mb-0">@L["Sales:ReturnTasks"]</h2>
+        <a class="btn btn-outline-secondary" asp-page="/Sales/Index">@L["Back"]</a>
+    </div>
+    <abp-card class="vpl-inquiry-filter-card vpl-card-dense mb-3">
+        <abp-card-body>
+            <form id="SalesReturnsSearchForm" class="row g-2">
+                <div class="col-md-5"><input id="SalesReturnsSearchText" class="form-control" placeholder="@L["Sales:ReturnSearchPlaceholder"]" /></div>
+                <div class="col-auto"><button class="btn btn-primary" type="submit">@L["Search"]</button></div>
+            </form>
+        </abp-card-body>
+    </abp-card>
+    <abp-card class="vpl-inquiry-results-card vpl-card-dense">
+        <abp-card-body>
+            <abp-table id="SalesReturnsTable" striped-rows="true" class="vpl-table-dense">
+                <thead><tr><th></th><th>@L["Sales:OrderNo"]</th><th>@L["Sales:Customer"]</th><th>@L["Sales:ReturnedItem"]</th><th>@L["Sales:Quantity"]</th><th>@L["Sales:AdjustmentReason"]</th><th>@L["Sales:CreatedAt"]</th></tr></thead>
+            </abp-table>
+        </abp-card-body>
+    </abp-card>
+</div>

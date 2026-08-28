@@ -5,6 +5,24 @@
     }
 
     const l = abp.localization.getResource('VPureLux');
+    const cancelConfirmedModal = new abp.ModalManager({ viewUrl: abp.appPath + 'Sales/CancelConfirmedModal' });
+    const voidPaymentModal = new abp.ModalManager({ viewUrl: abp.appPath + 'Sales/VoidPaymentModal' });
+
+    cancelConfirmedModal.onResult(function () { window.location.reload(); });
+    voidPaymentModal.onResult(function () { window.location.reload(); });
+
+    const cancelButton = page.querySelector('[data-sales-cancel-confirmed]');
+    if (cancelButton) {
+        cancelButton.addEventListener('click', function () {
+            cancelConfirmedModal.open({ id: cancelButton.dataset.orderId });
+        });
+    }
+
+    page.querySelectorAll('[data-sales-void-payment]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            voidPaymentModal.open({ id: button.dataset.paymentId });
+        });
+    });
 
     if (page.dataset.salesSuccessMessage) {
         abp.notify.success(page.dataset.salesSuccessMessage);

@@ -1,0 +1,23 @@
+@page
+@model VPureLux.Web.Pages.Sales.ReturnConfirmationModalModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using VPureLux.Sales
+@using Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Modal
+@{ Layout = null; }
+
+<form method="post" asp-page="/Sales/ReturnConfirmationModal">
+    <input asp-for="TaskType" type="hidden" /><input asp-for="OperationId" type="hidden" />
+    <input asp-for="RevisionLineId" type="hidden" /><input asp-for="Input.IdempotencyKey" type="hidden" />
+    <abp-modal>
+        <abp-modal-header title="@L["Sales:ConfirmReturn"]"></abp-modal-header>
+        <abp-modal-body>
+            <div class="mb-3"><strong>@Model.OrderNo</strong><br />@(string.IsNullOrWhiteSpace(Model.ItemName) ? L["Sales:EntireOrder"].Value : Model.ItemName) @Model.Quantity</div>
+            @if (Model.TaskType == SalesReturnTaskType.Cancellation)
+            {
+                <abp-input asp-for="Input.IsEligibleForRestock" label="@L["Sales:EligibleForRestock"]" />
+            }
+            <abp-input asp-for="Input.Reason" label="@L["Sales:WarehouseNote"]" />
+        </abp-modal-body>
+        <abp-modal-footer buttons="@(AbpModalButtons.Cancel|AbpModalButtons.Save)"></abp-modal-footer>
+    </abp-modal>
+</form>

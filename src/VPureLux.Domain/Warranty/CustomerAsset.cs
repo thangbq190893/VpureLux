@@ -269,4 +269,19 @@ public class CustomerAsset : FullAuditedAggregateRoot<Guid>
             ? reason
             : reason[..WarrantyConsts.MaxNoteLength];
     }
+
+    public void ReopenPendingInstallation(string reason)
+    {
+        if (Source != CustomerAssetSource.SoldByCompany || InstalledAt.HasValue ||
+            Status != CustomerAssetStatus.Cancelled)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.ValidationFailed);
+        }
+
+        Status = CustomerAssetStatus.PendingInstallation;
+        reason = Check.NotNullOrWhiteSpace(reason, nameof(reason)).Trim();
+        Note = reason.Length <= WarrantyConsts.MaxNoteLength
+            ? reason
+            : reason[..WarrantyConsts.MaxNoteLength];
+    }
 }

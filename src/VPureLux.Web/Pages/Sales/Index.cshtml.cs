@@ -28,6 +28,8 @@ public class IndexModel : VPureLuxPageModel
     public bool CanCreate { get; private set; }
     public bool CanViewHistory { get; private set; }
     public bool CanCancel { get; private set; }
+    public bool CanConfirmReturns { get; private set; }
+    public bool CanManageRefunds { get; private set; }
 
     public IndexModel(
         ISalesOrderAppService service,
@@ -87,19 +89,14 @@ public class IndexModel : VPureLuxPageModel
         CanCreate = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.Create)).Succeeded;
         CanViewHistory = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.ViewCustomerHistory)).Succeeded;
         CanCancel = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.Cancel)).Succeeded;
+        CanConfirmReturns = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.ConfirmReturnedGoods)).Succeeded;
+        CanManageRefunds = (await _authorizationService.AuthorizeAsync(User, VPureLuxPermissions.Sales.ManageRefunds)).Succeeded;
     }
 
     private SalesOrderRow ToRow(SalesOrderDto order, bool canCancel)
     {
         var payment = order.PaymentSummary;
-        var rowCanCancel = canCancel &&
-            (order.Status == SalesOrderStatus.Draft ||
-             (order.Status == SalesOrderStatus.Confirmed &&
-              payment.PaymentStatus == SalesOrderReceivableStatus.Unpaid &&
-              payment.PaidAmount == 0));
-        var cancelConfirmationMessage = order.Status == SalesOrderStatus.Confirmed
-            ? _localizer["Sales:CancelConfirmedUnpaidOrderMessage"].Value
-            : _localizer["Sales:CancelOrderMessage"].Value;
+        var rowCanCancel = canCancel && order.Status == SalesOrderStatus.Draft;
         return new SalesOrderRow(
             order.Id,
             order.OrderNo,
@@ -114,8 +111,7 @@ public class IndexModel : VPureLuxPageModel
             FormatPaymentAmount(payment.PaymentStatus, payment.RemainingAmount),
             _localizer[$"Sales:PaymentStatus:{payment.PaymentStatus}"].Value,
             GetPaymentStatusBadgeClass(payment.PaymentStatus),
-            rowCanCancel,
-            cancelConfirmationMessage);
+            rowCanCancel);
     }
 
     private static string FormatMoney(decimal value)
@@ -145,9 +141,7 @@ public class IndexModel : VPureLuxPageModel
 
     private static bool IsKnownCancelException(BusinessException exception) =>
         exception.Code is
-            VPureLuxDomainErrorCodes.SalesOrderAlreadyConfirmed or
             VPureLuxDomainErrorCodes.SalesOrderAlreadyCancelled or
-            VPureLuxDomainErrorCodes.SalesConfirmedOrderCancelRequiresUnpaid or
             VPureLuxDomainErrorCodes.SalesInventoryValidationFailed or
             VPureLuxDomainErrorCodes.SalesOrderCannotBeModified or
             VPureLuxDomainErrorCodes.InventoryTransactionNotFound or
@@ -169,6 +163,5 @@ public class IndexModel : VPureLuxPageModel
         string PaymentRemainingAmount,
         string PaymentStatusLabel,
         string PaymentStatusBadgeClass,
-        bool CanCancel,
-        string CancelConfirmationMessage);
+        bool CanCancel);
 }

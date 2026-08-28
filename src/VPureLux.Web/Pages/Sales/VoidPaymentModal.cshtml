@@ -1,0 +1,17 @@
+@page
+@model VPureLux.Web.Pages.Sales.VoidPaymentModalModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Modal
+@{ Layout = null; }
+
+<form method="post" asp-page="/Sales/VoidPaymentModal">
+    <input asp-for="Id" type="hidden" />
+    <abp-modal>
+        <abp-modal-header title="@L["Sales:VoidPayment"]"></abp-modal-header>
+        <abp-modal-body>
+            <div class="alert alert-warning">@L["Sales:VoidPaymentNote"]</div>
+            <abp-input asp-for="Input.Reason" label="@L["Sales:VoidReason"]" />
+        </abp-modal-body>
+        <abp-modal-footer buttons="@(AbpModalButtons.Cancel|AbpModalButtons.Save)"></abp-modal-footer>
+    </abp-modal>
+</form>

@@ -407,6 +407,7 @@ namespace VPureLux.Migrations
                 migrationBuilder.Sql("""
 DECLARE @ProcedureName sysname;
 DECLARE @Definition nvarchar(max);
+DECLARE @ProcedureKeywordPosition int;
 DECLARE report_cursor CURSOR LOCAL FAST_FORWARD FOR
     SELECT name
     FROM sys.procedures
@@ -419,7 +420,12 @@ BEGIN
     SET @Definition = OBJECT_DEFINITION(OBJECT_ID(N'dbo.' + @ProcedureName));
     IF @Definition IS NOT NULL AND @Definition NOT LIKE N'%l.IsEffective = 1%'
     BEGIN
-        SET @Definition = REPLACE(@Definition, N'CREATE OR ALTER PROCEDURE', N'ALTER PROCEDURE');
+        SET @ProcedureKeywordPosition = CHARINDEX(N'PROCEDURE', UPPER(@Definition));
+        IF @ProcedureKeywordPosition > 0
+            SET @Definition = N'ALTER PROCEDURE' + SUBSTRING(
+                @Definition,
+                @ProcedureKeywordPosition + LEN(N'PROCEDURE'),
+                LEN(@Definition));
         SET @Definition = REPLACE(
             @Definition,
             N'INNER JOIN AppSalesOrderLines l ON l.SalesOrderId = o.Id',
@@ -442,6 +448,7 @@ DEALLOCATE report_cursor;
                 migrationBuilder.Sql("""
 DECLARE @ProcedureName sysname;
 DECLARE @Definition nvarchar(max);
+DECLARE @ProcedureKeywordPosition int;
 DECLARE report_cursor CURSOR LOCAL FAST_FORWARD FOR
     SELECT name
     FROM sys.procedures
@@ -454,7 +461,12 @@ BEGIN
     SET @Definition = OBJECT_DEFINITION(OBJECT_ID(N'dbo.' + @ProcedureName));
     IF @Definition IS NOT NULL
     BEGIN
-        SET @Definition = REPLACE(@Definition, N'CREATE OR ALTER PROCEDURE', N'ALTER PROCEDURE');
+        SET @ProcedureKeywordPosition = CHARINDEX(N'PROCEDURE', UPPER(@Definition));
+        IF @ProcedureKeywordPosition > 0
+            SET @Definition = N'ALTER PROCEDURE' + SUBSTRING(
+                @Definition,
+                @ProcedureKeywordPosition + LEN(N'PROCEDURE'),
+                LEN(@Definition));
         SET @Definition = REPLACE(
             @Definition,
             N'INNER JOIN AppSalesOrderLines l ON l.SalesOrderId = o.Id AND l.IsEffective = 1',

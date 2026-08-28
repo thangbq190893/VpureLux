@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 
 namespace VPureLux.Sales;
@@ -18,4 +19,8 @@ public interface ISalesPostConfirmationAppService : IApplicationService
     Task<SalesOrderRefundDto> RecordCancellationRefundAsync(Guid cancellationId, RecordSalesOrderRefundDto input);
     Task<SalesOrderRefundDto> RecordRevisionRefundAsync(Guid revisionId, RecordSalesOrderRefundDto input);
     Task VoidPaymentAsync(Guid paymentId, ReasonDto input);
+    Task<SalesPostConfirmationStateDto> GetOrderStateAsync(Guid salesOrderId);
+    Task<SalesRevisionPreviewDto> GetRevisionPreviewAsync(Guid revisionId);
+    Task<PagedResultDto<SalesReturnTaskDto>> GetReturnTasksAsync(GetSalesReturnTasksInput input);
+    Task<PagedResultDto<SalesRefundTaskDto>> GetRefundTasksAsync(GetSalesRefundTasksInput input);
 }

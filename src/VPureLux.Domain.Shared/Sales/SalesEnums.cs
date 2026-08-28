@@ -56,3 +56,22 @@ public enum SalesOrderCancellationPaymentStatus : byte
     PendingRefund = 2,
     Completed = 3
 }
+
+public enum SalesReturnTaskType : byte
+{
+    RevisionLine = 1,
+    Cancellation = 2
+}
+
+public enum SalesRefundTaskType : byte
+{
+    Revision = 1,
+    Cancellation = 2
+}
+
+public enum SalesRevisionImpactType : byte
+{
+    Unchanged = 1,
+    Return = 2,
+    Issue = 3
+}

@@ -21,6 +21,14 @@
     <div class="vpl-page-header">
         <h2 class="vpl-page-title mb-0">@L["Sales:Title"]</h2>
         <div class="vpl-btn-toolbar">
+            @if (Model.CanConfirmReturns)
+            {
+                <a class="btn btn-outline-secondary" asp-page="/Sales/Returns"><i class="fa fa-warehouse"></i> @L["Sales:ReturnTasks"]</a>
+            }
+            @if (Model.CanManageRefunds)
+            {
+                <a class="btn btn-outline-secondary" asp-page="/Sales/Refunds"><i class="fa fa-money-bill-transfer"></i> @L["Sales:RefundTasks"]</a>
+            }
             @if (canViewCustomerHistory)
             {
                 <a class="btn btn-outline-secondary" asp-page="/Sales/CustomerHistory">@L["Sales:CustomerHistory"]</a>
