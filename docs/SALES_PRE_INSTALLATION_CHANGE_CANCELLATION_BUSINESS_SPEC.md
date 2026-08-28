@@ -43,7 +43,7 @@ Người dùng Sales V1 chỉ cần hiểu ba trạng thái:
 | Trạng thái | Ý nghĩa |
 |---|---|
 | Nháp | Sale được tạo và sửa theo quyền hiện tại. |
-| Đã xác nhận - Chờ lắp | Đơn đã xuất FIFO và chốt snapshot; Manager có thể điều chỉnh/hủy nếu chưa có máy lắp. |
+| Đã xác nhận | Đơn đã xuất FIFO và chốt snapshot; Manager có thể điều chỉnh/hủy có kiểm soát nếu không có máy đã lắp. |
 | Đã hủy | Hủy đã có hiệu lực; có thể vẫn còn việc hoàn hàng hoặc hoàn tiền. |
 
 Không thêm `Đã lắp - Đã khóa` hoặc `Completed` vào `SalesOrderStatus` ở V1. Trên UI, hệ thống hiển thị thêm thông tin tổng hợp:
@@ -85,10 +85,10 @@ Nhãn thao tác UI nên là **Xác nhận và xuất kho** để người dùng 
 
 Manager được mở revision khi:
 
-1. Đơn đang `Đã xác nhận - Chờ lắp`.
-2. Đơn có ít nhất một sản phẩm được đánh dấu là máy.
-3. Chưa có bất kỳ máy nào thuộc đơn được xác nhận lắp đặt.
-4. Không có revision hoặc cancellation process khác đang mở.
+1. Đơn đang `Đã xác nhận`.
+2. Chưa có bất kỳ máy nào thuộc đơn được xác nhận lắp đặt; đơn không có máy mặc nhiên đạt điều kiện này.
+3. Không có revision hoặc cancellation process khác đang mở.
+4. Manager có đúng permission.
 
 Không bắt buộc hàng đã quay về hoặc payment bằng 0 để **mở** revision. Các điều kiện đó chỉ được kiểm tra theo tác động khi **áp dụng** revision.
 
@@ -164,7 +164,7 @@ Nếu bất kỳ prerequisite nào chưa đạt hoặc tồn kho mới không đ
 
 Manager được hủy khi:
 
-1. Đơn đang `Đã xác nhận - Chờ lắp`.
+1. Đơn đang `Đã xác nhận`.
 2. Chưa có máy nào thuộc đơn được xác nhận lắp.
 3. Không có revision/cancellation process xung đột.
 
@@ -214,9 +214,9 @@ Mở revision, hủy và xác nhận lắp phải tranh chấp trên cùng `Sale
 
 ### 15. Đơn không có máy
 
-Trong V1, đơn không chứa sản phẩm là máy vẫn bất biến sau Confirm như hiện tại. Đây là giới hạn phạm vi, không phải quy tắc ERP tổng quát.
+Đơn không có máy vẫn được điều chỉnh/hủy có kiểm soát như mọi đơn `Confirmed`; `IsMachine` không phải điều kiện eligibility của Sales. Mọi negative inventory delta vẫn cần Kho xác nhận hàng đã quay về và đủ điều kiện trước khi reversal.
 
-Nếu sau này cần sửa/hủy linh hoạt cho đơn không có máy, phải xác định một boundary khác như giao hàng/hoàn tất giao hàng. Không đưa nội dung đó vào scope hiện tại.
+V1 chưa có terminal modification boundary cho đơn non-machine. Manager có thể thực hiện controlled revision/cancellation với đầy đủ permission và audit. Delivery, Accounting-close hoặc một terminal boundary khác được defer, không thuộc scope V1.
 
 ### 16. Reporting và công nợ
 
@@ -291,6 +291,8 @@ Người dùng không phải hiểu revision entity, reversal transaction hoặc
 12. Máy đầu tiên Installed khóa Điều chỉnh/Hủy toàn bộ đơn nhưng không đánh dấu Sales Completed.
 13. Sai Customer dùng Hủy và tạo đơn mới, không copy dữ liệu kỹ thuật.
 14. Tất cả thao tác có audit, permission, idempotency và concurrency coverage.
+15. Đơn non-machine, machine và mixed đều dùng cùng eligibility Sales; `IsMachine` chỉ điều khiển CustomerCare side effects.
+16. Payment đã post được carry-forward và không chặn mở/apply revision.
 
 ### 20. Ngoài scope V1
 

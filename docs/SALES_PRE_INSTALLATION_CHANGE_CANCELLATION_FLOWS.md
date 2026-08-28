@@ -6,7 +6,7 @@ Tài liệu này minh họa business target trong `SALES_PRE_INSTALLATION_CHANGE
 
 ```mermaid
 flowchart TD
-    A["Nháp"] -->|"Xác nhận và xuất kho"| B["Đã xác nhận - Chờ lắp"]
+    A["Nháp"] -->|"Xác nhận và xuất kho"| B["Đã xác nhận"]
     A -->|"Hủy đơn Nháp"| C["Đã hủy"]
 
     B --> D{"Phát sinh hành động nào?"}
@@ -20,7 +20,7 @@ flowchart TD
     D -->|"Kỹ thuật lắp máy đầu tiên"| G["Giữ trạng thái Sales hiện tại"]
     G --> H["Khóa Điều chỉnh và Hủy"]
 ```
-Người dùng chỉ thấy `Nháp`, `Đã xác nhận - Chờ lắp`, `Đã hủy` và thông tin khóa/việc còn chờ. Revision và cancellation process là dữ liệu nội bộ.
+Người dùng chỉ thấy `Nháp`, `Đã xác nhận`, `Đã hủy` và thông tin khóa/việc còn chờ. Revision và cancellation process là dữ liệu nội bộ.
 
 ## 2. Luồng điều chỉnh theo delta
 
@@ -80,7 +80,7 @@ Không hoàn tiền rồi thu lại chỉ vì revision thay đổi tổng đơn.
 
 ```mermaid
 flowchart TD
-    A["Đã xác nhận - Chờ lắp"] -->|"Manager Hủy đơn + lý do"| B{"Đã có máy Installed?"}
+    A["Đã xác nhận"] -->|"Manager Hủy đơn + lý do"| B{"Đã có máy Installed?"}
     B -->|"Có"| C["Từ chối hủy"]
     B -->|"Chưa"| D["Hủy có hiệu lực ngay"]
 
@@ -163,10 +163,9 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    A{"Đơn có sản phẩm là máy?"}
-    A -->|"Không"| B["Confirmed bất biến như hiện tại"]
-    A -->|"Có"| C{"Có máy Installed?"}
-    C -->|"Có"| D["Khóa Điều chỉnh và Hủy toàn đơn"]
-    C -->|"Chưa"| E["Manager có thể Điều chỉnh/Hủy"]
-    D --> F["Các máy còn lại tiếp tục installation"]
+    A["Mọi đơn Confirmed"] --> B{"Có CustomerAsset Installed?"}
+    B -->|"Có"| C["Khóa Điều chỉnh và Hủy toàn đơn"]
+    B -->|"Không / đơn không có máy"| D["Manager có thể Điều chỉnh/Hủy có kiểm soát"]
+    D --> E["Negative inventory delta cần Kho xác nhận"]
+    C --> F["Các máy còn lại tiếp tục installation"]
 ```

@@ -734,7 +734,6 @@
     "SALES_021": "Quy trình hủy không còn chờ xác nhận hoàn hàng.",
     "SALES_022": "Số tiền hoàn vượt quá số tiền khách cần được hoàn.",
     "SALES_023": "Bắt buộc nhập lý do cho thao tác này.",
-    "SALES_024": "Chỉ đơn có ít nhất một sản phẩm là máy mới được điều chỉnh hoặc hủy theo luồng trước lắp đặt.",
     "SALES_025": "Đơn bán hàng đang được xử lý bởi thao tác khác. Vui lòng thử lại.",
     "SALES_026": "Khoản thanh toán đã được void trước đó.",
     "COM_001": "Dữ liệu không hợp lệ.",

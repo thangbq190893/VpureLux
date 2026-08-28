@@ -21,7 +21,7 @@ Status: Phase 1 backend foundation completed locally on 2026-08-26. Not deployed
 ## 3. Revision Delta Algorithm
 
 1. Acquire the shared distributed lock `sales-order:{SalesOrderId}` and reload current state in the Unit of Work.
-2. Verify confirmed machine scope, no Installed asset, no active revision/cancellation, permission, and immutable CustomerId.
+2. Verify Confirmed status, no Installed asset, no active revision/cancellation, permission, and immutable CustomerId. Machine configuration is not a Sales eligibility condition.
 3. Compare effective lines by source line id. Classify unchanged, price-only, quantity increase/decrease, replacement, add, and remove.
 4. Leave unchanged lines and their original allocation/cost untouched.
 5. Post only required FIFO issues. Reverse decreases/removals/replacements from the effective allocation ledger using original lot and unit-cost facts.
@@ -41,6 +41,8 @@ Manager approval immediately changes Sales status to Cancelled and creates one c
 ## 6. Installation Lock And Concurrency
 
 Open/update/apply/cancel/install use the same distributed lock name based on `SalesOrderId`, reload state after acquiring it, and rely on rowversion plus unique indexes as database backstops. Installed is not a Sales status and does not create Sales Completed. Explicit HTTP endpoints are exposed by `SalesPostConfirmationController`; Razor UI is deferred.
+
+All Confirmed orders share the same controlled correction rules. `IsMachine` only controls CustomerCare intake and pending-asset reconciliation. An order without assets has no installation lock; V1 intentionally defers a Delivery/Accounting-close terminal boundary for non-machine orders. Negative inventory deltas still require Warehouse confirmation.
 
 ## 7. Reporting Impact
 
@@ -65,5 +67,6 @@ Focused Domain/Application/EF tests cover state invariants, delta behavior, exac
 ## 11. Known Risks
 
 - Phase 1 must not be enabled for production operators until the Phase 2 UI and pending-asset reconciliation are implemented and UAT-approved.
+- Non-machine Confirmed orders have no terminal modification boundary in V1; permission, audit, warehouse confirmation, and atomic posting are the deliberate controls until a separately approved delivery/accounting-close boundary exists.
 - Existing SQL Server report procedures require the same effective-line predicate as the EF/SQLite fallback.
 - Multi-instance safety depends on both the configured distributed lock provider and database uniqueness/concurrency constraints.

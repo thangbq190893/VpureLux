@@ -26,7 +26,6 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
     private readonly ISalesOrderCancellationRepository _cancellations;
     private readonly ISalesOrderRefundRepository _refunds;
     private readonly ISalesOrderPaymentRepository _payments;
-    private readonly IProductMachineSettingRepository _machineSettings;
     private readonly IRepository<CustomerAsset, Guid> _assets;
     private readonly IProductRepository _products;
     private readonly IBomVersionRepository _boms;
@@ -46,7 +45,6 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
         ISalesOrderCancellationRepository cancellations,
         ISalesOrderRefundRepository refunds,
         ISalesOrderPaymentRepository payments,
-        IProductMachineSettingRepository machineSettings,
         IRepository<CustomerAsset, Guid> assets,
         IProductRepository products,
         IBomVersionRepository boms,
@@ -65,7 +63,6 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
         _cancellations = cancellations;
         _refunds = refunds;
         _payments = payments;
-        _machineSettings = machineSettings;
         _assets = assets;
         _products = products;
         _boms = boms;
@@ -86,7 +83,7 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
         await _coordinator.ExecuteAsync(salesOrderId, async () =>
         {
             var order = await GetOrderAsync(salesOrderId);
-            await EnsureModificationAllowedAsync(order, requireMachine: true);
+            await EnsureModificationAllowedAsync(order);
             if (await _revisions.FindActiveByOrderIdAsync(order.Id) != null)
             {
                 throw new BusinessException(VPureLuxDomainErrorCodes.SalesRevisionAlreadyActive);
@@ -115,7 +112,7 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
         {
             var revision = await _revisions.GetAsync(revisionId, includeDetails: true);
             var order = await GetOrderAsync(salesOrderId);
-            await EnsureModificationAllowedAsync(order, requireMachine: true);
+            await EnsureModificationAllowedAsync(order);
             EnsureActiveRevision(revision, order);
             if (input.CustomerId != order.CustomerId || revision.CustomerIdSnapshot != order.CustomerId)
             {
@@ -189,7 +186,7 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
         {
             var revision = await _revisions.GetAsync(revisionId, includeDetails: true);
             var order = await GetOrderAsync(salesOrderId);
-            await EnsureModificationAllowedAsync(order, requireMachine: true);
+            await EnsureModificationAllowedAsync(order);
             EnsureActiveRevision(revision, order);
             if (input.RevisionLineIds.Count == 0 || input.RevisionLineIds.Distinct().Count() != input.RevisionLineIds.Count)
             {
@@ -224,7 +221,7 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
             }
 
             var order = await GetOrderAsync(salesOrderId);
-            await EnsureModificationAllowedAsync(order, requireMachine: true);
+            await EnsureModificationAllowedAsync(order);
             EnsureActiveRevision(revision, order);
             if (revision.Lines.Where(x => x.RequiresReturnConfirmation).Any(x => !x.ReturnConfirmedAt.HasValue))
             {
@@ -286,7 +283,7 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
             {
                 return ToDto(existing);
             }
-            await EnsureModificationAllowedAsync(order, requireMachine: true);
+            await EnsureModificationAllowedAsync(order);
             if (await _revisions.FindActiveByOrderIdAsync(order.Id) != null)
             {
                 throw new BusinessException(VPureLuxDomainErrorCodes.SalesRevisionAlreadyActive);
@@ -699,7 +696,7 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
             });
     }
 
-    private async Task EnsureModificationAllowedAsync(SalesOrder order, bool requireMachine)
+    private async Task EnsureModificationAllowedAsync(SalesOrder order)
     {
         if (order.Status != SalesOrderStatus.Confirmed)
         {
@@ -709,15 +706,6 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
         if (await AsyncExecuter.AnyAsync(assetQuery.Where(x => x.SalesOrderId == order.Id && x.InstalledAt.HasValue)))
         {
             throw new BusinessException(VPureLuxDomainErrorCodes.SalesInstallationLocksModification);
-        }
-        if (requireMachine)
-        {
-            var productIds = order.EffectiveLines.Select(x => x.ProductId).Distinct().ToArray();
-            var settings = await _machineSettings.GetByProductIdsAsync(productIds);
-            if (!settings.Any(x => x.IsMachine))
-            {
-                throw new BusinessException(VPureLuxDomainErrorCodes.SalesOrderMustContainMachine);
-            }
         }
     }
 

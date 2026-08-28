@@ -3,10 +3,10 @@
 This file is the single source of truth for implementation order and agent handoff.
 Every agent must read and update this file so another agent can continue without a chat summary.
 
-Last updated: 2026-08-26 (Asia/Saigon)
-Current product stage: Sales pre-installation correction V1 backend foundation complete locally
-Current active task: None
-Next task: SALES-V1-PHASE2 - implement the minimal Manager/Warehouse UI and pending CustomerCare asset reconciliation; test on VPL only
+Last updated: 2026-08-28 (Asia/Saigon)
+Current product stage: Sales post-confirm correction V1 Phase 2 in progress
+Current active task: SALES-V1-PHASE2
+Next task: Correct Phase 1 eligibility assumptions, then implement CustomerCare reconciliation and operator UI; do not enter VPL before local validation passes
 Service implementation gate: CLOSED until W-GATE is DONE
 
 ## 1. Mandatory Agent Protocol
@@ -418,16 +418,16 @@ Status: HOLD
 
 ## 7. Active Work Record
 
-Task ID: SALES-V1-PHASE1
-Agent/task name: Codex - post-confirm Sales adjustment/cancellation backend foundation
-Started at (Asia/Saigon): 2026-08-26
-Branch and starting commit: codex/warranty-release-review / 55aaf24 (`release-2026-08-24-warranty-notifications`)
-Goal for this run: Implement the approved Phase 1 backend foundation for Manager-only revision, delta inventory posting, payment carry-forward/refund due, effective cancellation with independent stock/refund obligations, and the shared pre-installation lock.
-Status: DONE locally; commit subject `feat(sales): add post-confirm adjustment and cancellation foundation`; no push or deployment.
-Files changed: Sales Domain.Shared/Domain/Application.Contracts/Application/HttpApi/EF Core, Warranty installation guard and pending-asset cancellation, Sales/Inventory report predicates, migration `20260826051356_AddSalesPreInstallationV1Foundation`, focused tests, approved business/flow documents, technical implementation note, and this handoff file. Web UI is intentionally excluded.
-Database/data impact: Schema-only migration adds Sales revision/cancellation/refund companion tables and effective-line/payment-void metadata. Migration Up has no business-data UPDATE/DELETE/backfill. Only the isolated SQLite test provider was used; no VPL server database and no production database/server were accessed.
-Verification completed: `dotnet build VPureLux.slnx --no-restore -m:2` passed with 0 errors; Application Sales 2/2, Domain Sales/Inventory 30/30, EF Sales/Inventory 84/84; `dotnet ef migrations has-pending-model-changes` reports none; `git diff --check` passed.
-Current blocker: None for Phase 1. Phase 2 must add minimal ABP UI and reconcile already-created pending CustomerCare assets when an applied revision changes machine product or unit count before any production enablement/UAT.
+Task ID: SALES-V1-PHASE2
+Agent/task name: Codex - correct Sales eligibility, reconcile pending assets, and add operator workflows
+Started at (Asia/Saigon): 2026-08-28
+Branch and starting commit: codex/warranty-release-review / 74575be (`feat(sales): add post-confirm adjustment and cancellation foundation`)
+Goal for this run: Remove the incorrect machine-only Sales assumption, preserve payment carry-forward and warehouse prerequisites, reconcile only affected pending machine assets, and add minimal Manager/Warehouse/Accounting ABP workflows.
+Status: IN_PROGRESS. No push or deployment.
+Phase 2 compatibility findings: `IsEffective` has a true database default and legacy read/report paths remain compatible. The behavior defects are five `requireMachine: true` calls, machine-scope validation/error/tests/docs, and the old Details cancel action calling Draft-only `CancelAsync` for Confirmed orders. `IsMachine` remains valid only in CustomerCare intake/reconciliation.
+Database/data impact: No migration expected and no legacy data mutation permitted. Local automated tests must use SQLite; VPL UAT is forbidden until all local build/tests pass. Production database/server access is forbidden.
+Verification completed: Mandatory preflight passed at 74575be; machine-coupling, Sales line read predicates, CustomerCare intake/assets, Phase 1 migration, payment compatibility, ABP DataTables/ModalManager patterns, current tests, and approved documents were audited.
+Current blocker: None. If implementation requires schema or legacy-data mutation, stop before creating a migration.
 
 ## 8. Handoff Log
 

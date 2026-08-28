@@ -704,7 +704,6 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 500);
         var stockItem = await GetComponentStockItemAsync(component.Id);
         var (product, _) = await CreateProductForComponentAsync(component);
-        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
         var order = await _sales.CreateAsync(Input(context, product.Id, 2, 1_000));
         await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
         var confirmed = await _sales.GetAsync(order.Id);
@@ -909,7 +908,6 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         var context = await CreateBaseAsync();
         var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 500);
         var (product, _) = await CreateProductForComponentAsync(component);
-        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
         var order = await _sales.CreateAsync(Input(context, product.Id, 2, 1_000));
         await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
         await InsertPaymentAsync(order.Id, context.Customer.Id, 1_500, "REV-PAY");
@@ -945,7 +943,7 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     [Fact]
-    public async Task Revision_Eligibility_Should_Enforce_Confirmed_Machine_Active_Process_And_Customer_Invariant()
+    public async Task Revision_Eligibility_Should_Allow_NonMachine_Paid_And_Mixed_Orders()
     {
         var context = await CreateBaseAsync();
         var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 100);
@@ -956,14 +954,9 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
             .Code.ShouldBe(VPureLuxDomainErrorCodes.SalesRevisionNotAllowed);
 
         await _sales.ConfirmAsync(draft.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
-        (await Should.ThrowAsync<BusinessException>(() => _postConfirmation.OpenRevisionAsync(
-            draft.Id, new OpenSalesOrderRevisionDto { Reason = "Non-machine is not eligible" })))
-            .Code.ShouldBe(VPureLuxDomainErrorCodes.SalesOrderMustContainMachine);
-
-        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
         await InsertPaymentAsync(draft.Id, context.Customer.Id, 100, "OPEN-WITH-PAYMENT");
         var revision = await _postConfirmation.OpenRevisionAsync(
-            draft.Id, new OpenSalesOrderRevisionDto { Reason = "Manager correction" });
+            draft.Id, new OpenSalesOrderRevisionDto { Reason = "Non-machine paid correction" });
         (await Should.ThrowAsync<BusinessException>(() => _postConfirmation.OpenRevisionAsync(
             draft.Id, new OpenSalesOrderRevisionDto { Reason = "Duplicate active revision" })))
             .Code.ShouldBe(VPureLuxDomainErrorCodes.SalesRevisionAlreadyActive);
@@ -975,6 +968,25 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
                 CustomerId = Guid.NewGuid(),
                 Lines = [new UpdateSalesOrderRevisionLineDto { RevisionLineId = line.Id, ProductId = product.Id, Quantity = 1, ActualSellingPrice = 1_000 }]
             }))).Code.ShouldBe(VPureLuxDomainErrorCodes.SalesRevisionNotAllowed);
+
+        await _postConfirmation.CancelRevisionAsync(revision.Id, new ReasonDto { Reason = "Eligibility test complete" });
+        var secondComponent = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 120);
+        var (machineProduct, _) = await CreateProductForComponentAsync(secondComponent);
+        await _warranty.SetMachineSettingAsync(machineProduct.Id, new SetProductMachineSettingDto { IsMachine = true });
+        var mixed = await _sales.CreateAsync(new CreateSalesOrderDto
+        {
+            CustomerId = context.Customer.Id,
+            WarehouseId = context.Warehouse.Id,
+            Lines =
+            [
+                new CreateSalesOrderLineDto { ProductId = product.Id, Quantity = 1, ActualSellingPrice = 1_000 },
+                new CreateSalesOrderLineDto { ProductId = machineProduct.Id, Quantity = 1, ActualSellingPrice = 2_000 }
+            ]
+        });
+        await _sales.ConfirmAsync(mixed.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var mixedRevision = await _postConfirmation.OpenRevisionAsync(
+            mixed.Id, new OpenSalesOrderRevisionDto { Reason = "Mixed-order correction" });
+        mixedRevision.Lines.Count.ShouldBe(2);
     }
 
     [Fact]
@@ -987,7 +999,6 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         var newStock = await GetComponentStockItemAsync(newComponent.Id);
         var (oldProduct, _) = await CreateProductForComponentAsync(oldComponent);
         var (newProduct, _) = await CreateProductForComponentAsync(newComponent);
-        await _warranty.SetMachineSettingAsync(oldProduct.Id, new SetProductMachineSettingDto { IsMachine = true });
         var order = await _sales.CreateAsync(Input(context, oldProduct.Id, 1, 1_000));
         await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
         var revision = await _postConfirmation.OpenRevisionAsync(order.Id, new OpenSalesOrderRevisionDto { Reason = "Replace product" });
@@ -1069,7 +1080,6 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         var (productA, _) = await CreateProductForComponentAsync(componentA);
         var (productB, _) = await CreateProductForComponentAsync(componentB);
         var (productC, _) = await CreateProductForComponentAsync(componentC);
-        await _warranty.SetMachineSettingAsync(productA.Id, new SetProductMachineSettingDto { IsMachine = true });
         var order = await _sales.CreateAsync(Input(context, productA.Id, 1, 1_000));
         await _sales.AddLineAsync(order.Id, new CreateSalesOrderLineDto { ProductId = productB.Id, Quantity = 1, ActualSellingPrice = 1_000 });
         await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
@@ -1108,7 +1118,6 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         var context = await CreateBaseAsync();
         var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 5, 100);
         var (product, _) = await CreateProductForComponentAsync(component);
-        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
         var order = await _sales.CreateAsync(Input(context, product.Id, 1, 1_000));
         await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
         var assetId = await CreatePendingAssetAsync(await _sales.GetAsync(order.Id));
@@ -1166,7 +1175,6 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 100);
         var stockItem = await GetComponentStockItemAsync(component.Id);
         var (product, _) = await CreateProductForComponentAsync(component);
-        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
         var order = await _sales.CreateAsync(Input(context, product.Id, 2, 1_000));
         await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
         var revision = await _postConfirmation.OpenRevisionAsync(order.Id, new OpenSalesOrderRevisionDto { Reason = "Increase quantity" });
@@ -1194,7 +1202,6 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 125);
         var stockItem = await GetComponentStockItemAsync(component.Id);
         var (product, _) = await CreateProductForComponentAsync(component);
-        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
         var order = await _sales.CreateAsync(Input(context, product.Id, 3, 1_000));
         await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
         var revision = await _postConfirmation.OpenRevisionAsync(order.Id, new OpenSalesOrderRevisionDto { Reason = "Decrease quantity" });
@@ -1227,7 +1234,6 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 2, 100);
         var stockItem = await GetComponentStockItemAsync(component.Id);
         var (product, _) = await CreateProductForComponentAsync(component);
-        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
         var order = await _sales.CreateAsync(Input(context, product.Id, 1, 1_000));
         await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
         var revision = await _postConfirmation.OpenRevisionAsync(order.Id, new OpenSalesOrderRevisionDto { Reason = "Too large increase" });
@@ -1252,7 +1258,6 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         var context = await CreateBaseAsync();
         var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 5, 100);
         var (product, _) = await CreateProductForComponentAsync(component);
-        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
         var order = await _sales.CreateAsync(Input(context, product.Id, 1, 1_000));
         await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
         await InsertPaymentAsync(order.Id, context.Customer.Id, 600, "CANCEL-PAID");

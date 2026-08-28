@@ -83,7 +83,6 @@ public static class VPureLuxDomainErrorCodes
     public const string SalesCancellationNotPendingReturn = "SALES_021";
     public const string SalesRefundExceedsAmountDue = "SALES_022";
     public const string SalesReasonRequired = "SALES_023";
-    public const string SalesOrderMustContainMachine = "SALES_024";
     public const string SalesPostConfirmationLockUnavailable = "SALES_025";
     public const string SalesPaymentAlreadyVoided = "SALES_026";
     public const string SalesConfirmationIdempotencyConflict = DuplicateConfirmationKey;
