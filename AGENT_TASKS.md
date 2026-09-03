@@ -4,9 +4,9 @@ This file is the single source of truth for implementation order and agent hando
 Every agent must read and update this file so another agent can continue without a chat summary.
 
 Last updated: 2026-09-03 (Asia/Saigon)
-Current product stage: Sales post-confirm correction V1 is technically ready for an explicitly authorized production rollout
+Current product stage: Sales post-confirm correction V1 is deployed to production and reconciled
 Current active task: None
-Next task: Await explicit user authorization before any Sales V1 push, production migration, or deployment
+Next task: Await user acceptance or a new explicit task; do not start Service while W-GATE remains open
 Service implementation gate: CLOSED until W-GATE is DONE
 
 ## 1. Mandatory Agent Protocol
@@ -125,6 +125,7 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | W-008 | Warranty regression, UAT, migration rehearsal, and rollout | PENDING | W-001..W-007 |
 | W-GATE | Warranty/CustomerCare acceptance gate | PENDING | W-008 |
 | SALES-V1-REHEARSAL | Sales V1 migration rehearsal and legacy-data safety gate | DONE | SALES-V1-PHASE2 |
+| SALES-V1-ROLLOUT | Sales V1 production migration, deployment, smoke, and reconciliation | DONE | SALES-V1-REHEARSAL |
 | S-001 | Service module foundation and work catalog | HOLD | W-GATE |
 | S-002 | Service order aggregate, lines, permissions, and UI | HOLD | S-001 |
 | S-003 | Service completion, FIFO issue, and schedule integration | HOLD | S-002 |
@@ -419,17 +420,27 @@ Status: HOLD
 
 ## 7. Active Work Record
 
-Task ID: SALES-V1-REHEARSAL
-Agent/task name: Codex - rehearse Sales V1 migration and prove legacy-data compatibility
+Task ID: SALES-V1-ROLLOUT
+Agent/task name: Codex - deploy accepted Sales V1 to production with rollback gates
 Started at (Asia/Saigon): 2026-09-03
-Branch and starting commit: codex/warranty-release-review / edf173f (`docs: update sales phase 2 handoff`)
-Goal for this run: Apply `20260826051356_AddSalesPreInstallationV1Foundation` to a pre-Sales-V1 clone of VPL, reconcile legacy Sales/Payment/Inventory/CustomerCare facts before and after, verify report/UI/API compatibility, and rerun Sales V1 UAT on newly prefixed data.
-Status: DONE. Decision `READY FOR PRODUCTION ROLLOUT`; no push or production deployment was authorized or performed.
-Database/data boundary: Production database `VPureLux` is prohibited. Rehearsal will use a separately restored VPL backup under database name `VPL_SALES_REHEARSAL_20260903`; existing VPL and legacy rows must not be edited. Only new prefixed `UATSALE3_20260903_` data may be created after migration verification.
-Verification completed: Mandatory skill/preflight passed at `edf173f`. Restored `VPL_SALES_REHEARSAL_20260903` from the pre-Sales-V1 backup, created valid legacy fixtures through release `55aaf24`, applied only `20260826051356_AddSalesPreInstallationV1Foundation`, and matched all 14 before/after row-count plus SHA-256 fingerprints. Legacy Sales/Payment/Inventory/BOM/CustomerAsset facts and both reports were unchanged. Sales V1 UAT A-I passed on new `UATSALE3_20260903_` data; return/refund queues ended at zero. Full build passed; Application 2/2, Domain 35/35, EF 95/95, and smaller Web regressions 15/15 passed. Combined Web filter leaked to about 3.6 GB and was stopped, so no combined Web pass is claimed. EF has no pending model changes.
-Current blocker: None. Residual test-infrastructure risk is the known combined Web testhost memory leak; it does not reproduce in the smaller focused groups or application UAT.
+Branch and starting commit: codex/warranty-release-review / a4717aa (`docs(sales): record final migration rehearsal`)
+Goal for this run: Push the accepted Sales V1 commits, protect `VPureLux` with a verified backup, apply only `20260826051356_AddSalesPreInstallationV1Foundation`, reconcile legacy data and reports, deploy an immutable Web release, and complete production smoke without mutating legacy business records.
+Status: DONE. Decision `PRODUCTION ROLLOUT COMPLETE`. Source, backup, migration, reconciliation, immutable Web deployment, health, authenticated read-only Sales smoke, reports, and post-deploy data gates all passed.
+Database/data boundary: Production schema migration and standard ABP system seeding are explicitly authorized; no custom business DML, backfill, legacy-order mutation, FIFO rebuild, or production cleanup is permitted.
+Verification completed: Branch pushed without force at `a4717aa`; detached artifacts matched local/VPS SHA-256. Production backup `/var/opt/mssql/data/VPureLux-pre-sales-v1-20260903-180246.bak` passed VERIFYONLY. DbMigrator applied only `20260826051356_AddSalesPreInstallationV1Foundation`. All 14 legacy fingerprints, sampled orders, Revenue, and Profit matched before/after/final. New process tables stayed empty; no production smoke records were created. Release `/opt/vpurelux/releases/web-20260903-180516-sales-v1-a4717aa` is active, rollback `/opt/vpurelux/releases/web-20260825-111401` is retained, three sequential health probes were Healthy, authenticated Sales/list/detail/action/queue/report checks passed, and no HTTP 500 or error-level journal entry was observed.
+Current blocker: None. Production had no Draft orders or Installed assets for non-destructive live coverage; those scenarios remain covered by accepted rehearsal evidence. W-GATE remains open and Service remains on HOLD.
 
 ## 8. Handoff Log
+
+### 2026-09-03 - SALES-V1-ROLLOUT Production Complete
+
+- Decision: `PRODUCTION ROLLOUT COMPLETE`. Pushed and deployed commit `a4717aa361e931aaa2bb09fd55d20d0efd9599c2` from `origin/codex/warranty-release-review` without force.
+- Safety and backup: runtime and SQL both confirmed `VPureLux`. Backup `/var/opt/mssql/data/VPureLux-pre-sales-v1-20260903-180246.bak` used `COPY_ONLY, CHECKSUM` and passed `RESTORE VERIFYONLY WITH CHECKSUM`.
+- Migration and data: latest migration moved from `20260824113235_AddServiceModule` to exactly `20260826051356_AddSalesPreInstallationV1Foundation`. No custom business DML/backfill ran. All 14 legacy fingerprints, five sampled confirmed orders, and Revenue/Profit outputs matched before migration, immediately after migration, and after Web smoke. Revision/Cancellation/Refund tables remained empty and no smoke data was created.
+- Release: active `/opt/vpurelux/releases/web-20260903-180516-sales-v1-a4717aa`; rollback `/opt/vpurelux/releases/web-20260825-111401`. Web artifact SHA-256 `5185335BA99BF7D16ACC00D44346A3EA989903F655AD726CACF074D8C60C0393`; DbMigrator SHA-256 `9ED876037E0B5D8501260D9835E2035F88316ED22EC324D9C6AE14F48AE8910E`.
+- Smoke: service active; three sequential health probes Healthy; root/login/CSS/JS/font and authenticated Sales list/detail/Adjust/cancel modal/Returns/Refunds/Revenue/Profit all returned HTTP 200. Server-side Sales/return/refund DataTables returned valid paged JSON. A non-machine Confirmed order exposed Adjust/Cancel. No HTTP 500 or error-level journal entry occurred. Initial 502 responses were limited to startup warm-up and stopped before the three healthy probes.
+- Coverage note: production contained zero Draft orders and zero Installed assets, so those two non-destructive live cases were unavailable. Accepted rehearsal/test evidence covers Draft compatibility, installed-machine `SALES_018` lock, and vi-VN decimal submission. No legacy row was changed to manufacture production smoke coverage.
+- Next action: Obtain user acceptance or a new explicit task. Do not start Service while W-GATE remains open.
 
 ### 2026-09-03 - SALES-V1-REHEARSAL Complete And Ready For Authorized Rollout
 

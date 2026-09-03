@@ -1,6 +1,6 @@
 # Sales Pre-Installation V1 - Technical Implementation
 
-Status: Phase 2 implementation and final migration rehearsal completed on 2026-09-03. Ready for an explicitly authorized production rollout; not pushed or deployed by this rehearsal.
+Status: Phase 2 implementation, migration rehearsal, and production rollout completed on 2026-09-03 at deployed commit `a4717aa`.
 
 ## 1. Current Architecture Audit
 
@@ -127,3 +127,18 @@ All UAT records use prefix `UATSALE3_20260903_` and were created only after lega
 ## 16. Production Readiness Gate
 
 Decision: `READY FOR PRODUCTION ROLLOUT` as of 2026-09-03. This means the migration, legacy compatibility, report behavior, Sales V1 UAT, build, focused automated tests, and EF model gate passed with no Severity 1/2 blocker. It does not authorize or imply a push, production migration, or deployment. A rollout still requires an explicit instruction, a fresh production backup, read-only baseline capture, exact artifact isolation, and post-deploy smoke/reconciliation under the deployment runbook.
+
+## 17. Production Rollout Evidence
+
+- Source: pushed `codex/warranty-release-review` to `origin` without force at `a4717aa361e931aaa2bb09fd55d20d0efd9599c2`. Web and DbMigrator were published from a detached clean worktree at that exact commit.
+- Artifact: Web SHA-256 `5185335BA99BF7D16ACC00D44346A3EA989903F655AD726CACF074D8C60C0393`; DbMigrator SHA-256 `9ED876037E0B5D8501260D9835E2035F88316ED22EC324D9C6AE14F48AE8910E`. Local and VPS hashes matched. The Web artifact contained `openiddict.pfx`, generated client assets, and Font Awesome webfonts.
+- Production target: runtime configuration and SQL connection both confirmed database `VPureLux`. The previous release was `/opt/vpurelux/releases/web-20260825-111401`.
+- Backup: `/var/opt/mssql/data/VPureLux-pre-sales-v1-20260903-180246.bak`, created with `COPY_ONLY, CHECKSUM`; `RESTORE VERIFYONLY WITH CHECKSUM` reported a valid backup set.
+- Migration: DbMigrator ran at 2026-09-03 18:08 Asia/Saigon. Latest migration changed from `20260824113235_AddServiceModule` to exactly `20260826051356_AddSalesPreInstallationV1Foundation`. No custom business DML or backfill ran.
+- Legacy reconciliation: all 14 pre-existing-column fingerprints matched before migration, immediately after migration, and after Web smoke. Counts remained Orders 35, lines 202, payments 24, BOM snapshots 938, inventory transactions 286, inventory lines 1316, lots 303, allocations 961, balances 138, customers 37, assets 0, asset positions 0, BOM versions 132, and BOM items 701. All 202 legacy lines are effective with null revision references; all 24 legacy payments have null void metadata.
+- Process tables: Revision, RevisionLine, RevisionAllocation, Cancellation, and Refund tables were empty after migration and remained empty after smoke. No `PRODSALESV1_20260903_` record was created.
+- Reports: complete Revenue and Profit procedure outputs matched byte-for-byte before/after migration and after deploy. Both report pages returned HTTP 200 after authenticated login.
+- Web: active release is `/opt/vpurelux/releases/web-20260903-180516-sales-v1-a4717aa`; rollback release remains `/opt/vpurelux/releases/web-20260825-111401`. Service `vpurelux-web` is active and three sequential post-warm-up health probes returned `Healthy`.
+- Smoke: root, login, CSS, JS, Font Awesome font, Sales list, one legacy detail, Adjust page, cancellation modal, Returns, Refunds, Revenue, and Profit returned HTTP 200. Sales/Returns/Refunds server-side DataTable handlers returned valid paged JSON; Returns and Refunds were empty. The sampled non-machine Confirmed order exposed Adjust and Cancel actions, proving Sales eligibility is not machine-gated.
+- Production limitations: there were no Draft orders and no Installed customer assets available for non-destructive live checks. Draft behavior, installed-machine lock, and Vietnamese decimal submission remain covered by the accepted rehearsal and focused automated tests; production smoke did not create data merely to repeat destructive scenarios.
+- Logs: no HTTP 500, unhandled exception, or error-level journal entry was observed after deployment. Several transient Nginx 502 responses occurred only during process warm-up before the first healthy probe and did not recur.
