@@ -3,10 +3,10 @@
 This file is the single source of truth for implementation order and agent handoff.
 Every agent must read and update this file so another agent can continue without a chat summary.
 
-Last updated: 2026-08-28 (Asia/Saigon)
-Current product stage: Sales post-confirm correction V1 Phase 2 completed locally and validated on VPL UAT
-Current active task: None; SALES-V1-PHASE2 is complete and awaiting user review
-Next task: Obtain explicit user approval before any push or production deployment; production database migration and data access remain prohibited
+Last updated: 2026-09-03 (Asia/Saigon)
+Current product stage: Sales post-confirm correction V1 is technically ready for an explicitly authorized production rollout
+Current active task: None
+Next task: Await explicit user authorization before any Sales V1 push, production migration, or deployment
 Service implementation gate: CLOSED until W-GATE is DONE
 
 ## 1. Mandatory Agent Protocol
@@ -122,8 +122,9 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | W-005 | Implement installation confirmation and first schedules | DONE | W-004 |
 | W-006 | Implement external customer machines and component positions | DONE | W-005 |
 | W-007 | Complete reminder lifecycle, machine history, and ABP UI | DONE | W-005, W-006 |
-| W-008 | Warranty regression, UAT, migration rehearsal, and rollout | IN_PROGRESS | W-001..W-007 |
+| W-008 | Warranty regression, UAT, migration rehearsal, and rollout | PENDING | W-001..W-007 |
 | W-GATE | Warranty/CustomerCare acceptance gate | PENDING | W-008 |
+| SALES-V1-REHEARSAL | Sales V1 migration rehearsal and legacy-data safety gate | DONE | SALES-V1-PHASE2 |
 | S-001 | Service module foundation and work catalog | HOLD | W-GATE |
 | S-002 | Service order aggregate, lines, permissions, and UI | HOLD | S-001 |
 | S-003 | Service completion, FIFO issue, and schedule integration | HOLD | S-002 |
@@ -327,7 +328,7 @@ Acceptance:
 
 ### W-008 - Warranty Regression, UAT, Migration Rehearsal, And Rollout
 
-Status: IN_PROGRESS
+Status: PENDING - awaiting explicit user acceptance; not actively claimed in this rehearsal.
 
 Goal:
 
@@ -418,18 +419,29 @@ Status: HOLD
 
 ## 7. Active Work Record
 
-Task ID: SALES-V1-PHASE2
-Agent/task name: Codex - correct Sales eligibility, reconcile pending assets, and add operator workflows
-Started at (Asia/Saigon): 2026-08-28
-Branch and starting commit: codex/warranty-release-review / 74575be (`feat(sales): add post-confirm adjustment and cancellation foundation`)
-Goal for this run: Remove the incorrect machine-only Sales assumption, preserve payment carry-forward and warehouse prerequisites, reconcile only affected pending machine assets, and add minimal Manager/Warehouse/Accounting ABP workflows.
-Status: DONE. Implementation, local validation, and prefixed VPL UAT are complete. No push or production deployment.
-Phase 2 compatibility findings: `IsEffective` has a true database default and legacy read/report paths remain compatible. The behavior defects are five `requireMachine: true` calls, machine-scope validation/error/tests/docs, and the old Details cancel action calling Draft-only `CancelAsync` for Confirmed orders. `IsMachine` remains valid only in CustomerCare intake/reconciliation.
-Database/data impact: No new migration and no legacy business-data mutation. The existing Phase 1 migration `20260826051356_AddSalesPreInstallationV1Foundation` was made tolerant of stored-procedure definitions containing irregular whitespace, then applied to test database `VPL` because that database did not yet contain the committed Phase 1 schema. Only new `UATSALE2_20260828_` business data and the four Phase 1 Sales permissions for the VPL `admin` role were written. Production database `VPureLux` and the production server were not accessed.
-Verification completed: Full solution build passed with 0 errors and 2 existing warnings. Application 2/2, Domain 35/35, and EF 95/95 focused tests passed. The complete focused Web suite passed 112/112 before the final locale fix; the new Vietnamese-culture validation regression passed 1/1. A final combined Web rerun was stopped after its known testhost leak reached about 5.6 GB RAM without returning. EF reports no pending model changes, JavaScript syntax and localization JSON pass, and `git diff --check` is clean apart from line-ending notices.
-Current blocker: None. User review and explicit approval are required before push or production deployment.
+Task ID: SALES-V1-REHEARSAL
+Agent/task name: Codex - rehearse Sales V1 migration and prove legacy-data compatibility
+Started at (Asia/Saigon): 2026-09-03
+Branch and starting commit: codex/warranty-release-review / edf173f (`docs: update sales phase 2 handoff`)
+Goal for this run: Apply `20260826051356_AddSalesPreInstallationV1Foundation` to a pre-Sales-V1 clone of VPL, reconcile legacy Sales/Payment/Inventory/CustomerCare facts before and after, verify report/UI/API compatibility, and rerun Sales V1 UAT on newly prefixed data.
+Status: DONE. Decision `READY FOR PRODUCTION ROLLOUT`; no push or production deployment was authorized or performed.
+Database/data boundary: Production database `VPureLux` is prohibited. Rehearsal will use a separately restored VPL backup under database name `VPL_SALES_REHEARSAL_20260903`; existing VPL and legacy rows must not be edited. Only new prefixed `UATSALE3_20260903_` data may be created after migration verification.
+Verification completed: Mandatory skill/preflight passed at `edf173f`. Restored `VPL_SALES_REHEARSAL_20260903` from the pre-Sales-V1 backup, created valid legacy fixtures through release `55aaf24`, applied only `20260826051356_AddSalesPreInstallationV1Foundation`, and matched all 14 before/after row-count plus SHA-256 fingerprints. Legacy Sales/Payment/Inventory/BOM/CustomerAsset facts and both reports were unchanged. Sales V1 UAT A-I passed on new `UATSALE3_20260903_` data; return/refund queues ended at zero. Full build passed; Application 2/2, Domain 35/35, EF 95/95, and smaller Web regressions 15/15 passed. Combined Web filter leaked to about 3.6 GB and was stopped, so no combined Web pass is claimed. EF has no pending model changes.
+Current blocker: None. Residual test-infrastructure risk is the known combined Web testhost memory leak; it does not reproduce in the smaller focused groups or application UAT.
 
 ## 8. Handoff Log
+
+### 2026-09-03 - SALES-V1-REHEARSAL Complete And Ready For Authorized Rollout
+
+- Decision: `READY FOR PRODUCTION ROLLOUT`. Phase 2 implementation is complete and the final legacy-data safety gate passed. This rehearsal did not push, migrate production, or deploy.
+- Database: Used only `VPL_SALES_REHEARSAL_20260903`, restored from the 2026-08-25 VPL backup. Baseline ended at `20260824113235_AddServiceModule`; Sales V1 was pending. Applied exactly `20260826051356_AddSalesPreInstallationV1Foundation`. Production `VPureLux` was not accessed.
+- Migration audit: `Up()` contains no business `UPDATE`, `DELETE`, `MERGE`, backfill, historical recalculation, or automatic Revision/Cancellation/Refund/Asset creation. Stored-procedure alteration succeeded against real definitions beginning with irregular `CREATE   PROCEDURE` whitespace.
+- Legacy evidence: Before/after counts matched for Orders 2, lines 3, payments 1, inventory transactions 3, inventory lines 5, lots 2, allocations 3, customers 1, assets 1, BOM versions 2, and BOM items 3. All 14 deterministic fingerprints matched. Legacy payment, inventory references, totals/cost/profit, external asset and positions remained unchanged; 3/3 lines remained effective with no revision link. New process tables were empty before UAT.
+- Legacy smoke/report: Current app returned HTTP 200 for Sales list/details and preserved 2 lines plus 3m paid / 3.5m remaining on `SO-202608-000001`. Revenue/profit procedures compiled and returned exactly the same legacy values before/after migration.
+- UAT A-I: Price-only posted no inventory; increase issued delta FIFO; decrease required Warehouse confirmation and reversed original lot/cost; machine replacement reconciled pending assets; payment carry-forward and append-only refunds matched formulas; paid non-machine cancellation closed independent return/refund queues; non-machine orders remained eligible; installed machine blocked whole-order adjust/cancel with `SALES_018`. UAT reports excluded cancellation and superseded lines and matched 41.5m revenue / 850k cost / 40.65m profit.
+- Automated verification: Solution build 0 errors. Application 2/2, Domain 35/35, EF 95/95. Combined Web filter was stopped after testhost grew to about 3.6 GB without completing; smaller operator UI, Vietnamese decimal validation, Warranty pages, and Sales API groups passed 15/15. No full combined Web pass is claimed. EF reports no pending model changes; diff check passes.
+- Files changed by rehearsal: `docs/SALES_PRE_INSTALLATION_V1_TECHNICAL_IMPLEMENTATION.md` and `AGENT_TASKS.md` only. User-owned `docs/VPureLux_Sales_Flow_Design_Review_for_Codex_5_6_Sol.docx` and `docs/html.txt` remain untracked and excluded.
+- Next action: Do nothing to production until the user gives a new explicit rollout instruction. Then follow the deployment runbook: capture a read-only production baseline, create and verify a backup, publish from the exact approved commit, apply the reviewed migration once, deploy, and reconcile the same legacy counts/reports plus health/UI/API logs.
 
 ### 2026-08-28 - SALES-V1-PHASE2 Completed Locally And On VPL UAT
 

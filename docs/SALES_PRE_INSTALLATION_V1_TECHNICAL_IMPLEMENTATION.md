@@ -1,6 +1,6 @@
 # Sales Pre-Installation V1 - Technical Implementation
 
-Status: Phase 1 backend foundation completed locally on 2026-08-26. Not deployed.
+Status: Phase 2 implementation and final migration rehearsal completed on 2026-09-03. Ready for an explicitly authorized production rollout; not pushed or deployed by this rehearsal.
 
 ## 1. Current Architecture Audit
 
@@ -54,19 +54,76 @@ The migration is schema-only: new companion tables, owned revision-line storage,
 
 ## 9. Tests
 
-Focused Domain/Application/EF tests cover state invariants, delta behavior, exact lot/cost reversal, atomic rollback, payment/refund calculations, cancellation obligations, installation lock, permissions, idempotency, and existing Sales/Inventory/CustomerCare regressions. Final local evidence: Application Sales `2/2`, Domain Sales/Inventory `30/30`, EF Sales/Inventory `84/84`, full solution build `0` errors, and no pending EF model changes.
+Focused Domain/Application/EF tests cover state invariants, delta behavior, exact lot/cost reversal, atomic rollback, payment/refund calculations, cancellation obligations, installation lock, permissions, idempotency, and existing Sales/Inventory/CustomerCare regressions. Final 2026-09-03 evidence: Application `2/2`, Domain `35/35`, EF `95/95`, focused Web regressions `15/15`, full solution build `0` errors, and no pending EF model changes. The combined Web filter did not complete because the known testhost memory leak grew to about 3.6 GB; it was stopped and is not reported as a full pass.
 
 ## 10. Intentionally Deferred
 
-- Full Razor/DataTables/ABP modal UI.
-- `CancelAndClone` action; the backend copy boundary is documented but not exposed in Phase 1.
-- Reconciliation of already-created pending CustomerCare assets when an applied revision changes machine product or unit count. Cancellation already cancels pending assets, installation is blocked while a Draft revision exists, and intake reads only effective lines; the applied-revision asset reconciliation belongs with the Phase 2 operator workflow.
+- `CancelAndClone` convenience action.
 - Warehouse quarantine/inspection subsystem and accounting-ledger redesign.
+- A separate Delivery/Accounting-close terminal boundary for non-machine orders.
 - Any new Reservation, Fulfillment, Delivery, Completed, workflow-engine, or event-sourcing model.
 
 ## 11. Known Risks
 
-- Phase 1 must not be enabled for production operators until the Phase 2 UI and pending-asset reconciliation are implemented and UAT-approved.
 - Non-machine Confirmed orders have no terminal modification boundary in V1; permission, audit, warehouse confirmation, and atomic posting are the deliberate controls until a separately approved delivery/accounting-close boundary exists.
 - Existing SQL Server report procedures require the same effective-line predicate as the EF/SQLite fallback.
 - Multi-instance safety depends on both the configured distributed lock provider and database uniqueness/concurrency constraints.
+- The combined Web test filter has a known testhost memory leak. Small focused Web groups complete successfully, but the combined run must not be represented as passed.
+
+## 12. Migration Rehearsal
+
+- Rehearsal database: `VPL_SALES_REHEARSAL_20260903`, restored from `/var/opt/mssql/data/VPL-pre-service-uat-20260825-170432.bak`. Production database `VPureLux` was not accessed.
+- Baseline before rehearsal ended at `20260824113235_AddServiceModule` and did not contain Sales V1. The extra Service migration is present in the restored backup but is not part of the current branch migration chain.
+- Applied exactly `20260826051356_AddSalesPreInstallationV1Foundation` with `dotnet ef database update`; no later migration was required.
+- The migration `Up()` contains schema DDL and stored-procedure alteration only. It contains no business-table `UPDATE`, `DELETE`, `MERGE`, backfill, historical rebuild, or automatic Revision/Cancellation/Refund/Asset creation.
+- The two report procedures deliberately started as `CREATE   PROCEDURE` with irregular whitespace. Migration execution succeeded and both definitions gained `l.IsEffective = 1`.
+
+## 13. Legacy Compatibility Evidence
+
+Synthetic legacy fixtures were created through the pre-Sales-V1 application at release commit `55aaf24`, then left untouched during migration and reconciliation. Counts before and after were identical:
+
+| Table | Before | After |
+|---|---:|---:|
+| `AppSalesOrders` | 2 | 2 |
+| `AppSalesOrderLines` | 3 | 3 |
+| `AppSalesOrderPayments` | 1 | 1 |
+| `AppInventoryTransactions` | 3 | 3 |
+| `AppInventoryTransactionLines` | 5 | 5 |
+| `AppInventoryLots` | 2 | 2 |
+| `AppInventoryLotAllocations` | 3 | 3 |
+| `AppCustomers` | 1 | 1 |
+| `AppCustomerAssets` | 1 | 1 |
+| `AppBomVersions` | 2 | 2 |
+| `AppBomItems` | 3 | 3 |
+
+Supplemental fingerprints also covered inventory balances, Sales BOM snapshots, and customer-asset positions. All 14 deterministic SHA-256 fingerprints over pre-existing columns matched before and after. All 3 legacy lines remained effective and had null revision history. New Revision/Cancellation/Refund tables remained empty before new UAT data was created.
+
+Legacy samples:
+
+- `SO-202608-000001`: Confirmed, 2 lines, total 6,500,000, cost 480,000, profit 6,020,000, one posted payment totaling 3,000,000, and 2 original inventory references. Values and references were unchanged.
+- `SO-202608-000002`: Draft, 1 line, zero posted total/payment and no inventory reference. Values were unchanged.
+- External asset `EXT-651E6EC58E13` and its 2 positions were unchanged.
+- Post-migration API returned both legacy orders; Sales list and Details returned HTTP 200, Details rendered the confirmed order number and 2 lines, and payment summary remained 3,000,000 paid / 3,500,000 remaining.
+
+## 14. Stored Procedure And Report Verification
+
+- Both `sp_VP_ReportSalesRevenue` and `sp_VP_ReportSalesProfit` compiled and executed before and after migration.
+- Legacy results were identical: revenue 6,500,000; quantity 3; paid 3,000,000; remaining 3,500,000; cost 480,000; profit 6,020,000.
+- UAT report totals matched the effective projection exactly: 6 active Confirmed orders, quantity 8, revenue 41,500,000, cost 850,000, and profit 40,650,000.
+- The cancelled order was excluded, and the superseded machine line was not double-counted. Unchanged and price-only line cost snapshots remained intact.
+
+## 15. Sales V1 UAT
+
+All UAT records use prefix `UATSALE3_20260903_` and were created only after legacy reconciliation:
+
+- A/E: price-only 10m -> 12m with 5m paid produced 7m remaining and no inventory transaction.
+- B: quantity 1 -> 3 issued only delta 2 through FIFO.
+- C: quantity 3 -> 1 was blocked until Warehouse confirmation, then reversed 2 to original lot and unit cost.
+- D: machine product replacement reversed the old component, issued the new component, cancelled only the old pending asset, and created the new pending asset against the effective line.
+- F: 10m total / 8m paid -> 6m total produced 2m refund due; the original payment stayed Posted and the refund was append-only.
+- G/H: a paid non-machine Confirmed order cancelled immediately; return and refund appeared as independent tasks and both queues returned to zero after processing. Other non-machine orders were also adjustable.
+- I: after machine installation, order state reported `HasInstalledMachine=true`; adjust and cancel both returned `SALES_018` and remained blocked.
+
+## 16. Production Readiness Gate
+
+Decision: `READY FOR PRODUCTION ROLLOUT` as of 2026-09-03. This means the migration, legacy compatibility, report behavior, Sales V1 UAT, build, focused automated tests, and EF model gate passed with no Severity 1/2 blocker. It does not authorize or imply a push, production migration, or deployment. A rollout still requires an explicit instruction, a fresh production backup, read-only baseline capture, exact artifact isolation, and post-deploy smoke/reconciliation under the deployment runbook.
