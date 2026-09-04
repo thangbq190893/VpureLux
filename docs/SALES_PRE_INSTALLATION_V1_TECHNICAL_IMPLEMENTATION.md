@@ -1,6 +1,16 @@
 # Sales Pre-Installation V1 - Technical Implementation
 
-Status: Phase 2 implementation, migration rehearsal, and production rollout completed on 2026-09-03 at deployed commit `a4717aa`.
+Status: Sales Post-Confirmation V1 is RELEASED / ACCEPTED. Production rollout completed on 2026-09-03; the annotated release tag was recorded on 2026-09-04.
+
+Release source:
+
+- Annotated tag: `release-2026-09-03-sales-v1` (pushed to `origin`).
+- Production deployed commit: `a4717aa361e931aaa2bb09fd55d20d0efd9599c2`; the tag targets this code commit, not the subsequent docs/handoff commit `5df9fa8`.
+- Production release: `/opt/vpurelux/releases/web-20260903-180516-sales-v1-a4717aa`.
+- Rollout date: 2026-09-03 (Asia/Saigon).
+- Rollback release: `/opt/vpurelux/releases/web-20260825-111401`.
+- Migration rehearsal, deployment, and reconciliation: PASS, including 14/14 matching legacy fingerprints and no production business-data mutation from migration.
+- No Sales V1 implementation task remains active. CancelAndClone, a non-machine terminal modification lock, and the Web testhost memory leak require separate tasks outside this release; release acceptance does not claim the combined Web suite passed.
 
 ## 1. Current Architecture Audit
 

@@ -3,11 +3,19 @@
 This file is the single source of truth for implementation order and agent handoff.
 Every agent must read and update this file so another agent can continue without a chat summary.
 
-Last updated: 2026-09-03 (Asia/Saigon)
-Current product stage: Sales post-confirm correction V1 is deployed to production and reconciled
-Current active task: None
-Next task: Await user acceptance or a new explicit task; do not start Service while W-GATE remains open
+Last updated: 2026-09-04 (Asia/Saigon)
+Current product stage: Sales Post-Confirmation V1 is RELEASED / ACCEPTED
+Current active task: None; no Sales V1 implementation task remains active
+Next task: Await a separately authorized task; do not start Service while W-GATE remains open
 Service implementation gate: CLOSED until W-GATE is DONE
+
+Sales V1 release source:
+
+- Production code commit: `a4717aa361e931aaa2bb09fd55d20d0efd9599c2`.
+- Annotated release tag: `release-2026-09-03-sales-v1`, pushed and verified on `origin`.
+- Production release: `/opt/vpurelux/releases/web-20260903-180516-sales-v1-a4717aa` (rollout 2026-09-03).
+- Migration rehearsal, deployment, and legacy reconciliation: PASS; 14/14 fingerprints match, with no production business-data mutation from migration.
+- CancelAndClone, a non-machine terminal modification lock, and the Web testhost memory leak are separate future tasks, not unfinished work in this accepted release. The combined Web suite is still not claimed as passed.
 
 ## 1. Mandatory Agent Protocol
 
@@ -126,6 +134,7 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | W-GATE | Warranty/CustomerCare acceptance gate | PENDING | W-008 |
 | SALES-V1-REHEARSAL | Sales V1 migration rehearsal and legacy-data safety gate | DONE | SALES-V1-PHASE2 |
 | SALES-V1-ROLLOUT | Sales V1 production migration, deployment, smoke, and reconciliation | DONE | SALES-V1-REHEARSAL |
+| SALES-V1-RELEASE | Seal accepted Sales V1 source tag and documentation | DONE | SALES-V1-ROLLOUT |
 | S-001 | Service module foundation and work catalog | HOLD | W-GATE |
 | S-002 | Service order aggregate, lines, permissions, and UI | HOLD | S-001 |
 | S-003 | Service completion, FIFO issue, and schedule integration | HOLD | S-002 |
@@ -420,6 +429,18 @@ Status: HOLD
 
 ## 7. Active Work Record
 
+Task ID: SALES-V1-RELEASE
+Agent/task name: Codex - seal accepted Sales V1 release source
+Started at (Asia/Saigon): 2026-09-04
+Branch and starting commit: codex/warranty-release-review / 5df9fa8
+Goal for this run: Annotate and push the exact production code commit, then record release acceptance in documentation only.
+Status: DONE. Sales Post-Confirmation V1 is RELEASED / ACCEPTED. Annotated tag `release-2026-09-03-sales-v1` was created and pushed; its local and remote peeled target is `a4717aa361e931aaa2bb09fd55d20d0efd9599c2`.
+Database/data boundary: No production access, database access, migration, deployment, restart, or symlink change is authorized for this task.
+Verification completed: Read-only local preflight passed; no tracked changes existed; the two user-owned untracked files remain excluded. Target commit exists; tag was absent locally and remotely before creation. `git show`, `git rev-list`, `git cat-file`, and remote peeled-ref checks confirm the annotated tag and exact target. Both release documents are updated; diff check passed. Application code and business specifications are unchanged. No server or database connection, deployment, migration, restart, or symlink action was performed.
+Current blocker: None.
+
+### Previous Completed Rollout Record
+
 Task ID: SALES-V1-ROLLOUT
 Agent/task name: Codex - deploy accepted Sales V1 to production with rollback gates
 Started at (Asia/Saigon): 2026-09-03
@@ -431,6 +452,15 @@ Verification completed: Branch pushed without force at `a4717aa`; detached artif
 Current blocker: None. Production had no Draft orders or Installed assets for non-destructive live coverage; those scenarios remain covered by accepted rehearsal evidence. W-GATE remains open and Service remains on HOLD.
 
 ## 8. Handoff Log
+
+### 2026-09-04 - SALES-V1-RELEASE Source Milestone Accepted
+
+- Decision: COMPLETE. Sales Post-Confirmation V1 is RELEASED / ACCEPTED with no active implementation task.
+- Annotated tag: `release-2026-09-03-sales-v1`; message `Sales post-confirmation V1 production release`; tag object `1b3bc2e5d60318d2bf9183df6052a2769afe0ec0`; target `a4717aa361e931aaa2bb09fd55d20d0efd9599c2`. Pushed separately to origin without force and verified the remote peeled target.
+- Production baseline retained from the accepted 2026-09-03 rollout: release `/opt/vpurelux/releases/web-20260903-180516-sales-v1-a4717aa`; rollback `/opt/vpurelux/releases/web-20260825-111401`; rehearsal/deployment/reconciliation PASS; 14/14 matching legacy fingerprints; no production business-data mutation from migration. No live recheck was performed in this Git/docs-only task.
+- Files changed: `AGENT_TASKS.md` and `docs/SALES_PRE_INSTALLATION_V1_TECHNICAL_IMPLEMENTATION.md` only. Both user-owned untracked files remain excluded. No application code, business rule, or migration was changed; production/database/redeploy actions: NO.
+- Release boundary: CancelAndClone, non-machine terminal lock, and Web testhost leak require separate tasks; none blocks or silently expands this accepted release. W-GATE and Service statuses are unchanged.
+- Next action: Await a new explicit task; use the release tag, not a later docs-only HEAD, to identify the production code source.
 
 ### 2026-09-03 - SALES-V1-ROLLOUT Production Complete
 
