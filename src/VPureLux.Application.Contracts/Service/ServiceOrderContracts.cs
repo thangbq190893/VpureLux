@@ -16,6 +16,7 @@ public interface IServiceOrderAppService : IApplicationService
     Task<ServiceOrderDto> ConfirmAsync(Guid id, ServiceOrderTransitionDto input);
     Task<ServiceOrderDto> StartAsync(Guid id, ServiceOrderTransitionDto input);
     Task<ServiceOrderDto> CancelAsync(Guid id, CancelServiceOrderDto input);
+    Task<ServiceCompletionResultDto> CompleteAsync(Guid id, CompleteServiceOrderDto input);
     Task<PagedResultDto<ServiceAssetOptionDto>> GetAssetOptionsAsync(ServiceLookupInput input);
     Task<ServiceAssetOptionDto> GetAssetOptionAsync(Guid id);
     Task<List<ServiceAssetPositionOptionDto>> GetAssetPositionOptionsAsync(Guid customerAssetId);
@@ -85,6 +86,30 @@ public class CancelServiceOrderDto : ServiceOrderTransitionDto
     [Required, StringLength(ServiceConsts.MaxNoteLength)] public string Reason { get; set; } = string.Empty;
 }
 
+public class CompleteServiceOrderDto : ServiceOrderTransitionDto
+{
+    [Required, StringLength(64)] public string IdempotencyKey { get; set; } = string.Empty;
+    public DateTimeOffset CompletedAt { get; set; }
+    [Required, MinLength(1)] public List<CompleteServiceLineDto> Lines { get; set; } = [];
+}
+
+public class CompleteServiceLineDto
+{
+    public Guid LineId { get; set; }
+    [Range(0, 100000)] public int ActualQuantity { get; set; }
+}
+
+public class ServiceCompletionResultDto
+{
+    public Guid ServiceOrderId { get; set; }
+    public Guid? InventoryTransactionId { get; set; }
+    public DateTime CompletedAt { get; set; }
+    public decimal Revenue { get; set; }
+    public decimal? ActualCost { get; set; }
+    public decimal? ActualProfit { get; set; }
+    public List<CompleteServiceLineDto> Lines { get; set; } = [];
+}
+
 public class ServiceOrderListDto : EntityDto<Guid>
 {
     public string OrderNo { get; set; } = string.Empty;
@@ -103,6 +128,7 @@ public class ServiceOrderListDto : EntityDto<Guid>
 
 public class ServiceOrderLineDto : EntityDto<Guid>
 {
+    public string? PositionName { get; set; }
     public int LineNo { get; set; }
     public ServiceOrderLineType LineType { get; set; }
     public Guid? ComponentId { get; set; }
@@ -112,6 +138,8 @@ public class ServiceOrderLineDto : EntityDto<Guid>
     public string ItemName { get; set; } = string.Empty;
     public string Unit { get; set; } = string.Empty;
     public int PlannedQuantity { get; set; }
+    public int ActualQuantity { get; set; }
+    public decimal? ActualCostAmount { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal? StandardCostSnapshot { get; set; }
     public string? Note { get; set; }
@@ -119,6 +147,7 @@ public class ServiceOrderLineDto : EntityDto<Guid>
 
 public class ServiceOrderDto : EntityDto<Guid>
 {
+    public decimal? ActualRevenueAmount { get; set; }
     public string OrderNo { get; set; } = string.Empty;
     public Guid CustomerId { get; set; }
     public Guid CustomerAssetId { get; set; }
@@ -136,6 +165,7 @@ public class ServiceOrderDto : EntityDto<Guid>
     public string? Note { get; set; }
     public DateTime? ConfirmedAt { get; set; }
     public DateTime? StartedAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
     public DateTime? CancelledAt { get; set; }
     public string? CancellationReason { get; set; }
     public decimal PlannedAmount { get; set; }

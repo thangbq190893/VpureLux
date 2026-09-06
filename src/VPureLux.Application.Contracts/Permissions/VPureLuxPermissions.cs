@@ -141,6 +141,7 @@ public static class VPureLuxPermissions
         public const string Edit = Default + ".Edit";
         public const string Confirm = Default + ".Confirm";
         public const string Cancel = Default + ".Cancel";
+        public const string Complete = Default + ".Complete";
         public const string ManageWorks = Default + ".ManageWorks";
     }
 

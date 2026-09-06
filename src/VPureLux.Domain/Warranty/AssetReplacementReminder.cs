@@ -27,6 +27,7 @@ public class AssetReplacementReminder : FullAuditedAggregateRoot<Guid>
     public DateTime? CompletedAt { get; private set; }
     public Guid? CompletedByUserId { get; private set; }
     public Guid? NextReminderId { get; private set; }
+    public Guid? CompletionEventId { get; private set; }
     public string? CloseReason { get; private set; }
     public string? Note { get; private set; }
     public byte[] RowVersion { get; private set; } = Array.Empty<byte>();
@@ -162,12 +163,14 @@ public class AssetReplacementReminder : FullAuditedAggregateRoot<Guid>
         Status = AssetReplacementReminderStatus.Pending;
     }
 
-    public void Complete(DateTime completedAt, Guid? completedByUserId, Guid? nextReminderId, string? note)
+    public void Complete(DateTime completedAt, Guid? completedByUserId, Guid? nextReminderId, string? note,
+        Guid? completionEventId = null)
     {
         EnsurePending();
         CompletedAt = completedAt;
         CompletedByUserId = completedByUserId;
         NextReminderId = nextReminderId;
+        CompletionEventId = completionEventId;
         Note = Check.Length(note, nameof(note), WarrantyConsts.MaxNoteLength);
         CloseReason = Check.Length(note, nameof(note), WarrantyConsts.MaxCloseReasonLength);
         Status = AssetReplacementReminderStatus.Completed;

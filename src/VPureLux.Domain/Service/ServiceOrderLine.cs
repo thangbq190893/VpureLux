@@ -20,6 +20,8 @@ public class ServiceOrderLine : Entity<Guid>
     public decimal RevenueAmount { get; private set; }
     public decimal CostAmountSnapshot { get; private set; }
     public decimal? StandardCostSnapshot { get; private set; }
+    public decimal? ActualCostAmount { get; private set; }
+    public Guid? InventoryTransactionLineId { get; private set; }
     public string? Note { get; private set; }
 
     protected ServiceOrderLine()
@@ -73,6 +75,16 @@ public class ServiceOrderLine : Entity<Guid>
         ActualQuantity = 0;
         RevenueAmount = 0;
         CostAmountSnapshot = 0;
+    }
+
+    internal void RecordCompletion(int quantity, decimal? materialCost, Guid? inventoryLineId)
+    {
+        ActualQuantity = quantity;
+        RevenueAmount = RoundMoney(quantity * UnitPrice);
+        ActualCostAmount = quantity == 0 ? null : LineType == ServiceOrderLineType.Material
+            ? materialCost : StandardCostSnapshot * quantity;
+        CostAmountSnapshot = ActualCostAmount ?? 0m;
+        InventoryTransactionLineId = inventoryLineId;
     }
 
     internal void Renumber(int lineNo)

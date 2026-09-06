@@ -16,6 +16,7 @@ using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Identity;
 using Volo.Abp.Timing;
+using Volo.Abp.Uow;
 
 namespace VPureLux.Service;
 
@@ -37,6 +38,8 @@ public class ServiceOrderAppService : ApplicationService, IServiceOrderAppServic
     private readonly IBusinessCodeGenerator _codeGenerator;
     private readonly IOptions<ServiceOptions> _options;
     private readonly IClock _clock;
+    private readonly ServiceOrderOperationCoordinator _coordinator;
+    private readonly ServiceCompletionProcessor _completion;
 
     public ServiceOrderAppService(
         IServiceOrderRepository orders,
@@ -50,7 +53,9 @@ public class ServiceOrderAppService : ApplicationService, IServiceOrderAppServic
         IRepository<IdentityUser, Guid> users,
         IBusinessCodeGenerator codeGenerator,
         IOptions<ServiceOptions> options,
-        IClock clock)
+        IClock clock,
+        ServiceOrderOperationCoordinator coordinator,
+        ServiceCompletionProcessor completion)
     {
         _orders = orders;
         _readRepository = readRepository;
@@ -64,6 +69,8 @@ public class ServiceOrderAppService : ApplicationService, IServiceOrderAppServic
         _codeGenerator = codeGenerator;
         _options = options;
         _clock = clock;
+        _coordinator = coordinator;
+        _completion = completion;
     }
 
     [Authorize(VPureLuxPermissions.Service.View)]
@@ -135,7 +142,11 @@ public class ServiceOrderAppService : ApplicationService, IServiceOrderAppServic
     }
 
     [Authorize(VPureLuxPermissions.Service.Edit)]
+    [UnitOfWork(IsDisabled = true)]
     public async Task<ServiceOrderDto> UpdateAsync(Guid id, UpdateServiceOrderDto input)
+        => await _coordinator.ExecuteAsync(id, () => UpdateCoreAsync(id, input));
+
+    private async Task<ServiceOrderDto> UpdateCoreAsync(Guid id, UpdateServiceOrderDto input)
     {
         EnsureEnabled();
         EnsureLinesPresent(input.Lines);
@@ -202,7 +213,11 @@ public class ServiceOrderAppService : ApplicationService, IServiceOrderAppServic
     }
 
     [Authorize(VPureLuxPermissions.Service.Confirm)]
+    [UnitOfWork(IsDisabled = true)]
     public async Task<ServiceOrderDto> ConfirmAsync(Guid id, ServiceOrderTransitionDto input)
+        => await _coordinator.ExecuteAsync(id, () => ConfirmCoreAsync(id, input));
+
+    private async Task<ServiceOrderDto> ConfirmCoreAsync(Guid id, ServiceOrderTransitionDto input)
     {
         EnsureEnabled();
         var order = await GetOrderAsync(id);
@@ -213,7 +228,11 @@ public class ServiceOrderAppService : ApplicationService, IServiceOrderAppServic
     }
 
     [Authorize(VPureLuxPermissions.Service.Confirm)]
+    [UnitOfWork(IsDisabled = true)]
     public async Task<ServiceOrderDto> StartAsync(Guid id, ServiceOrderTransitionDto input)
+        => await _coordinator.ExecuteAsync(id, () => StartCoreAsync(id, input));
+
+    private async Task<ServiceOrderDto> StartCoreAsync(Guid id, ServiceOrderTransitionDto input)
     {
         EnsureEnabled();
         var order = await GetOrderAsync(id);
@@ -224,7 +243,11 @@ public class ServiceOrderAppService : ApplicationService, IServiceOrderAppServic
     }
 
     [Authorize(VPureLuxPermissions.Service.Cancel)]
+    [UnitOfWork(IsDisabled = true)]
     public async Task<ServiceOrderDto> CancelAsync(Guid id, CancelServiceOrderDto input)
+        => await _coordinator.ExecuteAsync(id, () => CancelCoreAsync(id, input));
+
+    private async Task<ServiceOrderDto> CancelCoreAsync(Guid id, CancelServiceOrderDto input)
     {
         EnsureEnabled();
         var order = await GetOrderAsync(id);
@@ -232,6 +255,37 @@ public class ServiceOrderAppService : ApplicationService, IServiceOrderAppServic
         order.Cancel(_clock.Now, input.Reason);
         await _orders.UpdateAsync(order, autoSave: true);
         return await MapAsync(order);
+    }
+
+    [Authorize(VPureLuxPermissions.Service.Complete)]
+    [UnitOfWork(IsDisabled = true)]
+    public async Task<ServiceCompletionResultDto> CompleteAsync(Guid id, CompleteServiceOrderDto input)
+    {
+        EnsureEnabled();
+        if (input.Lines == null || input.Lines.Any(x => x is null))
+            throw new BusinessException(ServiceErrorCodes.InvalidCompletion);
+        var command = new ServiceCompletionCommand(id, input.IdempotencyKey, input.CompletedAt,
+            input.Lines.Select(x => new ServiceCompletionLine(x.LineId, x.ActualQuantity)).ToList());
+        return await _coordinator.ExecuteAsync(id, async () =>
+        {
+            var order = await GetOrderAsync(id);
+            if (!order.IsCompletionReplay(command))
+            {
+                EnsureExpectedVersion(order, input.ConcurrencyStamp);
+                if (await _orders.AnyAsync(x => x.Id != id && x.CompletionIdempotencyKey == command.Key))
+                    throw new BusinessException(ServiceErrorCodes.CompletionConflict);
+                await _completion.ApplyAsync(order, command, CurrentUser.Id);
+                await _orders.UpdateAsync(order, autoSave: true);
+            }
+            return new ServiceCompletionResultDto
+            {
+                ServiceOrderId = order.Id, InventoryTransactionId = order.InventoryTransactionId,
+                CompletedAt = order.CompletedAt!.Value, Revenue = order.TotalRevenueAmount,
+                ActualCost = order.ActualCostAmount, ActualProfit = order.ActualProfitAmount,
+                Lines = order.Lines.OrderBy(x => x.Id).Select(x => new CompleteServiceLineDto
+                    { LineId = x.Id, ActualQuantity = x.ActualQuantity }).ToList()
+            };
+        }, coordinateAsset: true);
     }
 
     [Authorize(VPureLuxPermissions.Service.View)]
@@ -471,6 +525,10 @@ public class ServiceOrderAppService : ApplicationService, IServiceOrderAppServic
 
     private async Task<ServiceOrderDto> MapAsync(ServiceOrder order)
     {
+        var positionIds = order.Lines.Where(x => x.CustomerAssetComponentId.HasValue)
+            .Select(x => x.CustomerAssetComponentId!.Value).Distinct().ToArray();
+        var positionNames = (await _assetComponents.GetListAsync(x => positionIds.Contains(x.Id)))
+            .ToDictionary(x => x.Id, x => x.PositionCode + " - " + x.PositionName);
         string? technicianName = null;
         if (order.TechnicianUserId.HasValue)
         {
@@ -485,17 +543,22 @@ public class ServiceOrderAppService : ApplicationService, IServiceOrderAppServic
             LineType = line.LineType,
             ComponentId = line.ComponentId,
             CustomerAssetComponentId = line.CustomerAssetComponentId,
+            PositionName = line.CustomerAssetComponentId.HasValue
+                ? positionNames.GetValueOrDefault(line.CustomerAssetComponentId.Value) : null,
             ServiceWorkId = line.ServiceWorkId,
             ItemCode = line.ItemCodeSnapshot,
             ItemName = line.ItemNameSnapshot,
             Unit = line.UnitSnapshot,
             PlannedQuantity = line.PlannedQuantity,
+            ActualQuantity = line.ActualQuantity,
+            ActualCostAmount = line.ActualCostAmount,
             UnitPrice = line.UnitPrice,
             StandardCostSnapshot = line.StandardCostSnapshot,
             Note = line.Note
         }).ToList();
         return new ServiceOrderDto
         {
+            ActualRevenueAmount = order.Status == ServiceOrderStatus.Completed ? order.TotalRevenueAmount : null,
             Id = order.Id,
             OrderNo = order.OrderNo,
             CustomerId = order.CustomerId,
@@ -514,6 +577,7 @@ public class ServiceOrderAppService : ApplicationService, IServiceOrderAppServic
             Note = order.Note,
             ConfirmedAt = order.ConfirmedAt,
             StartedAt = order.StartedAt,
+            CompletedAt = order.CompletedAt,
             CancelledAt = order.CancelledAt,
             CancellationReason = order.CancellationReason,
             PlannedAmount = lines.Sum(line => line.UnitPrice * line.PlannedQuantity),

@@ -25,7 +25,7 @@ using Xunit;
 namespace VPureLux.EntityFrameworkCore.Service;
 
 [Collection(VPureLuxTestConsts.CollectionDefinitionName)]
-public class ServiceOrderWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
+public partial class ServiceOrderWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
 {
     private IServiceOrderAppService Orders => GetRequiredService<IServiceOrderAppService>();
     private IServiceWorkAppService Works => GetRequiredService<IServiceWorkAppService>();

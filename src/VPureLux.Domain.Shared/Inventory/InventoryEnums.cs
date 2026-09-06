@@ -30,7 +30,8 @@ public enum InventoryTransactionType : byte
     SalesIssue = 2,
     AssemblyIssue = 3,
     AdjustmentIncrease = 4,
-    AdjustmentDecrease = 5
+    AdjustmentDecrease = 5,
+    ServiceIssue = 6
 }
 
 public enum InventoryMovementDirection : byte

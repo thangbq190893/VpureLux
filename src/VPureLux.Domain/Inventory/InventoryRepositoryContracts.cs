@@ -59,6 +59,8 @@ public interface IInventoryTransactionRepository : IRepository<InventoryTransact
 
 public interface IInventoryBalanceRepository
 {
+    Task<List<InventoryBalance>> GetForStockItemsAsync(Guid warehouseId, IReadOnlyCollection<Guid> stockItemIds,
+        CancellationToken cancellationToken = default);
     Task<InventoryBalance?> FindAsync(Guid warehouseId, Guid stockItemId, CancellationToken cancellationToken = default);
     Task ApplyMovementAsync(
         Guid warehouseId,

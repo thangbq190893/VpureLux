@@ -5,6 +5,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Options;
+using VPureLux.Service;
 using VPureLux.Catalog;
 using VPureLux.Customers;
 using VPureLux.Permissions;
@@ -36,6 +38,8 @@ public class WarrantyAppService : ApplicationService, IWarrantyAppService
     private readonly ISalesOrderCancellationRepository _salesCancellations;
     private readonly SalesOrderOperationCoordinator _salesOrderCoordinator;
     private readonly IUnitOfWorkManager _unitOfWorkManager;
+    private readonly CustomerAssetOperationCoordinator _assetCoordinator;
+    private readonly IOptions<ServiceOptions> _serviceOptions;
 
     public WarrantyAppService(
         IComponentReplacementPolicyRepository policies,
@@ -53,7 +57,9 @@ public class WarrantyAppService : ApplicationService, IWarrantyAppService
         ISalesOrderRevisionRepository salesRevisions,
         ISalesOrderCancellationRepository salesCancellations,
         SalesOrderOperationCoordinator salesOrderCoordinator,
-        IUnitOfWorkManager unitOfWorkManager)
+        IUnitOfWorkManager unitOfWorkManager,
+        CustomerAssetOperationCoordinator assetCoordinator,
+        IOptions<ServiceOptions> serviceOptions)
     {
         _policies = policies;
         _machineSettings = machineSettings;
@@ -71,6 +77,8 @@ public class WarrantyAppService : ApplicationService, IWarrantyAppService
         _salesCancellations = salesCancellations;
         _salesOrderCoordinator = salesOrderCoordinator;
         _unitOfWorkManager = unitOfWorkManager;
+        _assetCoordinator = assetCoordinator;
+        _serviceOptions = serviceOptions;
     }
 
     public async Task<PagedResultDto<ProductMachineSettingListDto>> GetMachineSettingListAsync(
@@ -257,6 +265,7 @@ public class WarrantyAppService : ApplicationService, IWarrantyAppService
         Guid id,
         ConfirmAssetInstallationDto input)
     {
+        await _assetCoordinator.HoldAsync(id);
         var asset = await _assets.GetAsync(id);
         if (asset.SalesOrderId.HasValue)
         {
@@ -681,6 +690,7 @@ public class WarrantyAppService : ApplicationService, IWarrantyAppService
         Guid id,
         UpdateExternalCustomerAssetDto input)
     {
+        await _assetCoordinator.HoldAsync(id);
         var asset = await _assets.GetAsync(id);
         if (asset.Source != CustomerAssetSource.External)
         {
@@ -981,6 +991,9 @@ public class WarrantyAppService : ApplicationService, IWarrantyAppService
     [Authorize(VPureLuxPermissions.Warranty.ManageReminders)]
     public async Task CompleteReminderAsync(Guid id, CompleteReplacementReminderDto input)
     {
+        if (_serviceOptions.Value.IsEnabled)
+            throw new BusinessException(ServiceErrorCodes.ReplacementRequiresService);
+        await HoldReminderAssetAsync(id);
         var reminder = await GetReminderEntityAsync(id);
         var eventKey = HashKey("reminder-complete", id, input.IdempotencyKey);
         if (await MaintenanceEventExistsAsync(eventKey))
@@ -1040,6 +1053,7 @@ public class WarrantyAppService : ApplicationService, IWarrantyAppService
     [Authorize(VPureLuxPermissions.Warranty.ManageReminders)]
     public async Task SkipReminderAsync(Guid id, SkipReplacementReminderDto input)
     {
+        await HoldReminderAssetAsync(id);
         var reminder = await GetReminderEntityAsync(id);
         var eventKey = HashKey("reminder-skip", id, input.IdempotencyKey);
         if (await MaintenanceEventExistsAsync(eventKey))
@@ -1059,6 +1073,7 @@ public class WarrantyAppService : ApplicationService, IWarrantyAppService
     [Authorize(VPureLuxPermissions.Warranty.ManageReminders)]
     public async Task RescheduleReminderAsync(Guid id, RescheduleReplacementReminderDto input)
     {
+        await HoldReminderAssetAsync(id);
         var reminder = await GetReminderEntityAsync(id);
         var eventKey = HashKey("reminder-reschedule", id, input.IdempotencyKey);
         if (await MaintenanceEventExistsAsync(eventKey))
@@ -1078,6 +1093,7 @@ public class WarrantyAppService : ApplicationService, IWarrantyAppService
     [Authorize(VPureLuxPermissions.Warranty.ManageReminders)]
     public async Task SuspendAssetAsync(Guid id, SuspendCustomerAssetDto input)
     {
+        await _assetCoordinator.HoldAsync(id);
         var eventKey = HashKey("asset-suspend", id, input.IdempotencyKey);
         if (await MaintenanceEventExistsAsync(eventKey))
         {
@@ -1101,6 +1117,14 @@ public class WarrantyAppService : ApplicationService, IWarrantyAppService
             await _reminders.UpdateManyAsync(reminders);
         }
         await _assets.UpdateAsync(asset, autoSave: true);
+    }
+
+    private async Task HoldReminderAssetAsync(Guid id)
+    {
+        var assetId = await AsyncExecuter.FirstOrDefaultAsync((await _reminders.GetQueryableAsync())
+            .Where(x => x.Id == id).Select(x => x.CustomerAssetId));
+        if (assetId == Guid.Empty) throw new BusinessException(VPureLuxDomainErrorCodes.EntityNotFound);
+        await _assetCoordinator.HoldAsync(assetId);
     }
 
     private async Task<AssetReplacementReminder> GetReminderEntityAsync(Guid id)

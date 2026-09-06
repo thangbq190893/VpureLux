@@ -11,6 +11,7 @@ public class AssetMaintenanceEvent : CreationAuditedAggregateRoot<Guid>
     public AssetMaintenanceEventType EventType { get; private set; }
     public AssetMaintenanceSourceType SourceType { get; private set; }
     public Guid? SourceId { get; private set; }
+    public Guid? ServiceOrderLineId { get; private set; }
     public Guid? ComponentId { get; private set; }
     public string? ComponentCodeSnapshot { get; private set; }
     public string? ComponentNameSnapshot { get; private set; }
@@ -34,7 +35,8 @@ public class AssetMaintenanceEvent : CreationAuditedAggregateRoot<Guid>
         Guid? componentId = null,
         string? componentCode = null,
         string? componentName = null,
-        string? note = null)
+        string? note = null,
+        Guid? serviceOrderLineId = null)
         : base(id)
     {
         CustomerAssetId = Check.NotDefaultOrNull<Guid>(customerAssetId, nameof(customerAssetId));
@@ -42,6 +44,7 @@ public class AssetMaintenanceEvent : CreationAuditedAggregateRoot<Guid>
         EventType = eventType;
         SourceType = sourceType;
         SourceId = sourceId;
+        ServiceOrderLineId = serviceOrderLineId;
         ComponentId = componentId;
         ComponentCodeSnapshot = Check.Length(componentCode, nameof(componentCode), WarrantyConsts.MaxCodeLength);
         ComponentNameSnapshot = Check.Length(componentName, nameof(componentName), WarrantyConsts.MaxNameLength);

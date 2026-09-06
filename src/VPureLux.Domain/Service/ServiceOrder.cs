@@ -31,6 +31,9 @@ public class ServiceOrder : FullAuditedAggregateRoot<Guid>
     public DateTime? CancelledAt { get; private set; }
     public string? CancellationReason { get; private set; }
     public string? CompletionIdempotencyKey { get; private set; }
+    public string? CompletionCommandHash { get; private set; }
+    public decimal? ActualCostAmount { get; private set; }
+    public decimal? ActualProfitAmount { get; private set; }
     public Guid? InventoryTransactionId { get; private set; }
     public decimal TotalRevenueAmount { get; private set; }
     public decimal TotalCostAmount { get; private set; }
@@ -160,6 +163,52 @@ public class ServiceOrder : FullAuditedAggregateRoot<Guid>
         CancellationReason = Check.Length(reason.Trim(), nameof(reason), ServiceConsts.MaxNoteLength);
         CancelledAt = cancelledAt;
         Status = ServiceOrderStatus.Cancelled;
+    }
+
+    public bool IsCompletionReplay(ServiceCompletionCommand command)
+    {
+        if (command.OrderId != Id)
+            throw new BusinessException(ServiceErrorCodes.InvalidCompletion);
+        if (CompletionIdempotencyKey != command.Key) return false;
+        if (Status != ServiceOrderStatus.Completed || CompletionCommandHash != command.Hash)
+            throw new BusinessException(ServiceErrorCodes.CompletionConflict).WithData("OrderNo", OrderNo);
+        return true;
+    }
+
+    public void ValidateCompletion(ServiceCompletionCommand command)
+    {
+        if (Status != ServiceOrderStatus.InProgress) throw InvalidState("Complete");
+        if (command.OrderId != Id || command.Lines.Count != _lines.Count ||
+            command.Lines.Any(actual => !_lines.Any(line => line.Id == actual.LineId &&
+                actual.ActualQuantity <= line.PlannedQuantity)))
+            throw new BusinessException(ServiceErrorCodes.InvalidCompletion).WithData("OrderNo", OrderNo);
+    }
+
+    public void Complete(ServiceCompletionCommand command, Guid? inventoryTransactionId,
+        IReadOnlyDictionary<Guid, (decimal Cost, Guid InventoryLineId)> materialCosts)
+    {
+        ValidateCompletion(command);
+        var quantities = command.Lines.ToDictionary(x => x.LineId, x => x.ActualQuantity);
+        var performed = _lines.Where(x => x.LineType == ServiceOrderLineType.Material && quantities[x.Id] > 0).ToList();
+        if (performed.Count != materialCosts.Count || (performed.Count > 0) != inventoryTransactionId.HasValue ||
+            performed.Any(x => !materialCosts.TryGetValue(x.Id, out var cost) || cost.Cost < 0 || cost.InventoryLineId == Guid.Empty))
+            throw new BusinessException(ServiceErrorCodes.InvalidCompletion);
+        foreach (var line in _lines)
+        {
+            var hasCost = materialCosts.TryGetValue(line.Id, out var cost);
+            line.RecordCompletion(quantities[line.Id], hasCost ? cost.Cost : null, hasCost ? cost.InventoryLineId : null);
+        }
+        TotalRevenueAmount = _lines.Sum(x => x.RevenueAmount);
+        TotalCostAmount = _lines.Sum(x => x.ActualCostAmount ?? 0);
+        TotalProfitAmount = TotalRevenueAmount - TotalCostAmount;
+        ActualCostAmount = _lines.Any(x => x.ActualQuantity > 0 && !x.ActualCostAmount.HasValue)
+            ? null : TotalCostAmount;
+        ActualProfitAmount = ActualCostAmount.HasValue ? TotalRevenueAmount - ActualCostAmount : null;
+        InventoryTransactionId = inventoryTransactionId;
+        CompletionIdempotencyKey = command.Key;
+        CompletionCommandHash = command.Hash;
+        CompletedAt = command.CompletedAt;
+        Status = ServiceOrderStatus.Completed;
     }
 
     private ServiceOrderLine FindLine(Guid lineId) =>

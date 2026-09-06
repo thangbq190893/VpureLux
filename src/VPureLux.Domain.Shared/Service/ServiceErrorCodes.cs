@@ -16,4 +16,8 @@ public static class ServiceErrorCodes
     public const string ConcurrentModification = "VPureLux:SERVICE_019";
     public const string CancellationReasonRequired = "VPureLux:SERVICE_020";
     public const string DuplicateOrderNo = "VPureLux:SERVICE_021";
+    public const string InvalidCompletion = "VPureLux:SERVICE_022";
+    public const string CompletionConflict = "VPureLux:SERVICE_023";
+    public const string StockShortage = "VPureLux:SERVICE_024";
+    public const string ReplacementRequiresService = "VPureLux:SERVICE_025";
 }

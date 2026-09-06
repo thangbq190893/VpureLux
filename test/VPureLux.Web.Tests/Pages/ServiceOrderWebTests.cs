@@ -21,7 +21,7 @@ using Xunit;
 namespace VPureLux.Pages;
 
 [Collection(VPureLuxTestConsts.CollectionDefinitionName)]
-public class ServiceOrderWebTests : VPureLuxWebTestBase
+public partial class ServiceOrderWebTests : VPureLuxWebTestBase
 {
     [Fact]
     public async Task Disabled_feature_should_hide_service_menu_and_block_order_page()
@@ -136,6 +136,7 @@ public class ServiceOrderWebTests : VPureLuxWebTestBase
     [InlineData("/Service/Edit/8bb27b4f-5828-4eac-9a8a-44ddbe4dd618")]
     [InlineData("/Service/Details/8bb27b4f-5828-4eac-9a8a-44ddbe4dd618?handler=Start")]
     [InlineData("/Service/CancelModal?Id=8bb27b4f-5828-4eac-9a8a-44ddbe4dd618")]
+    [InlineData("/Service/CompleteModal?Id=8bb27b4f-5828-4eac-9a8a-44ddbe4dd618")]
     public async Task Remaining_mutation_routes_should_reject_missing_antiforgery_token(string url)
     {
         Enable();
@@ -296,7 +297,7 @@ public class ServiceOrderUiSourceTests
         details.ShouldContain("new abp.ModalManager");
         details.ShouldContain("RequestVerificationToken");
         details.ShouldContain("abp.message.confirm");
-        contract.ShouldNotContain("CompleteAsync");
+        contract.ShouldContain("CompleteAsync");
         contract.ShouldNotContain("CompleteLineAsync");
 
         var allScripts = index + edit + details;

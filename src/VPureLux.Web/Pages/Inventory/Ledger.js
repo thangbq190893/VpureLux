@@ -28,6 +28,10 @@
             html += '<a class="small" href="' + abp.appPath + 'Bom/Details/' +
                 encodeURIComponent(row.sourceBomVersionId) + '">' + encode(l('Inventory:SourceOpenBom')) + '</a>';
         }
+        if (row.sourceServiceOrderId) {
+            html += '<a class="small" href="' + abp.appPath + 'Service/Details/' +
+                encodeURIComponent(row.sourceServiceOrderId) + '">' + encode(l('Inventory:SourceServiceOrder')) + '</a>';
+        }
 
         return html;
     }

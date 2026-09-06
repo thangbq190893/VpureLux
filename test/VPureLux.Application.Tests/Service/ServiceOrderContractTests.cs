@@ -8,7 +8,7 @@ namespace VPureLux.Service;
 public class ServiceOrderContractTests
 {
     [Fact]
-    public void S002_contract_should_expose_only_pre_completion_commands()
+    public void Contract_should_expose_atomic_order_completion_without_individual_line_completion()
     {
         var methods = typeof(IServiceOrderAppService).GetMethods().Select(method => method.Name).ToList();
 
@@ -17,7 +17,7 @@ public class ServiceOrderContractTests
         methods.ShouldContain(nameof(IServiceOrderAppService.ConfirmAsync));
         methods.ShouldContain(nameof(IServiceOrderAppService.StartAsync));
         methods.ShouldContain(nameof(IServiceOrderAppService.CancelAsync));
-        methods.ShouldNotContain("CompleteAsync");
+        methods.ShouldContain("CompleteAsync");
         methods.ShouldNotContain("CompleteLineAsync");
     }
 

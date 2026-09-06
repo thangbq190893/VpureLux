@@ -28,6 +28,7 @@ public class DetailsModel : VPureLuxPageModel
     public bool CanEdit { get; private set; }
     public bool CanConfirm { get; private set; }
     public bool CanCancel { get; private set; }
+    public bool CanComplete { get; private set; }
     public string StatusBadge => Order.Status switch
     {
         ServiceOrderStatus.Completed => "text-bg-success",
@@ -88,6 +89,7 @@ public class DetailsModel : VPureLuxPageModel
         CanEdit = await GrantedAsync(VPureLuxPermissions.Service.Edit);
         CanConfirm = await GrantedAsync(VPureLuxPermissions.Service.Confirm);
         CanCancel = await GrantedAsync(VPureLuxPermissions.Service.Cancel);
+        CanComplete = await GrantedAsync(VPureLuxPermissions.Service.Complete);
     }
 
     private async Task<bool> GrantedAsync(string permission) =>

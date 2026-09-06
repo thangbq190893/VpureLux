@@ -183,7 +183,8 @@ public class LedgerModel : VPureLuxPageModel
         FormatQuantity(row.QuantityOut),
         FormatNullableMoney(row.UnitCost),
         FormatNullableMoney(row.Amount),
-        row.Reason ?? string.Empty);
+        row.Reason ?? string.Empty,
+        row.Source.ServiceOrderId);
 
     private SourceReferenceView BuildSourceReferenceView(InventoryTransactionDto transaction)
     {
@@ -219,11 +220,17 @@ public class LedgerModel : VPureLuxPageModel
         return new SourceReferenceView(
             label,
             details.Count == 0 ? null : string.Join(" / ", details),
-            transaction.BomVersionId);
+            transaction.BomVersionId,
+            transaction.Type == InventoryTransactionType.ServiceIssue &&
+                string.Equals(referenceType, "ServiceOrder", StringComparison.OrdinalIgnoreCase)
+                ? transaction.ReferenceId : null);
     }
 
     private string GetSourceLabel(InventoryTransactionDto transaction, string? referenceType)
     {
+        if (transaction.Type == InventoryTransactionType.ServiceIssue &&
+            string.Equals(referenceType, "ServiceOrder", StringComparison.OrdinalIgnoreCase))
+            return L["Inventory:SourceServiceOrder"].Value;
         if (!string.IsNullOrWhiteSpace(referenceType))
         {
             if (referenceType.Equals("SalesOrderLine", StringComparison.OrdinalIgnoreCase))
@@ -373,7 +380,8 @@ public class LedgerModel : VPureLuxPageModel
         string QuantityOut,
         string UnitCost,
         string Amount,
-        string Reason);
+        string Reason,
+        Guid? SourceServiceOrderId = null);
 
     public sealed record LedgerTraceRow(
         DateTime? PostedAt,
@@ -390,5 +398,6 @@ public class LedgerModel : VPureLuxPageModel
     public sealed record SourceReferenceView(
         string Label,
         string? Detail,
-        Guid? BomVersionId);
+        Guid? BomVersionId,
+        Guid? ServiceOrderId = null);
 }

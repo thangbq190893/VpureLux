@@ -98,7 +98,8 @@ public class EfCoreServiceOrderRepository : EfCoreRepository<VPureLuxDbContext, 
                 .ToListAsync(GetCancellationToken(cancellationToken));
 
             foreach (var line in dbContext.ChangeTracker.Entries<ServiceOrderLine>()
-                         .Where(entry => entry.State == EntityState.Modified && !persistedLineIds.Contains(entry.Entity.Id)))
+                         .Where(entry => entry.State == EntityState.Modified &&
+                             entity.Lines.Any(x => x.Id == entry.Entity.Id) && !persistedLineIds.Contains(entry.Entity.Id)))
             {
                 line.State = EntityState.Added;
             }
@@ -110,11 +111,16 @@ public class EfCoreServiceOrderRepository : EfCoreRepository<VPureLuxDbContext, 
 
             return entity;
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException exception)
         {
-            throw new BusinessException(ServiceErrorCodes.ConcurrentModification)
+            throw new BusinessException(ServiceErrorCodes.ConcurrentModification, innerException: exception)
                 .WithData("ServiceOrderId", entity.Id)
                 .WithData("OrderNo", entity.OrderNo);
+        }
+        catch (DbUpdateException exception) when (Contains(exception, ServiceOrderConfiguration.CompletionKeyUniqueIndexName) ||
+            Contains(exception, "AppServiceOrders.CompletionIdempotencyKey"))
+        {
+            throw new BusinessException(ServiceErrorCodes.CompletionConflict, innerException: exception).WithData("ServiceOrderId", entity.Id);
         }
     }
 

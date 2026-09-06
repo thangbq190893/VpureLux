@@ -1,0 +1,48 @@
+@page
+@model VPureLux.Web.Pages.Service.CompleteModalModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using System.Globalization
+@using Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Modal
+@{ Layout = null; }
+<abp-style src="/Pages/Service/CompleteModal.css" />
+<form method="post" asp-page="/Service/CompleteModal">
+    <abp-modal size="Large">
+        <abp-modal-header title="@L["Service:CompleteOrder"]"></abp-modal-header>
+        <abp-modal-body>
+            <div asp-validation-summary="All"></div>
+            <input asp-for="Id" type="hidden" />
+            <input asp-for="Input.ConcurrencyStamp" type="hidden" />
+            <input asp-for="Input.IdempotencyKey" type="hidden" />
+            <p><strong>@Model.Order.OrderNo</strong> | @Model.Order.CustomerName | @Model.Order.AssetNo</p>
+            <div class="mb-3">
+                <label asp-for="Input.CompletedAt" class="form-label">@L["Service:CompletedAtLocal"]</label>
+                <input asp-for="Input.CompletedAt" type="datetime-local" class="form-control" required />
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle service-completion-lines">
+                    <thead><tr><th>@L["Service:Item"]</th><th>@L["Service:LineType"]</th><th>@L["Service:Position"]</th><th class="text-end">@L["Service:Quantity"]</th><th>@L["Service:ActualQuantity"]</th></tr></thead>
+                    <tbody>
+                    @for (var i = 0; i < Model.Input.Lines.Count; i++)
+                    {
+                        var line = Model.Order.Lines.FirstOrDefault(x => x.Id == Model.Input.Lines[i].LineId);
+                        if (line == null) { continue; }
+                        <tr data-price="@line.UnitPrice.ToString(CultureInfo.InvariantCulture)">
+                            <td class="completion-item">@line.ItemCode - @line.ItemName <small>(@line.Unit)</small></td>
+                            <td class="completion-type">@L[$"Service:LineType:{line.LineType}"]</td>
+                            <td class="completion-position">@(line.PositionName ?? "-")</td>
+                            <td class="text-end completion-planned"><span class="d-sm-none">@L["Service:Quantity"]: </span>@line.PlannedQuantity</td>
+                            <td class="completion-actual">
+                                <label class="d-sm-none form-label" for="Input_Lines_@(i)__ActualQuantity">@L["Service:ActualQuantity"]</label>
+                                <input asp-for="Input.Lines[i].LineId" type="hidden" />
+                                <input asp-for="Input.Lines[i].ActualQuantity" type="number" min="0" max="@line.PlannedQuantity" step="1" class="form-control" data-actual-quantity aria-label="@L["Service:ActualQuantity"]" />
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex justify-content-between fw-semibold"><span>@L["Service:ActualAmount"]</span><output data-completion-total>0</output></div>
+        </abp-modal-body>
+        <abp-modal-footer buttons="@(AbpModalButtons.Cancel|AbpModalButtons.Save)"></abp-modal-footer>
+    </abp-modal>
+</form>

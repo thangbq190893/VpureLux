@@ -7,5 +7,6 @@ public enum AssetMaintenanceEventType : byte
     Inspection = 3,
     MappingChanged = 4,
     Deactivated = 5,
-    Transferred = 6
+    Transferred = 6,
+    ServiceCompleted = 7
 }

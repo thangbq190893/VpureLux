@@ -6,6 +6,12 @@
     const concurrencyStamp = page.dataset.concurrencyStamp;
     const cancelModal = new abp.ModalManager({ viewUrl: abp.appPath + 'Service/CancelModal' });
     cancelModal.onResult(function () { window.location.reload(); });
+    const completeModal = new abp.ModalManager({ viewUrl: abp.appPath + 'Service/CompleteModal',
+        scriptUrl: abp.appPath + 'Pages/Service/CompleteModal.js', modalClass: 'ServiceCompletion' });
+    completeModal.onResult(function () { window.location.reload(); });
+    document.getElementById('CompleteServiceOrder')?.addEventListener('click', function () {
+        completeModal.open({ id: id });
+    });
 
     function antiforgeryHeaders() {
         const token = $('#ServiceActionTokenForm').find('input[name="__RequestVerificationToken"]').val();

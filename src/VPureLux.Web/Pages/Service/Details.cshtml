@@ -25,6 +25,10 @@
             {
                 <button type="button" class="btn btn-primary" data-service-action="Start"><i class="fa fa-play" aria-hidden="true"></i> @L["Service:Start"]</button>
             }
+            @if (Model.CanComplete && Model.Order.Status == ServiceOrderStatus.InProgress)
+            {
+                <button type="button" class="btn btn-success" id="CompleteServiceOrder"><i class="fa fa-check" aria-hidden="true"></i> @L["Service:CompleteOrder"]</button>
+            }
             @if (Model.CanCancel && Model.Order.Status is ServiceOrderStatus.Draft or ServiceOrderStatus.Confirmed or ServiceOrderStatus.InProgress)
             {
                 <button type="button" class="btn btn-outline-danger" id="CancelServiceOrder"><i class="fa fa-ban" aria-hidden="true"></i> @L["Service:Cancel"]</button>
@@ -41,6 +45,10 @@
                         <dt class="col-5">@L["Service:Status"]</dt><dd class="col-7"><span class="badge @Model.StatusBadge">@L[$"Service:Status:{Model.Order.Status}"]</span></dd>
                         <dt class="col-5">@L["Service:OrderDate"]</dt><dd class="col-7">@Model.FormatDate(Model.Order.OrderDate)</dd>
                         <dt class="col-5">@L["Service:ScheduledAt"]</dt><dd class="col-7">@Model.FormatDateTime(Model.Order.ScheduledAt)</dd>
+                        @if (Model.Order.CompletedAt.HasValue)
+                        {
+                            <dt class="col-5">@L["Service:CompletedAtLocal"]</dt><dd class="col-7">@Model.FormatDateTime(Model.Order.CompletedAt.Value.AddHours(7))</dd>
+                        }
                         <dt class="col-5">@L["Service:Technician"]</dt><dd class="col-7">@(Model.Order.TechnicianName ?? "-")</dd>
                         <dt class="col-5">@L["Service:Address"]</dt><dd class="col-7">@(Model.Order.ServiceAddress ?? "-")</dd>
                         <dt class="col-5">@L["Service:Note"]</dt><dd class="col-7">@(Model.Order.Note ?? "-")</dd>
@@ -55,9 +63,8 @@
         <div class="col-12 col-lg-5">
             <abp-card class="vpl-card-dense h-100">
                 <abp-card-body>
-                    <div class="text-muted mb-1">@L["Service:PlannedAmount"]</div>
-                    <div class="fs-4 fw-semibold text-end">@Model.FormatMoney(Model.Order.PlannedAmount)</div>
-                    <div class="small text-muted mt-3">@L["Service:PlannedAmountHint"]</div>
+                    <div class="text-muted mb-1">@L[Model.Order.ActualRevenueAmount.HasValue ? "Service:ActualAmount" : "Service:PlannedAmount"]</div>
+                    <div class="fs-4 fw-semibold text-end">@Model.FormatMoney(Model.Order.ActualRevenueAmount ?? Model.Order.PlannedAmount)</div>
                 </abp-card-body>
             </abp-card>
         </div>
@@ -68,7 +75,7 @@
         <abp-card-body>
             <div class="table-responsive">
                 <table class="table table-sm align-middle mb-0" style="min-width: 760px">
-                    <thead><tr><th>#</th><th>@L["Service:LineType"]</th><th>@L["Service:Item"]</th><th class="text-end">@L["Service:Quantity"]</th><th class="text-end">@L["Service:UnitPrice"]</th><th class="text-end">@L["Service:Amount"]</th><th>@L["Service:LineNote"]</th></tr></thead>
+                    <thead><tr><th>#</th><th>@L["Service:LineType"]</th><th>@L["Service:Item"]</th><th class="text-end">@L[Model.Order.CompletedAt.HasValue ? "Service:ActualQuantity" : "Service:Quantity"]</th><th class="text-end">@L[Model.Order.CompletedAt.HasValue ? "Service:ActualUnitPrice" : "Service:UnitPrice"]</th><th class="text-end">@L[Model.Order.CompletedAt.HasValue ? "Service:ActualAmount" : "Service:Amount"]</th><th>@L["Service:LineNote"]</th></tr></thead>
                     <tbody>
                         @foreach (var line in Model.Order.Lines)
                         {
@@ -76,9 +83,9 @@
                                 <td>@line.LineNo</td>
                                 <td><span class="badge @(line.LineType == ServiceOrderLineType.Material ? "text-bg-primary" : "text-bg-secondary")">@L[$"Service:LineType:{line.LineType}"]</span></td>
                                 <td><strong>@line.ItemCode</strong> - @line.ItemName <small class="text-muted">(@line.Unit)</small></td>
-                                <td class="text-end">@line.PlannedQuantity</td>
+                                <td class="text-end">@(Model.Order.CompletedAt.HasValue ? line.ActualQuantity : line.PlannedQuantity)</td>
                                 <td class="text-end">@Model.FormatMoney(line.UnitPrice)</td>
-                                <td class="text-end">@Model.FormatMoney(line.UnitPrice * line.PlannedQuantity)</td>
+                                <td class="text-end">@Model.FormatMoney(line.UnitPrice * (Model.Order.CompletedAt.HasValue ? line.ActualQuantity : line.PlannedQuantity))</td>
                                 <td>@line.Note</td>
                             </tr>
                         }

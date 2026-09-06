@@ -9,7 +9,7 @@ namespace VPureLux.Service;
 public class ServiceOrderDomainTests
 {
     [Fact]
-    public void Should_follow_approved_state_graph_without_direct_completion()
+    public void Should_require_confirm_then_start_and_forbid_individual_line_completion()
     {
         var order = CreateOrder();
         order.AddLine(Guid.NewGuid(), ServiceOrderLineType.Labor, Guid.NewGuid(), null,
@@ -19,7 +19,7 @@ public class ServiceOrderDomainTests
         order.Status.ShouldBe(ServiceOrderStatus.Confirmed);
         order.Start(DateTime.UtcNow);
         order.Status.ShouldBe(ServiceOrderStatus.InProgress);
-        typeof(ServiceOrder).GetMethod("Complete").ShouldBeNull();
+        typeof(ServiceOrder).GetMethod("Complete").ShouldNotBeNull();
         typeof(ServiceOrder).GetMethod("CompleteLine").ShouldBeNull();
         Should.Throw<BusinessException>(() => order.Confirm(DateTime.UtcNow))
             .Code.ShouldBe(ServiceErrorCodes.OrderCannotBeModified);

@@ -11,6 +11,11 @@ namespace VPureLux.Inventory;
 
 public class EfCoreInventoryBalanceRepository : IInventoryBalanceRepository
 {
+    public async Task<List<InventoryBalance>> GetForStockItemsAsync(Guid warehouseId, IReadOnlyCollection<Guid> stockItemIds,
+        CancellationToken cancellationToken = default) =>
+        await (await _provider.GetDbContextAsync()).InventoryBalances
+            .Where(x => x.WarehouseId == warehouseId && stockItemIds.Contains(x.StockItemId))
+            .ToListAsync(cancellationToken);
     private readonly IDbContextProvider<VPureLuxDbContext> _provider;
     public EfCoreInventoryBalanceRepository(IDbContextProvider<VPureLuxDbContext> provider) => _provider = provider;
 
