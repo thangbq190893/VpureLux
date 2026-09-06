@@ -3,11 +3,11 @@
 This file is the single source of truth for implementation order and agent handoff.
 Every agent must read and update this file so another agent can continue without a chat summary.
 
-Last updated: 2026-09-04 (Asia/Saigon)
+Last updated: 2026-09-07 (Asia/Saigon)
 Current product stage: Sales Post-Confirmation V1 is RELEASED / ACCEPTED
-Current active task: None; no Sales V1 implementation task remains active
-Next task: Await a separately authorized task; do not start Service while W-GATE remains open
-Service implementation gate: CLOSED until W-GATE is DONE
+Current active task: None
+Next task: S-001 - Service foundation, historical schema compatibility, and work catalog
+Service implementation gate: W-GATE DONE (user accepted 2026-09-07); SERVICE-INVENTORY-AUDIT DONE; S-001 READY, not started
 
 Sales V1 release source:
 
@@ -55,6 +55,7 @@ Status values:
 
 - Keep the stable Sales module unchanged in behavior.
 - Keep Service separate from Sales. Labor/service work must not be Catalog Products.
+- Configuration/templates suggest or initialize new business records only. Persisted business facts are independent historical snapshots; later configuration changes must not rewrite, recalculate, resync, or backfill them. Changes require an explicit permitted, audited business action. New cycles may copy the current policy without altering old cycles. User reaffirmed this source-of-truth rule on 2026-09-07.
 - Finish Warranty/CustomerCare before beginning Service.
 - A replacement schedule belongs to an actual customer machine and component position.
 - Sold-machine schedule condition: Product is configured as a machine, installation is confirmed, and the actual position maps to a component with an enabled replacement policy.
@@ -130,12 +131,13 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | W-005 | Implement installation confirmation and first schedules | DONE | W-004 |
 | W-006 | Implement external customer machines and component positions | DONE | W-005 |
 | W-007 | Complete reminder lifecycle, machine history, and ABP UI | DONE | W-005, W-006 |
-| W-008 | Warranty regression, UAT, migration rehearsal, and rollout | PENDING | W-001..W-007 |
-| W-GATE | Warranty/CustomerCare acceptance gate | PENDING | W-008 |
+| W-008 | Warranty regression, UAT, migration rehearsal, and rollout | DONE | W-001..W-007 |
+| W-GATE | Warranty/CustomerCare acceptance gate | DONE | W-008 |
 | SALES-V1-REHEARSAL | Sales V1 migration rehearsal and legacy-data safety gate | DONE | SALES-V1-PHASE2 |
 | SALES-V1-ROLLOUT | Sales V1 production migration, deployment, smoke, and reconciliation | DONE | SALES-V1-REHEARSAL |
 | SALES-V1-RELEASE | Seal accepted Sales V1 source tag and documentation | DONE | SALES-V1-ROLLOUT |
-| S-001 | Service module foundation and work catalog | HOLD | W-GATE |
+| SERVICE-INVENTORY-AUDIT | Audit existing Service implementation before reuse | DONE | W-GATE |
+| S-001 | Service module foundation and work catalog | READY | SERVICE-INVENTORY-AUDIT |
 | S-002 | Service order aggregate, lines, permissions, and UI | HOLD | S-001 |
 | S-003 | Service completion, FIFO issue, and schedule integration | HOLD | S-002 |
 | S-004 | Service payments and receivables | HOLD | S-003 |
@@ -338,7 +340,9 @@ Acceptance:
 
 ### W-008 - Warranty Regression, UAT, Migration Rehearsal, And Rollout
 
-Status: PENDING - awaiting explicit user acceptance; not actively claimed in this rehearsal.
+Status: DONE - final blocker resolution completed on 2026-09-06. D01 uses the current enabled policy for successors without rewriting existing reminders, D02 remains an accepted documented test-harness exception, and intake-race/permission/focused UI evidence is green. Technical verification remains separate from user acceptance at W-GATE.
+
+Current run boundary: Test/UAT writes only on database `VPL`, restricted to newly created, prefixed fixtures. `VPureLux` is production and is not an authorized write or UAT target. No deployment, migration, restart, production connection, or historical backfill is part of this run. Reuse accepted migration/rollout evidence; do not rerun it automatically. Evidence matrix: `docs/W008_WARRANTY_UAT_20260904.md`.
 
 Goal:
 
@@ -364,7 +368,7 @@ Acceptance:
 
 ### W-GATE - Warranty/CustomerCare Acceptance Gate
 
-Status: PENDING
+Status: DONE. User explicitly accepted the Warranty/CustomerCare workflow on 2026-09-07 (Asia/Saigon). W-008 technical evidence remains recorded separately. Acceptance does not claim that the uncommitted W-008 fixes have been deployed; production remains the frozen Sales V1 release.
 
 This gate may be marked DONE only when:
 
@@ -374,17 +378,28 @@ This gate may be marked DONE only when:
 - Migration/data reconciliation and deployment smoke evidence are recorded.
 - No unresolved Severity 1 or Severity 2 Warranty defect remains.
 
-When W-GATE becomes DONE, change S-001 from HOLD to READY. Do not start any Service task earlier.
+When W-GATE becomes DONE, make SERVICE-INVENTORY-AUDIT READY first. Keep S-001 on HOLD until that audit identifies the reusable implementation and remaining gaps. Do not start any Service task earlier.
 
-## 6. Service Tasks - Locked Until W-GATE
+## 6. Service Tasks - Audit Before Implementation
+
+### SERVICE-INVENTORY-AUDIT - Reconcile Existing Service Implementation
+
+Status: DONE. Promoted HOLD -> READY -> IN_PROGRESS -> DONE on 2026-09-07 after explicit W-GATE acceptance. Evidence and exact S-001..S-006 scope: `docs/SERVICE_INVENTORY_AUDIT.md`.
+
+- After W-GATE only, inventory existing commits `bcc1b36` and `220d41c`, the Service migration, tests, and contracts against the accepted baseline.
+- Document what to reuse and what remains for S-001 through S-006; do not blindly reimplement or cherry-pick the old module.
+- This handoff adds no Service implementation authorization.
+- Key finding: historical Service migration `20260824113235_AddServiceModule` is absent from current source but was applied according to accepted rollout evidence; isolated VPL evidence also preserves existing Service rows. S-001 must recover original migration identity and reconcile current model mappings, not create duplicate tables or replace the Sales V1 snapshot.
+- Reuse module separation, snapshot fields, current FIFO allocator, enum meanings, ABP UI and antiforgery/minifier fixes. Refactor state/version/replay, payment serialization, labor cost completeness, lookup/report queries and care integration. Discard silent remap/reactivation and blanket draft-line snapshot recreation.
 
 ### S-001 - Service Module Foundation And Work Catalog
 
-Status: HOLD
+Status: READY. Depends on completed SERVICE-INVENTORY-AUDIT; no implementation started in the audit turn.
 
 - Add separate Service bounded module, permissions, menus, feature flag, number sequence, and non-inventory work/labor catalog.
 - Do not add service/labor products to Sales or Catalog Product.
 - Use schema-only migration and ABP modal/server-side DataTable UI.
+- Begin with historical Service schema compatibility, preserve the original migration ID and current Sales V1 model, then add work unit/optional standard cost without filling old historical facts from current templates. See audit section 10 for exact files, tests, dependencies and migration expectations for every Service task.
 
 ### S-002 - Service Order Aggregate, Lines, Permissions, And UI
 
@@ -429,6 +444,30 @@ Status: HOLD
 
 ## 7. Active Work Record
 
+Task ID: SERVICE-INVENTORY-AUDIT
+Agent/task name: Codex - source audit of historical Service implementation
+Started at (Asia/Saigon): 2026-09-07
+Branch and starting commit: codex/warranty-release-review / 5c5d1de
+Goal for this run: Inspect bcc1b36 and 220d41c against HEAD plus accepted W-008 working-tree fixes; record reuse, defects, migration impact, and the exact S-001..S-006 plan.
+Status: DONE. SERVICE AUDIT COMPLETE. W-GATE DONE by explicit user acceptance; S-001 READY and not started; no active task.
+Database/data boundary: Source/documentation only. No DB connection/mutation, migration generation/application, production deployment, or Service implementation.
+Verification completed: Read-only preflight; actual Domain/Contracts/Application/EF/migration/UI/payment/report/test inspection at bcc1b36 and 220d41c, comparison to current HEAD plus W-008 fixes. Identified 13 historical test methods (not rerun); preserved historical D02 40/41 and R2 41/41 evidence. No build/test/runtime or DB operation was needed for this documentation audit. Audit defines all ten required assessments and the S-001..S-006 plan.
+Current blocker: None for S-001 foundation. Historical Service schema must be reconciled before future migration application. Accepted W-008 application/test changes remain uncommitted; the audit documentation commit must not be mistaken for their source commit or a production deployment.
+
+### Previous Completed Warranty Record (2026-09-06)
+
+Task ID: W-008
+Agent/task name: Codex - Warranty regression and VPL UAT on frozen Sales V1
+Started at (Asia/Saigon): 2026-09-04
+Branch and starting commit: codex/warranty-release-review / 5c5d1de
+Goal for this run: Audit inherited evidence, verify missing Sales/CustomerCare and external-machine cases, reconcile legacy VPL records, and report technical readiness separately from operator acceptance.
+Status: DONE. READY FOR USER ACCEPTANCE = YES. W-GATE remains PENDING for the user's separate acceptance decision.
+Database/data boundary: VPL only for newly prefixed UAT records; VPureLux production is not touched. No production deploy/migration/restart. Background intake must not process historical records; prove target and go-live before starting a runtime.
+Verification completed: Build 0 errors; Domain 102/102, Application 30/30, EF 208/208, focused Warranty Web 13/13, Sales/Inventory API Web 6/6. D01 proves existing reminder 3/15 remains immutable while Complete on 2026-09-04 uses current 6/21 for a successor due 2027-03-04; disabled/deleted policy and inactive/unmapped position complete without successor; replay/re-enable neither duplicate nor backfill. Intake revalidates authoritative Sales state inside the shared order lock; deterministic selected-before-cancel/replacement barriers skip stale assets, while normal/retry creates once. All seven Warranty permissions have server-side deny/allow execution, four Razor mutation endpoints reject missing antiforgery tokens, and server paging/filter/sort reaches page 2. Real VPL R2 evidence remains 41/41; no new VPL fixture/write occurred in the close-out. Final model check has no changes. No migration, production access, deployment, restart, commit, or push.
+Current blocker: None in W-008. W-GATE remains PENDING solely for user/operator acceptance. W008-D02 preserves the original 40/41 run as an accepted test-harness exception and uses isolated R2 41/41 as official data-safety evidence; no metadata was repaired or hidden. Generic SALES_015/016 race text remains a deferred low-severity UX issue with correct 403/state behavior.
+
+### Previous Completed Release Record
+
 Task ID: SALES-V1-RELEASE
 Agent/task name: Codex - seal accepted Sales V1 release source
 Started at (Asia/Saigon): 2026-09-04
@@ -452,6 +491,42 @@ Verification completed: Branch pushed without force at `a4717aa`; detached artif
 Current blocker: None. Production had no Draft orders or Installed assets for non-destructive live coverage; those scenarios remain covered by accepted rehearsal evidence. W-GATE remains open and Service remains on HOLD.
 
 ## 8. Handoff Log
+
+### 2026-09-07 - Warranty Accepted And Service Inventory Audit Complete
+
+- User explicitly accepted Warranty/CustomerCare; W-001..W-008 remain DONE; W-GATE changed PENDING -> DONE. Configuration/templates only initialize/suggest new facts; historical snapshots change only through explicit permitted, audited business actions. New cycles may use current policy without rewriting older cycles.
+- SERVICE-INVENTORY-AUDIT progressed HOLD -> READY -> IN_PROGRESS -> DONE; S-001 is READY, S-002..S-006 stay HOLD with unchanged dependencies. Current active task is None. No Service implementation started.
+- Inspected bcc1b36/220d41c actual code and intervening report-minifier fix; produced `docs/SERVICE_INVENTORY_AUDIT.md` with inventory, reuse/refactor/discard/missing matrix, concrete defects, migrations, FIFO/care/payment/report/test assessments and exact sequential plan.
+- Critical migration finding: the old Service migration was historically applied and VPL evidence contains existing Service data, while current source lacks its migration/model. Recover applied migration identity and reconcile current model before future upgrades; do not replace the Sales V1 snapshot or blindly recreate tables.
+- Scope/verification: documentation/control files only; read-only preflight/Git/source/evidence review; no new build/test claim, application edit, migration, database connection, production access, deploy, restart or push. Prior W-008 implementation/test changes remain local and uncommitted; user-owned files remain excluded.
+- Next agent: read this audit and the skill before claiming S-001. Preserve the W-008 working-tree baseline; acceptance and this documentation commit do not imply those fixes are deployed.
+- Documentation commit scope: `docs(service): audit existing service implementation` captures AGENT_TASKS, Service audit, operations/module map and the related W-008 acceptance/evidence summary only. W-008 application/tests, raw evidence/harness files and both user-owned files remain outside this commit. Resolve this commit by subject in Git; no push was performed.
+
+### 2026-09-06 - W-008 Technical Gate Complete
+
+- Decision: W-008 DONE; READY FOR USER ACCEPTANCE = YES. W-GATE remains PENDING and Service remains HOLD.
+- D01: Existing reminders remain immutable. Complete starts a successor from the current enabled policy only while the Component and actual position are active and mapped; absent/disabled policy or inactive/unmapped state completes without a successor. Re-enabling does not backfill a missed successor.
+- Intake race: The batch lock is retained, each candidate is revalidated under the shared Sales order lock, and stale candidates are skipped without recording a failure. Deterministic cancel/replacement barriers and unchanged/replay coverage pass.
+- Security/UI: All seven Warranty permissions pass server-side deny/allow execution; four authenticated Razor mutation endpoints reject missing antiforgery tokens through the application's HTTP 400 path; server-side asset/reminder paging, filtering, sorting, and page 2 pass.
+- Verification: Release build 0 errors; Domain 102/102, Application 30/30, EF 208/208, focused Warranty Web 13/13, and Sales/Inventory API Web 6/6 pass. EF has no pending model change. The known combined Web testhost resource leak remains outside this release claim.
+- Data/release boundary: No new VPL fixture/write and no production access, migration, deployment, restart, commit, or push occurred in this close-out. D02 preserves the original 40/41 result as an accepted test-harness exception and isolated R2 41/41 as official data-safety evidence. User-owned untracked files remain untouched.
+- Next action: The user performs/accepts the operator workflow at W-GATE. Only after that acceptance may W-GATE be marked DONE and the first Service prerequisite become READY.
+
+### 2026-09-04 - W-008 Verification Executed, Acceptance Blocked
+
+- Decision: W-008 BLOCKED for acceptance, not DONE; W-GATE PENDING; Service HOLD. Sales release remains frozen at `release-2026-09-03-sales-v1` / `a4717aa`.
+- Findings: next-cycle rule differs between current code/tests and requested behavior (3/15 copied after policy changed to 6/21). Asked user to choose; do not silently rewrite history or business rules. First-run legacy group metadata touch is retained as an exception, not repaired or excluded retroactively. New isolated R2 fixtures preserved all 41 pre-R2 table fingerprints.
+- Execution: VPL only, prefixes W008_20260904 and W008_20260904R2. Four R2 orders SO-202609-000001..000004 exercised intake, install, quantity/price revisions, cancellation, and actual concurrent HTTP requests using SQL/Redis. External machine mapping created no stock issue; reminder history/replay, notification filters, and reports were checked. Tests: Domain 54, Application 2, EF 123 distinct across final group + one added test, Web 15; all executed cases passed, but this is not full business acceptance.
+- Runtime cleanup: stopped owned local Web processes (port 5198), closed temporary browser tab, reset mobile viewport. No production database connection/mutation, production deployment/migration/restart, Service merge, commit, or push. VPL fixture writes and the first-run exception are explicitly recorded above.
+- Changed surface: documentation, test-only PowerShell harness/evidence, and focused EF tests. No application code or schema change. User-owned `docs/VPureLux_Sales_Flow_Design_Review_for_Codex_5_6_Sol.docx` and `docs/html.txt` remain untouched/untracked.
+- Resume from `docs/W008_WARRANTY_UAT_20260904.md`; do not rerun fixture creation or overwrite original baseline. Raw artifacts remain in `artifacts/w008-verification/` and `artifacts/w008-isolated-r2/`, with SHA-256 manifest under `docs/evidence/w008/`. Complete remaining role/UI/intake-race evidence and policy decision before user acceptance; future Service work starts with SERVICE-INVENTORY-AUDIT only after W-GATE.
+
+### 2026-09-04 - W-008 Verification Claimed
+
+- Explicit user task authorizes Warranty regression/UAT on VPL, not production writes, Sales expansion, or Service implementation.
+- Corrected the obsolete environment boundary: VPL = test/UAT; VPureLux = production. Historical production-UAT notes below are historical evidence, not current permission.
+- W-008 moved through authorized READY to IN_PROGRESS; W-GATE remains PENDING until separate explicit user acceptance. Added a HOLD-only Service inventory audit prerequisite to avoid duplicate implementation.
+- Evidence and remaining work are tracked in `docs/W008_WARRANTY_UAT_20260904.md`. No test or UAT pass is claimed at task start.
 
 ### 2026-09-04 - SALES-V1-RELEASE Source Milestone Accepted
 
