@@ -9,6 +9,12 @@ Current active task: None
 Next task: S-001 - Service foundation, historical schema compatibility, and work catalog
 Service implementation gate: W-GATE DONE (user accepted 2026-09-07); SERVICE-INVENTORY-AUDIT DONE; S-001 READY, not started
 
+Accepted Warranty implementation baseline:
+
+- W-008 source/test/evidence commit: `d1e8b5684d21eca3ee5586fe75913b60e24de190` (`fix(warranty): finalize accepted customer care safeguards`). Baseline SEALED on 2026-09-07, local only; not pushed or deployed.
+- Separate Service audit documentation commit: `6ef1def1812c6b25ed1ffd6caaff3eaa46c1a709`. This is not the W-008 implementation commit.
+- W-008 and W-GATE remain DONE; S-001 may be claimed next, but was not claimed or started during baseline sealing. Production remains the frozen Sales V1 release below.
+
 Sales V1 release source:
 
 - Production code commit: `a4717aa361e931aaa2bb09fd55d20d0efd9599c2`.
@@ -368,7 +374,7 @@ Acceptance:
 
 ### W-GATE - Warranty/CustomerCare Acceptance Gate
 
-Status: DONE. User explicitly accepted the Warranty/CustomerCare workflow on 2026-09-07 (Asia/Saigon). W-008 technical evidence remains recorded separately. Acceptance does not claim that the uncommitted W-008 fixes have been deployed; production remains the frozen Sales V1 release.
+Status: DONE. User explicitly accepted the Warranty/CustomerCare workflow on 2026-09-07 (Asia/Saigon). W-008 technical evidence remains recorded separately. Accepted implementation is sealed in `d1e8b5684d21eca3ee5586fe75913b60e24de190`, not pushed or deployed; production remains the frozen Sales V1 release.
 
 This gate may be marked DONE only when:
 
@@ -444,6 +450,18 @@ Status: HOLD
 
 ## 7. Active Work Record
 
+Task ID: W-008-BASELINE-SEAL
+Agent/task name: Codex - seal accepted Warranty implementation
+Started at (Asia/Saigon): 2026-09-07
+Branch and starting commit: codex/warranty-release-review / 6ef1def1812c6b25ed1ffd6caaff3eaa46c1a709
+Goal for this run: Commit only accepted W-008 implementation/tests/evidence without changing business behavior or starting S-001.
+Status: DONE. W-008 BASELINE SEALED at d1e8b5684d21eca3ee5586fe75913b60e24de190. No active task; S-001 READY, not claimed.
+Database/data boundary: No connection to VPL or production, no UAT harness execution, no migration generation/application, deploy, restart, or push. Focused tests use SQLite in-memory; model comparison used an unreachable dummy connection override.
+Verification completed: Release solution build (--no-restore -m:2) passed with 0 errors and 4 warnings (Scriban NU1903, two OpenIddict CS8604, Web test entrypoint CS7022). Release --no-build focused tests: Domain Warranty/CustomerCare 6/6; EF Warranty/CustomerCare/Sales 74/74; Web Warranty 13/13, no failures/skips. Web completed in 19 seconds with a 1.5 GiB GC heap cap and 90-second hang bound; no full/combined Web suite claim. EF has no pending model changes; git diff --check passed. All 19 accepted file hashes were unchanged through validation; five harness scripts parsed, three evidence JSON files parsed, and six local evidence artifact hashes matched the manifest. TRX evidence: artifacts/w008-baseline-seal-20260907/{domain,ef,web}.trx (ignored/local).
+Current blocker: None for sealing or starting S-001. Historical Service schema compatibility remains a required S-001 scope item, not permission to migrate now. Two user-owned files remain untracked and excluded; no Service code/migration was staged.
+
+### Previous Completed Service Audit Record (2026-09-07)
+
 Task ID: SERVICE-INVENTORY-AUDIT
 Agent/task name: Codex - source audit of historical Service implementation
 Started at (Asia/Saigon): 2026-09-07
@@ -452,7 +470,7 @@ Goal for this run: Inspect bcc1b36 and 220d41c against HEAD plus accepted W-008 
 Status: DONE. SERVICE AUDIT COMPLETE. W-GATE DONE by explicit user acceptance; S-001 READY and not started; no active task.
 Database/data boundary: Source/documentation only. No DB connection/mutation, migration generation/application, production deployment, or Service implementation.
 Verification completed: Read-only preflight; actual Domain/Contracts/Application/EF/migration/UI/payment/report/test inspection at bcc1b36 and 220d41c, comparison to current HEAD plus W-008 fixes. Identified 13 historical test methods (not rerun); preserved historical D02 40/41 and R2 41/41 evidence. No build/test/runtime or DB operation was needed for this documentation audit. Audit defines all ten required assessments and the S-001..S-006 plan.
-Current blocker: None for S-001 foundation. Historical Service schema must be reconciled before future migration application. Accepted W-008 application/test changes remain uncommitted; the audit documentation commit must not be mistaken for their source commit or a production deployment.
+Current blocker at audit completion: None for S-001 foundation. Historical Service schema must be reconciled before future migration application. W-008 application/test changes were still uncommitted at that point; the later baseline-seal record above supplies their source commit. The audit documentation commit is not a production deployment.
 
 ### Previous Completed Warranty Record (2026-09-06)
 
@@ -491,6 +509,34 @@ Verification completed: Branch pushed without force at `a4717aa`; detached artif
 Current blocker: None. Production had no Draft orders or Installed assets for non-destructive live coverage; those scenarios remain covered by accepted rehearsal evidence. W-GATE remains open and Service remains on HOLD.
 
 ## 8. Handoff Log
+
+### 2026-09-07 - Accepted W-008 Implementation Baseline Sealed
+
+- Decision: W-008 BASELINE SEALED. Dedicated implementation commit `d1e8b5684d21eca3ee5586fe75913b60e24de190`; parent audit docs commit `6ef1def` is unchanged. No amend, squash, tag, or push. A separate handoff-only commit records this SHA.
+- Scope: 19 accepted files (4 application/domain/EF source, 7 test files, 8 harness/evidence files). No new implementation edits were necessary. Exact committed paths:
+  - `src/VPureLux.Application/Warranty/CustomerCareSalesIntakeService.cs`
+  - `src/VPureLux.Application/Warranty/WarrantyAppService.cs`
+  - `src/VPureLux.Domain/Warranty/WarrantyRepositoryContracts.cs`
+  - `src/VPureLux.EntityFrameworkCore/Warranty/EfCoreCustomerCareSalesIntakeRepository.cs`
+  - `test/VPureLux.EntityFrameworkCore.Tests/EntityFrameworkCore/Sales/SalesWorkflowTests.cs`
+  - `test/VPureLux.EntityFrameworkCore.Tests/EntityFrameworkCore/VPureLuxEntityFrameworkCoreTestModule.cs`
+  - `test/VPureLux.EntityFrameworkCore.Tests/EntityFrameworkCore/Warranty/CustomerCareSchemaTests.cs`
+  - `test/VPureLux.EntityFrameworkCore.Tests/EntityFrameworkCore/Warranty/WarrantyPermissionTests.cs`
+  - `test/VPureLux.EntityFrameworkCore.Tests/EntityFrameworkCore/Warranty/CustomerCareUatSafetyTests.cs`
+  - `test/VPureLux.Web.Tests/VPureLuxWebTestModule.cs`
+  - `test/VPureLux.Web.Tests/Pages/WarrantyAntiforgeryTests.cs`
+  - `docs/evidence/w008/Capture-VplBaseline.ps1`
+  - `docs/evidence/w008/Run-VplFixtures.ps1`
+  - `docs/evidence/w008/Run-VplLifecycle.ps1`
+  - `docs/evidence/w008/Run-VplSales.ps1`
+  - `docs/evidence/w008/Vpl-UatApi.ps1`
+  - `docs/evidence/w008/isolated-r2-reconciliation.json`
+  - `docs/evidence/w008/local-evidence-manifest.json`
+  - `docs/evidence/w008/original-run-reconciliation.json`
+- Excluded, still user-owned/untracked: `docs/VPureLux_Sales_Flow_Design_Review_for_Codex_5_6_Sol.docx` and `docs/html.txt`. Ignored raw artifacts remain local; source-controlled evidence preserves original D02 40/41 and official isolated R2 41/41 without rerunning or altering data.
+- Verification for this seal: Release build 0 errors/4 warnings; Domain 6/6, EF 74/74, focused Warranty Web 13/13; no skips/failures, no EF model drift, diff check passed. No claim of full UAT or combined Web pass.
+- No Service implementation, migration generation/application, VPL/production database access, production action, redeploy, restart, or push occurred. Accepted source is local, not a new production release.
+- Next action: S-001 is safe to start as a separate task after reading the skill and Service audit; it remains READY and unclaimed. Historical handoff entries below describe their original point-in-time state, not the current sealed baseline.
 
 ### 2026-09-07 - Warranty Accepted And Service Inventory Audit Complete
 
