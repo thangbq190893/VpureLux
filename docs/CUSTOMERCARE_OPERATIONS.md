@@ -30,7 +30,11 @@ with an approved go-live boundary; this is not permission to backfill historical
 6. Reminder timing is calculated at query time from `WarningDate` and `DueDate`. Complete, skip, reschedule, and suspend actions require a reason and append an idempotent maintenance event.
 7. An existing reminder keeps its original cycle/warning snapshot. Completing it starts a new cycle from the current enabled Component policy. No successor is created when that policy is absent/disabled, the Component is inactive, or the actual position is inactive/unmapped. Re-enabling a policy does not backfill a missed successor.
 
-Direct completion from the Warranty reminder is a transitional workflow while Service is disabled. Once Service is enabled, actual replacement must be completed from a Service order so inventory issue, labor revenue, payment, and schedule changes remain one business transaction.
+Direct completion from the Warranty reminder is a transitional workflow while Service is disabled. S-003 enforces this on the server: while `Service:IsEnabled=true`, direct CompleteReminder rejects with SERVICE_025. Actual replacement must come from an InProgress Service order's completion, atomically with inventory issue, actual revenue/cost facts and schedule changes. Payments remain a separate S-004 workflow and are not created by completion. Skip/reschedule/suspend remain available under their existing permissions.
+
+S-003 completion records a machine-level visit even for labor-only or unpositioned work. Only actually performed positioned materials close matching reminders and create eligible current-policy successors. It never remaps or reactivates positions. A mapped MissingBaseline position can establish its first real baseline from actual replacement; an inactive/unmapped position cannot. Existing event/reminder snapshots remain immutable. See `S003_SERVICE_COMPLETION.md` for coordination, source references and rollback evidence.
+
+S-003 verification is offline/isolated SQLite only. Its instructions do not authorize VPL access, migration application or enabling Service in any external runtime.
 
 ## Test/UAT boundary (authoritative as of 2026-09-04)
 

@@ -4,18 +4,19 @@ This file is the single source of truth for implementation order and agent hando
 Every agent must read and update this file so another agent can continue without a chat summary.
 
 Last updated: 2026-09-07 (Asia/Saigon)
-Current product stage: Service S-002 DONE; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
+Current product stage: Service S-003 DONE; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
 Current active task: None
-Next task: S-003 - Service completion, FIFO issue, and schedule integration (READY, unclaimed)
-Service implementation gate: W-GATE DONE (user accepted 2026-09-07); SERVICE-INVENTORY-AUDIT DONE; S-001/S-002 DONE; S-003 READY; S-004..S-006 HOLD
+Next task: S-004 - Service payments and receivables (READY, unclaimed)
+Service implementation gate: W-GATE DONE; SERVICE-INVENTORY-AUDIT DONE; S-001/S-002/S-003 DONE; S-004 READY; S-005/S-006 HOLD
 Service foundation source: `babc96fc5ecba242e3f23d0612c3a46df3916dc3`, local only, not pushed or deployed; see `docs/S001_SERVICE_FOUNDATION.md`.
 Service order workflow source: `2f27ed81618403d7375b2af237025e6e931bbe3f`, local only, not pushed or deployed; see `docs/S002_SERVICE_ORDER_WORKFLOW.md`.
+Service completion source: `18e9f02a279709ca01018f06933aec12de64cf12`, local only, not pushed or deployed; see `docs/S003_SERVICE_COMPLETION.md`.
 
 Accepted Warranty implementation baseline:
 
 - W-008 source/test/evidence commit: `d1e8b5684d21eca3ee5586fe75913b60e24de190` (`fix(warranty): finalize accepted customer care safeguards`). Baseline SEALED on 2026-09-07, local only; not pushed or deployed.
 - Separate Service audit documentation commit: `6ef1def1812c6b25ed1ffd6caaff3eaa46c1a709`. This is not the W-008 implementation commit.
-- W-008 and W-GATE remain DONE. S-001 and S-002 were completed later in the local source commits above; S-003 is READY and unclaimed. Production remains the frozen Sales V1 release below.
+- W-008 and W-GATE remain DONE. S-001/S-002/S-003 are complete in the local source commits above; S-004 is READY and unclaimed. Production remains the frozen Sales V1 release below.
 
 Sales V1 release source:
 
@@ -147,8 +148,8 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | SERVICE-INVENTORY-AUDIT | Audit existing Service implementation before reuse | DONE | W-GATE |
 | S-001 | Service module foundation and work catalog | DONE | SERVICE-INVENTORY-AUDIT |
 | S-002 | Service order aggregate, lines, permissions, and UI | DONE | S-001 |
-| S-003 | Service completion, FIFO issue, and schedule integration | READY | S-002 |
-| S-004 | Service payments and receivables | HOLD | S-003 |
+| S-003 | Service completion, FIFO issue, and schedule integration | DONE | S-002 |
+| S-004 | Service payments and receivables | READY | S-003 |
 | S-005 | Service and consolidated reports | HOLD | S-003, S-004 |
 | S-006 | Service UAT, reconciliation, and rollout | HOLD | S-001..S-005 |
 
@@ -421,7 +422,7 @@ Status: DONE. Completed 2026-09-07 on baseline `9a0967b`; implementation source 
 
 ### S-003 - Service Completion, FIFO Issue, And Schedule Integration
 
-Status: READY
+Status: DONE. Completed 2026-09-07 on baseline `bd8be2a533bb69bc7973497c7cca07bf244314a0`; implementation `18e9f02a279709ca01018f06933aec12de64cf12`. Local only. No migration applied, VPL/production access, deploy or push. Evidence: `docs/S003_SERVICE_COMPLETION.md`.
 
 - Add InventoryTransactionType.ServiceIssue without changing existing enum values.
 - Batch-load FIFO lots for all material lines; no N+1.
@@ -430,7 +431,7 @@ Status: READY
 
 ### S-004 - Service Payments And Receivables
 
-Status: HOLD
+Status: READY, unclaimed. Reuse the S-003 ServiceOrder coordination boundary; do not fold payment into completion or infer historical unknown costs.
 
 - Add separate Service payment ledger with Posted/Void/idempotency behavior.
 - Treat payment before completion as customer advance, not service revenue.
@@ -452,6 +453,21 @@ Status: HOLD
 - Publish/deploy only with explicit approval and full regression/smoke evidence.
 
 ## 7. Active Work Record
+
+Task ID: S-003
+Agent/task name: Codex - Atomic Service completion
+Started at (Asia/Saigon): 2026-09-07
+Branch and starting commit: codex/warranty-release-review / bd8be2a533bb69bc7973497c7cca07bf244314a0
+Goal: Atomic actual quantities, current Inventory FIFO, nullable actual cost facts, canonical replay and CustomerCare-owned replacement integration.
+Status: DONE. S-003 COMPLETE at `18e9f02a279709ca01018f06933aec12de64cf12`; 44 implementation/test/migration files committed separately from this documentation. No active task; S-004 READY and unclaimed.
+Database/data boundary: Offline builds and isolated SQLite tests only. No VPL/production access, migration execution, DbMigrator, deploy, push or S-004. Additive schema-only migration permitted.
+Verification completed: Final Release solution build 0 errors, 2 pre-existing warnings (Scriban NU1903 and Web test entrypoint CS7022). Domain Service/Inventory 33/33; Application Service/CustomerCare 6/6; EF combined Service/Inventory/Warranty/CustomerCare/Sales 203/203; Web Service 24/24; focused Warranty Web 13/13. No combined/full Web-suite claim. Offline EF model drift NONE; staged diff check PASS; three changed JavaScript files passed node --check.
+Browser evidence: Actual ABP completion modal on the SQLite/in-memory Web fixture at 1440x960 and 390x844; mobile rows were adjusted after visual review. No page overflow or JavaScript errors; actual total recomputed 300000 -> 150000; browser submission returned 204 and reloaded Completed with actual amount and no mutation buttons. Screenshots: `artifacts/s003-completion-browser/modal-1440.png`, `modal-390.png`, `completed.png` (local ignored evidence). Temporary loopback proxy/test host stopped; port 5099 no longer listening. The test fixture's existing duplicated menu contributors were not changed in application code.
+Migration/data impact: `20260906200825_AddServiceCompletionFacts`, seven nullable additive fields only, no business DML/default backfill or Sales schema change; generated but not applied. No external database/cache or production service touched. Only isolated SQLite fixtures changed during tests.
+Current blocker: None for S-003 or claiming S-004. SQL Server/Redis multi-process races and legacy schema rehearsal remain S-006; SQLite barrier/stale-writer tests are not represented as live distributed proof. Unknown labor cost remains nullable and future reports must preserve provisional-versus-final cost semantics.
+Next action: Claim S-004 separately if instructed. Read the S-003 document before adding payments; reuse ServiceOrder locks, preserve immutable actual facts, keep schema-only/no-backfill discipline. Do not deploy or access VPL/production without explicit task scope. User-owned DOCX and docs/html.txt remain excluded.
+
+### Previous Completed S-002 Record
 
 Task ID: S-002
 Agent/task name: Codex - Service order operator workflow
@@ -536,6 +552,15 @@ Verification completed: Branch pushed without force at `a4717aa`; detached artif
 Current blocker: None. Production had no Draft orders or Installed assets for non-destructive live coverage; those scenarios remain covered by accepted rehearsal evidence. W-GATE remains open and Service remains on HOLD.
 
 ## 8. Handoff Log
+
+### 2026-09-07 - S-003 atomic completion complete
+
+- Implementation `18e9f02a279709ca01018f06933aec12de64cf12` (`feat(service): add atomic service completion`) follows `bd8be2a533bb69bc7973497c7cca07bf244314a0`. Source changes are in 44 explicitly staged files; no user-owned documents, Service payments, push or deployment were included.
+- Only InProgress completes; exact command hashes enable safe replay and reject conflicting payloads. Actual quantities, FIFO allocations, nullable cost snapshots, machine/replacement events, old reminder closure, current-policy successors and terminal state share one transaction.
+- Service order and CustomerAsset locks span transaction completion; current Inventory optimistic concurrency/FIFO remain authoritative. Failure-after-stock tests use real SQLite transactions, overriding the legacy test harness's always-disable-transaction manager.
+- Current-policy/MissingBaseline rules passed; no implicit position mapping/reactivation. Service-enabled manual Warranty replacement is server-guarded; disabled-Service Warranty regression remains green. Unrelated positions/reminders retain their metadata.
+- Final evidence: build 0 errors; Domain 33, Application 6, EF 203, Web Service 24, Warranty Web 13 passed. Desktop/mobile browser interaction and 204 completion passed. Offline model drift NONE; migration not applied; VPL/production untouched.
+- S-003 DONE; S-004 READY/unclaimed; S-005/S-006 HOLD. Future agent: use `docs/S003_SERVICE_COMPLETION.md`, `docs/MODULE_MAP.md` and `docs/CUSTOMERCARE_OPERATIONS.md`. Live SQL Server/Redis/legacy-data rehearsal remains S-006, not an implicitly completed acceptance gate.
 
 ### 2026-09-07 - S-002 Service Order Workflow Complete
 
