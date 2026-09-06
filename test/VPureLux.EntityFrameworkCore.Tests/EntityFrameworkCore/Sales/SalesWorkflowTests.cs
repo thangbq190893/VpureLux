@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Shouldly;
 using VPureLux.Bom;
@@ -1118,16 +1120,27 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         var context = await CreateBaseAsync();
         var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 5, 100);
         var (product, _) = await CreateProductForComponentAsync(component);
+        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
         var order = await _sales.CreateAsync(Input(context, product.Id, 1, 1_000));
         await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
         var assetId = await CreatePendingAssetAsync(await _sales.GetAsync(order.Id));
-        var install = TryActionAsync(() => _warranty.ConfirmInstallationAsync(assetId, InstallationInput()));
-        var cancel = TryActionAsync(() => _postConfirmation.CancelConfirmedAsync(order.Id, new CancelConfirmedSalesOrderDto
+        var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var install = Task.Run(async () =>
         {
-            ReasonGroup = "Customer",
-            Reason = "Concurrent cancellation"
-        }));
+            await start.Task;
+            return await TryActionAsync(() => _warranty.ConfirmInstallationAsync(assetId, InstallationInput()));
+        });
+        var cancel = Task.Run(async () =>
+        {
+            await start.Task;
+            return await TryActionAsync(() => _postConfirmation.CancelConfirmedAsync(order.Id, new CancelConfirmedSalesOrderDto
+            {
+                ReasonGroup = "Customer",
+                Reason = "Concurrent cancellation"
+            }));
+        });
 
+        start.SetResult();
         var outcomes = await Task.WhenAll(install, cancel);
         outcomes.Count(x => x).ShouldBe(1);
         var finalOrder = await _sales.GetAsync(order.Id);
@@ -1325,7 +1338,9 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
             CustomerId = context.Customer.Id,
             Lines = [new UpdateSalesOrderRevisionLineDto { RevisionLineId = increaseLine.Id, ProductId = product.Id, Quantity = 3, ActualSellingPrice = 1_000 }]
         });
-        await _postConfirmation.ApplyRevisionAsync(increase.Id, new ApplySalesOrderRevisionDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var increaseInput = new ApplySalesOrderRevisionDto { IdempotencyKey = Guid.NewGuid().ToString("N") };
+        await _postConfirmation.ApplyRevisionAsync(increase.Id, increaseInput);
+        await _postConfirmation.ApplyRevisionAsync(increase.Id, increaseInput);
 
         var afterIncrease = await GetOrderAssetsAsync(order.Id);
         afterIncrease.Count.ShouldBe(3);
@@ -1348,6 +1363,207 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         var afterDecrease = await GetOrderAssetsAsync(order.Id);
         afterDecrease.Single(x => x.SourceUnitIndex == 1).Status.ShouldBe(CustomerAssetStatus.PendingInstallation);
         afterDecrease.Where(x => x.SourceUnitIndex > 1).ShouldAllBe(x => x.Status == CustomerAssetStatus.Cancelled);
+    }
+
+    [Fact]
+    public async Task Intake_Should_Exclude_PreGoLive_Machine_Order_Even_When_Runtime_Gates_Are_Open()
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 5, 100);
+        var (product, _) = await CreateProductForComponentAsync(component);
+        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
+        var order = await _sales.CreateAsync(Input(context, product.Id, 1, 1_000));
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var options = GetRequiredService<IOptions<CustomerCareOptions>>().Value;
+        options.IsEnabled = true;
+        options.IsSalesIntakeEnabled = true;
+        options.SalesIntakeGoLiveFrom = DateTimeOffset.UtcNow.AddDays(1);
+        try
+        {
+            var result = await GetRequiredService<CustomerCareSalesIntakeService>()
+                .RunBatchAsync(DateTimeOffset.UtcNow.AddDays(2));
+            result.GateEnabled.ShouldBeTrue();
+            result.LockAcquired.ShouldBeTrue();
+            result.CandidateCount.ShouldBe(0);
+            result.CreatedAssetCount.ShouldBe(0);
+            (await GetOrderAssetsAsync(order.Id)).ShouldBeEmpty();
+        }
+        finally
+        {
+            DisableCustomerCareIntake(options);
+        }
+    }
+
+    [Fact]
+    public async Task Cancelled_Machine_Order_Should_Not_Be_Recreated_By_Intake_Retry()
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 100);
+        var (product, _) = await CreateProductForComponentAsync(component);
+        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
+        var order = await _sales.CreateAsync(Input(context, product.Id, 2, 1_000));
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var options = GetRequiredService<IOptions<CustomerCareOptions>>().Value;
+        options.IsEnabled = true;
+        options.IsSalesIntakeEnabled = true;
+        options.SalesIntakeGoLiveFrom = DateTimeOffset.UtcNow.AddMinutes(-5);
+        try
+        {
+            var intake = GetRequiredService<CustomerCareSalesIntakeService>();
+            (await intake.RunBatchAsync()).CreatedAssetCount.ShouldBe(2);
+            var before = await GetOrderAssetsAsync(order.Id);
+            await _postConfirmation.CancelConfirmedAsync(order.Id, new CancelConfirmedSalesOrderDto
+            {
+                ReasonGroup = "Customer",
+                Reason = "W008 cancellation before installation"
+            });
+            (await intake.RunBatchAsync()).CreatedAssetCount.ShouldBe(0);
+            (await intake.RunBatchAsync()).CreatedAssetCount.ShouldBe(0);
+            var after = await GetOrderAssetsAsync(order.Id);
+            after.Select(asset => asset.Id).OrderBy(id => id).ShouldBe(before.Select(asset => asset.Id).OrderBy(id => id));
+            after.ShouldAllBe(asset => asset.Status == CustomerAssetStatus.Cancelled && asset.InstalledAt == null);
+            await WithUnitOfWorkAsync(async () =>
+            {
+                var db = await GetRequiredService<IDbContextProvider<VPureLuxDbContext>>().GetDbContextAsync();
+                (await db.AssetReplacementReminders.CountAsync(reminder => reminder.SalesOrderId == order.Id)).ShouldBe(0);
+            });
+        }
+        finally
+        {
+            DisableCustomerCareIntake(options);
+        }
+    }
+
+    [Fact]
+    public async Task Intake_selected_before_cancel_should_revalidate_and_skip_stale_candidate()
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 5, 100);
+        var (product, _) = await CreateProductForComponentAsync(component);
+        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
+        var order = await _sales.CreateAsync(Input(context, product.Id, 1, 1_000));
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var options = EnableCustomerCareIntake();
+        var barrier = new PausingIntakeRepository(GetRequiredService<ICustomerCareSalesIntakeRepository>());
+        var intake = ActivatorUtilities.CreateInstance<CustomerCareSalesIntakeService>(ServiceProvider, barrier);
+        try
+        {
+            var intakeTask = intake.RunBatchAsync();
+            await barrier.WaitUntilSelectedAsync();
+            await _postConfirmation.CancelConfirmedAsync(order.Id, new CancelConfirmedSalesOrderDto
+            {
+                ReasonGroup = "Customer",
+                Reason = "Cancelled after intake selection"
+            });
+            barrier.Resume();
+            var result = await intakeTask;
+
+            result.CandidateCount.ShouldBe(1);
+            result.CreatedAssetCount.ShouldBe(0);
+            result.FailedLineCount.ShouldBe(0);
+            (await GetOrderAssetsAsync(order.Id)).ShouldBeEmpty();
+        }
+        finally
+        {
+            barrier.Resume();
+            DisableCustomerCareIntake(options);
+        }
+    }
+
+    [Fact]
+    public async Task Intake_selected_before_product_replacement_should_not_create_stale_product_asset()
+    {
+        var context = await CreateBaseAsync();
+        var oldComponent = await CreateComponentWithStockAsync(context.Warehouse.Id, 5, 100);
+        var newComponent = await CreateComponentWithStockAsync(context.Warehouse.Id, 5, 200);
+        var (oldProduct, _) = await CreateProductForComponentAsync(oldComponent);
+        var (newProduct, _) = await CreateProductForComponentAsync(newComponent);
+        await _warranty.SetMachineSettingAsync(oldProduct.Id, new SetProductMachineSettingDto { IsMachine = true });
+        await _warranty.SetMachineSettingAsync(newProduct.Id, new SetProductMachineSettingDto { IsMachine = true });
+        var order = await _sales.CreateAsync(Input(context, oldProduct.Id, 1, 1_000));
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var options = EnableCustomerCareIntake();
+        var barrier = new PausingIntakeRepository(GetRequiredService<ICustomerCareSalesIntakeRepository>());
+        var intake = ActivatorUtilities.CreateInstance<CustomerCareSalesIntakeService>(ServiceProvider, barrier);
+        try
+        {
+            var intakeTask = intake.RunBatchAsync();
+            await barrier.WaitUntilSelectedAsync();
+            var revision = await _postConfirmation.OpenRevisionAsync(order.Id, new OpenSalesOrderRevisionDto
+            {
+                Reason = "Replace selected machine before intake creates an asset"
+            });
+            var line = revision.Lines.Single();
+            await _postConfirmation.UpdateRevisionAsync(revision.Id, new UpdateSalesOrderRevisionDto
+            {
+                CustomerId = context.Customer.Id,
+                Lines =
+                [
+                    new UpdateSalesOrderRevisionLineDto
+                    {
+                        RevisionLineId = line.Id,
+                        ProductId = newProduct.Id,
+                        Quantity = 1,
+                        ActualSellingPrice = 1_200
+                    }
+                ]
+            });
+            await _postConfirmation.ConfirmRevisionReturnedGoodsAsync(revision.Id, new ConfirmRevisionReturnedGoodsDto
+            {
+                RevisionLineIds = [line.Id],
+                Reason = "Old machine returned before intake resumed"
+            });
+            await _postConfirmation.ApplyRevisionAsync(revision.Id, new ApplySalesOrderRevisionDto
+            {
+                IdempotencyKey = Guid.NewGuid().ToString("N")
+            });
+            barrier.Resume();
+            var result = await intakeTask;
+
+            result.CandidateCount.ShouldBe(1);
+            result.CreatedAssetCount.ShouldBe(0);
+            result.FailedLineCount.ShouldBe(0);
+            var assets = await GetOrderAssetsAsync(order.Id);
+            assets.ShouldNotContain(asset => asset.ProductId == oldProduct.Id);
+            assets.ShouldHaveSingleItem().ProductId.ShouldBe(newProduct.Id);
+        }
+        finally
+        {
+            barrier.Resume();
+            DisableCustomerCareIntake(options);
+        }
+    }
+
+    [Fact]
+    public async Task Intake_barrier_without_sales_change_should_create_once_and_retry_without_duplicate()
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 5, 100);
+        var (product, _) = await CreateProductForComponentAsync(component);
+        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
+        var order = await _sales.CreateAsync(Input(context, product.Id, 2, 1_000));
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var options = EnableCustomerCareIntake();
+        var barrier = new PausingIntakeRepository(GetRequiredService<ICustomerCareSalesIntakeRepository>());
+        var intake = ActivatorUtilities.CreateInstance<CustomerCareSalesIntakeService>(ServiceProvider, barrier);
+        try
+        {
+            var intakeTask = intake.RunBatchAsync();
+            await barrier.WaitUntilSelectedAsync();
+            barrier.Resume();
+            var first = await intakeTask;
+            var replay = await GetRequiredService<CustomerCareSalesIntakeService>().RunBatchAsync();
+
+            first.CreatedAssetCount.ShouldBe(2);
+            first.FailedLineCount.ShouldBe(0);
+            replay.CreatedAssetCount.ShouldBe(0);
+            (await GetOrderAssetsAsync(order.Id)).Count.ShouldBe(2);
+        }
+        finally
+        {
+            barrier.Resume();
+            DisableCustomerCareIntake(options);
+        }
     }
 
     [Fact]
@@ -1824,5 +2040,57 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         options.IsEnabled = false;
         options.IsSalesIntakeEnabled = false;
         options.SalesIntakeGoLiveFrom = null;
+    }
+
+    private CustomerCareOptions EnableCustomerCareIntake()
+    {
+        var options = GetRequiredService<IOptions<CustomerCareOptions>>().Value;
+        options.IsEnabled = true;
+        options.IsSalesIntakeEnabled = true;
+        options.SalesIntakeGoLiveFrom = DateTimeOffset.UtcNow.AddMinutes(-5);
+        return options;
+    }
+
+    private sealed class PausingIntakeRepository : ICustomerCareSalesIntakeRepository
+    {
+        private readonly ICustomerCareSalesIntakeRepository _inner;
+        private readonly TaskCompletionSource _selected = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _resume = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public PausingIntakeRepository(ICustomerCareSalesIntakeRepository inner)
+        {
+            _inner = inner;
+        }
+
+        public async Task<List<CustomerCareSalesIntakeCandidate>> GetCandidatesAsync(
+            DateTime confirmedFrom,
+            DateTime retryDueAt,
+            int maxResultCount,
+            CancellationToken cancellationToken = default)
+        {
+            var candidates = await _inner.GetCandidatesAsync(
+                confirmedFrom,
+                retryDueAt,
+                maxResultCount,
+                cancellationToken);
+            if (candidates.Count > 0)
+            {
+                _selected.TrySetResult();
+                await _resume.Task.WaitAsync(cancellationToken);
+            }
+
+            return candidates;
+        }
+
+        public Task<CustomerCareSalesIntakeCandidate?> FindCurrentCandidateAsync(
+            Guid salesOrderId,
+            Guid salesOrderLineId,
+            DateTime confirmedFrom,
+            CancellationToken cancellationToken = default) =>
+            _inner.FindCurrentCandidateAsync(salesOrderId, salesOrderLineId, confirmedFrom, cancellationToken);
+
+        public Task WaitUntilSelectedAsync() => _selected.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        public void Resume() => _resume.TrySetResult();
     }
 }

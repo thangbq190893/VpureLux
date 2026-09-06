@@ -233,6 +233,76 @@ public class CustomerCareSchemaTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     [Fact]
+    public async Task Asset_and_reminder_lists_should_filter_sort_and_page_beyond_the_first_page()
+    {
+        var prefix = Unique("PAGE");
+        var group = await GetRequiredService<ICustomerGroupAppService>().CreateAsync(new CreateCustomerGroupDto
+        {
+            Code = Unique("PAG"),
+            Name = "Paging group"
+        });
+        var customer = await GetRequiredService<ICustomerAppService>().CreateAsync(new CreateCustomerDto
+        {
+            Code = Unique("PAC"),
+            Name = "Paging customer",
+            CustomerGroupId = group.Id
+        });
+        var component = await GetRequiredService<IComponentAppService>().CreateAsync(new CreateComponentDto
+        {
+            Code = prefix + "-CORE",
+            Name = "Paging replacement core",
+            Unit = "Piece"
+        });
+        var warranty = GetRequiredService<IWarrantyAppService>();
+        await warranty.SetPolicyAsync(component.Id, new SetComponentReplacementPolicyDto
+        {
+            IsEnabled = true,
+            CycleMonths = 3,
+            WarningDaysBeforeDue = 15
+        });
+        for (var index = 1; index <= 3; index++)
+        {
+            await warranty.CreateExternalAssetAsync(new CreateExternalCustomerAssetDto
+            {
+                CustomerId = customer.Id,
+                Model = $"{prefix}-MODEL-{index}",
+                IdempotencyKey = Guid.NewGuid().ToString("N"),
+                Positions =
+                [
+                    new ExternalAssetPositionInput
+                    {
+                        PositionCode = "CORE-01",
+                        PositionName = "Core 1",
+                        ComponentId = component.Id,
+                        Quantity = 1,
+                        ReplacementBaselineDate = new DateTime(2026, 6, index)
+                    }
+                ]
+            });
+        }
+
+        var assets = await warranty.GetAssetListAsync(new GetCustomerAssetListInput
+        {
+            SearchText = prefix,
+            Sorting = "model desc",
+            SkipCount = 1,
+            MaxResultCount = 1
+        });
+        var reminders = await warranty.GetReminderListAsync(new GetWarrantyReminderListInput
+        {
+            SearchText = prefix,
+            Sorting = "dueDate asc",
+            SkipCount = 1,
+            MaxResultCount = 1
+        });
+
+        assets.TotalCount.ShouldBe(3);
+        assets.Items.ShouldHaveSingleItem().Model.ShouldBe($"{prefix}-MODEL-2");
+        reminders.TotalCount.ShouldBe(3);
+        reminders.Items.ShouldHaveSingleItem().DueDate.ShouldBe(new DateTime(2026, 9, 2));
+    }
+
+    [Fact]
     public async Task Should_persist_external_asset_positions_history_and_sync_failure_without_sales_source()
     {
         var groups = GetRequiredService<ICustomerGroupAppService>();
@@ -549,9 +619,9 @@ public class CustomerCareSchemaTests : VPureLuxEntityFrameworkCoreTestBase
                 .ShouldBe(4);
             var completed = await db.AssetReplacementReminders.AsNoTracking().SingleAsync(reminder => reminder.Id == completeTarget.Id);
             var next = await db.AssetReplacementReminders.AsNoTracking().SingleAsync(reminder => reminder.Id == completed.NextReminderId);
-            next.CycleMonthsSnapshot.ShouldBe(3);
-            next.WarningDaysBeforeDueSnapshot.ShouldBe(10);
-            next.DueDate.ShouldBe(completedAt.AddMonths(3));
+            next.CycleMonthsSnapshot.ShouldBe(12);
+            next.WarningDaysBeforeDueSnapshot.ShouldBe(45);
+            next.DueDate.ShouldBe(completedAt.AddMonths(12));
             (await db.CustomerAssets.AsNoTracking().SingleAsync(asset => asset.Id == created.AssetId)).Status
                 .ShouldBe(CustomerAssetStatus.Inactive);
             (await db.AssetReplacementReminders.CountAsync(reminder =>
@@ -562,6 +632,209 @@ public class CustomerCareSchemaTests : VPureLuxEntityFrameworkCoreTestBase
                 maintenanceEvent.EventType == AssetMaintenanceEventType.Deactivated)).ShouldBe(1);
         });
     }
+
+    [Fact]
+    public async Task Policy_edit_should_not_mutate_existing_reminder_and_complete_should_use_current_policy()
+    {
+        var fixture = await CreateReminderFixtureAsync();
+        var warranty = GetRequiredService<IWarrantyAppService>();
+        await warranty.SetPolicyAsync(fixture.ComponentId, new SetComponentReplacementPolicyDto
+        {
+            IsEnabled = true,
+            CycleMonths = 6,
+            WarningDaysBeforeDue = 21
+        });
+
+        await WithUnitOfWorkAsync(async () =>
+        {
+            var reminder = await GetRequiredService<IRepository<AssetReplacementReminder, Guid>>()
+                .GetAsync(fixture.ReminderId);
+            reminder.CycleMonthsSnapshot.ShouldBe(3);
+            reminder.WarningDaysBeforeDueSnapshot.ShouldBe(15);
+        });
+
+        var completedAt = new DateTime(2026, 9, 4);
+        await warranty.CompleteReminderAsync(fixture.ReminderId, new CompleteReplacementReminderDto
+        {
+            CompletedAt = completedAt,
+            Note = "Replacement completed with current policy",
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+
+        await WithUnitOfWorkAsync(async () =>
+        {
+            var reminders = await GetRequiredService<IRepository<AssetReplacementReminder, Guid>>().GetListAsync();
+            var completed = reminders.Single(x => x.Id == fixture.ReminderId);
+            var successor = reminders.Single(x => x.Id == completed.NextReminderId);
+            completed.CycleMonthsSnapshot.ShouldBe(3);
+            completed.WarningDaysBeforeDueSnapshot.ShouldBe(15);
+            successor.CycleMonthsSnapshot.ShouldBe(6);
+            successor.WarningDaysBeforeDueSnapshot.ShouldBe(21);
+            successor.DueDate.ShouldBe(new DateTime(2027, 3, 4));
+            successor.WarningDate.ShouldBe(new DateTime(2027, 2, 11));
+        });
+    }
+
+    [Fact]
+    public async Task Disabled_or_deleted_policy_should_complete_without_successor()
+    {
+        var disabled = await CreateReminderFixtureAsync();
+        var deleted = await CreateReminderFixtureAsync();
+        var warranty = GetRequiredService<IWarrantyAppService>();
+        await warranty.SetPolicyAsync(disabled.ComponentId, new SetComponentReplacementPolicyDto
+        {
+            IsEnabled = false,
+            CycleMonths = 3,
+            WarningDaysBeforeDue = 15
+        });
+        await WithUnitOfWorkAsync(async () =>
+        {
+            var policies = GetRequiredService<IComponentReplacementPolicyRepository>();
+            var policy = await policies.FindByComponentIdAsync(deleted.ComponentId);
+            await policies.DeleteAsync(policy!, autoSave: true);
+        });
+
+        await warranty.CompleteReminderAsync(disabled.ReminderId, CompleteInput());
+        await warranty.CompleteReminderAsync(deleted.ReminderId, CompleteInput());
+
+        await AssertCompletedWithoutSuccessorAsync(disabled.ReminderId);
+        await AssertCompletedWithoutSuccessorAsync(deleted.ReminderId);
+    }
+
+    [Fact]
+    public async Task Unmapped_or_inactive_position_should_complete_without_successor()
+    {
+        var unmapped = await CreateReminderFixtureAsync();
+        var inactive = await CreateReminderFixtureAsync();
+        await WithUnitOfWorkAsync(async () =>
+        {
+            var positions = GetRequiredService<IRepository<CustomerAssetComponent, Guid>>();
+            var unmappedPosition = await positions.GetAsync(unmapped.PositionId);
+            unmappedPosition.ClearMapping("Mapping removed before replacement");
+            await positions.UpdateAsync(unmappedPosition);
+            var inactivePosition = await positions.GetAsync(inactive.PositionId);
+            inactivePosition.Deactivate("Position retired before replacement");
+            await positions.UpdateAsync(inactivePosition, autoSave: true);
+        });
+
+        var warranty = GetRequiredService<IWarrantyAppService>();
+        await warranty.CompleteReminderAsync(unmapped.ReminderId, CompleteInput());
+        await warranty.CompleteReminderAsync(inactive.ReminderId, CompleteInput());
+
+        await AssertCompletedWithoutSuccessorAsync(unmapped.ReminderId);
+        await AssertCompletedWithoutSuccessorAsync(inactive.ReminderId);
+    }
+
+    [Fact]
+    public async Task Complete_replay_should_not_duplicate_event_or_successor()
+    {
+        var fixture = await CreateReminderFixtureAsync();
+        var input = CompleteInput();
+        var warranty = GetRequiredService<IWarrantyAppService>();
+        await warranty.CompleteReminderAsync(fixture.ReminderId, input);
+        await warranty.CompleteReminderAsync(fixture.ReminderId, input);
+
+        await WithUnitOfWorkAsync(async () =>
+        {
+            var db = await GetRequiredService<IDbContextProvider<VPureLuxDbContext>>().GetDbContextAsync();
+            (await db.AssetMaintenanceEvents.CountAsync(x => x.SourceId == fixture.ReminderId)).ShouldBe(1);
+            (await db.AssetReplacementReminders.CountAsync(x => x.CustomerAssetId == fixture.AssetId)).ShouldBe(2);
+        });
+    }
+
+    [Fact]
+    public async Task Reenabling_policy_after_completion_should_not_backfill_successor()
+    {
+        var fixture = await CreateReminderFixtureAsync();
+        var warranty = GetRequiredService<IWarrantyAppService>();
+        await warranty.SetPolicyAsync(fixture.ComponentId, new SetComponentReplacementPolicyDto
+        {
+            IsEnabled = false,
+            CycleMonths = 3,
+            WarningDaysBeforeDue = 15
+        });
+        await warranty.CompleteReminderAsync(fixture.ReminderId, CompleteInput());
+        await warranty.SetPolicyAsync(fixture.ComponentId, new SetComponentReplacementPolicyDto
+        {
+            IsEnabled = true,
+            CycleMonths = 6,
+            WarningDaysBeforeDue = 21
+        });
+
+        await AssertCompletedWithoutSuccessorAsync(fixture.ReminderId);
+    }
+
+    private async Task<ReminderFixture> CreateReminderFixtureAsync()
+    {
+        var group = await GetRequiredService<ICustomerGroupAppService>().CreateAsync(new CreateCustomerGroupDto
+        {
+            Code = Unique("RCG"),
+            Name = "Reminder cycle group"
+        });
+        var customer = await GetRequiredService<ICustomerAppService>().CreateAsync(new CreateCustomerDto
+        {
+            Code = Unique("RCC"),
+            Name = "Reminder cycle customer",
+            CustomerGroupId = group.Id
+        });
+        var component = await GetRequiredService<IComponentAppService>().CreateAsync(new CreateComponentDto
+        {
+            Code = Unique("RCP"),
+            Name = "Reminder cycle component",
+            Unit = "Piece"
+        });
+        var warranty = GetRequiredService<IWarrantyAppService>();
+        await warranty.SetPolicyAsync(component.Id, new SetComponentReplacementPolicyDto
+        {
+            IsEnabled = true,
+            CycleMonths = 3,
+            WarningDaysBeforeDue = 15
+        });
+        var created = await warranty.CreateExternalAssetAsync(new CreateExternalCustomerAssetDto
+        {
+            CustomerId = customer.Id,
+            Model = "Reminder cycle machine",
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Positions =
+            [
+                new ExternalAssetPositionInput
+                {
+                    PositionCode = "CORE-01",
+                    PositionName = "Core 1",
+                    ComponentId = component.Id,
+                    Quantity = 1,
+                    ReplacementBaselineDate = new DateTime(2026, 6, 4)
+                }
+            ]
+        });
+        var detail = await warranty.GetAssetDetailsAsync(created.AssetId);
+        var reminder = (await warranty.GetReminderListAsync(new GetWarrantyReminderListInput
+        {
+            SearchText = created.AssetNo,
+            Status = AssetReplacementReminderStatus.Pending,
+            MaxResultCount = 10
+        })).Items.Single();
+        return new ReminderFixture(component.Id, created.AssetId, detail.Positions.Single().Id!.Value, reminder.Id);
+    }
+
+    private async Task AssertCompletedWithoutSuccessorAsync(Guid reminderId)
+    {
+        await WithUnitOfWorkAsync(async () =>
+        {
+            var reminder = await GetRequiredService<IRepository<AssetReplacementReminder, Guid>>().GetAsync(reminderId);
+            reminder.Status.ShouldBe(AssetReplacementReminderStatus.Completed);
+            reminder.NextReminderId.ShouldBeNull();
+        });
+    }
+
+    private static CompleteReplacementReminderDto CompleteInput() => new()
+    {
+        CompletedAt = new DateTime(2026, 9, 4),
+        Note = "Replacement completed",
+        IdempotencyKey = Guid.NewGuid().ToString("N")
+    };
+
+    private sealed record ReminderFixture(Guid ComponentId, Guid AssetId, Guid PositionId, Guid ReminderId);
 
     private static Microsoft.EntityFrameworkCore.Metadata.IReadOnlyIndex Index(
         VPureLuxDbContext db,

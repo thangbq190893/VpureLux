@@ -1,0 +1,26 @@
+[
+  {
+    "RelativePath": "artifacts/w008-verification/vpl-before.json",
+    "SHA256": "6F163472F9C5BD9FFAB76049D2DFC315E0D939624B91814FEF244A2BF3461045"
+  },
+  {
+    "RelativePath": "artifacts/w008-verification/vpl-after.json",
+    "SHA256": "014E767A69B205F9BEA47C4B8C06F50CE75C3E9E5848109BB90B312C2A7ED411"
+  },
+  {
+    "RelativePath": "artifacts/w008-isolated-r2/vpl-before.json",
+    "SHA256": "E495BEEE0F90742CFEC366852C5DC01E0E063D6EDAAD71B86A24AE79DBE17005"
+  },
+  {
+    "RelativePath": "artifacts/w008-isolated-r2/vpl-after.json",
+    "SHA256": "F7F3B592CB212B49AAAF43672548C7C8FB7F6B64291B53E85CD83B52EF1EF53E"
+  },
+  {
+    "RelativePath": "artifacts/w008-isolated-r2/fixtures.json",
+    "SHA256": "09BB119596573044AA79CF693C7885EE1ED986A53FA286B5CAC1BEBF6C4BE34F"
+  },
+  {
+    "RelativePath": "artifacts/w008-isolated-r2/reports.json",
+    "SHA256": "77EBD062322AA45021568FFFE0151D94BB29198374D2ED2A9AFB752CF5D31B76"
+  }
+]

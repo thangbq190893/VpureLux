@@ -993,37 +993,48 @@ public class WarrantyAppService : ApplicationService, IWarrantyAppService
         {
             position = await _assetComponents.GetAsync(reminder.CustomerAssetComponentId.Value);
         }
+        var hasCurrentPosition = position is
+        {
+            Status: CustomerAssetComponentStatus.Active,
+            ComponentId: not null
+        } && position.ComponentId == reminder.ComponentId;
+        var currentPolicy = hasCurrentPosition
+            ? await _policies.FindByComponentIdAsync(reminder.ComponentId)
+            : null;
+        var currentComponent = currentPolicy is { IsEnabled: true }
+            ? await _components.FindAsync(reminder.ComponentId)
+            : null;
         var maintenanceEvent = new AssetMaintenanceEvent(
             GuidGenerator.Create(), reminder.CustomerAssetId, reminder.CustomerAssetComponentId,
             AssetMaintenanceEventType.Replacement, AssetMaintenanceSourceType.Manual,
             completedAt, eventKey, sourceId: reminder.Id, componentId: reminder.ComponentId,
             componentCode: reminder.ComponentCodeSnapshot, componentName: reminder.ComponentNameSnapshot,
             note: input.Note);
-        var nextReminder = position == null
+        var nextReminder = hasCurrentPosition &&
+                           currentPolicy is { IsEnabled: true } &&
+                           currentComponent is { Status: CatalogItemStatus.Active }
             ? new AssetReplacementReminder(
-                GuidGenerator.Create(), reminder.CustomerAssetId, reminder.ComponentId,
+                GuidGenerator.Create(), reminder.CustomerAssetId, position!.Id, reminder.ComponentId,
                 reminder.SalesOrderId, reminder.SalesOrderLineId,
                 reminder.ComponentCodeSnapshot, reminder.ComponentNameSnapshot, reminder.ComponentUnitSnapshot,
-                reminder.QuantityPerProductSnapshot, completedAt.AddMonths(reminder.CycleMonthsSnapshot),
-                reminder.CycleMonthsSnapshot, reminder.WarningDaysBeforeDueSnapshot)
-            : new AssetReplacementReminder(
-                GuidGenerator.Create(), reminder.CustomerAssetId, position.Id, reminder.ComponentId,
-                reminder.SalesOrderId, reminder.SalesOrderLineId,
-                reminder.ComponentCodeSnapshot, reminder.ComponentNameSnapshot, reminder.ComponentUnitSnapshot,
-                reminder.QuantityPerProductSnapshot, completedAt.AddMonths(reminder.CycleMonthsSnapshot),
-                reminder.CycleMonthsSnapshot, reminder.WarningDaysBeforeDueSnapshot,
+                reminder.QuantityPerProductSnapshot, completedAt.AddMonths(currentPolicy.CycleMonths),
+                currentPolicy.CycleMonths, currentPolicy.WarningDaysBeforeDue,
                 ReplacementReminderTriggerSource.Replacement, nameof(AssetMaintenanceEvent), maintenanceEvent.Id,
-                HashKey("replacement-reminder", position.Id, input.IdempotencyKey));
+                HashKey("replacement-reminder", position.Id, input.IdempotencyKey))
+            : null;
 
-        reminder.Complete(completedAt, CurrentUser.Id, nextReminder.Id, input.Note);
-        if (position != null)
+        reminder.Complete(completedAt, CurrentUser.Id, nextReminder?.Id, input.Note);
+        if (hasCurrentPosition)
         {
-            position.SetReplacementBaseline(completedAt);
+            position!.SetReplacementBaseline(completedAt);
             await _assetComponents.UpdateAsync(position);
         }
         await _maintenanceEvents.InsertAsync(maintenanceEvent);
         await _reminders.UpdateAsync(reminder, autoSave: true);
-        await _reminders.InsertAsync(nextReminder, autoSave: true);
+        if (nextReminder != null)
+        {
+            await _reminders.InsertAsync(nextReminder, autoSave: true);
+        }
     }
 
     [Authorize(VPureLuxPermissions.Warranty.ManageReminders)]

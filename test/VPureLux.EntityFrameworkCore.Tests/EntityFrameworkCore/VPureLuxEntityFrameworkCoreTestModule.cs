@@ -1,9 +1,13 @@
 ﻿using Microsoft.Data.Sqlite;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using VPureLux.EntityFrameworkCore.Warranty;
 using Volo.Abp;
+using Volo.Abp.Authorization;
 using Volo.Abp.EntityFrameworkCore;
 using Volo.Abp.EntityFrameworkCore.Sqlite;
 using Volo.Abp.FeatureManagement;
@@ -46,6 +50,9 @@ public class VPureLuxEntityFrameworkCoreTestModule : AbpModule
             options.IsDynamicTemplateStoreEnabled = false;
         });
         context.Services.AddAlwaysDisableUnitOfWorkTransaction();
+        context.Services.Replace(ServiceDescriptor.Transient<IAuthorizationService, WarrantyMatrixAuthorizationService>());
+        context.Services.Replace(ServiceDescriptor.Transient<IAbpAuthorizationService, WarrantyMatrixAuthorizationService>());
+        context.Services.Replace(ServiceDescriptor.Transient<IMethodInvocationAuthorizationService, WarrantyMatrixMethodInvocationAuthorizationService>());
 
         ConfigureInMemorySqlite(context.Services);
 

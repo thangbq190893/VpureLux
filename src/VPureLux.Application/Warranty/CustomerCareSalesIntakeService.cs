@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using VPureLux.CustomerCare;
+using VPureLux.Sales;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.DistributedLocking;
@@ -31,6 +32,7 @@ public class CustomerCareSalesIntakeService : ITransientDependency
     private readonly IRepository<CustomerAsset, Guid> _assets;
     private readonly IRepository<CustomerAssetComponent, Guid> _assetComponents;
     private readonly ICustomerCareSyncFailureRepository _failures;
+    private readonly SalesOrderOperationCoordinator _salesOrderCoordinator;
     private readonly IUnitOfWorkManager _unitOfWorkManager;
     private readonly ILogger<CustomerCareSalesIntakeService> _logger;
 
@@ -41,6 +43,7 @@ public class CustomerCareSalesIntakeService : ITransientDependency
         IRepository<CustomerAsset, Guid> assets,
         IRepository<CustomerAssetComponent, Guid> assetComponents,
         ICustomerCareSyncFailureRepository failures,
+        SalesOrderOperationCoordinator salesOrderCoordinator,
         IUnitOfWorkManager unitOfWorkManager,
         ILogger<CustomerCareSalesIntakeService> logger)
     {
@@ -50,6 +53,7 @@ public class CustomerCareSalesIntakeService : ITransientDependency
         _assets = assets;
         _assetComponents = assetComponents;
         _failures = failures;
+        _salesOrderCoordinator = salesOrderCoordinator;
         _unitOfWorkManager = unitOfWorkManager;
         _logger = logger;
     }
@@ -87,7 +91,11 @@ public class CustomerCareSalesIntakeService : ITransientDependency
         {
             try
             {
-                createdAssetCount += await ProcessCandidateAsync(candidate, cancellationToken);
+                createdAssetCount += await RevalidateAndProcessCandidateAsync(
+                    candidate,
+                    options.SalesIntakeGoLiveFrom!.Value.UtcDateTime,
+                    current,
+                    cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -133,7 +141,34 @@ public class CustomerCareSalesIntakeService : ITransientDependency
         return candidates;
     }
 
-    private async Task<int> ProcessCandidateAsync(
+    private async Task<int> RevalidateAndProcessCandidateAsync(
+        CustomerCareSalesIntakeCandidate candidate,
+        DateTime confirmedFrom,
+        DateTimeOffset current,
+        CancellationToken cancellationToken)
+    {
+        return await _salesOrderCoordinator.ExecuteAsync(candidate.SalesOrderId, async () =>
+        {
+            if (!_options.Value.CanRunSalesIntake(current))
+            {
+                return 0;
+            }
+
+            var currentCandidate = await _intakeRepository.FindCurrentCandidateAsync(
+                candidate.SalesOrderId,
+                candidate.SalesOrderLineId,
+                confirmedFrom,
+                cancellationToken);
+            if (currentCandidate == null)
+            {
+                return 0;
+            }
+
+            return await ProcessCurrentCandidateAsync(currentCandidate, cancellationToken);
+        });
+    }
+
+    private async Task<int> ProcessCurrentCandidateAsync(
         CustomerCareSalesIntakeCandidate candidate,
         CancellationToken cancellationToken)
     {
@@ -145,7 +180,6 @@ public class CustomerCareSalesIntakeService : ITransientDependency
                 ToPositiveInteger(item.QuantityPerProduct, $"BomQuantity:{item.ComponentCode}")))
             .ToList();
 
-        using var unitOfWork = _unitOfWorkManager.Begin(requiresNew: true, isTransactional: true);
         for (var unitIndex = 1; unitIndex <= machineCount; unitIndex++)
         {
             var asset = CustomerAsset.CreateSoldMachine(
@@ -189,7 +223,6 @@ public class CustomerCareSalesIntakeService : ITransientDependency
             await _failures.UpdateAsync(failure, cancellationToken: cancellationToken);
         }
 
-        await unitOfWork.CompleteAsync(cancellationToken);
         return machineCount;
     }
 

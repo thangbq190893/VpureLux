@@ -42,6 +42,12 @@ public interface ICustomerCareSalesIntakeRepository
         DateTime retryDueAt,
         int maxResultCount,
         CancellationToken cancellationToken = default);
+
+    Task<CustomerCareSalesIntakeCandidate?> FindCurrentCandidateAsync(
+        Guid salesOrderId,
+        Guid salesOrderLineId,
+        DateTime confirmedFrom,
+        CancellationToken cancellationToken = default);
 }
 
 public interface IWarrantyReadRepository

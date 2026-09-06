@@ -1,0 +1,289 @@
+[
+  {
+    "Table": "AppAssetMaintenanceEvents",
+    "Before": 6,
+    "After": 14,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppAssetReplacementReminders",
+    "Before": 4,
+    "After": 9,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppBomItems",
+    "Before": 3,
+    "After": 4,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppBomVersions",
+    "Before": 3,
+    "After": 4,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppBusinessAuditLogs",
+    "Before": 60,
+    "After": 93,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppComponentReplacementPolicies",
+    "Before": 2,
+    "After": 3,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppComponents",
+    "Before": 6,
+    "After": 9,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppComponentSuggestedSellingPriceVersions",
+    "Before": 0,
+    "After": 0,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppCustomerAssetComponents",
+    "Before": 18,
+    "After": 34,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppCustomerAssets",
+    "Before": 2,
+    "After": 10,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppCustomerCareSyncFailures",
+    "Before": 0,
+    "After": 0,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppCustomerGroups",
+    "Before": 5,
+    "After": 6,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppCustomers",
+    "Before": 3,
+    "After": 4,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppInventoryBalances",
+    "Before": 3,
+    "After": 4,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppInventoryLotAllocations",
+    "Before": 10,
+    "After": 15,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppInventoryLots",
+    "Before": 3,
+    "After": 4,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppInventoryLotSuppliers",
+    "Before": 0,
+    "After": 0,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppInventoryTransactionLines",
+    "Before": 17,
+    "After": 24,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppInventoryTransactions",
+    "Before": 16,
+    "After": 23,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppNumberSequences",
+    "Before": 1,
+    "After": 2,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": true
+  },
+  {
+    "Table": "AppOperatingCostCategories",
+    "Before": 0,
+    "After": 0,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppOperatingCostEntries",
+    "Before": 0,
+    "After": 0,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppProductMachineSettings",
+    "Before": 1,
+    "After": 2,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppProducts",
+    "Before": 3,
+    "After": 4,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppProductSuggestedPriceVersions",
+    "Before": 0,
+    "After": 0,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppSalesOrderBomSnapshotItems",
+    "Before": 8,
+    "After": 12,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppSalesOrderCancellations",
+    "Before": 1,
+    "After": 3,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppSalesOrderLines",
+    "Before": 8,
+    "After": 12,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppSalesOrderPayments",
+    "Before": 3,
+    "After": 3,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppSalesOrderRefunds",
+    "Before": 2,
+    "After": 2,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppSalesOrderRevisionAllocations",
+    "Before": 3,
+    "After": 4,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppSalesOrderRevisionLines",
+    "Before": 6,
+    "After": 10,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppSalesOrderRevisions",
+    "Before": 5,
+    "After": 9,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppSalesOrders",
+    "Before": 6,
+    "After": 10,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppServiceOrderLines",
+    "Before": 3,
+    "After": 3,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppServiceOrders",
+    "Before": 2,
+    "After": 2,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppServicePayments",
+    "Before": 2,
+    "After": 2,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppServiceWorks",
+    "Before": 1,
+    "After": 1,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppStockItems",
+    "Before": 9,
+    "After": 13,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppSuppliers",
+    "Before": 0,
+    "After": 0,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  },
+  {
+    "Table": "AppWarehouses",
+    "Before": 3,
+    "After": 4,
+    "ChangedOrMissingLegacyRows": 0,
+    "ExpectedSequenceAdvance": false
+  }
+]

@@ -41,24 +41,55 @@ public class EfCoreCustomerCareSalesIntakeRepository : ICustomerCareSalesIntakeR
                           failure.NextRetryAt > retryDueAt) &&
                       !db.CustomerAssets.Any(asset => asset.SalesOrderLineId == line.Id)
                 orderby order.ConfirmedAt, order.Id, line.LineNo
-                select new
-                {
-                    SalesOrderId = order.Id,
-                    SalesOrderLineId = line.Id,
-                    SalesOrderLineNo = line.LineNo,
-                    order.OrderNo,
-                    order.CustomerId,
-                    CustomerCode = order.CustomerCodeSnapshot,
-                    CustomerName = order.CustomerNameSnapshot,
-                    ProductId = line.CatalogItemId,
-                    ProductCode = line.ItemCodeSnapshot,
-                    ProductName = line.ItemNameSnapshot,
-                    line.Quantity,
-                    SoldAt = order.ConfirmedAt ?? order.OrderDate
-                })
+                select new IntakeHeader(
+                    order.Id, line.Id, line.LineNo, order.OrderNo, order.CustomerId,
+                    order.CustomerCodeSnapshot, order.CustomerNameSnapshot,
+                    line.CatalogItemId, line.ItemCodeSnapshot, line.ItemNameSnapshot,
+                    line.Quantity, order.ConfirmedAt ?? order.OrderDate))
             .Take(maxResultCount)
             .ToListAsync(cancellationToken);
 
+        return await BuildCandidatesAsync(db, headers, cancellationToken);
+    }
+
+    public async Task<CustomerCareSalesIntakeCandidate?> FindCurrentCandidateAsync(
+        Guid salesOrderId,
+        Guid salesOrderLineId,
+        DateTime confirmedFrom,
+        CancellationToken cancellationToken = default)
+    {
+        var db = await _dbContextProvider.GetDbContextAsync();
+        var header = await (
+                from order in db.SalesOrders.AsNoTracking()
+                from line in order.Lines.Where(item => item.IsEffective)
+                join setting in db.ProductMachineSettings.AsNoTracking()
+                    on line.CatalogItemId equals setting.ProductId
+                where order.Id == salesOrderId &&
+                      line.Id == salesOrderLineId &&
+                      order.Status == SalesOrderStatus.Confirmed &&
+                      order.ConfirmedAt >= confirmedFrom &&
+                      setting.IsMachine &&
+                      !db.CustomerAssets.Any(asset => asset.SalesOrderLineId == line.Id)
+                select new IntakeHeader(
+                    order.Id, line.Id, line.LineNo, order.OrderNo, order.CustomerId,
+                    order.CustomerCodeSnapshot, order.CustomerNameSnapshot,
+                    line.CatalogItemId, line.ItemCodeSnapshot, line.ItemNameSnapshot,
+                    line.Quantity, order.ConfirmedAt ?? order.OrderDate))
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (header == null)
+        {
+            return null;
+        }
+
+        return (await BuildCandidatesAsync(db, [header], cancellationToken)).Single();
+    }
+
+    private static async Task<List<CustomerCareSalesIntakeCandidate>> BuildCandidatesAsync(
+        VPureLuxDbContext db,
+        List<IntakeHeader> headers,
+        CancellationToken cancellationToken)
+    {
         if (headers.Count == 0)
         {
             return [];
@@ -116,4 +147,18 @@ public class EfCoreCustomerCareSalesIntakeRepository : ICustomerCareSalesIntakeR
                 itemsByLine.GetValueOrDefault(header.SalesOrderLineId) ?? []))
             .ToList();
     }
+
+    private sealed record IntakeHeader(
+        Guid SalesOrderId,
+        Guid SalesOrderLineId,
+        int SalesOrderLineNo,
+        string OrderNo,
+        Guid CustomerId,
+        string CustomerCode,
+        string CustomerName,
+        Guid ProductId,
+        string ProductCode,
+        string ProductName,
+        decimal Quantity,
+        DateTime SoldAt);
 }

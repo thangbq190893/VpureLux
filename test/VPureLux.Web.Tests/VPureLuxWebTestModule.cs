@@ -1,11 +1,18 @@
+using System.Security.Claims;
+using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Globalization;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.AspNetCore.DataProtection;
 using VPureLux.EntityFrameworkCore;
@@ -55,6 +62,21 @@ public class VPureLuxWebTestModule : AbpModule
         context.Services.RemoveAll<IDistributedCache>();
         context.Services.AddDistributedMemoryCache();
         context.Services.AddDataProtection().UseEphemeralDataProtectionProvider();
+        context.Services.AddAuthentication()
+            .AddScheme<AuthenticationSchemeOptions, WarrantyTestAuthenticationHandler>(
+                WarrantyTestAuthenticationHandler.AuthenticationSchemeName,
+                _ => { })
+            .AddPolicyScheme("W008TestSelector", null, options =>
+            {
+                options.ForwardDefaultSelector = context =>
+                    context.Request.Headers.ContainsKey("X-W008-Test-Auth")
+                        ? WarrantyTestAuthenticationHandler.AuthenticationSchemeName
+                        : IdentityConstants.ApplicationScheme;
+            });
+        PostConfigure<AuthenticationOptions>(options =>
+        {
+            options.DefaultAuthenticateScheme = "W008TestSelector";
+        });
 
         Configure<IdentitySessionCleanupOptions>(options =>
         {
@@ -86,5 +108,32 @@ public class VPureLuxWebTestModule : AbpModule
         {
             options.MenuContributors.Add(new VPureLuxMenuContributor());
         });
+    }
+}
+
+public class WarrantyTestAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+{
+    public const string AuthenticationSchemeName = "W008Test";
+
+    public WarrantyTestAuthenticationHandler(
+        IOptionsMonitor<AuthenticationSchemeOptions> options,
+        ILoggerFactory logger,
+        UrlEncoder encoder)
+        : base(options, logger, encoder)
+    {
+    }
+
+    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+    {
+        if (!Request.Headers.ContainsKey("X-W008-Test-Auth"))
+        {
+            return Task.FromResult(AuthenticateResult.NoResult());
+        }
+
+        var identity = new ClaimsIdentity(
+            [new Claim(ClaimTypes.NameIdentifier, "2e701e62-0953-4dd3-910b-dc6cc93ccb0d"), new Claim(ClaimTypes.Name, "admin")],
+            AuthenticationSchemeName);
+        return Task.FromResult(AuthenticateResult.Success(
+            new AuthenticationTicket(new ClaimsPrincipal(identity), AuthenticationSchemeName)));
     }
 }
