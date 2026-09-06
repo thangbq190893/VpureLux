@@ -49,7 +49,8 @@ public class ServiceWorkDomainTests
         ((byte)ServicePaymentStatus.Voided).ShouldBe((byte)2);
         new ServiceOptions().IsEnabled.ShouldBeFalse();
         typeof(ServiceOrder).GetMethod("Complete").ShouldBeNull();
-        typeof(ServiceOrder).GetMethod("Confirm").ShouldBeNull();
+        typeof(ServiceOrder).GetMethod("CompleteLine").ShouldBeNull();
+        typeof(ServiceOrder).GetMethod("Confirm").ShouldNotBeNull();
         typeof(ServicePayment).GetMethod("Void").ShouldBeNull();
     }
 }

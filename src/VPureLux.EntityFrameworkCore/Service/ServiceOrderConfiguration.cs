@@ -22,6 +22,7 @@ public class ServiceOrderConfiguration : IEntityTypeConfiguration<ServiceOrder>
         builder.Property(x => x.AssetNameSnapshot).HasMaxLength(ServiceConsts.MaxNameLength).IsRequired();
         builder.Property(x => x.ServiceAddress).HasMaxLength(ServiceConsts.MaxAddressLength);
         builder.Property(x => x.Note).HasMaxLength(ServiceConsts.MaxNoteLength);
+        builder.Property(x => x.CancellationReason).HasMaxLength(ServiceConsts.MaxNoteLength);
         builder.Property(x => x.CompletionIdempotencyKey).HasMaxLength(ServiceConsts.MaxIdempotencyKeyLength);
         ConfigureMoney(builder.Property(x => x.TotalRevenueAmount));
         ConfigureMoney(builder.Property(x => x.TotalCostAmount));
@@ -52,6 +53,7 @@ public class ServiceOrderConfiguration : IEntityTypeConfiguration<ServiceOrder>
             ConfigureMoney(line.Property(x => x.UnitPrice));
             ConfigureMoney(line.Property(x => x.RevenueAmount));
             ConfigureMoney(line.Property(x => x.CostAmountSnapshot));
+            line.Property(x => x.StandardCostSnapshot).HasPrecision(ServiceConsts.MoneyPrecision, ServiceConsts.MoneyScale);
             line.Property(x => x.Note).HasMaxLength(ServiceConsts.MaxNoteLength);
             line.HasOne<VPureLux.Catalog.Component>().WithMany().HasForeignKey(x => x.ComponentId).OnDelete(DeleteBehavior.Restrict);
             line.HasOne<VPureLux.Warranty.CustomerAssetComponent>().WithMany().HasForeignKey(x => x.CustomerAssetComponentId).OnDelete(DeleteBehavior.Restrict);

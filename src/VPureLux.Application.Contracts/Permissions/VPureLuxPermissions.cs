@@ -137,6 +137,10 @@ public static class VPureLuxPermissions
     {
         public const string Default = GroupName + ".Service";
         public const string View = Default + ".View";
+        public const string Create = Default + ".Create";
+        public const string Edit = Default + ".Edit";
+        public const string Confirm = Default + ".Confirm";
+        public const string Cancel = Default + ".Cancel";
         public const string ManageWorks = Default + ".ManageWorks";
     }
 

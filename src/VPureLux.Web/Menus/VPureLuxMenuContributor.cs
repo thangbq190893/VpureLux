@@ -234,9 +234,9 @@ public class VPureLuxMenuContributor : IMenuContributor
         context.Menu.AddItem(warranty);
         if (context.ServiceProvider.GetRequiredService<IOptions<ServiceOptions>>().Value.IsEnabled)
         {
-            var service = new ApplicationMenuItem("VPureLux.Service", l["Menu:Service"], icon: "fa fa-wrench", order: 12)
+            var service = new ApplicationMenuItem(VPureLuxMenus.Service, l["Menu:Service"], "~/Service", icon: "fa fa-wrench", order: 12)
                 .RequirePermissions(VPureLuxPermissions.Service.Default, VPureLuxPermissions.Service.View);
-            service.AddItem(new ApplicationMenuItem("VPureLux.Service.Works", l["Service:Works"], "~/Service/Works", icon: "fa fa-list")
+            service.AddItem(new ApplicationMenuItem(VPureLuxMenus.ServiceWorks, l["Service:Works"], "~/Service/Works", icon: "fa fa-list")
                 .RequirePermissions(VPureLuxPermissions.Service.View));
             context.Menu.AddItem(service);
         }

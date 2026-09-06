@@ -39,13 +39,19 @@ public class ServiceMoneyModelBinder : IModelBinder
         context.ModelState.SetModelValue(context.ModelName, value);
         if (string.IsNullOrWhiteSpace(value.FirstValue) && context.ModelMetadata.IsNullableValueType)
             context.Result = ModelBindingResult.Success(null);
-        else if (value.Length == 1 && decimal.TryParse(value.FirstValue,
-                     NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
-                     CultureInfo.InvariantCulture, out var amount))
+        else if (value.Length == 1 && TryParseAmount(value.FirstValue, out var amount))
             context.Result = ModelBindingResult.Success(amount);
         else
             context.ModelState.TryAddModelError(context.ModelName,
                 context.ModelMetadata.ModelBindingMessageProvider.AttemptedValueIsInvalidAccessor(value.ToString(), context.ModelMetadata.GetDisplayName()));
         return Task.CompletedTask;
     }
+
+    private static bool TryParseAmount(string? value, out decimal amount) =>
+        decimal.TryParse(value,
+            NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
+            CultureInfo.InvariantCulture, out amount) ||
+        decimal.TryParse(value,
+            NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
+            CultureInfo.GetCultureInfo("vi-VN"), out amount);
 }

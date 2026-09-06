@@ -1,0 +1,186 @@
+@model VPureLux.Web.Pages.Service.ServiceOrderPageViewModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using VPureLux.Service
+
+<div class="vpl-page" data-service-order-form data-edit-mode="@Model.IsEdit.ToString().ToLowerInvariant()">
+    <div class="vpl-page-header">
+        <div>
+            <h2 class="vpl-page-title mb-1">@(Model.IsEdit ? L["Service:EditOrder"] : L["Service:CreateOrder"])</h2>
+            @if (!string.IsNullOrWhiteSpace(Model.OrderNo))
+            {
+                <div class="text-muted">@Model.OrderNo</div>
+            }
+        </div>
+        <a class="btn btn-outline-secondary" asp-page="@(Model.IsEdit ? "/Service/Details" : "/Service/Index")" asp-route-id="@Model.OrderId">
+            <i class="fa fa-arrow-left" aria-hidden="true"></i> @L["Back"]
+        </a>
+    </div>
+
+    <form method="post" id="ServiceOrderForm">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+        <input asp-for="Input.ConcurrencyStamp" type="hidden" />
+        <input asp-for="Input.AssetLabel" type="hidden" id="ServiceAssetLabel" />
+        <input asp-for="Input.TechnicianLabel" type="hidden" id="ServiceTechnicianLabel" />
+
+        <abp-card class="vpl-card-dense mb-3">
+            <abp-card-body>
+                <div class="row g-3">
+                    <div class="col-12 col-lg-6">
+                        <label asp-for="Input.CustomerAssetId" class="form-label">@L["Service:CustomerAsset"]</label>
+                        @if (Model.IsEdit)
+                        {
+                            <input asp-for="Input.CustomerAssetId" type="hidden" id="ServiceAssetId" />
+                            <div class="form-control-plaintext fw-semibold">@Model.Input.AssetLabel</div>
+                        }
+                        else
+                        {
+                            <select asp-for="Input.CustomerAssetId" id="ServiceAssetId" class="form-select js-select2" data-use-select2="true" data-placeholder="@L["Service:SelectAsset"]">
+                                @if (Model.Input.CustomerAssetId != Guid.Empty)
+                                {
+                                    <option selected value="@Model.Input.CustomerAssetId">@Model.Input.AssetLabel</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Input.CustomerAssetId" class="text-danger"></span>
+                        }
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-2">
+                        <label asp-for="Input.WarehouseId" class="form-label">@L["Service:Warehouse"]</label>
+                        <select asp-for="Input.WarehouseId" asp-items="Model.Warehouses" class="form-select" disabled="@Model.IsEdit"></select>
+                        @if (Model.IsEdit)
+                        {
+                            <input asp-for="Input.WarehouseId" type="hidden" />
+                        }
+                        <span asp-validation-for="Input.WarehouseId" class="text-danger"></span>
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-2">
+                        <label asp-for="Input.OrderDate" class="form-label">@L["Service:OrderDate"]</label>
+                        <input asp-for="Input.OrderDate" type="date" class="form-control" />
+                        <span asp-validation-for="Input.OrderDate" class="text-danger"></span>
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-2">
+                        <label asp-for="Input.ScheduledAt" class="form-label">@L["Service:ScheduledAt"]</label>
+                        <input asp-for="Input.ScheduledAt" type="datetime-local" class="form-control" />
+                    </div>
+                    <div class="col-12 col-lg-4">
+                        <label asp-for="Input.TechnicianUserId" class="form-label">@L["Service:Technician"]</label>
+                        <select asp-for="Input.TechnicianUserId" id="ServiceTechnicianId" class="form-select js-select2" data-use-select2="true" data-placeholder="@L["Service:SelectTechnician"]">
+                            @if (Model.Input.TechnicianUserId.HasValue)
+                            {
+                                <option selected value="@Model.Input.TechnicianUserId">@Model.Input.TechnicianLabel</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-12 col-lg-8">
+                        <label asp-for="Input.ServiceAddress" class="form-label">@L["Service:Address"]</label>
+                        <input asp-for="Input.ServiceAddress" id="ServiceAddress" class="form-control" />
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Input.Note" class="form-label">@L["Service:Note"]</label>
+                        <textarea asp-for="Input.Note" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+            </abp-card-body>
+        </abp-card>
+
+        <abp-card class="vpl-card-dense mb-3">
+            <abp-card-header>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <strong>@L["Service:Lines"]</strong>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-primary btn-sm" data-add-service-line="Material">
+                            <i class="fa fa-box" aria-hidden="true"></i> @L["Service:AddMaterial"]
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" data-add-service-line="Labor">
+                            <i class="fa fa-screwdriver-wrench" aria-hidden="true"></i> @L["Service:AddLabor"]
+                        </button>
+                    </div>
+                </div>
+            </abp-card-header>
+            <abp-card-body>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0" id="ServiceLinesTable" style="min-width: 980px">
+                        <thead>
+                            <tr>
+                                <th style="width: 7rem">@L["Service:LineType"]</th>
+                                <th style="min-width: 15rem">@L["Service:Item"]</th>
+                                <th style="min-width: 13rem">@L["Service:Position"]</th>
+                                <th style="width: 7rem">@L["Service:Quantity"]</th>
+                                <th style="width: 10rem">@L["Service:UnitPrice"]</th>
+                                <th style="min-width: 12rem">@L["Service:LineNote"]</th>
+                                <th style="width: 3rem"></th>
+                            </tr>
+                        </thead>
+                        <tbody data-service-lines-body>
+                            @for (var index = 0; index < Model.Input.Lines.Count; index++)
+                            {
+                                var line = Model.Input.Lines[index];
+                                <tr data-service-line data-line-type="@line.LineType">
+                                    <td>
+                                        <span class="badge @(line.LineType == ServiceOrderLineType.Material ? "text-bg-primary" : "text-bg-secondary")">@L[$"Service:LineType:{line.LineType}"]</span>
+                                        <input asp-for="Input.Lines[index].Id" type="hidden" />
+                                        <input asp-for="Input.Lines[index].LineType" type="hidden" />
+                                    </td>
+                                    <td>
+                                        <select asp-for="Input.Lines[index].CatalogItemId" class="form-select service-item-select js-select2" data-use-select2="true">
+                                            @if (line.CatalogItemId != Guid.Empty)
+                                            {
+                                                <option selected value="@line.CatalogItemId">@line.ItemLabel</option>
+                                            }
+                                        </select>
+                                        <input asp-for="Input.Lines[index].ItemLabel" type="hidden" class="service-item-label" />
+                                    </td>
+                                    <td>
+                                        <select asp-for="Input.Lines[index].CustomerAssetComponentId" class="form-select service-position-select">
+                                            <option value="">@L["Service:NoPosition"]</option>
+                                            @if (line.CustomerAssetComponentId.HasValue)
+                                            {
+                                                <option selected value="@line.CustomerAssetComponentId">@line.PositionLabel</option>
+                                            }
+                                        </select>
+                                        <input asp-for="Input.Lines[index].PositionLabel" type="hidden" class="service-position-label" />
+                                    </td>
+                                    <td><input asp-for="Input.Lines[index].Quantity" type="number" min="1" step="1" class="form-control text-end service-quantity" /></td>
+                                    <td><input asp-for="Input.Lines[index].UnitPrice" type="number" min="0" step="0.01" class="form-control text-end service-price" /></td>
+                                    <td><input asp-for="Input.Lines[index].Note" class="form-control" /></td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-link text-danger" data-remove-service-line title="@L["Delete"]" aria-label="@L["Delete"]">
+                                            <i class="fa fa-trash" aria-hidden="true"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div id="ServiceNoLines" class="text-muted text-center py-3 d-none">@L["Service:AtLeastOneLine"]</div>
+            </abp-card-body>
+        </abp-card>
+
+        <div class="d-flex justify-content-end gap-2">
+            <a class="btn btn-light" asp-page="@(Model.IsEdit ? "/Service/Details" : "/Service/Index")" asp-route-id="@Model.OrderId">@L["Cancel"]</a>
+            <button class="btn btn-primary" type="submit"><i class="fa fa-save" aria-hidden="true"></i> @L["Save"]</button>
+        </div>
+    </form>
+</div>
+
+<template id="ServiceLineTemplate">
+    <tr data-service-line data-line-type="__TYPE__">
+        <td>
+            <span class="badge __BADGE__">__TYPE_LABEL__</span>
+            <input data-name="Id" type="hidden" disabled />
+            <input data-name="LineType" type="hidden" value="__TYPE__" disabled />
+        </td>
+        <td>
+            <select data-name="CatalogItemId" class="form-select service-item-select js-select2" data-use-select2="true" disabled></select>
+            <input data-name="ItemLabel" type="hidden" class="service-item-label" disabled />
+        </td>
+        <td>
+            <select data-name="CustomerAssetComponentId" class="form-select service-position-select" disabled><option value="">@L["Service:NoPosition"]</option></select>
+            <input data-name="PositionLabel" type="hidden" class="service-position-label" disabled />
+        </td>
+        <td><input data-name="Quantity" value="1" type="number" min="1" step="1" class="form-control text-end service-quantity" disabled /></td>
+        <td><input data-name="UnitPrice" value="0" type="number" min="0" step="0.01" class="form-control text-end service-price" disabled /></td>
+        <td><input data-name="Note" class="form-control" disabled /></td>
+        <td><button type="button" class="btn btn-sm btn-link text-danger" data-remove-service-line title="@L["Delete"]" aria-label="@L["Delete"]"><i class="fa fa-trash" aria-hidden="true"></i></button></td>
+    </tr>
+</template>

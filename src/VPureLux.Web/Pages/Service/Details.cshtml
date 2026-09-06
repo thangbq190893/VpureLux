@@ -1,0 +1,90 @@
+@page "{id:guid}"
+@model VPureLux.Web.Pages.Service.DetailsModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using VPureLux.Service
+@{ ViewData["Title"] = Model.Order.OrderNo; }
+@section scripts { <abp-script src="/Pages/Service/Details.js" /> }
+
+<div class="vpl-page" data-service-details data-order-id="@Model.Order.Id" data-concurrency-stamp="@Model.Order.ConcurrencyStamp">
+    <form id="ServiceActionTokenForm" method="post" class="d-none">@Html.AntiForgeryToken()</form>
+    <div class="vpl-page-header">
+        <div>
+            <h2 class="vpl-page-title mb-1">@Model.Order.OrderNo</h2>
+            <div class="text-muted">@Model.Order.CustomerCode - @Model.Order.CustomerName | @Model.Order.AssetNo - @Model.Order.AssetName</div>
+        </div>
+        <div class="vpl-btn-toolbar">
+            @if (Model.CanEdit && Model.Order.Status == ServiceOrderStatus.Draft)
+            {
+                <a class="btn btn-outline-primary" asp-page="/Service/Edit" asp-route-id="@Model.Order.Id"><i class="fa fa-pen" aria-hidden="true"></i> @L["Edit"]</a>
+            }
+            @if (Model.CanConfirm && Model.Order.Status == ServiceOrderStatus.Draft)
+            {
+                <button type="button" class="btn btn-primary" data-service-action="Confirm"><i class="fa fa-check" aria-hidden="true"></i> @L["Service:Confirm"]</button>
+            }
+            @if (Model.CanConfirm && Model.Order.Status == ServiceOrderStatus.Confirmed)
+            {
+                <button type="button" class="btn btn-primary" data-service-action="Start"><i class="fa fa-play" aria-hidden="true"></i> @L["Service:Start"]</button>
+            }
+            @if (Model.CanCancel && Model.Order.Status is ServiceOrderStatus.Draft or ServiceOrderStatus.Confirmed or ServiceOrderStatus.InProgress)
+            {
+                <button type="button" class="btn btn-outline-danger" id="CancelServiceOrder"><i class="fa fa-ban" aria-hidden="true"></i> @L["Service:Cancel"]</button>
+            }
+            <a class="btn btn-light" asp-page="/Service/Index"><i class="fa fa-arrow-left" aria-hidden="true"></i> @L["Back"]</a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-lg-7">
+            <abp-card class="vpl-card-dense h-100">
+                <abp-card-body>
+                    <dl class="row mb-0">
+                        <dt class="col-5">@L["Service:Status"]</dt><dd class="col-7"><span class="badge @Model.StatusBadge">@L[$"Service:Status:{Model.Order.Status}"]</span></dd>
+                        <dt class="col-5">@L["Service:OrderDate"]</dt><dd class="col-7">@Model.FormatDate(Model.Order.OrderDate)</dd>
+                        <dt class="col-5">@L["Service:ScheduledAt"]</dt><dd class="col-7">@Model.FormatDateTime(Model.Order.ScheduledAt)</dd>
+                        <dt class="col-5">@L["Service:Technician"]</dt><dd class="col-7">@(Model.Order.TechnicianName ?? "-")</dd>
+                        <dt class="col-5">@L["Service:Address"]</dt><dd class="col-7">@(Model.Order.ServiceAddress ?? "-")</dd>
+                        <dt class="col-5">@L["Service:Note"]</dt><dd class="col-7">@(Model.Order.Note ?? "-")</dd>
+                        @if (Model.Order.Status == ServiceOrderStatus.Cancelled)
+                        {
+                            <dt class="col-5">@L["Service:CancellationReason"]</dt><dd class="col-7">@Model.Order.CancellationReason</dd>
+                        }
+                    </dl>
+                </abp-card-body>
+            </abp-card>
+        </div>
+        <div class="col-12 col-lg-5">
+            <abp-card class="vpl-card-dense h-100">
+                <abp-card-body>
+                    <div class="text-muted mb-1">@L["Service:PlannedAmount"]</div>
+                    <div class="fs-4 fw-semibold text-end">@Model.FormatMoney(Model.Order.PlannedAmount)</div>
+                    <div class="small text-muted mt-3">@L["Service:PlannedAmountHint"]</div>
+                </abp-card-body>
+            </abp-card>
+        </div>
+    </div>
+
+    <abp-card class="vpl-card-dense">
+        <abp-card-header><strong>@L["Service:Lines"]</strong></abp-card-header>
+        <abp-card-body>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0" style="min-width: 760px">
+                    <thead><tr><th>#</th><th>@L["Service:LineType"]</th><th>@L["Service:Item"]</th><th class="text-end">@L["Service:Quantity"]</th><th class="text-end">@L["Service:UnitPrice"]</th><th class="text-end">@L["Service:Amount"]</th><th>@L["Service:LineNote"]</th></tr></thead>
+                    <tbody>
+                        @foreach (var line in Model.Order.Lines)
+                        {
+                            <tr>
+                                <td>@line.LineNo</td>
+                                <td><span class="badge @(line.LineType == ServiceOrderLineType.Material ? "text-bg-primary" : "text-bg-secondary")">@L[$"Service:LineType:{line.LineType}"]</span></td>
+                                <td><strong>@line.ItemCode</strong> - @line.ItemName <small class="text-muted">(@line.Unit)</small></td>
+                                <td class="text-end">@line.PlannedQuantity</td>
+                                <td class="text-end">@Model.FormatMoney(line.UnitPrice)</td>
+                                <td class="text-end">@Model.FormatMoney(line.UnitPrice * line.PlannedQuantity)</td>
+                                <td>@line.Note</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </abp-card-body>
+    </abp-card>
+</div>

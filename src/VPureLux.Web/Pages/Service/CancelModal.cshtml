@@ -1,0 +1,19 @@
+@page
+@model VPureLux.Web.Pages.Service.CancelModalModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Modal
+@{
+    Layout = null;
+}
+<form method="post" asp-page="/Service/CancelModal">
+    <abp-modal>
+        <abp-modal-header title="@L["Service:CancelOrder"]"></abp-modal-header>
+        <abp-modal-body>
+            <div asp-validation-summary="ModelOnly"></div>
+            <input asp-for="Id" type="hidden" />
+            <input asp-for="Input.ConcurrencyStamp" type="hidden" />
+            <abp-input asp-for="Input.Reason" label="@L["Service:CancellationReason"]" />
+        </abp-modal-body>
+        <abp-modal-footer buttons="@(AbpModalButtons.Cancel|AbpModalButtons.Save)"></abp-modal-footer>
+    </abp-modal>
+</form>

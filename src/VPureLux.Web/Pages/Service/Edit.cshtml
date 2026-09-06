@@ -1,0 +1,9 @@
+@page "{id:guid}"
+@model VPureLux.Web.Pages.Service.EditModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{ ViewData["Title"] = L["Service:EditOrder"]; }
+@section scripts {
+    <abp-script src="/Pages/Shared/DynamicRowSelects.js" />
+    <abp-script src="/Pages/Service/EditForm.js" />
+}
+<partial name="_OrderForm" model="Model.FormView" />
