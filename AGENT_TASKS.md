@@ -4,17 +4,18 @@ This file is the single source of truth for implementation order and agent hando
 Every agent must read and update this file so another agent can continue without a chat summary.
 
 Last updated: 2026-09-07 (Asia/Saigon)
-Current product stage: Service S-001 COMPLETE; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
+Current product stage: Service S-002 DONE; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
 Current active task: None
-Next task: S-002 - Service order aggregate, lines, permissions, and UI
-Service implementation gate: W-GATE DONE (user accepted 2026-09-07); SERVICE-INVENTORY-AUDIT DONE; S-001 DONE; S-002 READY, not claimed; S-003..S-006 HOLD
+Next task: S-003 - Service completion, FIFO issue, and schedule integration (READY, unclaimed)
+Service implementation gate: W-GATE DONE (user accepted 2026-09-07); SERVICE-INVENTORY-AUDIT DONE; S-001/S-002 DONE; S-003 READY; S-004..S-006 HOLD
 Service foundation source: `babc96fc5ecba242e3f23d0612c3a46df3916dc3`, local only, not pushed or deployed; see `docs/S001_SERVICE_FOUNDATION.md`.
+Service order workflow source: `2f27ed81618403d7375b2af237025e6e931bbe3f`, local only, not pushed or deployed; see `docs/S002_SERVICE_ORDER_WORKFLOW.md`.
 
 Accepted Warranty implementation baseline:
 
 - W-008 source/test/evidence commit: `d1e8b5684d21eca3ee5586fe75913b60e24de190` (`fix(warranty): finalize accepted customer care safeguards`). Baseline SEALED on 2026-09-07, local only; not pushed or deployed.
 - Separate Service audit documentation commit: `6ef1def1812c6b25ed1ffd6caaff3eaa46c1a709`. This is not the W-008 implementation commit.
-- W-008 and W-GATE remain DONE. S-001 was completed later in the source commit above; S-002 is next and unclaimed. Production remains the frozen Sales V1 release below.
+- W-008 and W-GATE remain DONE. S-001 and S-002 were completed later in the local source commits above; S-003 is READY and unclaimed. Production remains the frozen Sales V1 release below.
 
 Sales V1 release source:
 
@@ -145,8 +146,8 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | SALES-V1-RELEASE | Seal accepted Sales V1 source tag and documentation | DONE | SALES-V1-ROLLOUT |
 | SERVICE-INVENTORY-AUDIT | Audit existing Service implementation before reuse | DONE | W-GATE |
 | S-001 | Service module foundation and work catalog | DONE | SERVICE-INVENTORY-AUDIT |
-| S-002 | Service order aggregate, lines, permissions, and UI | READY | S-001 |
-| S-003 | Service completion, FIFO issue, and schedule integration | HOLD | S-002 |
+| S-002 | Service order aggregate, lines, permissions, and UI | DONE | S-001 |
+| S-003 | Service completion, FIFO issue, and schedule integration | READY | S-002 |
 | S-004 | Service payments and receivables | HOLD | S-003 |
 | S-005 | Service and consolidated reports | HOLD | S-003, S-004 |
 | S-006 | Service UAT, reconciliation, and rollout | HOLD | S-001..S-005 |
@@ -410,7 +411,7 @@ Status: DONE. Completed 2026-09-07 on sealed W-008 baseline 83fb3f5; source `bab
 
 ### S-002 - Service Order Aggregate, Lines, Permissions, And UI
 
-Status: READY. S-001 DONE; not claimed or started in this turn. Read the S-001 source/evidence and Service audit before implementation.
+Status: DONE. Completed 2026-09-07 on baseline `9a0967b`; implementation source `2f27ed81618403d7375b2af237025e6e931bbe3f`. S-003 is READY and unclaimed; S-004..S-006 remain HOLD. No migration was applied, runtime enabled externally, deploy or push.
 
 - Add ServiceOrder with Draft -> Confirmed -> InProgress -> Completed/Cancelled state machine.
 - Support mutually exclusive Material and Labor lines.
@@ -420,7 +421,7 @@ Status: READY. S-001 DONE; not claimed or started in this turn. Read the S-001 s
 
 ### S-003 - Service Completion, FIFO Issue, And Schedule Integration
 
-Status: HOLD
+Status: READY
 
 - Add InventoryTransactionType.ServiceIssue without changing existing enum values.
 - Batch-load FIFO lots for all material lines; no N+1.
@@ -451,6 +452,18 @@ Status: HOLD
 - Publish/deploy only with explicit approval and full regression/smoke evidence.
 
 ## 7. Active Work Record
+
+Task ID: S-002
+Agent/task name: Codex - Service order operator workflow
+Started at (Asia/Saigon): 2026-09-07
+Branch and starting commit: codex/warranty-release-review / 9a0967b486c1ebd9414a04bcbf8a55dcca46ebe5
+Goal for this run: Deliver Draft/Confirmed/InProgress/Cancelled Service orders with identity-preserving Material/Labor lines, optimistic concurrency, database-paged lookups/list, ABP UI and no S-003 side effects.
+Status: DONE. S-002 COMPLETE at `2f27ed81618403d7375b2af237025e6e931bbe3f`. No active task; S-003 READY and unclaimed.
+Database/data boundary: No VPL/production connection, migration application, DbMigrator, deploy, restart, push, FIFO issue, reminder/event mutation, revenue recognition or payment workflow. Two user-owned files remain excluded.
+Verification completed: Release solution build 0 errors/4 pre-existing warnings (two OpenIddict nullable warnings, Scriban NU1903 and Web test entrypoint CS7022). Domain Service 14/14; Application Service 6/6; EF Service 72/72 (S-002 workflow 7/7); EF Sales/Inventory/Warranty/CustomerCare regression 110/110; Web Service 18/18; Warranty Web 13/13. JavaScript syntax passed for all three S-002 scripts; offline EF model drift NONE; diff check PASS. HTTP tests cover valid vi-VN decimal submit, safe encoding, permissions, all mutation antiforgery routes and stale-cancel error rendering. Browser listener could not be started from the test entrypoint, so no S-002 screenshot/browser claim is made; the attempted local test process was stopped.
+Current blocker: None for S-002 or claiming S-003. Migration `20260906185742_AddServiceOrderWorkflow` only adds nullable CancellationReason and nullable StandardCostSnapshot, has no DML, and was not applied. SQL Server legacy rehearsal remains S-006. Production and VPL remain untouched.
+
+### Previous Completed S-001 Record
 
 Task ID: S-001
 Agent/task name: Codex - Service foundation and historical schema compatibility
@@ -523,6 +536,19 @@ Verification completed: Branch pushed without force at `a4717aa`; detached artif
 Current blocker: None. Production had no Draft orders or Installed assets for non-destructive live coverage; those scenarios remain covered by accepted rehearsal evidence. W-GATE remains open and Service remains on HOLD.
 
 ## 8. Handoff Log
+
+### 2026-09-07 - S-002 Service Order Workflow Complete
+
+- Decision: S-002 COMPLETE. Implementation commit `2f27ed81618403d7375b2af237025e6e931bbe3f` (`feat(service): add service order workflow`) follows docs baseline `9a0967b`. It is local only; no push, deploy, runtime enablement or database action. S-003 is READY and unclaimed; S-004..S-006 remain HOLD.
+- Delivered Draft -> Confirmed -> InProgress plus reason-required cancellation from Draft/Confirmed/InProgress. Completed remains a passive historical enum/state only: no Complete/CompleteLine API, domain command or UI action exists in S-002. Completed/Cancelled are terminal.
+- Material and Labor are exclusive line types with positive integer quantity. Labor cost snapshot preserves null versus zero. Draft edits preserve line IDs and snapshots unless the operator explicitly replaces the selected item; inactive historical catalog items remain renderable and do not block header/note edits.
+- Every update/transition carries an expected concurrency stamp. Feature and permission guards are enforced server-side. Service list, Asset/Material/Work/Technician lookups use database count/filter/whitelisted sort/Skip/Take; page 2 was executed for orders, assets and works. Material eligibility is a translated Component + inventory-enabled StockItem EXISTS query.
+- UI consists only of Service list/Create/Edit/Details and a Cancel ABP modal. It uses server-side DataTables, remote Select2 continuation, dynamic Material/Labor rows, integer quantity, Service-scoped invariant/vi-VN money binding, antiforgery and encoded output. No browser prompt/alert/native confirm and no unfinished completion action. Stale Cancel displays a business error in the modal.
+- Migration `20260906185742_AddServiceOrderWorkflow` adds nullable `AppServiceOrders.CancellationReason` and nullable `AppServiceOrderLines.StandardCostSnapshot`; no DML, backfill, duplicate table, core-table change or migration application. Offline EF reports no pending model changes.
+- Test results: build 0 errors/4 existing warnings (two OpenIddict nullable, Scriban NU1903, Web test entrypoint CS7022); Domain Service 14/14; Application Service 6/6; EF Service 72/72, including S-002 7/7; EF cross-module 110/110; Service Web 18/18; Warranty Web 13/13; JS syntax and diff checks PASS. Tests found and fixed EF owned-line add tracking, a non-translatable material projection, and missing stale-error rendering in Cancel modal. No full Web suite or S-002 screenshot/browser claim.
+- Confirm/Start create no InventoryTransaction, maintenance event, reminder or revenue. Payment, FIFO issue, completion, CustomerCare schedule changes and reporting remain explicitly deferred to S-003+.
+- Excluded user-owned files remain untracked: `docs/VPureLux_Sales_Flow_Design_Review_for_Codex_5_6_Sol.docx`, `docs/html.txt`. No VPL/production connection, DbMigrator, migration application, deploy/restart or push occurred.
+- Next agent: claim S-003 separately. Preserve S-002 snapshots and line identity; add completion atomically with batched FIFO and idempotent CustomerCare effects. Do not infer old snapshots from current Work/Component/BOM/policy settings, and do not start payments/reports.
 
 ### 2026-09-07 - S-001 Service Foundation Complete
 
