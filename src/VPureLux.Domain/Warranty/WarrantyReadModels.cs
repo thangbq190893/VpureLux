@@ -198,6 +198,7 @@ public class AssetMaintenanceHistoryFilter
 
 public class AssetMaintenanceEventListItem
 {
+    public Guid? ServiceOrderLineId { get; set; }
     public Guid Id { get; set; }
     public Guid CustomerAssetId { get; set; }
     public Guid? CustomerAssetComponentId { get; set; }

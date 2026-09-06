@@ -1269,6 +1269,7 @@ public class WarrantyAppService : ApplicationService, IWarrantyAppService
     private static AssetMaintenanceEventListDto ToDto(AssetMaintenanceEventListItem item) =>
         new()
         {
+            ServiceOrderLineId = item.ServiceOrderLineId,
             Id = item.Id,
             CustomerAssetId = item.CustomerAssetId,
             CustomerAssetComponentId = item.CustomerAssetComponentId,

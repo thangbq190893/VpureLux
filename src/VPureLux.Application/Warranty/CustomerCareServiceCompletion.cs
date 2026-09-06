@@ -33,6 +33,8 @@ public class CustomerCareServiceCompletion(
 {
     public virtual async Task ApplyAsync(CustomerCareCompletion facts)
     {
+        // Events retain their UTC instant; calendar cycles use the operator's Vietnam business date.
+        var completedDate = facts.CompletedAt.AddHours(7).Date;
         await coordinator.HoldAsync(facts.AssetId);
         var asset = await assets.GetAsync(facts.AssetId);
         if (asset.Status is not (CustomerAssetStatus.Active or CustomerAssetStatus.PendingReview))
@@ -64,7 +66,7 @@ public class CustomerCareServiceCompletion(
             // Never infer mapping or activation from an old Service planning line.
             var eligiblePosition = position.ComponentId == replacement.ComponentId &&
                 position.Status is CustomerAssetComponentStatus.Active or CustomerAssetComponentStatus.MissingBaseline;
-            if (eligiblePosition && position.ReplacementBaselineDate > facts.CompletedAt.Date)
+            if (eligiblePosition && position.ReplacementBaselineDate > completedDate)
                 throw new BusinessException(VPureLuxDomainErrorCodes.ValidationFailed)
                     .WithData("Reason", "ReplacementPredatesCurrentBaseline").WithData("PositionId", position.Id);
             var maintenance = new AssetMaintenanceEvent(guidGenerator.Create(), facts.AssetId, position.Id,
@@ -75,14 +77,14 @@ public class CustomerCareServiceCompletion(
             AssetReplacementReminder? successor = null;
             if (eligiblePosition)
             {
-                position.SetReplacementBaseline(facts.CompletedAt);
+                position.SetReplacementBaseline(completedDate);
                 changedPositions.Add(position);
                 if (currentPolicies.TryGetValue(replacement.ComponentId, out var policy) && policy.IsEnabled &&
                     currentComponents.TryGetValue(replacement.ComponentId, out var component) && component.Status == CatalogItemStatus.Active)
                 {
                     successor = new AssetReplacementReminder(guidGenerator.Create(), asset.Id, position.Id,
                         replacement.ComponentId, asset.SalesOrderId, asset.SalesOrderLineId, replacement.Code, replacement.Name,
-                        replacement.Unit, replacement.Quantity, facts.CompletedAt.Date.AddMonths(policy.CycleMonths),
+                        replacement.Unit, replacement.Quantity, completedDate.AddMonths(policy.CycleMonths),
                         policy.CycleMonths, policy.WarningDaysBeforeDue, ReplacementReminderTriggerSource.Replacement,
                         nameof(AssetMaintenanceEvent), maintenance.Id, $"service-cycle:{replacement.ServiceOrderLineId:N}");
                     successors.Add(successor);

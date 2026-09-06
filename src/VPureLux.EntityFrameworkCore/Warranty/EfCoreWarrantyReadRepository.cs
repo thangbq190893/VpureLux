@@ -454,6 +454,7 @@ public class EfCoreWarrantyReadRepository : IWarrantyReadRepository, ITransientD
             .Where(maintenanceEvent => maintenanceEvent.CustomerAssetId == filter.CustomerAssetId)
             .Select(maintenanceEvent => new AssetMaintenanceEventListItem
             {
+                ServiceOrderLineId = maintenanceEvent.ServiceOrderLineId,
                 Id = maintenanceEvent.Id,
                 CustomerAssetId = maintenanceEvent.CustomerAssetId,
                 CustomerAssetComponentId = maintenanceEvent.CustomerAssetComponentId,

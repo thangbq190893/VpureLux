@@ -42,12 +42,20 @@ public class DetailsModel : VPureLuxPageModel
             result.TotalCount,
             result.Items.Select(item => new HistoryRow(
                 item.Id,
-                item.OccurredAt.ToString("dd/MM/yyyy HH:mm", Vi),
+                FormatEventTime(item),
                 _localizer[$"Warranty:EventType:{item.EventType}"].Value,
                 _localizer[$"Warranty:EventSource:{item.SourceType}"].Value,
                 item.ComponentCode,
                 item.ComponentName,
                 item.Note)).ToList()));
+    }
+
+    private static string FormatEventTime(AssetMaintenanceEventListDto item)
+    {
+        // Only S-003 facts are UTC instants; do not reinterpret historical local-wall-time rows.
+        var isServiceInstant = item.SourceType == AssetMaintenanceSourceType.ServiceOrder &&
+            (item.EventType == AssetMaintenanceEventType.ServiceCompleted || item.ServiceOrderLineId.HasValue);
+        return (isServiceInstant ? item.OccurredAt.AddHours(7) : item.OccurredAt).ToString("dd/MM/yyyy HH:mm", Vi);
     }
 
     public sealed record HistoryRow(

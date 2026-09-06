@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Text.Json;
 using HtmlAgilityPack;
 using Shouldly;
 using VPureLux.Permissions;
@@ -16,6 +18,7 @@ public partial class ServiceOrderWebTests
 {
     [Theory]
     [InlineData("1", "2026-09-07T12:45", true)]
+    [InlineData("1", "2026-09-07T01:30", true)]
     [InlineData("0", "2026-09-07T12:45", true)]
     [InlineData("1,5", "2026-09-07T12:45", false)]
     [InlineData("2", "2026-09-07T12:45", false)]
@@ -64,8 +67,14 @@ public partial class ServiceOrderWebTests
         saved.Status.ShouldBe(success ? ServiceOrderStatus.Completed : ServiceOrderStatus.InProgress);
         if (success)
         {
-            saved.CompletedAt.ShouldBe(new DateTime(2026, 9, 7, 5, 45, 0));
+            var localCompletedAt = DateTime.ParseExact(date, "yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture);
+            saved.CompletedAt.ShouldBe(localCompletedAt.AddHours(-7));
             saved.Lines.Single().ActualQuantity.ShouldBe(int.Parse(quantity));
+            var history = await Client.GetAsync($"/Warranty/Assets/Details/{f.AssetId}?handler=History");
+            history.StatusCode.ShouldBe(HttpStatusCode.OK, await history.Content.ReadAsStringAsync());
+            using var historyJson = JsonDocument.Parse(await history.Content.ReadAsStringAsync());
+            historyJson.RootElement.GetProperty("items")[0].GetProperty("occurredAt").GetString()
+                .ShouldBe(localCompletedAt.ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture));
         }
     }
 }

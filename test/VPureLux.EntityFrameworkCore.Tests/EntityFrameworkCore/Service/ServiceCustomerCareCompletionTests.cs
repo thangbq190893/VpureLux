@@ -25,6 +25,7 @@ public partial class ServiceOrderWorkflowTests
     [InlineData("unmapped", false)]
     [InlineData("component-inactive", false)]
     [InlineData("rollback", false)]
+    [InlineData("local-midnight", true)]
     public async Task Completion_care_respects_current_policy_position_and_unrelated_history(string scenario, bool successor)
     {
         var f = await CreateFixtureAsync("S003-CARE");
@@ -87,7 +88,10 @@ public partial class ServiceOrderWorkflowTests
             });
             return;
         }
-        var result = await Orders.CompleteAsync(order.Id, Completion(order));
+        var completion = Completion(order);
+        if (scenario == "local-midnight")
+            completion.CompletedAt = new DateTimeOffset(2026, 9, 7, 1, 30, 0, TimeSpan.FromHours(7));
+        var result = await Orders.CompleteAsync(order.Id, completion);
         await WithUnitOfWorkAsync(async () =>
         {
             var db = await GetRequiredService<IDbContextProvider<VPureLuxDbContext>>().GetDbContextAsync();
@@ -103,12 +107,17 @@ public partial class ServiceOrderWorkflowTests
             {
                 next.CycleMonthsSnapshot.ShouldBe(scenario == "changed" ? 6 : 3);
                 next.WarningDaysBeforeDueSnapshot.ShouldBe(14);
-                next.DueDate.ShouldBe(result.CompletedAt.Date.AddMonths(next.CycleMonthsSnapshot));
+                next.DueDate.ShouldBe(new DateTime(2026, 9, 7).AddMonths(next.CycleMonthsSnapshot));
             }
             var position = await db.Set<CustomerAssetComponent>().SingleAsync(x => x.Id == positionId);
             if (scenario == "inactive") position.Status.ShouldBe(CustomerAssetComponentStatus.Inactive);
             if (scenario == "unmapped") position.ComponentId.ShouldBeNull();
             if (scenario == "missing-baseline") position.ReplacementBaselineDate.ShouldBe(result.CompletedAt.Date);
+            if (scenario == "local-midnight")
+            {
+                result.CompletedAt.ShouldBe(new DateTime(2026, 9, 6, 18, 30, 0));
+                position.ReplacementBaselineDate.ShouldBe(new DateTime(2026, 9, 7));
+            }
             var untouched = await reminders.SingleAsync(x => x.Id == untouchedReminderId);
             untouched.Status.ShouldBe(AssetReplacementReminderStatus.Pending);
             untouched.LastModificationTime.ShouldBeNull();

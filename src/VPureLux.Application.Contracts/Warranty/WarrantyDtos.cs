@@ -158,6 +158,7 @@ public class SuspendCustomerAssetDto
 
 public class AssetMaintenanceEventListDto : EntityDto<Guid>
 {
+    public Guid? ServiceOrderLineId { get; set; }
     public Guid CustomerAssetId { get; set; }
     public Guid? CustomerAssetComponentId { get; set; }
     public AssetMaintenanceEventType EventType { get; set; }
