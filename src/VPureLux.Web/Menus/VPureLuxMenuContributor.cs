@@ -1,4 +1,7 @@
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using VPureLux.Service;
 using VPureLux.Localization;
 using VPureLux.Permissions;
 using VPureLux.MultiTenancy;
@@ -229,6 +232,14 @@ public class VPureLuxMenuContributor : IMenuContributor
         ).RequirePermissions(VPureLuxPermissions.Warranty.ManageSyncFailures));
 
         context.Menu.AddItem(warranty);
+        if (context.ServiceProvider.GetRequiredService<IOptions<ServiceOptions>>().Value.IsEnabled)
+        {
+            var service = new ApplicationMenuItem("VPureLux.Service", l["Menu:Service"], icon: "fa fa-wrench", order: 12)
+                .RequirePermissions(VPureLuxPermissions.Service.Default, VPureLuxPermissions.Service.View);
+            service.AddItem(new ApplicationMenuItem("VPureLux.Service.Works", l["Service:Works"], "~/Service/Works", icon: "fa fa-list")
+                .RequirePermissions(VPureLuxPermissions.Service.View));
+            context.Menu.AddItem(service);
+        }
 
         var reports = new ApplicationMenuItem(
             VPureLuxMenus.Reports,

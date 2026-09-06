@@ -1,0 +1,29 @@
+@page
+@model VPureLux.Web.Pages.Service.WorksModel
+@using Microsoft.AspNetCore.Authorization
+@using VPureLux.Permissions
+@inject IAuthorizationService AuthorizationService
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{
+    var canManage = await AuthorizationService.IsGrantedAsync(VPureLuxPermissions.Service.ManageWorks);
+}
+@section scripts { <abp-script src="/Pages/Service/Works.js" /> }
+<div data-service-works data-can-manage="@canManage.ToString().ToLowerInvariant()">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <h1 class="h4 mb-0">@L["Service:Works"]</h1>
+        @if (canManage)
+        {
+            <button type="button" class="btn btn-primary" id="CreateServiceWork"><i class="fa fa-plus me-1" aria-hidden="true"></i>@L["Service:CreateWork"]</button>
+        }
+    </div>
+    <form id="ServiceWorkFilters" class="row g-2 mb-3">
+        <div class="col-12 col-md-6"><label class="form-label" for="ServiceWorkSearch">@L["Search"]</label><input id="ServiceWorkSearch" class="form-control" maxlength="256" /></div>
+        <div class="col-8 col-md-4"><label class="form-label" for="ServiceWorkStatus">@L["Service:Status"]</label><select id="ServiceWorkStatus" class="form-select"><option value="">@L["All"]</option><option value="1">@L["Status:Active"]</option><option value="2">@L["Status:Inactive"]</option></select></div>
+        <div class="col-4 col-md-2 d-flex align-items-end"><button class="btn btn-secondary" type="submit" title="@L["Search"]" aria-label="@L["Search"]"><i class="fa fa-search" aria-hidden="true"></i></button></div>
+    </form>
+    <div class="table-responsive">
+        <table id="ServiceWorksTable" class="table table-striped w-100">
+            <thead><tr><th>@L["Actions"]</th><th>@L["Service:Code"]</th><th>@L["Service:Name"]</th><th>@L["Service:Unit"]</th><th>@L["Service:DefaultPrice"]</th><th>@L["Service:StandardCost"]</th><th>@L["Service:Status"]</th><th>@L["Service:Note"]</th></tr></thead>
+        </table>
+    </div>
+</div>

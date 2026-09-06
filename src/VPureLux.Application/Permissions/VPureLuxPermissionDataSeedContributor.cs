@@ -27,6 +27,9 @@ public class VPureLuxPermissionDataSeedContributor : IDataSeedContributor, ITran
             AdminRoleName,
             [
                 VPureLuxPermissions.Suppliers.Default,
+                VPureLuxPermissions.Service.Default,
+                VPureLuxPermissions.Service.View,
+                VPureLuxPermissions.Service.ManageWorks,
                 VPureLuxPermissions.Suppliers.View,
                 VPureLuxPermissions.Suppliers.Create,
                 VPureLuxPermissions.Suppliers.Edit,

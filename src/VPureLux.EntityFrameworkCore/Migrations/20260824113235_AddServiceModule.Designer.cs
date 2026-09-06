@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using VPureLux.EntityFrameworkCore;
 using Volo.Abp.EntityFrameworkCore;
@@ -12,9 +13,11 @@ using Volo.Abp.EntityFrameworkCore;
 namespace VPureLux.Migrations
 {
     [DbContext(typeof(VPureLuxDbContext))]
-    partial class VPureLuxDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260824113235_AddServiceModule")]
+    partial class AddServiceModule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1504,118 +1507,6 @@ namespace VPureLux.Migrations
                     b.ToTable("AppSalesOrders", (string)null);
                 });
 
-            modelBuilder.Entity("VPureLux.Sales.SalesOrderCancellation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("ApprovedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("ClosedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)")
-                        .HasColumnName("ConcurrencyStamp");
-
-                    b.Property<DateTime>("CreationTime")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("CreationTime");
-
-                    b.Property<Guid?>("CreatorId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("CreatorId");
-
-                    b.Property<Guid?>("DeleterId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("DeleterId");
-
-                    b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("DeletionTime");
-
-                    b.Property<DateTime>("EffectiveAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ExtraProperties")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("ExtraProperties");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false)
-                        .HasColumnName("IsDeleted");
-
-                    b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("LastModificationTime");
-
-                    b.Property<Guid?>("LastModifierId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("LastModifierId");
-
-                    b.Property<DateTime?>("PaymentCompletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<byte>("PaymentStatus")
-                        .HasColumnType("tinyint");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("ReasonGroup")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<decimal>("RefundDue")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("RefundedAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid>("SalesOrderId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("StockCompletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("StockExceptionReason")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<Guid?>("StockReversalTransactionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<byte>("StockStatus")
-                        .HasColumnType("tinyint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SalesOrderId")
-                        .IsUnique();
-
-                    b.HasIndex("StockReversalTransactionId");
-
-                    b.ToTable("AppSalesOrderCancellations", (string)null);
-                });
-
             modelBuilder.Entity("VPureLux.Sales.SalesOrderPayment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1700,15 +1591,6 @@ namespace VPureLux.Migrations
                     b.Property<byte>("Status")
                         .HasColumnType("tinyint");
 
-                    b.Property<string>("VoidReason")
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTime?>("VoidedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("VoidedBy")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("IdempotencyKey")
@@ -1723,218 +1605,6 @@ namespace VPureLux.Migrations
                         .HasDatabaseName("IX_SalesOrderPayments_CustomerId_PaymentDate");
 
                     b.ToTable("AppSalesOrderPayments", (string)null);
-                });
-
-            modelBuilder.Entity("VPureLux.Sales.SalesOrderRefund", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)")
-                        .HasColumnName("ConcurrencyStamp");
-
-                    b.Property<DateTime>("CreationTime")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("CreationTime");
-
-                    b.Property<Guid?>("CreatorId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("CreatorId");
-
-                    b.Property<Guid?>("DeleterId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("DeleterId");
-
-                    b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("DeletionTime");
-
-                    b.Property<string>("ExtraProperties")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("ExtraProperties");
-
-                    b.Property<string>("IdempotencyKey")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false)
-                        .HasColumnName("IsDeleted");
-
-                    b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("LastModificationTime");
-
-                    b.Property<Guid?>("LastModifierId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("LastModifierId");
-
-                    b.Property<byte>("PaymentMethod")
-                        .HasColumnType("tinyint");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("ReferenceNo")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("RefundedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("SalesOrderCancellationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("SalesOrderId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("SalesOrderRevisionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IdempotencyKey")
-                        .IsUnique()
-                        .HasDatabaseName("UX_SalesOrderRefunds_IdempotencyKey");
-
-                    b.HasIndex("SalesOrderCancellationId");
-
-                    b.HasIndex("SalesOrderId");
-
-                    b.HasIndex("SalesOrderRevisionId");
-
-                    b.ToTable("AppSalesOrderRefunds", (string)null);
-                });
-
-            modelBuilder.Entity("VPureLux.Sales.SalesOrderRevision", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("AppliedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("AppliedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal?>("AppliedTotal")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("ApplyIdempotencyKey")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<decimal>("BeforeTotal")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("CancelledAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("CancelledBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)")
-                        .HasColumnName("ConcurrencyStamp");
-
-                    b.Property<DateTime>("CreationTime")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("CreationTime");
-
-                    b.Property<Guid?>("CreatorId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("CreatorId");
-
-                    b.Property<Guid>("CustomerIdSnapshot")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("DeleterId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("DeleterId");
-
-                    b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("DeletionTime");
-
-                    b.Property<string>("ExtraProperties")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("ExtraProperties");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false)
-                        .HasColumnName("IsDeleted");
-
-                    b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("LastModificationTime");
-
-                    b.Property<Guid?>("LastModifierId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("LastModifierId");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<decimal>("RefundDue")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("RevisionNo")
-                        .HasColumnType("int");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid>("SalesOrderId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApplyIdempotencyKey")
-                        .IsUnique()
-                        .HasDatabaseName("UX_SalesOrderRevisions_ApplyKey")
-                        .HasFilter("[ApplyIdempotencyKey] IS NOT NULL AND [IsDeleted] = 0");
-
-                    b.HasIndex("SalesOrderId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_SalesOrderRevisions_ActiveOrder")
-                        .HasFilter("[Status] = 1 AND [IsDeleted] = 0");
-
-                    b.HasIndex("SalesOrderId", "RevisionNo")
-                        .IsUnique();
-
-                    b.ToTable("AppSalesOrderRevisions", (string)null);
                 });
 
             modelBuilder.Entity("VPureLux.Service.ServiceOrder", b =>
@@ -2274,16 +1944,8 @@ namespace VPureLux.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<decimal?>("StandardCost")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<byte>("Status")
                         .HasColumnType("tinyint");
-
-                    b.Property<string>("Unit")
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
 
                     b.HasKey("Id");
 
@@ -7951,16 +7613,8 @@ namespace VPureLux.Migrations
                                 .HasPrecision(18, 2)
                                 .HasColumnType("decimal(18,2)");
 
-                            b1.Property<Guid?>("EffectiveRevisionId")
-                                .HasColumnType("uniqueidentifier");
-
                             b1.Property<Guid?>("InventoryTransactionId")
                                 .HasColumnType("uniqueidentifier");
-
-                            b1.Property<bool>("IsEffective")
-                                .ValueGeneratedOnAdd()
-                                .HasColumnType("bit")
-                                .HasDefaultValue(true);
 
                             b1.Property<string>("ItemCodeSnapshot")
                                 .IsRequired()
@@ -8016,8 +7670,6 @@ namespace VPureLux.Migrations
 
                             b1.HasIndex("BomVersionId");
 
-                            b1.HasIndex("EffectiveRevisionId");
-
                             b1.HasIndex("InventoryTransactionId");
 
                             b1.HasIndex("SuggestedPriceVersionId");
@@ -8027,19 +7679,13 @@ namespace VPureLux.Migrations
 
                             b1.HasIndex("SalesOrderId", "LineNo")
                                 .IsUnique()
-                                .HasDatabaseName("UX_SalesOrderLines_OrderId_LineNo")
-                                .HasFilter("[IsEffective] = 1");
+                                .HasDatabaseName("UX_SalesOrderLines_OrderId_LineNo");
 
                             b1.ToTable("AppSalesOrderLines", (string)null);
 
                             b1.HasOne("VPureLux.Bom.BomVersion", null)
                                 .WithMany()
                                 .HasForeignKey("BomVersionId")
-                                .OnDelete(DeleteBehavior.Restrict);
-
-                            b1.HasOne("VPureLux.Sales.SalesOrderRevision", null)
-                                .WithMany()
-                                .HasForeignKey("EffectiveRevisionId")
                                 .OnDelete(DeleteBehavior.Restrict);
 
                             b1.HasOne("VPureLux.Inventory.InventoryTransaction", null)
@@ -8114,20 +7760,6 @@ namespace VPureLux.Migrations
                     b.Navigation("Lines");
                 });
 
-            modelBuilder.Entity("VPureLux.Sales.SalesOrderCancellation", b =>
-                {
-                    b.HasOne("VPureLux.Sales.SalesOrder", null)
-                        .WithMany()
-                        .HasForeignKey("SalesOrderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("VPureLux.Inventory.InventoryTransaction", null)
-                        .WithMany()
-                        .HasForeignKey("StockReversalTransactionId")
-                        .OnDelete(DeleteBehavior.Restrict);
-                });
-
             modelBuilder.Entity("VPureLux.Sales.SalesOrderPayment", b =>
                 {
                     b.HasOne("VPureLux.Customers.Customer", null)
@@ -8141,220 +7773,6 @@ namespace VPureLux.Migrations
                         .HasForeignKey("SalesOrderId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("VPureLux.Sales.SalesOrderRefund", b =>
-                {
-                    b.HasOne("VPureLux.Sales.SalesOrderCancellation", null)
-                        .WithMany()
-                        .HasForeignKey("SalesOrderCancellationId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("VPureLux.Sales.SalesOrder", null)
-                        .WithMany()
-                        .HasForeignKey("SalesOrderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("VPureLux.Sales.SalesOrderRevision", null)
-                        .WithMany()
-                        .HasForeignKey("SalesOrderRevisionId")
-                        .OnDelete(DeleteBehavior.Restrict);
-                });
-
-            modelBuilder.Entity("VPureLux.Sales.SalesOrderRevision", b =>
-                {
-                    b.HasOne("VPureLux.Sales.SalesOrder", null)
-                        .WithMany()
-                        .HasForeignKey("SalesOrderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.OwnsMany("VPureLux.Sales.SalesOrderRevisionLine", "Lines", b1 =>
-                        {
-                            b1.Property<Guid>("Id")
-                                .ValueGeneratedOnAdd()
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<decimal>("ActualSellingPrice")
-                                .HasPrecision(18, 2)
-                                .HasColumnType("decimal(18,2)");
-
-                            b1.Property<decimal>("AppliedCostAmount")
-                                .HasPrecision(18, 2)
-                                .HasColumnType("decimal(18,2)");
-
-                            b1.Property<decimal?>("BeforeActualSellingPrice")
-                                .HasPrecision(18, 2)
-                                .HasColumnType("decimal(18,2)");
-
-                            b1.Property<Guid?>("BeforeBomVersionId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<decimal>("BeforeCostAmount")
-                                .HasPrecision(18, 2)
-                                .HasColumnType("decimal(18,2)");
-
-                            b1.Property<Guid?>("BeforeInventoryTransactionId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<Guid?>("BeforeProductId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<decimal?>("BeforeQuantity")
-                                .HasPrecision(18, 4)
-                                .HasColumnType("decimal(18,4)");
-
-                            b1.Property<Guid>("BomVersionId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<Guid?>("EffectiveSalesOrderLineId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<bool>("IsRemoved")
-                                .HasColumnType("bit");
-
-                            b1.Property<Guid?>("IssueInventoryTransactionId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<int>("LineNo")
-                                .HasColumnType("int");
-
-                            b1.Property<string>("OverrideReason")
-                                .HasMaxLength(500)
-                                .HasColumnType("nvarchar(500)");
-
-                            b1.Property<Guid>("ProductId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<decimal>("Quantity")
-                                .HasPrecision(18, 4)
-                                .HasColumnType("decimal(18,4)");
-
-                            b1.Property<DateTime?>("ReturnConfirmedAt")
-                                .HasColumnType("datetime2");
-
-                            b1.Property<Guid?>("ReturnConfirmedBy")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<string>("ReturnReason")
-                                .HasMaxLength(1000)
-                                .HasColumnType("nvarchar(1000)");
-
-                            b1.Property<Guid?>("ReversalInventoryTransactionId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<Guid>("SalesOrderRevisionId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<Guid?>("SourceSalesOrderLineId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<decimal?>("SuggestedPriceSnapshot")
-                                .HasPrecision(18, 2)
-                                .HasColumnType("decimal(18,2)");
-
-                            b1.Property<Guid?>("SuggestedPriceVersionId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.HasKey("Id");
-
-                            b1.HasIndex("BeforeBomVersionId");
-
-                            b1.HasIndex("BeforeInventoryTransactionId");
-
-                            b1.HasIndex("BomVersionId");
-
-                            b1.HasIndex("IssueInventoryTransactionId");
-
-                            b1.HasIndex("ReversalInventoryTransactionId");
-
-                            b1.HasIndex("SalesOrderRevisionId", "LineNo");
-
-                            b1.ToTable("AppSalesOrderRevisionLines", (string)null);
-
-                            b1.HasOne("VPureLux.Bom.BomVersion", null)
-                                .WithMany()
-                                .HasForeignKey("BeforeBomVersionId")
-                                .OnDelete(DeleteBehavior.Restrict);
-
-                            b1.HasOne("VPureLux.Inventory.InventoryTransaction", null)
-                                .WithMany()
-                                .HasForeignKey("BeforeInventoryTransactionId")
-                                .OnDelete(DeleteBehavior.Restrict);
-
-                            b1.HasOne("VPureLux.Bom.BomVersion", null)
-                                .WithMany()
-                                .HasForeignKey("BomVersionId")
-                                .OnDelete(DeleteBehavior.Restrict)
-                                .IsRequired();
-
-                            b1.HasOne("VPureLux.Inventory.InventoryTransaction", null)
-                                .WithMany()
-                                .HasForeignKey("IssueInventoryTransactionId")
-                                .OnDelete(DeleteBehavior.Restrict);
-
-                            b1.HasOne("VPureLux.Inventory.InventoryTransaction", null)
-                                .WithMany()
-                                .HasForeignKey("ReversalInventoryTransactionId")
-                                .OnDelete(DeleteBehavior.Restrict);
-
-                            b1.WithOwner()
-                                .HasForeignKey("SalesOrderRevisionId");
-
-                            b1.OwnsMany("VPureLux.Sales.SalesOrderRevisionAllocation", "ReversedAllocations", b2 =>
-                                {
-                                    b2.Property<Guid>("Id")
-                                        .ValueGeneratedOnAdd()
-                                        .HasColumnType("uniqueidentifier");
-
-                                    b2.Property<Guid>("InventoryLotId")
-                                        .HasColumnType("uniqueidentifier");
-
-                                    b2.Property<decimal>("Quantity")
-                                        .HasPrecision(18, 4)
-                                        .HasColumnType("decimal(18,4)");
-
-                                    b2.Property<Guid>("SalesOrderRevisionLineId")
-                                        .HasColumnType("uniqueidentifier");
-
-                                    b2.Property<Guid>("StockItemId")
-                                        .HasColumnType("uniqueidentifier");
-
-                                    b2.Property<decimal>("UnitCost")
-                                        .HasPrecision(18, 2)
-                                        .HasColumnType("decimal(18,2)");
-
-                                    b2.HasKey("Id");
-
-                                    b2.HasIndex("InventoryLotId");
-
-                                    b2.HasIndex("SalesOrderRevisionLineId");
-
-                                    b2.HasIndex("StockItemId");
-
-                                    b2.ToTable("AppSalesOrderRevisionAllocations", (string)null);
-
-                                    b2.HasOne("VPureLux.Inventory.InventoryLot", null)
-                                        .WithMany()
-                                        .HasForeignKey("InventoryLotId")
-                                        .OnDelete(DeleteBehavior.Restrict)
-                                        .IsRequired();
-
-                                    b2.WithOwner()
-                                        .HasForeignKey("SalesOrderRevisionLineId");
-
-                                    b2.HasOne("VPureLux.Inventory.StockItem", null)
-                                        .WithMany()
-                                        .HasForeignKey("StockItemId")
-                                        .OnDelete(DeleteBehavior.Restrict)
-                                        .IsRequired();
-                                });
-
-                            b1.Navigation("ReversedAllocations");
-                        });
-
-                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("VPureLux.Service.ServiceOrder", b =>

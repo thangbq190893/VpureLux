@@ -74,6 +74,7 @@ public class VPureLuxEntityFrameworkCoreModule : AbpModule
             options.AddRepository<InventoryLot, EfCoreInventoryLotRepository>();
             options.AddRepository<InventoryTransaction, EfCoreInventoryTransactionRepository>();
             options.AddRepository<SalesOrder, EfCoreSalesOrderRepository>();
+            options.AddRepository<VPureLux.Service.ServiceWork, VPureLux.Service.EfCoreServiceWorkRepository>();
         });
 
         context.Services.AddTransient<IInventoryBalanceRepository, EfCoreInventoryBalanceRepository>();

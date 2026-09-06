@@ -114,6 +114,9 @@ public class VPureLuxPermissionDefinitionProvider : PermissionDefinitionProvider
         salesPayments.AddChild(VPureLuxPermissions.Sales.Payments.Manage, L("Permission:Sales.Payments.Manage"));
 
         var warranty = myGroup.AddPermission(VPureLuxPermissions.Warranty.Default, L("Permission:Warranty"));
+        var service = myGroup.AddPermission(VPureLuxPermissions.Service.Default, L("Permission:Service"));
+        service.AddChild(VPureLuxPermissions.Service.View, L("Permission:Service.View"));
+        service.AddChild(VPureLuxPermissions.Service.ManageWorks, L("Permission:Service.ManageWorks"));
         warranty.AddChild(VPureLuxPermissions.Warranty.View, L("Permission:Warranty.View"));
         warranty.AddChild(VPureLuxPermissions.Warranty.ManagePolicies, L("Permission:Warranty.ManagePolicies"));
         warranty.AddChild(VPureLuxPermissions.Warranty.ManageMachines, L("Permission:Warranty.ManageMachines"));

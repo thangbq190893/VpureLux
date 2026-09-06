@@ -70,7 +70,8 @@ public class VPureLuxEntityFrameworkCoreTestModule : AbpModule
         {
             options.Configure(context =>
             {
-                context.DbContextOptions.UseSqlite(_sqliteConnection);
+                // Concurrent UoWs need separate native connections; the anchor keeps their shared in-memory DB alive.
+                context.DbContextOptions.UseSqlite(_sqliteConnection.ConnectionString);
             });
         });
     }
@@ -82,7 +83,13 @@ public class VPureLuxEntityFrameworkCoreTestModule : AbpModule
 
     private static SqliteConnection CreateDatabaseAndGetConnection()
     {
-        var connection = new SqliteConnection("Data Source=:memory:");
+        var connection = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = "VPureLuxTests-" + System.Guid.NewGuid().ToString("N"),
+            Mode = SqliteOpenMode.Memory,
+            Cache = SqliteCacheMode.Shared,
+            Pooling = false
+        }.ToString());
         connection.Open();
 
         var options = new DbContextOptionsBuilder<VPureLuxDbContext>()

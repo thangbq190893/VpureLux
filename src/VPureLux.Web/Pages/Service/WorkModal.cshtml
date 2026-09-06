@@ -1,0 +1,31 @@
+@page
+@model VPureLux.Web.Pages.Service.WorkModalModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Modal
+@{
+    Layout = null;
+}
+<form method="post" asp-page="/Service/WorkModal">
+    <abp-modal>
+        <abp-modal-header title="@L[Model.Id.HasValue ? "Service:EditWork" : "Service:CreateWork"]"></abp-modal-header>
+        <abp-modal-body>
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="Input.ConcurrencyStamp" />
+            <abp-input asp-for="Input.Code" label="@L["Service:Code"]" readonly="@Model.Id.HasValue" />
+            <abp-input asp-for="Input.Name" label="@L["Service:Name"]" />
+            <abp-input asp-for="Input.Unit" label="@L["Service:Unit"]" />
+            <abp-input asp-for="Input.DefaultPrice" label="@L["Service:DefaultPrice"]" type="number" min="0" step="0.01" />
+            <abp-input asp-for="Input.StandardCost" label="@L["Service:StandardCost"]" placeholder="@L["Service:Unknown"]" type="number" min="0" step="0.01" />
+            <div class="mb-3">
+                <label class="form-label" asp-for="Input.Status">@L["Service:Status"]</label>
+                <select class="form-select" asp-for="Input.Status">
+                    <option value="1">@L["Status:Active"]</option>
+                    <option value="2">@L["Status:Inactive"]</option>
+                </select>
+                <span asp-validation-for="Input.Status" class="text-danger"></span>
+            </div>
+            <abp-input asp-for="Input.Note" label="@L["Service:Note"]" />
+        </abp-modal-body>
+        <abp-modal-footer buttons="@(AbpModalButtons.Cancel | AbpModalButtons.Save)"></abp-modal-footer>
+    </abp-modal>
+</form>

@@ -133,6 +133,13 @@ public static class VPureLuxPermissions
         }
     }
 
+    public static class Service
+    {
+        public const string Default = GroupName + ".Service";
+        public const string View = Default + ".View";
+        public const string ManageWorks = Default + ".ManageWorks";
+    }
+
     public static class Warranty
     {
         public const string Default = GroupName + ".Warranty";

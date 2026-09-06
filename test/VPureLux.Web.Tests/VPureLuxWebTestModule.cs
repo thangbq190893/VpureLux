@@ -57,6 +57,12 @@ public class VPureLuxWebTestModule : AbpModule
 
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
+        context.Services.AddTransient<Microsoft.AspNetCore.Hosting.IStartupFilter, VPureLux.Pages.ServiceTestAuthorizationFilter>();
+        // Explicit opt-in for a local browser review of this SQLite/in-memory test host only.
+        if (System.Environment.GetEnvironmentVariable("VPURELUX_SERVICE_UI_REVIEW") == "1")
+        {
+            Configure<VPureLux.Service.ServiceOptions>(options => options.IsEnabled = true);
+        }
         context.Services.Replace(
             ServiceDescriptor.Singleton<IDistributedLockProvider, InMemoryDistributedLockProvider>());
         context.Services.RemoveAll<IDistributedCache>();

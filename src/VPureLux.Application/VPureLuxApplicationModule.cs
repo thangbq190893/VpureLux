@@ -45,5 +45,6 @@ public class VPureLuxApplicationModule : AbpModule
     {
         var configuration = context.Services.GetConfiguration();
         Configure<CustomerCareOptions>(configuration.GetSection(CustomerCareOptions.SectionName));
+        Configure<VPureLux.Service.ServiceOptions>(configuration.GetSection(VPureLux.Service.ServiceOptions.SectionName));
     }
 }
