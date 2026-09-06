@@ -10,7 +10,7 @@ Next task: S-004 - Service payments and receivables (READY, unclaimed)
 Service implementation gate: W-GATE DONE; SERVICE-INVENTORY-AUDIT DONE; S-001/S-002/S-003 DONE; S-004 READY; S-005/S-006 HOLD
 Service foundation source: `babc96fc5ecba242e3f23d0612c3a46df3916dc3`, local only, not pushed or deployed; see `docs/S001_SERVICE_FOUNDATION.md`.
 Service order workflow source: `2f27ed81618403d7375b2af237025e6e931bbe3f`, local only, not pushed or deployed; see `docs/S002_SERVICE_ORDER_WORKFLOW.md`.
-Service completion source: `18e9f02a279709ca01018f06933aec12de64cf12`, local only, not pushed or deployed; see `docs/S003_SERVICE_COMPLETION.md`.
+Service completion source: `3413fc9a56f05e812bd4c19102b70ff69157836e`, including main implementation `18e9f02a279709ca01018f06933aec12de64cf12` plus the final UTC+07 calendar/history correction. Local only, not pushed or deployed; see `docs/S003_SERVICE_COMPLETION.md`.
 
 Accepted Warranty implementation baseline:
 
@@ -422,7 +422,7 @@ Status: DONE. Completed 2026-09-07 on baseline `9a0967b`; implementation source 
 
 ### S-003 - Service Completion, FIFO Issue, And Schedule Integration
 
-Status: DONE. Completed 2026-09-07 on baseline `bd8be2a533bb69bc7973497c7cca07bf244314a0`; implementation `18e9f02a279709ca01018f06933aec12de64cf12`. Local only. No migration applied, VPL/production access, deploy or push. Evidence: `docs/S003_SERVICE_COMPLETION.md`.
+Status: DONE at source `3413fc9a56f05e812bd4c19102b70ff69157836e`, including implementation `18e9f02` and final calendar/history correction. UTC instants preserve the operator's UTC+07 cycle date and new Service history display. No migration/VPL/production/deploy/push. Evidence: `docs/S003_SERVICE_COMPLETION.md`.
 
 - Add InventoryTransactionType.ServiceIssue without changing existing enum values.
 - Batch-load FIFO lots for all material lines; no N+1.
@@ -459,9 +459,9 @@ Agent/task name: Codex - Atomic Service completion
 Started at (Asia/Saigon): 2026-09-07
 Branch and starting commit: codex/warranty-release-review / bd8be2a533bb69bc7973497c7cca07bf244314a0
 Goal: Atomic actual quantities, current Inventory FIFO, nullable actual cost facts, canonical replay and CustomerCare-owned replacement integration.
-Status: DONE. S-003 COMPLETE at `18e9f02a279709ca01018f06933aec12de64cf12`; 44 implementation/test/migration files committed separately from this documentation. No active task; S-004 READY and unclaimed.
+Status: DONE at final source `3413fc9a56f05e812bd4c19102b70ff69157836e`. Main implementation `18e9f02` (44 files) plus calendar/history follow-up (8 files) are committed. Final audit's 00:00-06:59 UTC+07 boundary case is fixed and tested without rewriting legacy timestamps. No active task; S-004 READY/unclaimed.
 Database/data boundary: Offline builds and isolated SQLite tests only. No VPL/production access, migration execution, DbMigrator, deploy, push or S-004. Additive schema-only migration permitted.
-Verification completed: Final Release solution build 0 errors, 2 pre-existing warnings (Scriban NU1903 and Web test entrypoint CS7022). Domain Service/Inventory 33/33; Application Service/CustomerCare 6/6; EF combined Service/Inventory/Warranty/CustomerCare/Sales 203/203; Web Service 24/24; focused Warranty Web 13/13. No combined/full Web-suite claim. Offline EF model drift NONE; staged diff check PASS; three changed JavaScript files passed node --check.
+Verification completed: Final Release solution build 0 errors, 2 pre-existing warnings (Scriban NU1903 and Web test entrypoint CS7022). Domain Service/Inventory 33/33; Application Service/CustomerCare 6/6; EF combined Service/Inventory/Warranty/CustomerCare/Sales 204/204; Web Service 25/25; focused Warranty Web 13/13. Includes 01:30 UTC+07 completion, local cycle/baseline date and local history display; legacy time display is not reinterpreted. No combined/full Web-suite claim. Offline EF model drift NONE; staged diff check PASS; three changed JavaScript files passed node --check.
 Browser evidence: Actual ABP completion modal on the SQLite/in-memory Web fixture at 1440x960 and 390x844; mobile rows were adjusted after visual review. No page overflow or JavaScript errors; actual total recomputed 300000 -> 150000; browser submission returned 204 and reloaded Completed with actual amount and no mutation buttons. Screenshots: `artifacts/s003-completion-browser/modal-1440.png`, `modal-390.png`, `completed.png` (local ignored evidence). Temporary loopback proxy/test host stopped; port 5099 no longer listening. The test fixture's existing duplicated menu contributors were not changed in application code.
 Migration/data impact: `20260906200825_AddServiceCompletionFacts`, seven nullable additive fields only, no business DML/default backfill or Sales schema change; generated but not applied. No external database/cache or production service touched. Only isolated SQLite fixtures changed during tests.
 Current blocker: None for S-003 or claiming S-004. SQL Server/Redis multi-process races and legacy schema rehearsal remain S-006; SQLite barrier/stale-writer tests are not represented as live distributed proof. Unknown labor cost remains nullable and future reports must preserve provisional-versus-final cost semantics.
@@ -552,6 +552,13 @@ Verification completed: Branch pushed without force at `a4717aa`; detached artif
 Current blocker: None. Production had no Draft orders or Installed assets for non-destructive live coverage; those scenarios remain covered by accepted rehearsal evidence. W-GATE remains open and Service remains on HOLD.
 
 ## 8. Handoff Log
+
+### 2026-09-07 - Final S-003 calendar audit sealed
+
+- Final source is `3413fc9a56f05e812bd4c19102b70ff69157836e` (`fix(service): preserve local replacement calendar dates`), following the main feature commit `18e9f02` and interim docs `49e8cde`. No history was amended, squashed or pushed.
+- Corrected a final-audit boundary: 01:30 on September 7 in UTC+07 is September 6 18:30 UTC, but the replacement baseline/cycle must use September 7. Events/idempotency retain the UTC instant; only new Service event presentation converts to UTC+07. Existing historical local-wall-time rows are untouched.
+- Final evidence supersedes earlier counts: EF 204/204, Web Service 25/25, Warranty Web 13/13; Domain 33/33, Application 6/6; Release build 0 errors; offline drift NONE. An intermediate build collided with running testhost DLL locks; it was rerun successfully after tests ended, with no code workaround.
+- S-003 DONE again after the explicit correction/regression gate; S-004 READY and unclaimed. All external data/deployment restrictions remain unchanged.
 
 ### 2026-09-07 - S-003 atomic completion complete
 

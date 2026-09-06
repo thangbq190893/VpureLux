@@ -1,7 +1,7 @@
 # S-003 Atomic Service Completion
 
 Baseline: `bd8be2a533bb69bc7973497c7cca07bf244314a0`, branch `codex/warranty-release-review`.
-Decision: S-003 COMPLETE. Implementation: `18e9f02a279709ca01018f06933aec12de64cf12` (`feat(service): add atomic service completion`), local only.
+Decision: S-003 COMPLETE. Final source: `3413fc9a56f05e812bd4c19102b70ff69157836e`. Main implementation: `18e9f02a279709ca01018f06933aec12de64cf12` (`feat(service): add atomic service completion`), followed by a local-calendar/history correction. All commits are local only.
 Scope: local implementation and isolated tests only. No VPL/production connection, migration execution, deployment, push or S-004.
 
 ## Business Facts
@@ -42,6 +42,8 @@ Inventory keeps current lot/balance concurrency tokens. No replacement FIFO impl
 - all LineId/ActualQuantity pairs sorted by LineId with invariant numeric formatting.
 
 The expected version is an optimistic precondition, not a business fact in the replay hash. The key is the replay identity, separate from the hash.
+
+UTC instants and business calendar dates are distinct. Baseline comparison, baseline assignment and successor AddMonths use the UTC+07 completion date. For example, September 7 01:30 UTC+07 is September 6 18:30 UTC, but starts a September 7 cycle. New Service events keep UTC OccurredAt and convert to UTC+07 only for history display. Provenance (ServiceCompleted type or ServiceOrderLineId) prevents reinterpretation of legacy local-wall-time rows. No stored history is rewritten.
 
 Same key plus same hash returns the persisted completion result, including timestamp, stock transaction ID, financial facts and ordered actual quantities, without new business writes. Same key plus changed facts returns SERVICE_023. Different key on a completed order rejects. Keys also retain the existing database unique constraint; cross-order collisions are translated. No hashes are inferred for historical orders with null hashes.
 
@@ -84,8 +86,8 @@ Seven nullable additions only: order CompletionCommandHash/ActualCostAmount/Actu
 ## Verification
 
 - Domain Service/Inventory: 33/33; Application Service/CustomerCare: 6/6.
-- EF combined Service/Inventory/Warranty/CustomerCare/Sales: 203/203. Service completion tests explicitly restore the real UnitOfWorkManager because the shared legacy EF test module otherwise disables every transaction.
-- Web Service: 24/24; focused Warranty Web: 13/13. No claim of a combined/full Web-suite pass.
+- EF combined Service/Inventory/Warranty/CustomerCare/Sales: 204/204. Service completion tests explicitly restore the real UnitOfWorkManager because the shared legacy EF test module otherwise disables every transaction.
+- Web Service: 25/25; focused Warranty Web: 13/13. Includes UTC+07 midnight-boundary completion/history coverage. No claim of a combined/full Web-suite pass.
 - Real isolated SQLite rollback covers shortage after an earlier allocation and an injected failure after stock and CustomerCare writes, preserving InProgress, lots/balances, old reminders and absence of new issue/allocations/events/successors.
 - Barrier-based tests cover same-key replay, different keys, Complete versus Cancel, two services on the same asset/position, and the final available stock unit. A stale writer on the shared Inventory lot repository cannot double-allocate after Service completes.
 - SQL Server/Redis multi-process concurrency, especially different assets contending through Service versus full Sales/Inventory posting, remains S-006. SQLite stale-writer/barrier coverage is narrower than that live proof.
