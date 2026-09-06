@@ -4,16 +4,17 @@ This file is the single source of truth for implementation order and agent hando
 Every agent must read and update this file so another agent can continue without a chat summary.
 
 Last updated: 2026-09-07 (Asia/Saigon)
-Current product stage: Sales Post-Confirmation V1 is RELEASED / ACCEPTED
+Current product stage: Service S-001 COMPLETE; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
 Current active task: None
-Next task: S-001 - Service foundation, historical schema compatibility, and work catalog
-Service implementation gate: W-GATE DONE (user accepted 2026-09-07); SERVICE-INVENTORY-AUDIT DONE; S-001 READY, not started
+Next task: S-002 - Service order aggregate, lines, permissions, and UI
+Service implementation gate: W-GATE DONE (user accepted 2026-09-07); SERVICE-INVENTORY-AUDIT DONE; S-001 DONE; S-002 READY, not claimed; S-003..S-006 HOLD
+Service foundation source: `babc96fc5ecba242e3f23d0612c3a46df3916dc3`, local only, not pushed or deployed; see `docs/S001_SERVICE_FOUNDATION.md`.
 
 Accepted Warranty implementation baseline:
 
 - W-008 source/test/evidence commit: `d1e8b5684d21eca3ee5586fe75913b60e24de190` (`fix(warranty): finalize accepted customer care safeguards`). Baseline SEALED on 2026-09-07, local only; not pushed or deployed.
 - Separate Service audit documentation commit: `6ef1def1812c6b25ed1ffd6caaff3eaa46c1a709`. This is not the W-008 implementation commit.
-- W-008 and W-GATE remain DONE; S-001 may be claimed next, but was not claimed or started during baseline sealing. Production remains the frozen Sales V1 release below.
+- W-008 and W-GATE remain DONE. S-001 was completed later in the source commit above; S-002 is next and unclaimed. Production remains the frozen Sales V1 release below.
 
 Sales V1 release source:
 
@@ -143,8 +144,8 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | SALES-V1-ROLLOUT | Sales V1 production migration, deployment, smoke, and reconciliation | DONE | SALES-V1-REHEARSAL |
 | SALES-V1-RELEASE | Seal accepted Sales V1 source tag and documentation | DONE | SALES-V1-ROLLOUT |
 | SERVICE-INVENTORY-AUDIT | Audit existing Service implementation before reuse | DONE | W-GATE |
-| S-001 | Service module foundation and work catalog | READY | SERVICE-INVENTORY-AUDIT |
-| S-002 | Service order aggregate, lines, permissions, and UI | HOLD | S-001 |
+| S-001 | Service module foundation and work catalog | DONE | SERVICE-INVENTORY-AUDIT |
+| S-002 | Service order aggregate, lines, permissions, and UI | READY | S-001 |
 | S-003 | Service completion, FIFO issue, and schedule integration | HOLD | S-002 |
 | S-004 | Service payments and receivables | HOLD | S-003 |
 | S-005 | Service and consolidated reports | HOLD | S-003, S-004 |
@@ -395,26 +396,27 @@ Status: DONE. Promoted HOLD -> READY -> IN_PROGRESS -> DONE on 2026-09-07 after 
 - After W-GATE only, inventory existing commits `bcc1b36` and `220d41c`, the Service migration, tests, and contracts against the accepted baseline.
 - Document what to reuse and what remains for S-001 through S-006; do not blindly reimplement or cherry-pick the old module.
 - This handoff adds no Service implementation authorization.
-- Key finding: historical Service migration `20260824113235_AddServiceModule` is absent from current source but was applied according to accepted rollout evidence; isolated VPL evidence also preserves existing Service rows. S-001 must recover original migration identity and reconcile current model mappings, not create duplicate tables or replace the Sales V1 snapshot.
+- Key finding at audit time: historical Service migration `20260824113235_AddServiceModule` was absent from source but applied according to accepted rollout evidence; isolated VPL evidence also preserves existing Service rows. S-001 has now recovered the exact original pair and merged its passive mappings without duplicate tables or replacing the Sales V1 snapshot. Actual deployed-schema reconciliation remains an authorized S-006 rehearsal, not a claim made by offline inspection.
 - Reuse module separation, snapshot fields, current FIFO allocator, enum meanings, ABP UI and antiforgery/minifier fixes. Refactor state/version/replay, payment serialization, labor cost completeness, lookup/report queries and care integration. Discard silent remap/reactivation and blanket draft-line snapshot recreation.
 
 ### S-001 - Service Module Foundation And Work Catalog
 
-Status: READY. Depends on completed SERVICE-INVENTORY-AUDIT; no implementation started in the audit turn.
+Status: DONE. Completed 2026-09-07 on sealed W-008 baseline 83fb3f5; source `babc96fc5ecba242e3f23d0612c3a46df3916dc3`. S-002 READY, unclaimed; S-003..S-006 HOLD. No migration applied, runtime enabled on an external target, deploy or push.
 
-- Add separate Service bounded module, permissions, menus, feature flag, number sequence, and non-inventory work/labor catalog.
+- Separate Service foundation, permissions, menu, default-disabled config guard and non-inventory Work Catalog are implemented. Work codes remain manually entered as historically; no new sequence/max-string algorithm is required. Any future automatic numbering must reuse current BusinessCodeGenerator.
 - Do not add service/labor products to Sales or Catalog Product.
 - Use schema-only migration and ABP modal/server-side DataTable UI.
 - Begin with historical Service schema compatibility, preserve the original migration ID and current Sales V1 model, then add work unit/optional standard cost without filling old historical facts from current templates. See audit section 10 for exact files, tests, dependencies and migration expectations for every Service task.
 
 ### S-002 - Service Order Aggregate, Lines, Permissions, And UI
 
-Status: HOLD
+Status: READY. S-001 DONE; not claimed or started in this turn. Read the S-001 source/evidence and Service audit before implementation.
 
 - Add ServiceOrder with Draft -> Confirmed -> InProgress -> Completed/Cancelled state machine.
 - Support mutually exclusive Material and Labor lines.
 - Bind one customer machine per order in phase one.
 - Snapshot prices/cost assumptions and use full-page workflow plus server-side list.
+- Current order/line/payment types are passive schema shells only. Do not mistake them for a delivered workflow; keep completion disabled until S-003.
 
 ### S-003 - Service Completion, FIFO Issue, And Schedule Integration
 
@@ -449,6 +451,18 @@ Status: HOLD
 - Publish/deploy only with explicit approval and full regression/smoke evidence.
 
 ## 7. Active Work Record
+
+Task ID: S-001
+Agent/task name: Codex - Service foundation and historical schema compatibility
+Started at (Asia/Saigon): 2026-09-07
+Branch and starting commit: codex/warranty-release-review / 83fb3f50232113a03a4af2a8f85cc74a87b7cac3
+Goal for this run: Restore original Service migration identity, passive schema mapping, default-disabled runtime and Work Catalog only.
+Status: DONE. S-001 COMPLETE at `babc96fc5ecba242e3f23d0612c3a46df3916dc3`. No active task; S-002 READY and unclaimed.
+Database/data boundary: No VPL/production connection, no migration application, DbMigrator, deploy, restart or push. No order/payment/FIFO/reminder/report workflow. Two user-owned files remain excluded.
+Verification completed: Release solution build 0 errors/2 pre-existing warnings; local publish passed. Domain Service/Sales/Inventory 38/38; Application Work contracts 4/4; full EF 215/215 (including 7 Service foundation/application/runtime/model/snapshot/harness tests); focused Service Web 5/5 and Warranty Web 13/13 after the test-connection correction. No full Web suite claim. Original migration pair matches historical Git blobs exactly; forward migration only adds nullable Unit/StandardCost to AppServiceWorks; model drift NONE. Offline empty/legacy/current/idempotent SQL checks pass; all prior Sales V1/CustomerCare/Warranty/Inventory entity metadata is preserved. Browser review exercised modal create/save, invariant decimal input, unknown versus zero cost and real page 2 on desktop/mobile; local test host was stopped. Exact scope (41 implementation/test/migration files) and evidence are in docs/S001_SERVICE_FOUNDATION.md.
+Current blocker: None for S-001 or starting S-002. SQL Server schema/data/distributed-lock rehearsal remains S-006 and is not authorized now. Two initial EF groups failed an existing shared-connection SQLite initialization race; the test-only connection lifecycle was corrected without changing Sales assertions/business code, and full EF then passed 215/215. Original failed TRX evidence is retained. External Google Fonts could not load in browser review; fallback text/local icons were visible. Production remains unchanged.
+
+### Previous Completed W-008 Baseline Seal Record
 
 Task ID: W-008-BASELINE-SEAL
 Agent/task name: Codex - seal accepted Warranty implementation
@@ -509,6 +523,17 @@ Verification completed: Branch pushed without force at `a4717aa`; detached artif
 Current blocker: None. Production had no Draft orders or Installed assets for non-destructive live coverage; those scenarios remain covered by accepted rehearsal evidence. W-GATE remains open and Service remains on HOLD.
 
 ## 8. Handoff Log
+
+### 2026-09-07 - S-001 Service Foundation Complete
+
+- Decision: S-001 COMPLETE. Source `babc96fc5ecba242e3f23d0612c3a46df3916dc3` (`feat(service): restore foundation and work catalog`) follows baseline `83fb3f5`. W-008 accepted commit `d1e8b56` and audit `6ef1def` are unchanged. Implementation is local only; a separate documentation commit records completion. S-002 READY, unclaimed; S-003..S-006 HOLD.
+- Restored exact migration pair `20260824113235_AddServiceModule` from `220d41c` (also identical at `bcc1b36`). Added `20260906174229_AddServiceWorkCatalogFields`, with only two nullable AppServiceWorks columns and no business DML/default backfill/core-table alteration. Current snapshot adds Service only; no historical full snapshot replacement. Original numeric enum meanings are preserved; ServiceIssue and posting are not restored.
+- Implemented default-disabled flag, server permissions, manually coded Work Catalog, nullable cost, stale-edit protection, whitelisted database paging and an ABP modal. Service orders/lines/payments remain passive shells. Existing document snapshots stay independent from Work edits. The form uses a local invariant decimal binder to prevent vi-VN 123.50 -> 12350 corruption; no global/Sales binder change.
+- Verification: build 0 errors/2 warnings, Domain 38/38, Application contracts 4/4, full EF 215/215, Service Web 5/5, Warranty Web 13/13, offline EF model drift NONE, diff check PASS, local publish/static-script/font assets and desktop/mobile browser checks. Service API feature/permission execution is covered in EF tests as well as HTTP tests. No full/combined Web suite pass is claimed.
+- Preserved two original 172/173 EF results and isolated race rerun evidence. Shared SQLite connection reuse was corrected in the test module to separate connections against one uniquely named in-memory database; a focused active-reader test and full EF run pass without weakening Sales assertions. This is test infrastructure only, not a Sales business change.
+- Documentation: this handoff, `docs/MODULE_MAP.md`, and `docs/S001_SERVICE_FOUNDATION.md`. The historical Service audit remains an unchanged dated audit; no new assumption required rewriting it. Raw evidence/publish/browser fixtures stay ignored in `artifacts/s001-foundation/`.
+- Excluded user-owned files remain untracked: `docs/VPureLux_Sales_Flow_Design_Review_for_Codex_5_6_Sol.docx`, `docs/html.txt`. No VPL/production connection, migration application, DbMigrator, deploy/restart, push or operational Service workflow occurred. Test data existed only in disposable SQLite in-memory databases.
+- Next agent: claim S-002 separately, read the skill, audit and S-001 evidence/source. Preserve original Service migration identity and the current model; do not enable external runtime or apply migrations based solely on this offline foundation verification. Empty/legacy SQL Server rehearsal remains S-006.
 
 ### 2026-09-07 - Accepted W-008 Implementation Baseline Sealed
 
