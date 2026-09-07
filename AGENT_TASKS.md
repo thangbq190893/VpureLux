@@ -4,10 +4,10 @@ This file is the single source of truth for implementation order and agent hando
 Every agent must read and update this file so another agent can continue without a chat summary.
 
 Last updated: 2026-09-07 (Asia/Saigon)
-Current product stage: Service S-006 CONDITIONAL (acceptance C01); Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
+Current product stage: Service implementation READY FOR PRODUCTION ROLLOUT; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
 Current active task: None
-Next task: Resolve S-006 C01 coverage acceptance; no production rollout
-Service implementation gate: W-GATE DONE; SERVICE-INVENTORY-AUDIT DONE; S-001/S-002/S-003/S-004/S-005 DONE; S-006 BLOCKED on acceptance C01 only
+Next task: Separate explicit Service production rollout authorization/review
+Service implementation gate: W-GATE DONE; SERVICE-INVENTORY-AUDIT DONE; S-001/S-002/S-003/S-004/S-005/S-006 DONE
 Service foundation source: `babc96fc5ecba242e3f23d0612c3a46df3916dc3`, local only, not pushed or deployed; see `docs/S001_SERVICE_FOUNDATION.md`.
 Service order workflow source: `2f27ed81618403d7375b2af237025e6e931bbe3f`, local only, not pushed or deployed; see `docs/S002_SERVICE_ORDER_WORKFLOW.md`.
 Service completion source: `3413fc9a56f05e812bd4c19102b70ff69157836e`, including main implementation `18e9f02a279709ca01018f06933aec12de64cf12` plus the final UTC+07 calendar/history correction. Local only, not pushed or deployed; see `docs/S003_SERVICE_COMPLETION.md`.
@@ -18,7 +18,7 @@ Accepted Warranty implementation baseline:
 
 - W-008 source/test/evidence commit: `d1e8b5684d21eca3ee5586fe75913b60e24de190` (`fix(warranty): finalize accepted customer care safeguards`). Baseline SEALED on 2026-09-07, local only; not pushed or deployed.
 - Separate Service audit documentation commit: `6ef1def1812c6b25ed1ffd6caaff3eaa46c1a709`. This is not the W-008 implementation commit.
-- W-008 and W-GATE remain DONE. S-001 through S-005 are complete locally. S-006 technical/VPL/publish checks passed but acceptance C01 is unresolved, so it is not DONE or production-ready. Production remains the frozen Sales V1 release below.
+- W-008 and W-GATE remain DONE. S-001 through S-006 are complete locally. Service is READY FOR PRODUCTION ROLLOUT, not production-released; rollout requires a separate explicit authorization/review. Production remains the frozen Sales V1 release below.
 
 Sales V1 release source:
 
@@ -153,7 +153,7 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | S-003 | Service completion, FIFO issue, and schedule integration | DONE | S-002 |
 | S-004 | Service payments, advances, receivables and refund settlement | DONE | S-003 |
 | S-005 | Service and consolidated reports | DONE | S-003, S-004 |
-| S-006 | Service UAT, reconciliation, and rollout | BLOCKED | S-001..S-005; acceptance C01 |
+| S-006 | Service UAT, reconciliation, and rollout | DONE | S-001..S-005 |
 
 ## 5. Warranty/CustomerCare Tasks
 
@@ -450,7 +450,7 @@ Status: DONE. Completed 2026-09-07 on baseline 3725ec7; implementation `e40aed2e
 
 ### S-006 - Service UAT, Reconciliation, And Rollout
 
-Status: BLOCKED (CONDITIONAL acceptance C01 only). Technical/VPL/publish gates passed on 2026-09-07; not DONE. Claimed from0a7eb72 with explicit VPL-only authorization. Production VPureLux access (including read-only), migration, deployment, restart and push remain forbidden.
+Status: DONE. Decision READY FOR SERVICE PRODUCTION ROLLOUT after explicit C01 acceptance on 2026-09-07. Claimed from0a7eb72 with explicit VPL-only authorization. Production rollout has not occurred and requires separate explicit authorization; no production access, migration, restart, deploy or push was performed.
 
 - Test external machine Core 1-3 replacement plus Labor, FIFO, missing stock rollback, concurrency, payment, reminders, and consolidated reports.
 - Publish/deploy only with explicit approval and full regression/smoke evidence.
@@ -461,17 +461,18 @@ Task ID: S-006
 Agent/task name: Codex - Service final data-safety and readiness gate
 Started at (Asia/Saigon): 2026-09-07
 Branch and starting commit: codex/warranty-release-review / 0a7eb72
-Status: BLOCKED on acceptance C01 only; Decision CONDITIONAL. No active implementation, no service rollout permission. Technical/VPL/reconciliation/regression/publish gates are complete, but not every literal requested operator case can be claimed under accepted S003 rules.
+Status: DONE. Decision READY FOR SERVICE PRODUCTION ROLLOUT. C01 accepted as projection-only coverage with operator workflow N/A by design. No active task and no production rollout permission.
 Authorization: VPL read/write, verified backup, isolated VPL-derived rehearsal databases, reviewed pending migration only after rehearsal PASS, explicitly prefixed fixture mutations, real SQL Server/Redis and local VPL runtime allowed. Production database VPureLux completely forbidden, even read-only. No production service/config/symlink/smoke/deploy or push.
 Safety sequence: explicit catalog guard before opening connections; DB_NAME/@@SERVERNAME proof; read-only initial inventory; schema/history reconciliation; deterministic baseline; backup/VERIFYONLY; clone rehearsal; no legacy DML; only then VPL migration/UAT. Any schema/history mismatch stops writes, without automatic repair.
-Scope: preserve S001-S005 semantics and Sales frozen baseline. Planned10/Actual12 is a projection/legacy case, not permission to expand current completion quantities/prices. Both separate Sales defects remain untouched.
+Scope: preserve S001-S005 semantics and Sales frozen baseline. Planned10/Actual12 remains projection-only coverage with workflow N/A by design; it is not permission to expand current completion quantities/prices. Both separate Sales defects remain open and untouched.
 Verification/evidence: SQL 180.93.99.150, DB_NAME VPL (instance name VPureLux is not catalog). Verified COPY_ONLY/CHECKSUM backup VPL-pre-service-s006-20260907_113345.bak. Rehearsal VPL_SERVICE_REHEARSAL_20260907_113345 and empty VPL_SERVICE_EMPTY_20260907_113345 migrated to current; 4 historical tables/86 columns/18 indexes match; old material cost 1/1 matches allocation. Clone and VPL 41/41 original-table fingerprints unchanged. VPL four pending Service migrations applied via EF without seed, history 20->24. No production access. See docs/S006_SERVICE_UAT_20260907.md and artifacts/s006.
 Findings: raw GO batch script failed filtered-index binding on the clone; EF separate-command execution succeeds without migration changes. Real SQL exposed COUNT_BIG(NULL) in Sales-only report summary; reproducing test added and fixed with conditional bigint sum. SQL read scopes now pass and 22.8m Sales + .45m Service = 23.25m. Both separate Sales business/API defects untouched.
 Live UAT checkpoint: local evidence runtime at localhost:5196 uses VPL + real local Redis database 13, no background jobs/workers or shared admin/role modifications. New operator/role and UATSVC_20260907 fixtures recorded in ignored artifacts/s006/uat-auth.json (secrets) and fixtures.json (business IDs/evidence). Seed, Money, Core and six HTTP SQL/Redis money/terminal race groups PASS. Advance8m/actual6m/refund2m, cancel-preserves-money, retry-after-void, refund page2 and Core1-3-only cycle changes verified. Runtime-only failure/permission controls are isolated in docs/evidence/s006/Runtime, never production assembly/config. Fix source 5e7727a.
 Later checkpoint: shortage and injected AFTER stock+care SaveChanges rollback match all 8 fixture-state groups; FIFO 3 lines x 2 lots exact cost; MissingBaseline actual replacement PASS. Security native HTTP deny/masked fields/page2 PASS after Service-only CSRF fix 2583dbe (Chrome missing-token POST reproduced before, now 400; 8 mutation routes protected, valid token accepted). Legacy Details incorrectly added 7h; c2663ac adds factual IsLegacyCompletion flag and leaves old wall times intact, with 12 new/legacy boundary renders and EF mapping regression PASS. No migration/data rewrite for either fix. First long Web order group OOM:12 pass/8 fail; Sales report group20 pass/1 fail under 1.5GiB; Run-WebSplit.ps1 now reruns methods independently, do not call the earlier grouped runs green. Native UI initial screenshots/no-overflow/XSS/work-create/payment1.5m PASS; BrowserUat.cjs resumes remaining Void/Complete/Refund by existing fixture references (not blind re-creation). Run-TimePolicy resumes completed time0000 by exact completion key.
 Final live checkpoint: all nine live SQL/Redis race groups, 6 new VPL timestamps plus 6 synthetic legacy clone boundaries (rolled back), policy/inactive/unmapped/re-enable matrix, header/metadata snapshot immutability, two-line shortage and injected post-stock rollback PASS. Native browser money flow completed; current screenshots wait for DataTables/KPI/CSS transitions. Feature-disabled Warranty transition and enabled Skip pass. Real plans/IO captured for five queries; small-data CPU9-15ms, missing-statistics warnings documented, no tuning migration. Final VPL and clone original full/factual fingerprints PASS41/41. Yearly reports reconcile22.8m Sales+15.9m Service=38.7m. Final build0errors; EF236 rerun PASS; split Web42 plus other28 PASS, original OOMs retained. Local runtime stopped. Sanitized IDs/hashes in docs/evidence/s006/verification-evidence.json; full evidence and C01 in docs/S006_SERVICE_UAT_20260907.md.
 Final artifact gate: owned evidence checkpoint b0bf197; clean tracked source published full Web5,634files and DbMigrator316files, no execution/upload. Seven Service/report scripts byte-match and parse, generated libs/fonts/certificate present, minifier regression preserved. SHA-256 and certificate handling are in docs/S006_SERVICE_UAT_20260907.md and committed verification-evidence.json. Final EF236/236; total394 accepted focused/broad tests, full Web not claimed. Runtime and required execution sessions stopped; only user-owned files remain untracked after final docs commit.
-Next action: user resolves C01 (planned10/actual12 exceeds accepted S003 quantity cap; projection12/5/7 passes). Recommend retaining current limits and accepting projection-only coverage. After explicit acceptance, update gate/docs to DONE/READY, not production-released. No re-test mutation or deployment is needed merely to accept this exception. A changed excess-charge workflow requires a separate business design. Do not stage user documents, push, or access production.
+Acceptance closeout: user explicitly accepted C01 as projection-only/N/A workflow coverage. S003 remains unchanged; Actual > Planned is not enabled. No additional UAT, VPL/production access, build, test, migration, publish, deployment or push occurred during closeout.
+Next action: create a separate Service production-rollout authorization/review task if requested. READY does not mean PRODUCTION RELEASED. A changed excess-charge workflow requires a separate business design. Keep the confirmed Sales adjustment-success-without-change defect and the Sales GrossPosted-as-NetPaid API naming/projection defect open as separate tasks. Do not stage user documents, push, access production or deploy without explicit authorization.
 
 ### Previous Completed S-005 Record
 
@@ -605,6 +606,14 @@ Verification completed: Branch pushed without force at `a4717aa`; detached artif
 Current blocker: None. Production had no Draft orders or Installed assets for non-destructive live coverage; those scenarios remain covered by accepted rehearsal evidence. W-GATE remains open and Service remains on HOLD.
 
 ## 8. Handoff Log
+
+### 2026-09-07 - S-006 C01 Accepted And Readiness Gate Closed
+
+- Decision READY FOR SERVICE PRODUCTION ROLLOUT; S-006 DONE, active task None. C01 is ACCEPTED - NOT A SERVICE DEFECT.
+- Planned10m / actual12m operator workflow is N/A by design because accepted S003 caps performed quantity at planned quantity and preserves price snapshots. The independent monetary projection12m -5m =7m receivable remains PASS. S003 and application code are unchanged; Actual > Planned was not enabled.
+- All technical/VPL/migration/SQL/Redis/UAT/regression/publish evidence from the preceding S006 handoff remains authoritative. This docs-only closeout did not rerun UAT, access VPL or production, run SQL/Redis/DbMigrator, change/apply a migration, build, publish, deploy or push.
+- Production rollout has NOT occurred and is NOT authorized by this acceptance. A separate explicit rollout review/authorization is the only next Service task.
+- Both Sales defects remain open and separate: confirmed adjustment may report success without changing the order; an existing Sales API labels GrossPosted as `NetPaid` without subtracting factual refunds. No Sales code changed.
 
 ### 2026-09-07 - S-006 Technical Gate Executed; C01 Acceptance Pending
 
