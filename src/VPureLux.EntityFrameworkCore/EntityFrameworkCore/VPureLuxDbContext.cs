@@ -81,6 +81,7 @@ public class VPureLuxDbContext :
     public DbSet<ServiceWork> ServiceWorks { get; set; }
     public DbSet<ServiceOrder> ServiceOrders { get; set; }
     public DbSet<ServicePayment> ServicePayments { get; set; }
+    public DbSet<ServiceRefund> ServiceRefunds { get; set; }
 
     #region Entities from the modules
 
@@ -185,6 +186,7 @@ public class VPureLuxDbContext :
         builder.ApplyConfiguration(new ServiceWorkConfiguration());
         builder.ApplyConfiguration(new ServiceOrderConfiguration());
         builder.ApplyConfiguration(new ServicePaymentConfiguration());
+        builder.ApplyConfiguration(new ServiceRefundConfiguration());
 
         if (Database.ProviderName?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true)
         {

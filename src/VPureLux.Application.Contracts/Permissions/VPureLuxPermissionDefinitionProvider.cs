@@ -122,6 +122,7 @@ public class VPureLuxPermissionDefinitionProvider : PermissionDefinitionProvider
         service.AddChild(VPureLuxPermissions.Service.Cancel, L("Permission:Service.Cancel"));
         service.AddChild(VPureLuxPermissions.Service.Complete, L("Permission:Service.Complete"));
         service.AddChild(VPureLuxPermissions.Service.ManageWorks, L("Permission:Service.ManageWorks"));
+        service.AddChild(VPureLuxPermissions.Service.ManagePayments, L("Permission:Service.ManagePayments"));
         warranty.AddChild(VPureLuxPermissions.Warranty.View, L("Permission:Warranty.View"));
         warranty.AddChild(VPureLuxPermissions.Warranty.ManagePolicies, L("Permission:Warranty.ManagePolicies"));
         warranty.AddChild(VPureLuxPermissions.Warranty.ManageMachines, L("Permission:Warranty.ManageMachines"));

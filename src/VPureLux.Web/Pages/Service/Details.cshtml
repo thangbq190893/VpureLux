@@ -3,9 +3,9 @@
 @inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
 @using VPureLux.Service
 @{ ViewData["Title"] = Model.Order.OrderNo; }
-@section scripts { <abp-script src="/Pages/Service/Details.js" /> }
+@section scripts { <abp-script src="/Pages/Service/Details.js" /><abp-script src="/Pages/Service/Payments.js" /> }
 
-<div class="vpl-page" data-service-details data-order-id="@Model.Order.Id" data-concurrency-stamp="@Model.Order.ConcurrencyStamp">
+<div class="vpl-page" data-service-details data-order-id="@Model.Order.Id" data-concurrency-stamp="@Model.Order.ConcurrencyStamp" data-manage-payments="@Model.CanManagePayments.ToString().ToLowerInvariant()">
     <form id="ServiceActionTokenForm" method="post" class="d-none">@Html.AntiForgeryToken()</form>
     <div class="vpl-page-header">
         <div>
@@ -94,4 +94,48 @@
             </div>
         </abp-card-body>
     </abp-card>
+    <section class="mt-4 border-top pt-3" aria-labelledby="ServiceFinanceTitle">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h3 id="ServiceFinanceTitle" class="h5 mb-0">@L["Service:Payments"]</h3>
+            <div class="d-flex gap-2 flex-wrap">
+                @if (Model.CanCollect)
+                { <button type="button" id="AddServicePayment" class="btn btn-primary"><i class="fa fa-plus" aria-hidden="true"></i> @L["Service:RecordPayment"]</button> }
+                @if (Model.CanManagePayments && !Model.Money.HasInconsistentLedger && Model.Money.RefundDue > 0)
+                { <button type="button" id="AddServiceRefund" class="btn btn-outline-primary"><i class="fa fa-arrow-rotate-left" aria-hidden="true"></i> @L["Service:RecordRefund"]</button> }
+            </div>
+        </div>
+        @if (Model.Money.HasInconsistentLedger)
+        { <div class="alert alert-danger">@L["VPureLux:SERVICE_032"]</div> }
+        <dl class="row gy-1 mb-3">
+            @if (Model.Order.Status < ServiceOrderStatus.Completed)
+            {
+                <dt class="col-7 col-lg-4">@L["Service:PlannedAmount"]</dt><dd class="col-5 col-lg-8 text-end text-lg-start">@Model.FormatMoney(Model.Money.PlannedTotal)</dd>
+                <dt class="col-7 col-lg-4">@L["Service:AdvancePaid"]</dt><dd class="col-5 col-lg-8 text-end text-lg-start">@Model.FormatMoney(Model.Money.AdvancePaid)</dd>
+                <dt class="col-7 col-lg-4">@L["Service:PlannedRemaining"]</dt><dd class="col-5 col-lg-8 text-end text-lg-start">@Model.FormatMoney(Model.Money.PlannedRemaining)</dd>
+            }
+            else
+            {
+                @if (Model.Order.Status == ServiceOrderStatus.Completed)
+                { <dt class="col-7 col-lg-4">@L["Service:ActualAmount"]</dt><dd class="col-5 col-lg-8 text-end text-lg-start">@Model.FormatMoney(Model.Money.ActualTotal ?? 0)</dd> }
+                <dt class="col-7 col-lg-4">@L["Service:GrossPosted"]</dt><dd class="col-5 col-lg-8 text-end text-lg-start">@Model.FormatMoney(Model.Money.GrossPosted)</dd>
+                <dt class="col-7 col-lg-4">@L["Service:GrossRefunded"]</dt><dd class="col-5 col-lg-8 text-end text-lg-start">@Model.FormatMoney(Model.Money.GrossRefunded)</dd>
+                @if (Model.Order.Status == ServiceOrderStatus.Completed && Model.Money.RefundDue == 0)
+                { <dt class="col-7 col-lg-4">@L["Service:Receivable"]</dt><dd class="col-5 col-lg-8 text-end text-lg-start">@Model.FormatMoney(Model.Money.Receivable)</dd> }
+            }
+            @if (Model.Money.RefundDue > 0 || Model.Order.Status == ServiceOrderStatus.Cancelled)
+            { <dt class="col-7 col-lg-4 text-danger">@L["Service:RefundDue"]</dt><dd class="col-5 col-lg-8 text-end text-lg-start text-danger fw-semibold">@Model.FormatMoney(Model.Money.RefundDue)</dd> }
+        </dl>
+        <form id="ServiceMoneyFilters" class="d-flex flex-wrap gap-2 mb-3">
+            <input id="ServiceMoneySearch" class="form-control w-auto" aria-label="@L["Service:ReferenceNo"]" placeholder="@L["Service:ReferenceNo"]" />
+            <button type="submit" class="btn btn-outline-secondary" title="@L["Search"]" aria-label="@L["Search"]"><i class="fa fa-search" aria-hidden="true"></i></button>
+        </form>
+        <h4 class="h6">@L["Service:PaymentHistory"]</h4>
+        <div class="table-responsive"><table id="ServicePaymentsTable" class="table table-sm w-100">
+            <thead><tr><th>@L["Actions"]</th><th>@L["Service:MoneyDate"]</th><th>@L["Service:MoneyAmount"]</th><th>@L["Service:PaymentMethod"]</th><th>@L["Service:ReferenceNo"]</th><th>@L["Service:Status"]</th><th>@L["Service:Note"]</th><th>@L["Service:VoidReason"]</th></tr></thead>
+        </table></div>
+        <h4 class="h6 mt-3">@L["Service:RefundHistory"]</h4>
+        <div class="table-responsive"><table id="ServiceRefundsTable" class="table table-sm w-100">
+            <thead><tr><th>@L["Service:MoneyDate"]</th><th>@L["Service:MoneyAmount"]</th><th>@L["Service:PaymentMethod"]</th><th>@L["Service:ReferenceNo"]</th><th>@L["Service:RefundReason"]</th></tr></thead>
+        </table></div>
+    </section>
 </div>

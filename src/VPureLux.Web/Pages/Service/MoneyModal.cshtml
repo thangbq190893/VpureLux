@@ -1,0 +1,39 @@
+@page
+@model VPureLux.Web.Pages.Service.MoneyModalModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using VPureLux.Sales
+@using Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Modal
+@{ Layout = null; }
+<form method="post" asp-page="/Service/MoneyModal">
+    <abp-modal>
+        <abp-modal-header title="@Model.Title"></abp-modal-header>
+        <abp-modal-body>
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <input asp-for="Id" type="hidden" />
+            <input asp-for="Refund" type="hidden" />
+            <input asp-for="Input.IdempotencyKey" type="hidden" />
+            <div class="d-flex justify-content-between mb-3 gap-2"><span>@L[Model.Refund ? "Service:RefundDue" : "Service:CollectionRoom"]</span><strong>@Model.Available.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ₫</strong></div>
+            <div class="mb-3">
+                <label asp-for="Input.Amount" class="form-label">@L["Service:MoneyAmount"]</label>
+                <input asp-for="Input.Amount" type="text" inputmode="decimal" autocomplete="off" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.OccurredAt" class="form-label">@L["Service:MoneyDate"]</label>
+                <input asp-for="Input.OccurredAt" type="datetime-local" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.Method" class="form-label">@L["Service:PaymentMethod"]</label>
+                <select asp-for="Input.Method" class="form-select">
+                    @foreach (var method in Enum.GetValues<SalesPaymentMethod>())
+                    { <option value="@((byte)method)">@L[$"Sales:PaymentMethod:{method}"]</option> }
+                </select>
+            </div>
+            <abp-input asp-for="Input.ReferenceNo" label="@L["Service:ReferenceNo"]" />
+            <div class="mb-3">
+                <label asp-for="Input.Note" class="form-label">@L[Model.Refund ? "Service:RefundReason" : "Service:Note"]</label>
+                <textarea asp-for="Input.Note" class="form-control" rows="3" required="@(Model.Refund ? "required" : null)"></textarea>
+            </div>
+        </abp-modal-body>
+        <abp-modal-footer buttons="@(AbpModalButtons.Cancel|AbpModalButtons.Save)"></abp-modal-footer>
+    </abp-modal>
+</form>

@@ -20,4 +20,11 @@ public static class ServiceErrorCodes
     public const string CompletionConflict = "VPureLux:SERVICE_023";
     public const string StockShortage = "VPureLux:SERVICE_024";
     public const string ReplacementRequiresService = "VPureLux:SERVICE_025";
+    public const string InvalidMoney = "VPureLux:SERVICE_026";
+    public const string MoneyConflict = "VPureLux:SERVICE_027";
+    public const string MoneyReasonRequired = "VPureLux:SERVICE_028";
+    public const string PaymentExceedsObligation = "VPureLux:SERVICE_029";
+    public const string RefundExceedsCredit = "VPureLux:SERVICE_030";
+    public const string VoidWouldInvalidateRefund = "VPureLux:SERVICE_031";
+    public const string InvalidMoneyLedger = "VPureLux:SERVICE_032";
 }

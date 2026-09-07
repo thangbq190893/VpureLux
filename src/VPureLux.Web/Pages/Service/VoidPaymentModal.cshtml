@@ -1,0 +1,19 @@
+@page
+@model VPureLux.Web.Pages.Service.VoidPaymentModalModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@using Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.TagHelpers.Modal
+@{ Layout = null; }
+<form method="post" asp-page="/Service/VoidPaymentModal">
+    <abp-modal>
+        <abp-modal-header title="@L["Service:VoidReceipt"]"></abp-modal-header>
+        <abp-modal-body>
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <input asp-for="Id" type="hidden" />
+            <input asp-for="Input.PaymentId" type="hidden" />
+            <input asp-for="Input.IdempotencyKey" type="hidden" />
+            <input asp-for="Input.ConcurrencyStamp" type="hidden" />
+            <abp-input asp-for="Input.Reason" label="@L["Service:VoidReason"]" />
+        </abp-modal-body>
+        <abp-modal-footer buttons="@(AbpModalButtons.Cancel|AbpModalButtons.Save)"></abp-modal-footer>
+    </abp-modal>
+</form>

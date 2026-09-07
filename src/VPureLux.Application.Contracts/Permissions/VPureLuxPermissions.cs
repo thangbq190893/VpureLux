@@ -143,6 +143,7 @@ public static class VPureLuxPermissions
         public const string Cancel = Default + ".Cancel";
         public const string Complete = Default + ".Complete";
         public const string ManageWorks = Default + ".ManageWorks";
+        public const string ManagePayments = Default + ".ManagePayments";
     }
 
     public static class Warranty

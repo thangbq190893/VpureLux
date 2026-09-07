@@ -30,6 +30,8 @@ public partial class ServiceOrderWorkflowTests
         services.AddSingleton<ServiceTestLock>();
         services.Replace(ServiceDescriptor.Singleton<IAbpDistributedLock>(provider => provider.GetRequiredService<ServiceTestLock>()));
         services.AddSingleton<CompletionProbe>();
+        services.AddSingleton<MoneyAuditProbe>();
+        services.Replace(ServiceDescriptor.Transient<Volo.Abp.Domain.Repositories.IRepository<VPureLux.Audit.BusinessAuditLog, Guid>, MoneyAuditRepository>());
         services.Replace(ServiceDescriptor.Transient<ICustomerCareServiceCompletion>(provider =>
             new ProbedCare(ActivatorUtilities.CreateInstance<CustomerCareServiceCompletion>(provider),
                 provider.GetRequiredService<CompletionProbe>())));

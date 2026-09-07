@@ -22,6 +22,7 @@ public class DetailsModel : VPureLuxPageModel
     private readonly IAuthorizationService _authorization;
     private readonly IOptions<ServiceOptions> _options;
     private readonly IStringLocalizer<VPureLuxResource> _localizer;
+    private readonly IServicePaymentAppService _money;
 
     [BindProperty(SupportsGet = true)] public Guid Id { get; set; }
     public ServiceOrderDto Order { get; private set; } = new();
@@ -29,6 +30,10 @@ public class DetailsModel : VPureLuxPageModel
     public bool CanConfirm { get; private set; }
     public bool CanCancel { get; private set; }
     public bool CanComplete { get; private set; }
+    public bool CanManagePayments { get; private set; }
+    public ServiceMoneySummaryDto Money { get; private set; } = new();
+    public bool CanCollect => CanManagePayments && !Money.HasInconsistentLedger && Money.Status != ServiceOrderStatus.Cancelled &&
+        (Money.Status == ServiceOrderStatus.Completed ? Money.Receivable : Money.PlannedRemaining) > 0;
     public string StatusBadge => Order.Status switch
     {
         ServiceOrderStatus.Completed => "text-bg-success",
@@ -42,12 +47,14 @@ public class DetailsModel : VPureLuxPageModel
         IServiceOrderAppService service,
         IAuthorizationService authorization,
         IOptions<ServiceOptions> options,
-        IStringLocalizer<VPureLuxResource> localizer)
+        IStringLocalizer<VPureLuxResource> localizer,
+        IServicePaymentAppService money)
     {
         _service = service;
         _authorization = authorization;
         _options = options;
         _localizer = localizer;
+        _money = money;
     }
 
     public async Task<IActionResult> OnGetAsync()
@@ -66,7 +73,19 @@ public class DetailsModel : VPureLuxPageModel
     public string FormatDate(DateTime value) => value.ToString("dd/MM/yyyy", Vi);
     public string FormatDateTime(DateTime? value) => value?.ToString("dd/MM/yyyy HH:mm", Vi) ?? "-";
     public string FormatMoney(decimal value) =>
-        decimal.Round(value, 0, MidpointRounding.AwayFromZero).ToString("#,0", Vi) + " ₫";
+        value.ToString("#,0.##", Vi) + " ₫";
+
+    public async Task<JsonResult> OnGetPaymentsAsync(ServiceMoneyHistoryInput input)
+    {
+        input.ServiceOrderId = Id;
+        return new JsonResult(await _money.GetListAsync(input));
+    }
+
+    public async Task<JsonResult> OnGetRefundsAsync(ServiceMoneyHistoryInput input)
+    {
+        input.ServiceOrderId = Id;
+        return new JsonResult(await _money.GetRefundListAsync(input));
+    }
 
     private async Task<IActionResult> RunTransitionAsync(Func<Task<ServiceOrderDto>> action)
     {
@@ -90,6 +109,8 @@ public class DetailsModel : VPureLuxPageModel
         CanConfirm = await GrantedAsync(VPureLuxPermissions.Service.Confirm);
         CanCancel = await GrantedAsync(VPureLuxPermissions.Service.Cancel);
         CanComplete = await GrantedAsync(VPureLuxPermissions.Service.Complete);
+        CanManagePayments = await GrantedAsync(VPureLuxPermissions.Service.ManagePayments);
+        Money = await _money.GetSummaryAsync(Id);
     }
 
     private async Task<bool> GrantedAsync(string permission) =>

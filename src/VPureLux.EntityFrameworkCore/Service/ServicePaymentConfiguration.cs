@@ -17,6 +17,14 @@ public class ServicePaymentConfiguration : IEntityTypeConfiguration<ServicePayme
         builder.Property(x => x.Note).HasMaxLength(ServiceConsts.MaxNoteLength);
         builder.Property(x => x.IdempotencyKey).HasMaxLength(ServiceConsts.MaxIdempotencyKeyLength).IsRequired();
         builder.Property(x => x.RowVersion).IsRowVersion();
+        builder.Property(x => x.RequestHash).HasMaxLength(64);
+        builder.Property(x => x.VoidRequestHash).HasMaxLength(64);
+        builder.Property(x => x.VoidReason).HasMaxLength(ServiceConsts.MaxNoteLength);
+        builder.Property(x => x.VoidIdempotencyKey).HasMaxLength(ServiceConsts.MaxIdempotencyKeyLength);
+        builder.HasIndex(x => x.VoidIdempotencyKey).IsUnique().HasFilter("[VoidIdempotencyKey] IS NOT NULL")
+            .HasDatabaseName("UX_ServicePayments_VoidIdempotencyKey");
+        builder.HasIndex(x => new { x.ServiceOrderId, x.PaymentDate, x.CreationTime, x.Id })
+            .HasDatabaseName("IX_ServicePayments_Order_History");
         builder.HasOne<ServiceOrder>().WithMany().HasForeignKey(x => x.ServiceOrderId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<VPureLux.Customers.Customer>().WithMany().HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(x => x.IdempotencyKey).IsUnique().HasDatabaseName("UX_ServicePayments_IdempotencyKey");

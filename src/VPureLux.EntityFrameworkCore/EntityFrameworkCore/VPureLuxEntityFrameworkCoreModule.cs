@@ -76,12 +76,15 @@ public class VPureLuxEntityFrameworkCoreModule : AbpModule
             options.AddRepository<SalesOrder, EfCoreSalesOrderRepository>();
             options.AddRepository<VPureLux.Service.ServiceWork, VPureLux.Service.EfCoreServiceWorkRepository>();
             options.AddRepository<VPureLux.Service.ServiceOrder, VPureLux.Service.EfCoreServiceOrderRepository>();
+            options.AddRepository<VPureLux.Service.ServicePayment, VPureLux.Service.EfCoreServicePaymentRepository>();
+            options.AddRepository<VPureLux.Service.ServiceRefund, VPureLux.Service.EfCoreServiceRefundRepository>();
         });
 
         context.Services.AddTransient<IInventoryBalanceRepository, EfCoreInventoryBalanceRepository>();
         context.Services.AddTransient<IBusinessAuditLogRepository, EfCoreBusinessAuditLogRepository>();
         context.Services.AddTransient<ISalesReportReadRepository, EfCoreSalesReportReadRepository>();
         context.Services.AddTransient<VPureLux.Service.IServiceReadRepository, VPureLux.Service.EfCoreServiceReadRepository>();
+        context.Services.AddTransient<VPureLux.Service.IServiceMoneyReadRepository, VPureLux.Service.EfCoreServiceMoneyReadRepository>();
 
         if (AbpStudioAnalyzeHelper.IsInAnalyzeMode)
         {

@@ -22,12 +22,19 @@ internal sealed class ServiceTestLock : IAbpDistributedLock
 {
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new();
     public Action<string>? Waiting { get; set; }
+    public Func<string, Task>? Acquired { get; set; }
     public async Task<IAbpDistributedLockHandle?> TryAcquireAsync(string name, TimeSpan timeout = default,
         CancellationToken cancellationToken = default)
     {
         var gate = _locks.GetOrAdd(name, _ => new SemaphoreSlim(1, 1));
         if (gate.CurrentCount == 0) Waiting?.Invoke(name);
-        return await gate.WaitAsync(timeout, cancellationToken) ? new Handle(gate) : null;
+        if (!await gate.WaitAsync(timeout, cancellationToken)) return null;
+        try
+        {
+            if (Acquired != null) await Acquired(name);
+            return new Handle(gate);
+        }
+        catch { gate.Release(); throw; }
     }
     private sealed class Handle(SemaphoreSlim gate) : IAbpDistributedLockHandle
     {

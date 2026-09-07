@@ -34,6 +34,7 @@ public class VPureLuxPermissionDataSeedContributor : IDataSeedContributor, ITran
                 VPureLuxPermissions.Service.Confirm,
                 VPureLuxPermissions.Service.Cancel,
                 VPureLuxPermissions.Service.ManageWorks,
+                VPureLuxPermissions.Service.ManagePayments,
                 VPureLuxPermissions.Suppliers.View,
                 VPureLuxPermissions.Suppliers.Create,
                 VPureLuxPermissions.Suppliers.Edit,

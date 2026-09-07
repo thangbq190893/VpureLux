@@ -51,6 +51,10 @@ public class ServiceWorkDomainTests
         typeof(ServiceOrder).GetMethod("Complete").ShouldNotBeNull();
         typeof(ServiceOrder).GetMethod("CompleteLine").ShouldBeNull();
         typeof(ServiceOrder).GetMethod("Confirm").ShouldNotBeNull();
-        typeof(ServicePayment).GetMethod("Void").ShouldBeNull();
+        var voidMethod = typeof(ServicePayment).GetMethod("Void");
+        voidMethod.ShouldNotBeNull();
+        voidMethod!.GetParameters()[0].ParameterType.ShouldBe(typeof(ServiceVoidCommand));
+        voidMethod.GetParameters().Length.ShouldBe(3);
+        typeof(ServiceRefund).GetMethod("Void").ShouldBeNull();
     }
 }
