@@ -6,7 +6,7 @@ Every agent must read and update this file so another agent can continue without
 Last updated: 2026-09-07 (Asia/Saigon)
 Current product stage: Service PRODUCTION ROLLOUT COMPLETE; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
 Current active task: None
-Next task: Production observation only; do not reopen Sales or Service implementation without a separate task
+Next task: Review `docs/SALES_ADJUSTMENT_FORENSIC_001.md`; a separate explicit Sales fix task is required before any code, production, or VPL action
 Service implementation gate: W-GATE DONE; SERVICE-INVENTORY-AUDIT DONE; S-001/S-002/S-003/S-004/S-005/S-006 DONE
 Service foundation milestone source: `babc96fc5ecba242e3f23d0612c3a46df3916dc3`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S001_SERVICE_FOUNDATION.md`.
 Service order workflow milestone source: `2f27ed81618403d7375b2af237025e6e931bbe3f`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S002_SERVICE_ORDER_WORKFLOW.md`.
@@ -158,6 +158,7 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | S-005 | Service and consolidated reports | DONE | S-003, S-004 |
 | S-006 | Service UAT, reconciliation, and rollout | DONE | S-001..S-005 |
 | SERVICE-V1-ROLLOUT | Service V1 production rehearsal, migration, deployment, reconciliation, and release seal | DONE | S-006 |
+| SALES-ADJUSTMENT-FORENSIC-001 | Read-only forensic investigation of confirmed-order adjustment effectiveness and cross-module atomicity | DONE | None |
 
 ## 5. Warranty/CustomerCare Tasks
 
@@ -461,6 +462,20 @@ Status: DONE. Decision READY FOR SERVICE PRODUCTION ROLLOUT after explicit C01 a
 
 ## 7. Active Work Record
 
+Task ID: SALES-ADJUSTMENT-FORENSIC-001
+Agent/task name: Codex - Sales adjustment forensic investigation
+Started at (Asia/Saigon): 2026-09-07
+Branch and starting commit: codex/warranty-release-review / fb01661666b2d53c4a9f27fd747dd50910951a06
+Goal: Trace confirmed-order adjustment from UI through persistence and prove or disprove cross-module split-brain risk. Produce `docs/SALES_ADJUSTMENT_FORENSIC_001.md`; no fix is authorized.
+Status: DONE. Decision AT RISK, not a confirmed split-brain possibility. `docs/SALES_ADJUSTMENT_FORENSIC_001.md` records the exact source call chain, UoW evidence, explicit answers, test gaps, and recommended separate fix scope.
+Authorization: Source, Git, and focused local/SQLite test inspection only. Production, VPL, deployment, migration, business mutations, and code fixes are forbidden.
+Safety boundary: Determine whether revision-effective facts, Inventory/FIFO, CustomerCare, payment, and audit writes share one rollback boundary. Do not infer atomicity from a nominal ABP UnitOfWork without source evidence.
+Protected files: `docs/VPureLux_Sales_Flow_Design_Review_for_Codex_5_6_Sol.docx` and `docs/html.txt` remain untracked and must not be staged.
+Current evidence: Preflight identified only the two protected user-owned untracked files. Source trace shows the coordinator transactional boundary covers revision, Inventory/FIFO, CustomerCare, and audit-event completion. The most likely reported success is the intentionally non-effective draft Save action; no source evidence proves an Apply-success/effective-order mismatch. The focused test-host command produced no captured final result and is not claimed as passing evidence.
+Next action: Do not fix from this forensic task. A separate task must add operator-sequence and post-side-effect rollback regressions before making the smallest approved UI/API change.
+
+### Previous Completed Service V1 Rollout Record
+
 Task ID: SERVICE-V1-ROLLOUT
 Agent/task name: Codex - Service V1 production rollout
 Started at (Asia/Saigon): 2026-09-07
@@ -624,6 +639,13 @@ Verification completed: Branch pushed without force at `a4717aa`; detached artif
 Current blocker: None. Production had no Draft orders or Installed assets for non-destructive live coverage; those scenarios remain covered by accepted rehearsal evidence. W-GATE remains open and Service remains on HOLD.
 
 ## 8. Handoff Log
+
+### 2026-09-07 - SALES-ADJUSTMENT-FORENSIC-001 Complete
+
+- Decision: `AT RISK`, not a confirmed split-brain possibility. Source-level evidence shows `SalesOrderOperationCoordinator` owns one new transactional UoW for revision, effective Sales lines, Inventory/FIFO, CustomerCare reconciliation, and local business-audit completion. No production/VPL/server/data access or code change occurred.
+- Most likely operator-visible cause is the two-step UI: `Save` persists a Draft revision and explicitly says to review before Apply; only `Apply` changes the effective order. `OnPostApplyAsync` intentionally ignores unsaved form fields, so it applies only the last saved revision.
+- Existing normal/shortage regressions cover final Sales/Inventory outcomes, but no browser operator-sequence test or injected late Inventory/CustomerCare/audit failure proves the full failure boundary. The bounded focused SQLite host did not return a captured final summary and is not claimed as passing evidence.
+- Next action: review `docs/SALES_ADJUSTMENT_FORENSIC_001.md`, then authorize a separate narrowly scoped fix task. Keep Sales `GrossPosted`/`NetPaid` discrepancy separate and open.
 
 ### 2026-09-07 - Service V1 Production Release Accepted
 
