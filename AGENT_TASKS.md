@@ -8,11 +8,11 @@ Current product stage: Service PRODUCTION ROLLOUT COMPLETE; Sales Post-Confirmat
 Current active task: None
 Next task: Production observation only; do not reopen Sales or Service implementation without a separate task
 Service implementation gate: W-GATE DONE; SERVICE-INVENTORY-AUDIT DONE; S-001/S-002/S-003/S-004/S-005/S-006 DONE
-Service foundation source: `babc96fc5ecba242e3f23d0612c3a46df3916dc3`, local only, not pushed or deployed; see `docs/S001_SERVICE_FOUNDATION.md`.
-Service order workflow source: `2f27ed81618403d7375b2af237025e6e931bbe3f`, local only, not pushed or deployed; see `docs/S002_SERVICE_ORDER_WORKFLOW.md`.
-Service completion source: `3413fc9a56f05e812bd4c19102b70ff69157836e`, including main implementation `18e9f02a279709ca01018f06933aec12de64cf12` plus the final UTC+07 calendar/history correction. Local only, not pushed or deployed; see `docs/S003_SERVICE_COMPLETION.md`.
-Service payment/settlement source: `2a93dfb847201fe87749d6dc7d4b267db16fad4c`, local only, not pushed or deployed; see `docs/S004_SERVICE_PAYMENTS.md`.
-Service reporting source: `e40aed2e9b8e1072e3958d9a47ae52d780fd0592`, local only, not pushed or deployed; see `docs/S005_SERVICE_REPORTS.md`.
+Service foundation milestone source: `babc96fc5ecba242e3f23d0612c3a46df3916dc3`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S001_SERVICE_FOUNDATION.md`.
+Service order workflow milestone source: `2f27ed81618403d7375b2af237025e6e931bbe3f`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S002_SERVICE_ORDER_WORKFLOW.md`.
+Service completion milestone source: `3413fc9a56f05e812bd4c19102b70ff69157836e`, including main implementation `18e9f02a279709ca01018f06933aec12de64cf12` plus the final UTC+07 calendar/history correction; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S003_SERVICE_COMPLETION.md`.
+Service payment/settlement milestone source: `2a93dfb847201fe87749d6dc7d4b267db16fad4c`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S004_SERVICE_PAYMENTS.md`.
+Service reporting milestone source: `e40aed2e9b8e1072e3958d9a47ae52d780fd0592`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S005_SERVICE_REPORTS.md`.
 Service production release: `b0bf197e8525acb2f254995af70b3da8a397a9f8`, tag `release-2026-09-07-service-v1`, deployed at `/opt/vpurelux/releases/web-20260907-152000-service-v1-b0bf197`; rollback `/opt/vpurelux/releases/web-20260903-180516-sales-v1-a4717aa`. See `docs/SERVICE_V1_PRODUCTION_ROLLOUT_20260907.md`.
 
 Accepted Warranty implementation baseline:
@@ -85,7 +85,9 @@ Primary design inputs:
 - `docs/VPURELUX_SERVER_DEPLOYMENT_RUNBOOK.md`
 - `docs/MODULE_MAP.md`
 
-## 3. Verified Current State
+## 3. Historical Baseline Before W-001
+
+This is a point-in-time baseline used to derive W-001 through W-008. Its "Known incomplete or incorrect behavior" list is historical evidence and must not be interpreted as current product state; the top-level release summary, Delivery Order, Active Work Record, and latest Handoff entries define current state.
 
 Commit baseline reviewed: `aec9f91 feat(warranty): add replacement reminders`
 
@@ -381,7 +383,7 @@ Acceptance:
 
 ### W-GATE - Warranty/CustomerCare Acceptance Gate
 
-Status: DONE. User explicitly accepted the Warranty/CustomerCare workflow on 2026-09-07 (Asia/Saigon). W-008 technical evidence remains recorded separately. Accepted implementation is sealed in `d1e8b5684d21eca3ee5586fe75913b60e24de190`, not pushed or deployed; production remains the frozen Sales V1 release.
+Status: DONE. User explicitly accepted the Warranty/CustomerCare workflow on 2026-09-07 (Asia/Saigon). W-008 technical evidence remains recorded separately. Accepted implementation is sealed in `d1e8b5684d21eca3ee5586fe75913b60e24de190`, not pushed or deployed as a standalone release. At W-GATE closure, production was still the Sales V1 release; Service was deployed later by the separate SERVICE-V1-ROLLOUT task, and current production state is recorded at the top of this file.
 
 This gate may be marked DONE only when:
 
