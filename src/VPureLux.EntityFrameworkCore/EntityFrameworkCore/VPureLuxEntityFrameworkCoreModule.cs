@@ -83,6 +83,7 @@ public class VPureLuxEntityFrameworkCoreModule : AbpModule
         context.Services.AddTransient<IInventoryBalanceRepository, EfCoreInventoryBalanceRepository>();
         context.Services.AddTransient<IBusinessAuditLogRepository, EfCoreBusinessAuditLogRepository>();
         context.Services.AddTransient<ISalesReportReadRepository, EfCoreSalesReportReadRepository>();
+        context.Services.AddTransient<IBusinessRevenueReadRepository, EfCoreBusinessRevenueReadRepository>();
         context.Services.AddTransient<VPureLux.Service.IServiceReadRepository, VPureLux.Service.EfCoreServiceReadRepository>();
         context.Services.AddTransient<VPureLux.Service.IServiceMoneyReadRepository, VPureLux.Service.EfCoreServiceMoneyReadRepository>();
 

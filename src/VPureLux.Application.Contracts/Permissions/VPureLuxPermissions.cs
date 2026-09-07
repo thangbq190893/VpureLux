@@ -144,6 +144,8 @@ public static class VPureLuxPermissions
         public const string Complete = Default + ".Complete";
         public const string ManageWorks = Default + ".ManageWorks";
         public const string ManagePayments = Default + ".ManagePayments";
+        public const string ViewCost = Default + ".ViewCost";
+        public const string ViewProfit = Default + ".ViewProfit";
     }
 
     public static class Warranty
@@ -172,6 +174,18 @@ public static class VPureLuxPermissions
         public static class Profit
         {
             public const string Default = Reports.Default + ".Profit";
+            public const string View = Default + ".View";
+        }
+
+        public static class Service
+        {
+            public const string Default = Reports.Default + ".Service";
+            public const string View = Default + ".View";
+        }
+
+        public static class Consolidated
+        {
+            public const string Default = Reports.Default + ".Consolidated";
             public const string View = Default + ".View";
         }
     }

@@ -1,0 +1,57 @@
+@model VPureLux.Web.Pages.Reports.BusinessRevenuePageModel
+@inject Microsoft.Extensions.Localization.IStringLocalizer<VPureLux.Localization.VPureLuxResource> L
+@{ ViewData["Title"] = L[Model.ServiceOnly ? "Reports:ServiceRevenue" : "Reports:BusinessRevenue"]; }
+<div class="vpl-page" id="BusinessReport" data-service-only="@Model.ServiceOnly.ToString().ToLowerInvariant()"
+     data-cost="@Model.ShowCost.ToString().ToLowerInvariant()" data-profit="@Model.ShowProfit.ToString().ToLowerInvariant()"
+     data-link-sales="@Model.LinkSales.ToString().ToLowerInvariant()" data-link-service="@Model.LinkService.ToString().ToLowerInvariant()">
+    <h2 class="vpl-page-title mb-3">@ViewData["Title"]</h2>
+    <form id="BusinessReportFilters" class="row g-2 align-items-end mb-3">
+        @if (!Model.ServiceOnly)
+        {
+            <div class="col-12 col-sm-4 col-lg-2"><label for="ReportSource" class="form-label">@L["Reports:Source"]</label>
+                <select id="ReportSource" class="form-select">
+                    @if (Model.ShowSales && Model.ShowService) { <option value="">@L["Reports:AllSources"]</option> }
+                    @if (Model.ShowSales) { <option value="1">@L["Reports:Source:Sales"]</option> }
+                    @if (Model.ShowService) { <option value="2">@L["Reports:Source:Service"]</option> }
+                </select></div>
+        }
+        <div class="col-6 col-sm-4 col-lg-2"><label for="ReportFrom" class="form-label">@L["Reports:FromDate"]</label><input id="ReportFrom" type="date" class="form-control" value="@Model.FromDateText" /></div>
+        <div class="col-6 col-sm-4 col-lg-2"><label for="ReportTo" class="form-label">@L["Reports:ToDate"]</label><input id="ReportTo" type="date" class="form-control" value="@Model.ToDateText" /></div>
+        <div class="col-10 col-lg"><label for="ReportSearch" class="form-label">@L["Search"]</label><input id="ReportSearch" class="form-control" maxlength="128" /></div>
+        <div class="col-2 col-lg-auto"><button type="submit" class="btn btn-primary" aria-label="@L["Search"]" title="@L["Search"]"><i class="fa fa-search" aria-hidden="true"></i></button></div>
+    </form>
+    <dl id="ReportTotals" class="row g-3 border-top border-bottom py-3 mb-3" aria-live="polite">
+        @if (!Model.ServiceOnly)
+        {
+            <div class="col-6 col-lg-3"><dt>@L["Reports:SalesRevenue"]</dt><dd data-total="salesRevenue">-</dd></div>
+        }
+        <div class="col-6 col-lg-3"><dt>@L["Reports:ServiceRevenue"]</dt><dd data-total="serviceRevenue">-</dd></div>
+        @if (!Model.ServiceOnly)
+        { <div class="col-6 col-lg-3"><dt>@L["Reports:TotalRevenue"]</dt><dd data-total="totalRevenue">-</dd></div> }
+        <div class="col-6 col-lg-3"><dt>@L["Reports:DocumentCount"]</dt><dd data-total="documentCount">-</dd></div>
+        @if (Model.ShowCost)
+        {
+            @if (Model.ServiceOnly)
+            {
+                <div class="col-6 col-lg-3"><dt>@L["Reports:MaterialCost"]</dt><dd data-total="knownMaterialCost">-</dd></div>
+                <div class="col-6 col-lg-3"><dt>@L["Reports:KnownLaborCost"]</dt><dd data-total="knownLaborCost">-</dd></div>
+            }
+            <div class="col-6 col-lg-3"><dt>@L["Reports:KnownCost"]</dt><dd data-total="totalKnownCost">-</dd></div>
+            <div class="col-6 col-lg-3"><dt>@L["Reports:CostIncompleteCount"]</dt><dd data-total="costIncompleteCount">-</dd></div>
+        }
+        @if (Model.ShowProfit)
+        { <div class="col-6 col-lg-3"><dt>@L["Reports:Profit"]</dt><dd data-total="profit">-</dd></div> }
+    </dl>
+    <div class="table-responsive">
+        <table id="BusinessReportTable" class="table table-sm w-100">
+            <thead><tr>
+                <th>@L["Reports:Source"]</th><th>@L[Model.ServiceOnly ? "Service:CompletedAtLocal" : "Reports:RecognitionDate"]</th>
+                <th>@L["Reports:DocumentNo"]</th><th>@L["Menu:Customers"]</th><th>@L["Service:CustomerAsset"]</th>
+                <th>@L["Reports:Revenue"]</th><th>@L["Reports:MaterialCost"]</th><th>@L["Reports:LaborCost"]</th>
+                <th>@L["Reports:KnownCost"]</th><th>@L["Reports:Profit"]</th>
+                <th>@L["Service:GrossPosted"]</th><th>@L["Service:GrossRefunded"]</th><th>@L["Reports:NetPaidCurrent"]</th>
+                <th>@L["Service:Receivable"]</th><th>@L["Service:RefundDue"]</th>
+            </tr></thead>
+        </table>
+    </div>
+</div>

@@ -56,7 +56,7 @@ public class EfCoreServiceRefundRepository(IDbContextProvider<VPureLuxDbContext>
 
 public class EfCoreServiceMoneyReadRepository(IDbContextProvider<VPureLuxDbContext> provider) : IServiceMoneyReadRepository
 {
-    private static IQueryable<ServiceMoneySummary> SummaryQuery(VPureLuxDbContext db, IQueryable<ServiceOrder> orders)
+    internal static IQueryable<ServiceMoneySummary> SummaryQuery(VPureLuxDbContext db, IQueryable<ServiceOrder> orders)
     {
         var posted = db.ServicePayments.Where(p => p.Status == ServicePaymentStatus.Posted)
             .GroupBy(p => p.ServiceOrderId).Select(g => new { OrderId = g.Key, Total = g.Sum(x => x.Amount) });

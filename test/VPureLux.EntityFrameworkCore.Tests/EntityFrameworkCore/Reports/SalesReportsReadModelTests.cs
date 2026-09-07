@@ -19,7 +19,7 @@ using Xunit;
 namespace VPureLux.EntityFrameworkCore.Reports;
 
 [Collection(VPureLuxTestConsts.CollectionDefinitionName)]
-public class SalesReportsReadModelTests : VPureLuxEntityFrameworkCoreTestBase
+public partial class SalesReportsReadModelTests : VPureLuxEntityFrameworkCoreTestBase
 {
     private readonly ISalesReportsAppService _reports;
     private readonly ISalesOrderAppService _sales;

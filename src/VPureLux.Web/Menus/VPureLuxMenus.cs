@@ -41,5 +41,7 @@ public class VPureLuxMenus
     public const string Reports = Prefix + ".Reports";
     public const string ReportsSalesRevenue = Reports + ".SalesRevenue";
     public const string ReportsSalesProfit = Reports + ".SalesProfit";
+    public const string ReportsServiceRevenue = Reports + ".ServiceRevenue";
+    public const string ReportsBusinessRevenue = Reports + ".BusinessRevenue";
     public const string Audit = Prefix + ".Audit";
 }

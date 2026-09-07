@@ -142,9 +142,11 @@ public class WarrantyMatrixAuthorizationService : IAbpAuthorizationService, ITra
         object? resource,
         IEnumerable<IAuthorizationRequirement> requirements)
     {
-        return Task.FromResult(DeniedPermission.Value == null
-            ? AuthorizationResult.Success()
-            : AuthorizationResult.Failed());
+        // A denied field-level permission must not deny an unrelated page's View policy.
+        var denied = DeniedPermission.Value;
+        return Task.FromResult(denied != null && requirements.OfType<PermissionRequirement>().Any(x => x.PermissionName == denied)
+            ? AuthorizationResult.Failed()
+            : AuthorizationResult.Success());
     }
 
     public Task<AuthorizationResult> AuthorizeAsync(

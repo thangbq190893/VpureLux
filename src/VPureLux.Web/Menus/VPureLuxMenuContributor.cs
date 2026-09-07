@@ -262,6 +262,13 @@ public class VPureLuxMenuContributor : IMenuContributor
             icon: "fa fa-bar-chart"
         ).RequirePermissions(VPureLuxPermissions.Reports.Profit.View));
 
+        if (context.ServiceProvider.GetRequiredService<IOptions<ServiceOptions>>().Value.IsEnabled)
+        {
+            reports.AddItem(new ApplicationMenuItem(VPureLuxMenus.ReportsServiceRevenue, l["Reports:ServiceRevenue"],
+                "~/Reports/ServiceRevenue", icon: "fa fa-chart-line").RequirePermissions(VPureLuxPermissions.Reports.Service.View));
+            reports.AddItem(new ApplicationMenuItem(VPureLuxMenus.ReportsBusinessRevenue, l["Reports:BusinessRevenue"],
+                "~/Reports/BusinessRevenue", icon: "fa fa-chart-column").RequirePermissions(VPureLuxPermissions.Reports.Consolidated.View));
+        }
         context.Menu.AddItem(reports);
 
         context.Menu.AddItem(new ApplicationMenuItem(

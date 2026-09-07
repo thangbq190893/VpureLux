@@ -123,6 +123,8 @@ public class VPureLuxPermissionDefinitionProvider : PermissionDefinitionProvider
         service.AddChild(VPureLuxPermissions.Service.Complete, L("Permission:Service.Complete"));
         service.AddChild(VPureLuxPermissions.Service.ManageWorks, L("Permission:Service.ManageWorks"));
         service.AddChild(VPureLuxPermissions.Service.ManagePayments, L("Permission:Service.ManagePayments"));
+        service.AddChild(VPureLuxPermissions.Service.ViewCost, L("Permission:Service.ViewCost"));
+        service.AddChild(VPureLuxPermissions.Service.ViewProfit, L("Permission:Service.ViewProfit"));
         warranty.AddChild(VPureLuxPermissions.Warranty.View, L("Permission:Warranty.View"));
         warranty.AddChild(VPureLuxPermissions.Warranty.ManagePolicies, L("Permission:Warranty.ManagePolicies"));
         warranty.AddChild(VPureLuxPermissions.Warranty.ManageMachines, L("Permission:Warranty.ManageMachines"));
@@ -137,6 +139,10 @@ public class VPureLuxPermissionDefinitionProvider : PermissionDefinitionProvider
         var profitReports = reports.AddChild(VPureLuxPermissions.Reports.Profit.Default, L("Permission:Reports.Profit"));
         profitReports.AddChild(VPureLuxPermissions.Reports.Profit.View, L("Permission:Reports.Profit.View"));
         reports.AddChild(VPureLuxPermissions.Reports.Export, L("Permission:Reports.Export"));
+        reports.AddChild(VPureLuxPermissions.Reports.Service.Default, L("Reports:ServiceRevenue"))
+            .AddChild(VPureLuxPermissions.Reports.Service.View, L("Reports:ServiceRevenue"));
+        reports.AddChild(VPureLuxPermissions.Reports.Consolidated.Default, L("Reports:BusinessRevenue"))
+            .AddChild(VPureLuxPermissions.Reports.Consolidated.View, L("Reports:BusinessRevenue"));
 
         var audit = myGroup.AddPermission(VPureLuxPermissions.Audit.Default, L("Permission:Audit"));
         audit.AddChild(VPureLuxPermissions.Audit.View, L("Permission:Audit.View"));
