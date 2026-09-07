@@ -19,7 +19,7 @@ Accepted Warranty implementation baseline:
 
 - W-008 source/test/evidence commit: `d1e8b5684d21eca3ee5586fe75913b60e24de190` (`fix(warranty): finalize accepted customer care safeguards`). Baseline SEALED on 2026-09-07, local only; not pushed or deployed.
 - Separate Service audit documentation commit: `6ef1def1812c6b25ed1ffd6caaff3eaa46c1a709`. This is not the W-008 implementation commit.
-- W-008 and W-GATE remain DONE. S-001 through S-006 are complete locally. Service is READY FOR PRODUCTION ROLLOUT, not production-released; rollout requires a separate explicit authorization/review. Production remains the frozen Sales V1 release below.
+- W-008 and W-GATE remain accepted historical baselines. S-001 through S-006 and SERVICE-V1-ROLLOUT are DONE. Service V1 is production RELEASED / ACCEPTED; its deployed source, release tag, and active release path are recorded above. Sales V1 remains the immediate rollback baseline, not the active production release. This does not imply that the W-008 baseline commit was independently deployed.
 
 Sales V1 release source:
 
@@ -622,6 +622,11 @@ Verification completed: Branch pushed without force at `a4717aa`; detached artif
 Current blocker: None. Production had no Draft orders or Installed assets for non-destructive live coverage; those scenarios remain covered by accepted rehearsal evidence. W-GATE remains open and Service remains on HOLD.
 
 ## 8. Handoff Log
+
+### 2026-09-07 - Service V1 Production Release Accepted
+
+- Production rollout was reviewed and ACCEPTED. Application source `b0bf197e8525acb2f254995af70b3da8a397a9f8`, tag `release-2026-09-07-service-v1`; Service is enabled in production. The authoritative rollout evidence is `docs/SERVICE_V1_PRODUCTION_ROLLOUT_20260907.md`.
+- This docs-only closeout made no implementation or database change. Service implementation and release work are CLOSED; Current active task remains None. The two known Sales defects remain separate and open: confirmed adjustment may report success without changing the effective order, and an existing API labels GrossPosted as `NetPaid` without deducting factual refunds.
 
 ### 2026-09-07 - S-006 C01 Accepted And Readiness Gate Closed
 
