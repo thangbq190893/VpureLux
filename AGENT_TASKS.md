@@ -4,15 +4,16 @@ This file is the single source of truth for implementation order and agent hando
 Every agent must read and update this file so another agent can continue without a chat summary.
 
 Last updated: 2026-09-07 (Asia/Saigon)
-Current product stage: Service V1 production rollout IN PROGRESS; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
-Current active task: SERVICE-V1-ROLLOUT
-Next task: Complete or safely roll back the explicitly authorized Service V1 production rollout
+Current product stage: Service PRODUCTION ROLLOUT COMPLETE; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
+Current active task: None
+Next task: Production observation only; do not reopen Sales or Service implementation without a separate task
 Service implementation gate: W-GATE DONE; SERVICE-INVENTORY-AUDIT DONE; S-001/S-002/S-003/S-004/S-005/S-006 DONE
 Service foundation source: `babc96fc5ecba242e3f23d0612c3a46df3916dc3`, local only, not pushed or deployed; see `docs/S001_SERVICE_FOUNDATION.md`.
 Service order workflow source: `2f27ed81618403d7375b2af237025e6e931bbe3f`, local only, not pushed or deployed; see `docs/S002_SERVICE_ORDER_WORKFLOW.md`.
 Service completion source: `3413fc9a56f05e812bd4c19102b70ff69157836e`, including main implementation `18e9f02a279709ca01018f06933aec12de64cf12` plus the final UTC+07 calendar/history correction. Local only, not pushed or deployed; see `docs/S003_SERVICE_COMPLETION.md`.
 Service payment/settlement source: `2a93dfb847201fe87749d6dc7d4b267db16fad4c`, local only, not pushed or deployed; see `docs/S004_SERVICE_PAYMENTS.md`.
 Service reporting source: `e40aed2e9b8e1072e3958d9a47ae52d780fd0592`, local only, not pushed or deployed; see `docs/S005_SERVICE_REPORTS.md`.
+Service production release: `b0bf197e8525acb2f254995af70b3da8a397a9f8`, tag `release-2026-09-07-service-v1`, deployed at `/opt/vpurelux/releases/web-20260907-152000-service-v1-b0bf197`; rollback `/opt/vpurelux/releases/web-20260903-180516-sales-v1-a4717aa`. See `docs/SERVICE_V1_PRODUCTION_ROLLOUT_20260907.md`.
 
 Accepted Warranty implementation baseline:
 
@@ -154,7 +155,7 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | S-004 | Service payments, advances, receivables and refund settlement | DONE | S-003 |
 | S-005 | Service and consolidated reports | DONE | S-003, S-004 |
 | S-006 | Service UAT, reconciliation, and rollout | DONE | S-001..S-005 |
-| SERVICE-V1-ROLLOUT | Service V1 production rehearsal, migration, deployment, reconciliation, and release seal | IN_PROGRESS | S-006 |
+| SERVICE-V1-ROLLOUT | Service V1 production rehearsal, migration, deployment, reconciliation, and release seal | DONE | S-006 |
 
 ## 5. Warranty/CustomerCare Tasks
 
@@ -463,12 +464,12 @@ Agent/task name: Codex - Service V1 production rollout
 Started at (Asia/Saigon): 2026-09-07
 Branch and starting commit: codex/warranty-release-review / 043f849811b0b7b6536932cd31b355051e851b82
 Deployment source: b0bf197 (accepted application/publish checkpoint; later commits are documentation only)
-Status: IN_PROGRESS. Production authorization is explicit; preflight confirms the tracked tree is clean, only the two protected user-owned files are untracked, and b0bf197..043f849 contains no src/test/migration changes.
+Status: DONE. Service V1 is production released and enabled. Tag `release-2026-09-07-service-v1` points exactly to deployed application source `b0bf197e8525acb2f254995af70b3da8a397a9f8`.
 Authorization: inventory and bounded cleanup of obsolete VPureLux artifacts; production read-only baseline; verified backup; production-derived rehearsal clone; the four accepted Service migrations; exact-source publish/upload/deploy; Service enablement; restart; read-only smoke/reconciliation; branch/tag push after success. No business backfill or repair, fake production data, raw migration-history repair, force push, or destructive production smoke.
 Safety sequence: verify active and rollback releases/config/certificate; preserve both; prove database identity/history/schema; create and verify a fresh production backup; rehearse the exact migration path on an isolated production clone; compare business fingerprints; only then migrate production and deploy immutable source b0bf197. Stop on ambiguity, mismatch, partial migration, unexpected business mutation, or unclear rollback.
 Protected files: docs/VPureLux_Sales_Flow_Design_Review_for_Codex_5_6_Sol.docx and docs/html.txt remain untracked and must not be staged.
-Current evidence: mandatory engineering preflight PASS; expected migrations present; git diff --check PASS; accepted deployment source isolated from documentation-only HEAD.
-Next action: inspect VPS inventory, active release, service configuration and certificate without exposing secrets; establish cleanup/backup/rehearsal gates before production mutation.
+Current evidence: branch history was pushed. Production history is24 with all four expected Service migrations exactly once; clone and production schema match. The 41/41 pre-migration fingerprint reconciliation PASSed. Active immutable release started with Service false, disabled-mode smoke PASS30/30, then Service true with three enabled-mode health probes PASS and read-only Service/Sales/Warranty/Inventory/report smoke PASS. Certificate/config and signing key remained unchanged. Final read-only reconciliation against a post-user-activity baseline PASS42/42. A concurrent user issued six audited Sales POSTs during rollout (15:41-15:43), which explain intervening Sales/BOM/Inventory fingerprint changes; no rollout code/probe mutation occurred. Temporary uploads and clone removed only after success; both fresh production backups and Sales rollback remain. Full sanitized account: docs/SERVICE_V1_PRODUCTION_ROLLOUT_20260907.md. Raw local evidence remains ignored under artifacts/service-v1-rollout.
+Next action: None. Observe production. Do not start either known Sales defect from this release task.
 
 ### Previous Completed S-006 Record
 
