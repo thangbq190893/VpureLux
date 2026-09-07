@@ -361,7 +361,20 @@ public class VPureLuxWebModule : AbpModule
     {
         Configure<AbpAspNetCoreMvcOptions>(options =>
         {
-            options.ConventionalControllers.Create(typeof(VPureLuxApplicationModule).Assembly);
+            options.ConventionalControllers.Create(typeof(VPureLuxApplicationModule).Assembly, setting =>
+            {
+                setting.ControllerModelConfigurer = controller =>
+                {
+                    var type = controller.ControllerType.AsType();
+                    if (type == typeof(Service.ServiceWorkAppService) ||
+                        type == typeof(Service.ServiceOrderAppService) ||
+                        type == typeof(Service.ServicePaymentAppService))
+                    {
+                        // Protect JSON commands as well as the Razor forms used by Service operators.
+                        controller.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+                    }
+                };
+            });
         });
     }
 

@@ -125,6 +125,48 @@ public class ServiceWorkWebTests : VPureLuxWebTestBase
         var result = await Client.SendAsync(request);
         result.StatusCode.ShouldBe(HttpStatusCode.NoContent, await result.Content.ReadAsStringAsync());
     }
+
+    [Fact]
+    public async Task Service_json_api_requires_antiforgery_and_accepts_valid_token()
+    {
+        Enable();
+        var body = new CreateUpdateServiceWorkDto { Code = "WEB-API-CSRF", Name = "Protected labor", Unit = "Visit" };
+        var missing = await Client.PostAsJsonAsync("/api/app/service-work", body);
+        missing.StatusCode.ShouldBe(HttpStatusCode.Found);
+        missing.Headers.Location!.ToString().ShouldBe("/Error?httpStatusCode=400");
+        var service = GetRequiredService<IServiceWorkAppService>();
+        (await service.GetListAsync(new() { SearchText = body.Code })).TotalCount.ShouldBe(0);
+
+        var id = Guid.NewGuid();
+        foreach (var url in new[]
+        {
+            "/api/app/service-order", $"/api/app/service-order/{id}/confirm",
+            $"/api/app/service-order/{id}/cancel", $"/api/app/service-order/{id}/complete",
+            $"/api/app/service-payment/{id}/payment", $"/api/app/service-payment/{id}/void-payment",
+            $"/api/app/service-payment/{id}/refund"
+        })
+        {
+            var rejected = await Client.PostAsJsonAsync(url, new { });
+            rejected.StatusCode.ShouldBe(HttpStatusCode.Found, url);
+            rejected.Headers.Location!.ToString().ShouldBe("/Error?httpStatusCode=400", url);
+        }
+
+        var descriptors = GetRequiredService<Microsoft.AspNetCore.Mvc.Infrastructure.IActionDescriptorCollectionProvider>()
+            .ActionDescriptors.Items.OfType<Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor>();
+        descriptors.Where(x => x.ControllerTypeInfo.Namespace == "VPureLux.Sales")
+            .SelectMany(x => x.FilterDescriptors)
+            .Any(x => x.Filter is Microsoft.AspNetCore.Mvc.AutoValidateAntiforgeryTokenAttribute).ShouldBeFalse();
+
+        var get = await Client.GetAsync("/Service/WorkModal");
+        var html = new HtmlDocument();
+        html.LoadHtml(await get.Content.ReadAsStringAsync());
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/app/service-work") { Content = JsonContent.Create(body) };
+        request.Headers.Add("RequestVerificationToken", html.DocumentNode.SelectSingleNode("//input[@name='__RequestVerificationToken']").GetAttributeValue("value", ""));
+        request.Headers.Add("Cookie", string.Join("; ", get.Headers.GetValues("Set-Cookie").Select(x => x.Split(';')[0])));
+        var accepted = await Client.SendAsync(request);
+        accepted.StatusCode.ShouldBe(HttpStatusCode.OK, await accepted.Content.ReadAsStringAsync());
+        (await service.GetListAsync(new() { SearchText = body.Code })).TotalCount.ShouldBe(1);
+    }
 }
 
 public class ServiceWorkUiSourceTests
