@@ -4,20 +4,21 @@ This file is the single source of truth for implementation order and agent hando
 Every agent must read and update this file so another agent can continue without a chat summary.
 
 Last updated: 2026-09-07 (Asia/Saigon)
-Current product stage: Service S-004 DONE; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
+Current product stage: Service S-005 DONE; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
 Current active task: None
-Next task: S-005 READY, unclaimed; S-006 HOLD
-Service implementation gate: W-GATE DONE; SERVICE-INVENTORY-AUDIT DONE; S-001/S-002/S-003/S-004 DONE; S-005 READY; S-006 HOLD
+Next task: S-006 READY, unclaimed; external rehearsal/rollout requires explicit target authorization
+Service implementation gate: W-GATE DONE; SERVICE-INVENTORY-AUDIT DONE; S-001/S-002/S-003/S-004/S-005 DONE; S-006 READY
 Service foundation source: `babc96fc5ecba242e3f23d0612c3a46df3916dc3`, local only, not pushed or deployed; see `docs/S001_SERVICE_FOUNDATION.md`.
 Service order workflow source: `2f27ed81618403d7375b2af237025e6e931bbe3f`, local only, not pushed or deployed; see `docs/S002_SERVICE_ORDER_WORKFLOW.md`.
 Service completion source: `3413fc9a56f05e812bd4c19102b70ff69157836e`, including main implementation `18e9f02a279709ca01018f06933aec12de64cf12` plus the final UTC+07 calendar/history correction. Local only, not pushed or deployed; see `docs/S003_SERVICE_COMPLETION.md`.
 Service payment/settlement source: `2a93dfb847201fe87749d6dc7d4b267db16fad4c`, local only, not pushed or deployed; see `docs/S004_SERVICE_PAYMENTS.md`.
+Service reporting source: `e40aed2e9b8e1072e3958d9a47ae52d780fd0592`, local only, not pushed or deployed; see `docs/S005_SERVICE_REPORTS.md`.
 
 Accepted Warranty implementation baseline:
 
 - W-008 source/test/evidence commit: `d1e8b5684d21eca3ee5586fe75913b60e24de190` (`fix(warranty): finalize accepted customer care safeguards`). Baseline SEALED on 2026-09-07, local only; not pushed or deployed.
 - Separate Service audit documentation commit: `6ef1def1812c6b25ed1ffd6caaff3eaa46c1a709`. This is not the W-008 implementation commit.
-- W-008 and W-GATE remain DONE. S-001/S-002/S-003/S-004 are complete in the local source commits above; S-005 is READY and unclaimed. Production remains the frozen Sales V1 release below.
+- W-008 and W-GATE remain DONE. S-001 through S-005 are complete in the local source commits above; S-006 is READY and unclaimed. Production remains the frozen Sales V1 release below.
 
 Sales V1 release source:
 
@@ -151,8 +152,8 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | S-002 | Service order aggregate, lines, permissions, and UI | DONE | S-001 |
 | S-003 | Service completion, FIFO issue, and schedule integration | DONE | S-002 |
 | S-004 | Service payments, advances, receivables and refund settlement | DONE | S-003 |
-| S-005 | Service and consolidated reports | READY | S-003, S-004 |
-| S-006 | Service UAT, reconciliation, and rollout | HOLD | S-001..S-005 |
+| S-005 | Service and consolidated reports | DONE | S-003, S-004 |
+| S-006 | Service UAT, reconciliation, and rollout | READY | S-001..S-005 |
 
 ## 5. Warranty/CustomerCare Tasks
 
@@ -441,20 +442,36 @@ Status: DONE. Claimed and completed 2026-09-07 on baseline 38cb145; implementati
 
 ### S-005 - Service And Consolidated Reports
 
-Status: READY, unclaimed. S-004 is complete; do not begin without a separate task claim.
+Status: DONE. Completed 2026-09-07 on baseline 3725ec7; implementation `e40aed2e9b8e1072e3958d9a47ae52d780fd0592`. Reports only; no Sales workflow fix, external database access, migration application, deploy, push or S-006.
 
-- Add Service revenue/profit reports and consolidated Sales + Service read model with source dimension.
-- Keep existing Sales stored procedures unchanged.
-- Reconcile completed Service only and exclude advances from revenue.
+- Delivered Completed-Service recognition and effective-line Sales composition with factual settlement, persisted historical costs, null-versus-zero labor cost, server permissions and database paging/totals.
+- Existing Sales reports/stored procedures remain unchanged. Actual Sales posted-versus-net API discrepancy is documented, not patched in frozen Sales workflows.
+- Verification: 329 focused tests passed; build 0 errors; offline EF drift NONE; browser desktop/mobile and minifier PASS. Full evidence/limitations: `docs/S005_SERVICE_REPORTS.md`.
 
 ### S-006 - Service UAT, Reconciliation, And Rollout
 
-Status: HOLD
+Status: READY, unclaimed. S-005 completed locally; this status does not authorize connecting to VPL/production or applying/deploying anything.
 
 - Test external machine Core 1-3 replacement plus Labor, FIFO, missing stock rollback, concurrency, payment, reminders, and consolidated reports.
 - Publish/deploy only with explicit approval and full regression/smoke evidence.
 
 ## 7. Active Work Record
+
+Task ID: S-005
+Agent/task name: Codex - Service and consolidated reporting
+Started at (Asia/Saigon): 2026-09-07
+Branch and starting commit: codex/warranty-release-review / 3725ec7cd616ccb08503a307502161f24f1ac0eb
+Goal: Completed-Service recognition and effective Sales read-model composition, historical cost completeness, database paging/totals, cross-source permissions and simple report UI.
+Status: DONE - local implementation `e40aed2e9b8e1072e3958d9a47ae52d780fd0592`; no active task. S-006 READY, unclaimed.
+Database/data boundary: Only offline EF tooling and disposable SQLite fixtures. No VPL/production/Redis access, migration application, DbMigrator, deploy, push or S-006.
+Changed files: 25 explicitly staged implementation/test files in the source commit: Reports contracts/AppService/EF/Web, permission/localization/menu declarations, focused tests and the matching-policy authorization test fake. Separate docs update AGENT_TASKS, MODULE_MAP and S005_SERVICE_REPORTS. Reused S004 SQL money expression; no migration.
+Invariants: no revenue from advance/refund; no current catalog cost refresh; null cost != zero; effective Sales lines only; immutable cash facts; server cost/profit protection and stable database paging.
+Verification completed: Release build 0 errors (existing Scriban NU1903 and Web CS7022 warnings). Domain 39/39, Application 14/14, EF 236/236; split Web report/money 6/6, Sales reports 21/21, Warranty 13/13. Total 329 passed, no duplicate rerun counts. SQL Server ToQueryString translation, historical/null/zero/legacy/unperformed costs, date/page2, real Sales adjustment/refund and mixed reconciliation covered. Browser Chrome 1440x960 and 390x844 passed source/search/page2, safe text, vi-VN currency and horizontal access to financial columns; screenshots inspected, temporary SQLite-only proxy stopped. Node/NUglify PASS, offline EF drift NONE, diff check PASS. Failed earlier fixture/fake runs retained in artifacts/s005, corrected and rerun; no combined full-Web pass claimed.
+Current findings: Current Sales APIs call posted receipts NetPaid without subtracting factual refunds. New report exposes factual GrossPosted/GrossRefunded/NetPaid separately, without modifying frozen Sales APIs/SPs. Current Sales recognition date convention is retained; new S003 completion instants use UTC+07 calendar conversion, legacy wall times remain unshifted. No blocker for the local S005 scope; real SQL Server query plans and legacy-schema/operator acceptance remain S006.
+Separate task: User-reported Sales post-confirm adjustment defect is outside S005 and remains uninvestigated/unfixed here. The existing Sales gross-versus-net projection discrepancy also requires its own Sales scope; no workflow/API patch is authorized here.
+Next action: Stop after S005. Claim S006 only on a separate instruction, beginning with explicit environment/data permissions, migration-history reconciliation and the S001-S005 docs. Do not infer external DB/deployment authorization from READY. Do not stage docs/html.txt or the user-owned Sales review DOCX.
+
+### Previous Completed S-004 Record
 
 Task ID: S-004
 Agent/task name: Codex - Service payments and settlement
@@ -570,6 +587,14 @@ Verification completed: Branch pushed without force at `a4717aa`; detached artif
 Current blocker: None. Production had no Draft orders or Installed assets for non-destructive live coverage; those scenarios remain covered by accepted rehearsal evidence. W-GATE remains open and Service remains on HOLD.
 
 ## 8. Handoff Log
+
+### 2026-09-07 - S-005 Service and consolidated reports sealed
+
+- Decision: S-005 COMPLETE. Baseline `3725ec7cd616ccb08503a307502161f24f1ac0eb`; implementation `e40aed2e9b8e1072e3958d9a47ae52d780fd0592` (`feat(service): add service and consolidated reports`, 25 files). Separate documentation commit; no amend/squash/push. S-006 READY, unclaimed, active task None.
+- Recognition is Completed-Service actual revenue plus confirmed effective Sales lines. Advances/refunds do not add/rewrite revenue. Historical actual FIFO/nullable labor costs remain snapshots; unknown costs make profit null. Sales 10,000 + Service 3,000 reconciles to 13,000 through real workflow fixtures.
+- Database-side Count/filter/sort/Skip/Take/UNION ALL/totals; Service and cross-source cost/profit permissions enforced in API responses and sorting. Two ABP report pages add source/date/search filters and safe text rendering without replacing existing Sales reports.
+- Final gates: Release build 0 errors; Domain 39, Application 14, EF 236, split Web 40 passed (329 total). Browser desktop/mobile and real NUglify passed. No EF drift, migration, DML, backfill, external DB/Redis access, runtime enablement, deploy or push. SQLite-only browser proxy stopped. User-owned documents remain untracked/unstaged.
+- Current Sales API gross-versus-net discrepancy and the separately reported Sales adjustment defect remain separate future work; neither Sales workflow was patched. S006 must explicitly authorize its external targets and verify live schema/locking/performance/permissions/operator acceptance. See `docs/S005_SERVICE_REPORTS.md` for exact semantics and commands.
 
 ### 2026-09-07 - S-004 Service payments and settlement sealed
 
