@@ -3,10 +3,10 @@
 This file is the single source of truth for implementation order and agent handoff.
 Every agent must read and update this file so another agent can continue without a chat summary.
 
-Last updated: 2026-09-07 (Asia/Saigon)
+Last updated: 2026-09-08 (Asia/Saigon)
 Current product stage: Service PRODUCTION ROLLOUT COMPLETE; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
 Current active task: None
-Next task: Review `docs/SALES_ADJUSTMENT_FORENSIC_001.md`; a separate explicit Sales fix task is required before any code, production, or VPL action
+Next task: Resolve the focused Web test-host result for SALES-ADJUSTMENT-FIX-001, then review and accept it; keep the separate Sales GrossPosted/NetPaid reporting defect as a new scoped task
 Service implementation gate: W-GATE DONE; SERVICE-INVENTORY-AUDIT DONE; S-001/S-002/S-003/S-004/S-005/S-006 DONE
 Service foundation milestone source: `babc96fc5ecba242e3f23d0612c3a46df3916dc3`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S001_SERVICE_FOUNDATION.md`.
 Service order workflow milestone source: `2f27ed81618403d7375b2af237025e6e931bbe3f`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S002_SERVICE_ORDER_WORKFLOW.md`.
@@ -159,6 +159,7 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | S-006 | Service UAT, reconciliation, and rollout | DONE | S-001..S-005 |
 | SERVICE-V1-ROLLOUT | Service V1 production rehearsal, migration, deployment, reconciliation, and release seal | DONE | S-006 |
 | SALES-ADJUSTMENT-FORENSIC-001 | Read-only forensic investigation of confirmed-order adjustment effectiveness and cross-module atomicity | DONE | None |
+| SALES-ADJUSTMENT-FIX-001 | Simplify confirmed-order adjustment submission and prove transactional rollback | BLOCKED | SALES-ADJUSTMENT-FORENSIC-001 |
 
 ## 5. Warranty/CustomerCare Tasks
 
@@ -462,6 +463,22 @@ Status: DONE. Decision READY FOR SERVICE PRODUCTION ROLLOUT after explicit C01 a
 
 ## 7. Active Work Record
 
+Task ID: SALES-ADJUSTMENT-FIX-001
+Agent/task name: Codex - Sales adjustment UX and atomicity fix
+Started at (Asia/Saigon): 2026-09-07
+Branch and starting commit: codex/warranty-release-review / eeba88a
+Goal: Make the current submitted adjustment authoritative through one primary action while preserving Sales V1 delta semantics and proving late Inventory/CustomerCare rollback.
+Status: BLOCKED. The implementation is complete and focused EF evidence is green, but the focused Web PageModel/UI host did not emit a final result due to the known test-host leak. Do not claim FIX READY FOR REVIEW until that final result is captured.
+Authorization: Local source, builds, and isolated SQLite tests only. VPL, production, deployment, migration, push, and business-data operations are forbidden.
+Safety boundary: Reuse `SalesOrderOperationCoordinator`; price-only never posts Inventory; negative deltas retain Warehouse confirmation; no stale draft may be silently applied.
+Protected files: `docs/VPureLux_Sales_Flow_Design_Review_for_Codex_5_6_Sol.docx` and `docs/html.txt` remain untracked and must not be staged.
+Implementation: Added `SubmitRevisionAsync`, which updates from the posted form and applies in one coordinator/UoW when no Warehouse return is pending. The Adjust page exposes one primary `Xac nhan dieu chinh` action and validates the posted model before submission. A negative delta persists Draft only and communicates that the effective order is unchanged.
+Verification: Release Web and EF test-project builds passed with 0 warnings and 0 errors. Captured SQLite EF evidence: 8 passed across current-value-over-stale-draft price change, Warehouse-pending negative delta, injected failure after Inventory, injected failure after CustomerCare, increase/replay, replacement, add/remove delta isolation, and factual decrease reversal. Three focused Web PageModel/UI tests compile but the known Web test-host leak did not return a final runtime summary, so they are not counted as passing evidence. `docs/SALES_ADJUSTMENT_FIX_001.md` records the exact behavior, query review, and remaining review risk.
+Data/deployment: No migration, database access, VPL, production access, deploy, restart, push, or business-data mutation. Protected user files remain untracked and excluded.
+Next action: Run only `Sales_Adjust_Page` focused Web tests in a stable host and capture the final count; then perform product review/acceptance of the simplified manager workflow. Keep GrossPosted/NetPaid separate; do not reopen this adjustment change merely to address reporting.
+
+### Previous Completed Sales Adjustment Forensic Record
+
 Task ID: SALES-ADJUSTMENT-FORENSIC-001
 Agent/task name: Codex - Sales adjustment forensic investigation
 Started at (Asia/Saigon): 2026-09-07
@@ -639,6 +656,19 @@ Verification completed: Branch pushed without force at `a4717aa`; detached artif
 Current blocker: None. Production had no Draft orders or Installed assets for non-destructive live coverage; those scenarios remain covered by accepted rehearsal evidence. W-GATE remains open and Service remains on HOLD.
 
 ## 8. Handoff Log
+
+### 2026-09-08 - SALES-ADJUSTMENT-FIX-001 Validation Checkpoint
+
+- Decision: `BLOCKED` only on focused Web test-host evidence. The three new `Sales_Adjust_Page` PageModel/UI tests compile, and the focused host begins discovery/execution but exits without a final result, matching the existing Web test-host leak. A policy-restricted attempt to capture it from a background runner was rejected before execution. No Web test is claimed as passed.
+- Captured evidence remains green: Release EF and Web test-project builds have 0 warnings/errors; 8 focused SQLite EF tests passed, including current-form authority, Warehouse wait, positive delta/retry, replacement, add/remove isolation, factual decrease reversal, and both late rollback injection points.
+- Code remains a local checkpoint only. No migration, VPL/production access, deployment, restart, push, or protected-file staging occurred. Resume only the focused Web evidence; do not redesign Sales or touch the separate GrossPosted/NetPaid defect.
+
+### 2026-09-07 - SALES-ADJUSTMENT-FIX-001 Initial Implementation Checkpoint (Superseded)
+
+- Initial implementation decision: `FIX READY FOR REVIEW` pending final verification. The 2026-09-08 validation checkpoint supersedes this status because focused Web test-host output was not captured.
+- Negative Inventory deltas still require Warehouse return confirmation. In that case the revision remains Draft and the effective Sales order is not changed; the page communicates this explicitly.
+- Verification: Release Web build and Release EF test-project build passed with 0 warnings/errors. Captured SQLite EF evidence passed 8 tests: current values override a stale draft without Inventory posting, negative delta waits for Warehouse, late failures after Inventory and CustomerCare roll back revision/effective order/inventory/customer assets, quantity-increase replay, replacement, add/remove isolation, and factual decrease reversal. Three focused Web PageModel/UI tests compiled, but their known leaking host did not return a final runtime result and are not claimed as passed.
+- No migration, VPL/production access, deployment, restart, push, or database/business-data mutation occurred. `docs/SALES_ADJUSTMENT_FIX_001.md` is the technical/operator handoff. The known Sales GrossPosted/NetPaid reporting discrepancy remains a separate unresolved task.
 
 ### 2026-09-07 - SALES-ADJUSTMENT-FORENSIC-001 Complete
 

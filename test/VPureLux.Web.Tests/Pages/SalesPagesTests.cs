@@ -36,6 +36,7 @@ using Volo.Abp.Data;
 using Volo.Abp.Uow;
 using Xunit;
 using CreateModel = VPureLux.Web.Pages.Sales.CreateModel;
+using AdjustModel = VPureLux.Web.Pages.Sales.AdjustModel;
 using DetailsModel = VPureLux.Web.Pages.Sales.DetailsModel;
 using EditModel = VPureLux.Web.Pages.Sales.EditModel;
 using IndexModel = VPureLux.Web.Pages.Sales.IndexModel;
@@ -47,6 +48,99 @@ namespace VPureLux.Pages;
 [Collection(VPureLuxTestConsts.CollectionDefinitionName)]
 public class SalesPagesTests : VPureLuxWebTestBase
 {
+    [Fact]
+    public async Task Sales_Adjust_Page_Should_Submit_Current_Form_And_Redirect_To_Details_Only_After_Applied()
+    {
+        var orderId = Guid.NewGuid();
+        var revisionId = Guid.NewGuid();
+        var customerId = Guid.NewGuid();
+        var revisionLineId = Guid.NewGuid();
+        SubmitSalesOrderRevisionDto? submitted = null;
+        var sales = Substitute.For<ISalesOrderAppService>();
+        var postConfirmation = Substitute.For<ISalesPostConfirmationAppService>();
+        postConfirmation.SubmitRevisionAsync(revisionId, Arg.Do<SubmitSalesOrderRevisionDto>(input => submitted = input))
+            .Returns(new SalesOrderRevisionDto { Id = revisionId, Status = SalesOrderRevisionStatus.Applied });
+        var model = new AdjustModel(
+            sales,
+            postConfirmation,
+            Substitute.For<IProductAppService>(),
+            Substitute.For<IProductPricingContextLookupService>());
+        SetPageContext(model, GetRequiredService<IServiceProvider>());
+        model.Id = orderId;
+        model.RevisionId = revisionId;
+        model.UpdateInput = new UpdateSalesOrderRevisionDto
+        {
+            CustomerId = customerId,
+            Lines = [new UpdateSalesOrderRevisionLineDto
+            {
+                RevisionLineId = revisionLineId,
+                ProductId = Guid.NewGuid(),
+                Quantity = 2,
+                ActualSellingPrice = 600
+            }]
+        };
+
+        var result = await model.OnPostConfirmAsync();
+
+        submitted.ShouldNotBeNull();
+        submitted!.CustomerId.ShouldBe(customerId);
+        submitted.Lines.Single().ActualSellingPrice.ShouldBe(600);
+        submitted.IdempotencyKey.ShouldNotBeNullOrWhiteSpace();
+        var redirect = result.ShouldBeOfType<RedirectToPageResult>();
+        redirect.PageName.ShouldBe("/Sales/Details");
+        redirect.RouteValues!["id"].ShouldBe(orderId);
+    }
+
+    [Fact]
+    public async Task Sales_Adjust_Page_Should_Keep_Manager_On_Adjust_When_Warehouse_Is_Pending()
+    {
+        var orderId = Guid.NewGuid();
+        var revisionId = Guid.NewGuid();
+        var postConfirmation = Substitute.For<ISalesPostConfirmationAppService>();
+        postConfirmation.SubmitRevisionAsync(revisionId, Arg.Any<SubmitSalesOrderRevisionDto>())
+            .Returns(new SalesOrderRevisionDto { Id = revisionId, Status = SalesOrderRevisionStatus.Draft });
+        var model = new AdjustModel(
+            Substitute.For<ISalesOrderAppService>(),
+            postConfirmation,
+            Substitute.For<IProductAppService>(),
+            Substitute.For<IProductPricingContextLookupService>());
+        SetPageContext(model, GetRequiredService<IServiceProvider>());
+        model.Id = orderId;
+        model.RevisionId = revisionId;
+        model.UpdateInput = new UpdateSalesOrderRevisionDto
+        {
+            CustomerId = Guid.NewGuid(),
+            Lines = [new UpdateSalesOrderRevisionLineDto
+            {
+                RevisionLineId = Guid.NewGuid(),
+                ProductId = Guid.NewGuid(),
+                Quantity = 1,
+                ActualSellingPrice = 100
+            }]
+        };
+
+        var result = await model.OnPostConfirmAsync();
+
+        var redirect = result.ShouldBeOfType<RedirectToPageResult>();
+        redirect.PageName.ShouldBeNull();
+        redirect.RouteValues!["id"].ShouldBe(orderId);
+        redirect.RouteValues["revisionId"].ShouldBe(revisionId);
+    }
+
+    [Fact]
+    public async Task Sales_Adjust_Page_Should_Expose_Only_The_Confirm_Primary_Action()
+    {
+        var pageSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Adjust.cshtml"));
+        var pageModelSource = await File.ReadAllTextAsync(GetRepoFilePath("src/VPureLux.Web/Pages/Sales/Adjust.cshtml.cs"));
+
+        pageSource.ShouldContain("asp-page-handler=\"Confirm\"");
+        pageSource.ShouldContain("data-confirm-adjustment");
+        pageSource.ShouldNotContain("data-apply-adjustment");
+        pageSource.ShouldNotContain("fa-save");
+        pageModelSource.ShouldContain("SubmitRevisionAsync");
+        pageModelSource.ShouldContain("Sales:AdjustmentWaitingWarehouse");
+    }
+
     [Fact]
     public async Task Sales_Index_Create_History_And_Customer_History_Pages_Should_Render()
     {

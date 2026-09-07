@@ -98,18 +98,33 @@ public class AdjustModel : VPureLuxPageModel
         }
     }
 
-    public async Task<IActionResult> OnPostApplyAsync()
+    public async Task<IActionResult> OnPostConfirmAsync()
     {
         if (!RevisionId.HasValue)
         {
             return NotFound();
         }
+
+        NormalizeLines();
+        if (!ModelState.IsValid)
+        {
+            await LoadRevisionAsync(usePostedLines: true);
+            return Page();
+        }
+
         try
         {
-            await _postConfirmation.ApplyRevisionAsync(RevisionId.Value, new ApplySalesOrderRevisionDto
+            var revision = await _postConfirmation.SubmitRevisionAsync(RevisionId.Value, new SubmitSalesOrderRevisionDto
             {
+                CustomerId = UpdateInput.CustomerId,
+                Lines = UpdateInput.Lines,
                 IdempotencyKey = Guid.NewGuid().ToString("N")
             });
+            if (revision.Status == SalesOrderRevisionStatus.Draft)
+            {
+                TempData["SalesAdjustmentMessage"] = L["Sales:AdjustmentWaitingWarehouse"].Value;
+                return RedirectToPage(new { id = Id, revisionId = RevisionId });
+            }
             TempData[nameof(DetailsModel.SuccessMessage)] = L["Sales:AdjustmentApplied"].Value;
             return RedirectToPage("/Sales/Details", new { id = Id });
         }

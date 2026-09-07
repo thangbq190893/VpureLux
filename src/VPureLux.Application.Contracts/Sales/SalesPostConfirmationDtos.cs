@@ -44,6 +44,12 @@ public class ApplySalesOrderRevisionDto
     public string IdempotencyKey { get; set; } = string.Empty;
 }
 
+public class SubmitSalesOrderRevisionDto : UpdateSalesOrderRevisionDto
+{
+    [Required, StringLength(SalesConsts.MaxIdempotencyKeyLength)]
+    public string IdempotencyKey { get; set; } = string.Empty;
+}
+
 public class CancelConfirmedSalesOrderDto : ReasonDto
 {
     [Required, StringLength(SalesConsts.MaxReasonLength)]

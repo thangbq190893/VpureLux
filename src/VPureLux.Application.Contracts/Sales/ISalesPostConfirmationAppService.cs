@@ -10,6 +10,7 @@ public interface ISalesPostConfirmationAppService : IApplicationService
     Task<SalesOrderRevisionDto> OpenRevisionAsync(Guid salesOrderId, OpenSalesOrderRevisionDto input);
     Task<SalesOrderRevisionDto> GetRevisionAsync(Guid revisionId);
     Task<SalesOrderRevisionDto> UpdateRevisionAsync(Guid revisionId, UpdateSalesOrderRevisionDto input);
+    Task<SalesOrderRevisionDto> SubmitRevisionAsync(Guid revisionId, SubmitSalesOrderRevisionDto input);
     Task ConfirmRevisionReturnedGoodsAsync(Guid revisionId, ConfirmRevisionReturnedGoodsDto input);
     Task<SalesOrderRevisionDto> ApplyRevisionAsync(Guid revisionId, ApplySalesOrderRevisionDto input);
     Task CancelRevisionAsync(Guid revisionId, ReasonDto input);

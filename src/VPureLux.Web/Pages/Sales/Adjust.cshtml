@@ -113,9 +113,8 @@
             </abp-card>
 
             <div class="d-flex gap-2 mb-3">
-                <button class="btn btn-primary" type="submit"><i class="fa fa-save"></i> @L["Save"]</button>
-                <button class="btn btn-success" type="submit" asp-page-handler="Apply" data-apply-adjustment>
-                    <i class="fa fa-check"></i> @L["Sales:ApplyAdjustment"]
+                <button class="btn btn-success" type="submit" asp-page-handler="Confirm" data-confirm-adjustment>
+                    <i class="fa fa-check"></i> @L["Sales:ConfirmAdjustment"]
                 </button>
                 <button class="btn btn-outline-danger" type="submit" asp-page-handler="Discard" formnovalidate data-discard-adjustment>
                     @L["Sales:DiscardAdjustment"]

@@ -38,7 +38,7 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
     private readonly IInventoryTransactionRepository _transactions;
     private readonly IInventoryBalanceRepository _balances;
     private readonly InventoryManager _inventoryManager;
-    private readonly SalesRevisionCustomerCareReconciler _customerCareReconciler;
+    private readonly ISalesRevisionCustomerCareReconciler _customerCareReconciler;
     private readonly SalesOrderOperationCoordinator _coordinator;
     private readonly IUnitOfWorkManager _unitOfWorkManager;
 
@@ -59,7 +59,7 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
         IInventoryTransactionRepository transactions,
         IInventoryBalanceRepository balances,
         InventoryManager inventoryManager,
-        SalesRevisionCustomerCareReconciler customerCareReconciler,
+        ISalesRevisionCustomerCareReconciler customerCareReconciler,
         SalesOrderOperationCoordinator coordinator,
         IUnitOfWorkManager unitOfWorkManager)
     {
@@ -135,68 +135,28 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
         {
             var revision = await _revisions.GetAsync(revisionId, includeDetails: true);
             var order = await GetOrderAsync(salesOrderId);
-            await EnsureModificationAllowedAsync(order);
-            EnsureActiveRevision(revision, order);
-            if (input.CustomerId != order.CustomerId || revision.CustomerIdSnapshot != order.CustomerId)
-            {
-                throw new BusinessException(VPureLuxDomainErrorCodes.SalesRevisionNotAllowed)
-                    .WithData("Reason", "CustomerId is immutable after confirmation.");
-            }
-
-            var existing = revision.Lines.ToDictionary(x => x.Id);
-            var suppliedIds = input.Lines.Where(x => x.RevisionLineId.HasValue).Select(x => x.RevisionLineId!.Value).ToList();
-            if (suppliedIds.Count != suppliedIds.Distinct().Count() || suppliedIds.Any(id => !existing.ContainsKey(id)) ||
-                existing.Keys.Except(suppliedIds).Any())
-            {
-                throw new BusinessException(VPureLuxDomainErrorCodes.ValidationFailed);
-            }
-
-            var productIds = input.Lines.Where(x => !x.IsRemoved).Select(x => x.ProductId).Distinct().ToArray();
-            var productMap = await LoadActiveProductsAsync(productIds);
-            var publishedBomMap = await LoadPublishedBomMapAsync(productIds);
-            var priceMap = await LoadPriceMapAsync(productIds, order.OrderDate);
-
-            foreach (var inputLine in input.Lines)
-            {
-                if (inputLine.RevisionLineId.HasValue && inputLine.IsRemoved)
-                {
-                    revision.RemoveLine(inputLine.RevisionLineId.Value);
-                    continue;
-                }
-                if (!productMap.ContainsKey(inputLine.ProductId))
-                {
-                    throw new BusinessException(VPureLuxDomainErrorCodes.ProductNotFound);
-                }
-
-                SalesOrderRevisionLine? current = inputLine.RevisionLineId.HasValue
-                    ? existing[inputLine.RevisionLineId.Value]
-                    : null;
-                var sameProduct = current != null && current.ProductId == inputLine.ProductId;
-                var bomId = sameProduct ? current!.BomVersionId : publishedBomMap.GetValueOrDefault(inputLine.ProductId)?.Id
-                    ?? throw new BusinessException(VPureLuxDomainErrorCodes.SalesBomMustBePublished);
-                var price = sameProduct
-                    ? (SuggestedPriceVersionId: current!.SuggestedPriceVersionId, SuggestedPrice: current.SuggestedPriceSnapshot)
-                    : priceMap.GetValueOrDefault(inputLine.ProductId);
-                await EnsureOverridePermissionAsync(price.SuggestedPrice, inputLine.ActualSellingPrice);
-
-                if (current == null)
-                {
-                    revision.AddLine(
-                        GuidGenerator.Create(), inputLine.ProductId, bomId, inputLine.Quantity,
-                        price.SuggestedPriceVersionId, price.SuggestedPrice,
-                        inputLine.ActualSellingPrice, inputLine.OverrideReason);
-                }
-                else
-                {
-                    revision.UpdateLine(
-                        current.Id, inputLine.ProductId, bomId, inputLine.Quantity,
-                        price.SuggestedPriceVersionId, price.SuggestedPrice,
-                        inputLine.ActualSellingPrice, inputLine.OverrideReason);
-                }
-            }
-
+            await UpdateRevisionCoreAsync(revision, order, input);
             await _revisions.UpdateAsync(revision, autoSave: true);
             return ToDto(revision);
+        });
+    }
+
+    [Authorize(VPureLuxPermissions.Sales.AdjustConfirmedBeforeInstallation)]
+    [UnitOfWork(IsDisabled = true)]
+    public async Task<SalesOrderRevisionDto> SubmitRevisionAsync(Guid revisionId, SubmitSalesOrderRevisionDto input)
+    {
+        var salesOrderId = await ReadRevisionOrderIdAsync(revisionId);
+        return await _coordinator.ExecuteAsync(salesOrderId, async () =>
+        {
+            var revision = await _revisions.GetAsync(revisionId, includeDetails: true);
+            var order = await GetOrderAsync(salesOrderId);
+            await UpdateRevisionCoreAsync(revision, order, input);
+            if (revision.Lines.Where(x => x.RequiresReturnConfirmation).Any(x => !x.ReturnConfirmedAt.HasValue))
+            {
+                await _revisions.UpdateAsync(revision, autoSave: true);
+                return ToDto(revision);
+            }
+            return await ApplyRevisionCoreAsync(revision, order, input.IdempotencyKey);
         });
     }
 
@@ -231,19 +191,26 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
         return await _coordinator.ExecuteAsync(salesOrderId, async () =>
         {
             var revision = await _revisions.GetAsync(revisionId, includeDetails: true);
+            var order = await GetOrderAsync(salesOrderId);
+            return await ApplyRevisionCoreAsync(revision, order, input.IdempotencyKey);
+        });
+    }
+
+    private async Task<SalesOrderRevisionDto> ApplyRevisionCoreAsync(
+        SalesOrderRevision revision, SalesOrder order, string idempotencyKey)
+    {
             if (revision.Status == SalesOrderRevisionStatus.Applied)
             {
-                revision.Apply(input.IdempotencyKey, CurrentUser.Id, revision.AppliedAt ?? Clock.Now,
+                revision.Apply(idempotencyKey, CurrentUser.Id, revision.AppliedAt ?? Clock.Now,
                     revision.AppliedTotal ?? revision.BeforeTotal, 0);
                 return ToDto(revision);
             }
-            var duplicate = await _revisions.FindByApplyIdempotencyKeyAsync(input.IdempotencyKey);
+            var duplicate = await _revisions.FindByApplyIdempotencyKeyAsync(idempotencyKey);
             if (duplicate != null && duplicate.Id != revision.Id)
             {
                 throw new BusinessException(VPureLuxDomainErrorCodes.SalesRevisionIdempotencyConflict);
             }
 
-            var order = await GetOrderAsync(salesOrderId);
             await EnsureModificationAllowedAsync(order);
             EnsureActiveRevision(revision, order);
             if (revision.Lines.Where(x => x.RequiresReturnConfirmation).Any(x => !x.ReturnConfirmedAt.HasValue))
@@ -275,12 +242,11 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
             await _customerCareReconciler.ReconcileAsync(order, revision);
             order.RecalculateEffectiveTotals();
             var netPaid = await _payments.GetPostedPaidAmountsAsync([order.Id]);
-            revision.Apply(input.IdempotencyKey, CurrentUser.Id, Clock.Now, order.TotalRevenueAmount,
+            revision.Apply(idempotencyKey, CurrentUser.Id, Clock.Now, order.TotalRevenueAmount,
                 netPaid.GetValueOrDefault(order.Id));
             await _orders.UpdateAsync(order);
             await _revisions.UpdateAsync(revision, autoSave: true);
             return ToDto(revision);
-        });
     }
 
     [Authorize(VPureLuxPermissions.Sales.AdjustConfirmedBeforeInstallation)]
@@ -579,9 +545,69 @@ public class SalesPostConfirmationAppService : ApplicationService, ISalesPostCon
         {
             ImpactType = type,
             ItemCode = code,
-            ItemName = name,
-            Quantity = quantity
-        });
+        ItemName = name,
+        Quantity = quantity
+    });
+
+    private async Task UpdateRevisionCoreAsync(
+        SalesOrderRevision revision,
+        SalesOrder order,
+        UpdateSalesOrderRevisionDto input)
+    {
+        await EnsureModificationAllowedAsync(order);
+        EnsureActiveRevision(revision, order);
+        if (input.CustomerId != order.CustomerId || revision.CustomerIdSnapshot != order.CustomerId)
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.SalesRevisionNotAllowed)
+                .WithData("Reason", "CustomerId is immutable after confirmation.");
+        }
+
+        var existing = revision.Lines.ToDictionary(x => x.Id);
+        var suppliedIds = input.Lines.Where(x => x.RevisionLineId.HasValue).Select(x => x.RevisionLineId!.Value).ToList();
+        if (suppliedIds.Count != suppliedIds.Distinct().Count() || suppliedIds.Any(id => !existing.ContainsKey(id)) ||
+            existing.Keys.Except(suppliedIds).Any())
+        {
+            throw new BusinessException(VPureLuxDomainErrorCodes.ValidationFailed);
+        }
+
+        var productIds = input.Lines.Where(x => !x.IsRemoved).Select(x => x.ProductId).Distinct().ToArray();
+        var productMap = await LoadActiveProductsAsync(productIds);
+        var publishedBomMap = await LoadPublishedBomMapAsync(productIds);
+        var priceMap = await LoadPriceMapAsync(productIds, order.OrderDate);
+
+        foreach (var inputLine in input.Lines)
+        {
+            if (inputLine.RevisionLineId.HasValue && inputLine.IsRemoved)
+            {
+                revision.RemoveLine(inputLine.RevisionLineId.Value);
+                continue;
+            }
+            if (!productMap.ContainsKey(inputLine.ProductId))
+            {
+                throw new BusinessException(VPureLuxDomainErrorCodes.ProductNotFound);
+            }
+
+            var current = inputLine.RevisionLineId.HasValue ? existing[inputLine.RevisionLineId.Value] : null;
+            var sameProduct = current != null && current.ProductId == inputLine.ProductId;
+            var bomId = sameProduct ? current!.BomVersionId : publishedBomMap.GetValueOrDefault(inputLine.ProductId)?.Id
+                ?? throw new BusinessException(VPureLuxDomainErrorCodes.SalesBomMustBePublished);
+            var price = sameProduct
+                ? (SuggestedPriceVersionId: current!.SuggestedPriceVersionId, SuggestedPrice: current.SuggestedPriceSnapshot)
+                : priceMap.GetValueOrDefault(inputLine.ProductId);
+            await EnsureOverridePermissionAsync(price.SuggestedPrice, inputLine.ActualSellingPrice);
+
+            if (current == null)
+            {
+                revision.AddLine(GuidGenerator.Create(), inputLine.ProductId, bomId, inputLine.Quantity,
+                    price.SuggestedPriceVersionId, price.SuggestedPrice, inputLine.ActualSellingPrice, inputLine.OverrideReason);
+            }
+            else
+            {
+                revision.UpdateLine(current.Id, inputLine.ProductId, bomId, inputLine.Quantity,
+                    price.SuggestedPriceVersionId, price.SuggestedPrice, inputLine.ActualSellingPrice, inputLine.OverrideReason);
+            }
+        }
+    }
 
     private async Task ApplyLineAsync(
         SalesOrder order,

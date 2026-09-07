@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Shouldly;
 using VPureLux.Bom;
@@ -19,6 +20,7 @@ using VPureLux.Sales;
 using VPureLux.Warranty;
 using Volo.Abp;
 using Volo.Abp.EntityFrameworkCore;
+using Volo.Abp.Uow;
 using Xunit;
 
 namespace VPureLux.EntityFrameworkCore.Sales;
@@ -26,6 +28,35 @@ namespace VPureLux.EntityFrameworkCore.Sales;
 [Collection(VPureLuxTestConsts.CollectionDefinitionName)]
 public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
 {
+    protected override void AfterAddApplication(IServiceCollection services)
+    {
+        base.AfterAddApplication(services);
+        services.Replace(ServiceDescriptor.Transient<IUnitOfWorkManager, UnitOfWorkManager>());
+        services.AddSingleton<SalesRevisionCareProbe>();
+        services.Replace(ServiceDescriptor.Transient<ISalesRevisionCustomerCareReconciler>(provider =>
+            new ProbedSalesRevisionCare(
+                ActivatorUtilities.CreateInstance<SalesRevisionCustomerCareReconciler>(provider),
+                provider.GetRequiredService<SalesRevisionCareProbe>())));
+    }
+
+    private sealed class SalesRevisionCareProbe
+    {
+        public Func<Task>? Before { get; set; }
+        public Func<Task>? After { get; set; }
+    }
+
+    private sealed class ProbedSalesRevisionCare(
+        SalesRevisionCustomerCareReconciler inner,
+        SalesRevisionCareProbe probe) : ISalesRevisionCustomerCareReconciler
+    {
+        public async Task ReconcileAsync(SalesOrder order, SalesOrderRevision revision)
+        {
+            if (probe.Before != null) await probe.Before();
+            await inner.ReconcileAsync(order, revision);
+            if (probe.After != null) await probe.After();
+        }
+    }
+
     private readonly ISalesOrderAppService _sales;
     private readonly ISalesPostConfirmationAppService _postConfirmation;
     private readonly ICustomerAppService _customers;
@@ -945,6 +976,36 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
     }
 
     [Fact]
+    public async Task Submit_Revision_Should_Apply_Current_Price_Without_Inventory_And_Not_Use_Stale_Draft()
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 500);
+        var (product, _) = await CreateProductForComponentAsync(component);
+        var order = await _sales.CreateAsync(Input(context, product.Id, 2, 1_000));
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var beforeTransactionCount = await InventoryTransactionCountAsync();
+
+        var revision = await _postConfirmation.OpenRevisionAsync(order.Id, new OpenSalesOrderRevisionDto { Reason = "Current form wins" });
+        var line = revision.Lines.Single();
+        await _postConfirmation.UpdateRevisionAsync(revision.Id, new UpdateSalesOrderRevisionDto
+        {
+            CustomerId = context.Customer.Id,
+            Lines = [new UpdateSalesOrderRevisionLineDto { RevisionLineId = line.Id, ProductId = product.Id, Quantity = 2, ActualSellingPrice = 900, OverrideReason = "Old draft" }]
+        });
+
+        var submitted = await _postConfirmation.SubmitRevisionAsync(revision.Id, new SubmitSalesOrderRevisionDto
+        {
+            CustomerId = context.Customer.Id,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines = [new UpdateSalesOrderRevisionLineDto { RevisionLineId = line.Id, ProductId = product.Id, Quantity = 2, ActualSellingPrice = 600, OverrideReason = "Current form" }]
+        });
+
+        submitted.Status.ShouldBe(SalesOrderRevisionStatus.Applied);
+        (await _sales.GetAsync(order.Id)).Lines.Single().ActualSellingPrice.ShouldBe(600);
+        (await InventoryTransactionCountAsync()).ShouldBe(beforeTransactionCount);
+    }
+
+    [Fact]
     public async Task Revision_Eligibility_Should_Allow_NonMachine_Paid_And_Mixed_Orders()
     {
         var context = await CreateBaseAsync();
@@ -1238,6 +1299,76 @@ public class SalesWorkflowTests : VPureLuxEntityFrameworkCoreTestBase
         var effectiveLine = (await _sales.GetAsync(order.Id)).Lines.Single();
         effectiveLine.Quantity.ShouldBe(2);
         effectiveLine.CostAmountSnapshot.ShouldBe(250);
+    }
+
+    [Fact]
+    public async Task Submit_Revision_With_Negative_Delta_Should_Wait_For_Warehouse_And_Keep_Order_Effective()
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 10, 125);
+        var stockItem = await GetComponentStockItemAsync(component.Id);
+        var (product, _) = await CreateProductForComponentAsync(component);
+        var order = await _sales.CreateAsync(Input(context, product.Id, 3, 1_000));
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var revision = await _postConfirmation.OpenRevisionAsync(order.Id, new OpenSalesOrderRevisionDto { Reason = "Warehouse pending" });
+        var line = revision.Lines.Single();
+
+        var submitted = await _postConfirmation.SubmitRevisionAsync(revision.Id, new SubmitSalesOrderRevisionDto
+        {
+            CustomerId = context.Customer.Id,
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            Lines = [new UpdateSalesOrderRevisionLineDto { RevisionLineId = line.Id, ProductId = product.Id, Quantity = 2, ActualSellingPrice = 1_000 }]
+        });
+
+        submitted.Status.ShouldBe(SalesOrderRevisionStatus.Draft);
+        (await _sales.GetAsync(order.Id)).Lines.Single().Quantity.ShouldBe(3);
+        (await _inventoryQuery.GetBalancesAsync(context.Warehouse.Id, stockItem.Id)).Single().QuantityOnHand.ShouldBe(7);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Submit_Revision_Failure_After_Inventory_Or_CustomerCare_Should_Roll_Back_Everything(bool afterCare)
+    {
+        var context = await CreateBaseAsync();
+        var component = await CreateComponentWithStockAsync(context.Warehouse.Id, 5, 100);
+        var stockItem = await GetComponentStockItemAsync(component.Id);
+        var (product, _) = await CreateProductForComponentAsync(component);
+        await _warranty.SetMachineSettingAsync(product.Id, new SetProductMachineSettingDto { IsMachine = true });
+        var order = await _sales.CreateAsync(Input(context, product.Id, 1, 1_000));
+        await _sales.ConfirmAsync(order.Id, new ConfirmSalesOrderDto { IdempotencyKey = Guid.NewGuid().ToString("N") });
+        var revision = await _postConfirmation.OpenRevisionAsync(order.Id, new OpenSalesOrderRevisionDto { Reason = "Injected rollback" });
+        var line = revision.Lines.Single();
+        var probe = GetRequiredService<SalesRevisionCareProbe>();
+        if (afterCare)
+            probe.After = () => throw new InvalidOperationException("Injected after CustomerCare");
+        else
+            probe.Before = () => throw new InvalidOperationException("Injected after Inventory");
+
+        await Should.ThrowAsync<InvalidOperationException>(() => _postConfirmation.SubmitRevisionAsync(revision.Id,
+            new SubmitSalesOrderRevisionDto
+            {
+                CustomerId = context.Customer.Id,
+                IdempotencyKey = Guid.NewGuid().ToString("N"),
+                Lines = [new UpdateSalesOrderRevisionLineDto { RevisionLineId = line.Id, ProductId = product.Id, Quantity = 2, ActualSellingPrice = 1_000 }]
+            }));
+
+        (await _sales.GetAsync(order.Id)).Lines.Single().Quantity.ShouldBe(1);
+        (await _postConfirmation.GetRevisionAsync(revision.Id)).Status.ShouldBe(SalesOrderRevisionStatus.Draft);
+        (await _inventoryQuery.GetBalancesAsync(context.Warehouse.Id, stockItem.Id)).Single().QuantityOnHand.ShouldBe(4);
+        (await GetSingleLotAsync(stockItem.Id)).AvailableQuantity.ShouldBe(4);
+        await WithUnitOfWorkAsync(async () =>
+        {
+            var db = await GetRequiredService<IDbContextProvider<VPureLuxDbContext>>().GetDbContextAsync();
+            (await db.InventoryTransactions.CountAsync(x => x.ReferenceId == line.Id)).ShouldBe(0);
+            (await db.InventoryTransactions
+                .Where(x => x.ReferenceId == line.Id)
+                .SelectMany(x => x.Lines)
+                .CountAsync()).ShouldBe(0);
+            (await db.CustomerAssets.CountAsync(x => x.SalesOrderId == order.Id)).ShouldBe(0);
+        });
+        probe.Before = null;
+        probe.After = null;
     }
 
     [Fact]

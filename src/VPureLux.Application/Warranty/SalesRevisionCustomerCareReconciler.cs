@@ -10,7 +10,12 @@ using Volo.Abp.Guids;
 
 namespace VPureLux.Warranty;
 
-public class SalesRevisionCustomerCareReconciler : ITransientDependency
+public interface ISalesRevisionCustomerCareReconciler
+{
+    Task ReconcileAsync(SalesOrder order, SalesOrderRevision revision);
+}
+
+public class SalesRevisionCustomerCareReconciler : ISalesRevisionCustomerCareReconciler, ITransientDependency
 {
     private readonly IProductMachineSettingRepository _machineSettings;
     private readonly IRepository<CustomerAsset, Guid> _assets;

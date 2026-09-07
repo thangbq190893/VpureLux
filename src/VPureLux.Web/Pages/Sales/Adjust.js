@@ -5,8 +5,6 @@
 
     const lines = form.querySelector('[data-adjustment-lines]');
     const template = form.querySelector('[data-adjustment-line-template]');
-    const applyButton = form.querySelector('[data-apply-adjustment]');
-    let dirty = false;
 
     function reindex() {
         lines.querySelectorAll('[data-adjustment-line]').forEach(function (row, index) {
@@ -14,11 +12,6 @@
                 control.name = control.name.replace(/UpdateInput\.Lines\[\d+\]/, 'UpdateInput.Lines[' + index + ']');
             });
         });
-    }
-
-    function markDirty() {
-        dirty = true;
-        if (applyButton) applyButton.disabled = true;
     }
 
     function initProductSelect(select) {
@@ -37,7 +30,6 @@
             }
         });
         $select.on('change', function () {
-            markDirty();
             const row = select.closest('[data-adjustment-line]');
             const price = row.querySelector('input[name$=".ActualSellingPrice"]');
             const warning = row.querySelector('[data-product-warning]');
@@ -60,7 +52,6 @@
         const html = template.innerHTML.replaceAll('__index__', index.toString());
         lines.insertAdjacentHTML('beforeend', html);
         initProductSelect(lines.lastElementChild.querySelector('[data-product-select]'));
-        markDirty();
     });
 
     lines.addEventListener('click', function (event) {
@@ -76,10 +67,8 @@
             row.remove();
             reindex();
         }
-        markDirty();
     });
 
-    form.addEventListener('input', markDirty);
     form.querySelector('[data-discard-adjustment]').addEventListener('click', function (event) {
         event.preventDefault();
         abp.message.confirm(abp.localization.getResource('VPureLux')('Sales:DiscardAdjustmentConfirm'))
@@ -89,5 +78,4 @@
             });
     });
 
-    if (dirty && applyButton) applyButton.disabled = true;
 })();
