@@ -10,7 +10,7 @@ $e=[ordered]@{
     CustomerId=$s.Customer.id;GroupId=$s.Group.id;WarehouseId=$s.Warehouse.id;Asset=$s.Asset
     Orders=@($s.Orders.GetEnumerator()|Sort-Object Name|ForEach-Object{@{Label=$_.Key;Id=$_.Value.id;OrderNo=$_.Value.orderNo}})
     Components=@($s.Components.GetEnumerator()|Sort-Object Name|ForEach-Object{@{Core=$_.Key;Id=$_.Value.id;Code=$_.Value.code}})
-    OtherAssets=@($s.EdgeAsset,$s.Evidence.TransitionAsset,$s.StockRaceAsset)
+    OtherAssets=@($s.EdgeAsset,$s.Evidence.TransitionAsset,$s.OtherAsset)
     ProbeOrderIds=$s.Evidence.ProbeOrderIds
     ProbeWorkIds=@($s.Evidence.ProbeWorks|ForEach-Object id)
     TimeCases=$s.TimeCases
@@ -23,6 +23,8 @@ $e=[ordered]@{
     Flags=@($s.GetEnumerator()|Where-Object Key -like '*Done'|ForEach-Object{@{Phase=$_.Key;Done=$_.Value}})
     Rollback=@{Shortage=$s.Evidence.shortagePass;SecondLineShortage=$s.Evidence.secondlineshortagePass;AfterStockAndCareSave=$s.Evidence.poststockfailurePass}
     SnapshotImmutability=$s.Evidence.FinalSnapshotPass
+    Publish=Get-Content "$dir/publish-verification.json" -Raw|ConvertFrom-Json
+    FinalOrderCashFacts=Get-Content "$dir/final-order-cash-facts.json" -Raw|ConvertFrom-Json
     Artifacts=@()
 }
 $raceGroups=@{};foreach($k in $s.Races.Keys){$raceGroups[$k]=$s.Races[$k]}

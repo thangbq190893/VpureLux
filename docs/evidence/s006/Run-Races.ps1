@@ -48,6 +48,6 @@ foreach($label in @('twoPayments','paymentCancel','paymentComplete','twoRefunds'
             Assert-S006 (@($r|Where-Object Status -eq 200).Count -eq 1) 'Complete/cancel: only one terminal transition wins'
         }
     }
-    $s.RaceSummaries[$label]=$sum;Save
+    $s.RaceSummaries[$label]=Invoke-S006 GET "/api/app/service-payment/$($o.id)/summary";Save
 }
 $s.RacesDone=$true;Save
