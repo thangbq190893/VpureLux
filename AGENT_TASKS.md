@@ -4,9 +4,9 @@ This file is the single source of truth for implementation order and agent hando
 Every agent must read and update this file so another agent can continue without a chat summary.
 
 Last updated: 2026-09-07 (Asia/Saigon)
-Current product stage: Service implementation READY FOR PRODUCTION ROLLOUT; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
-Current active task: None
-Next task: Separate explicit Service production rollout authorization/review
+Current product stage: Service V1 production rollout IN PROGRESS; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
+Current active task: SERVICE-V1-ROLLOUT
+Next task: Complete or safely roll back the explicitly authorized Service V1 production rollout
 Service implementation gate: W-GATE DONE; SERVICE-INVENTORY-AUDIT DONE; S-001/S-002/S-003/S-004/S-005/S-006 DONE
 Service foundation source: `babc96fc5ecba242e3f23d0612c3a46df3916dc3`, local only, not pushed or deployed; see `docs/S001_SERVICE_FOUNDATION.md`.
 Service order workflow source: `2f27ed81618403d7375b2af237025e6e931bbe3f`, local only, not pushed or deployed; see `docs/S002_SERVICE_ORDER_WORKFLOW.md`.
@@ -154,6 +154,7 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | S-004 | Service payments, advances, receivables and refund settlement | DONE | S-003 |
 | S-005 | Service and consolidated reports | DONE | S-003, S-004 |
 | S-006 | Service UAT, reconciliation, and rollout | DONE | S-001..S-005 |
+| SERVICE-V1-ROLLOUT | Service V1 production rehearsal, migration, deployment, reconciliation, and release seal | IN_PROGRESS | S-006 |
 
 ## 5. Warranty/CustomerCare Tasks
 
@@ -456,6 +457,20 @@ Status: DONE. Decision READY FOR SERVICE PRODUCTION ROLLOUT after explicit C01 a
 - Publish/deploy only with explicit approval and full regression/smoke evidence.
 
 ## 7. Active Work Record
+
+Task ID: SERVICE-V1-ROLLOUT
+Agent/task name: Codex - Service V1 production rollout
+Started at (Asia/Saigon): 2026-09-07
+Branch and starting commit: codex/warranty-release-review / 043f849811b0b7b6536932cd31b355051e851b82
+Deployment source: b0bf197 (accepted application/publish checkpoint; later commits are documentation only)
+Status: IN_PROGRESS. Production authorization is explicit; preflight confirms the tracked tree is clean, only the two protected user-owned files are untracked, and b0bf197..043f849 contains no src/test/migration changes.
+Authorization: inventory and bounded cleanup of obsolete VPureLux artifacts; production read-only baseline; verified backup; production-derived rehearsal clone; the four accepted Service migrations; exact-source publish/upload/deploy; Service enablement; restart; read-only smoke/reconciliation; branch/tag push after success. No business backfill or repair, fake production data, raw migration-history repair, force push, or destructive production smoke.
+Safety sequence: verify active and rollback releases/config/certificate; preserve both; prove database identity/history/schema; create and verify a fresh production backup; rehearse the exact migration path on an isolated production clone; compare business fingerprints; only then migrate production and deploy immutable source b0bf197. Stop on ambiguity, mismatch, partial migration, unexpected business mutation, or unclear rollback.
+Protected files: docs/VPureLux_Sales_Flow_Design_Review_for_Codex_5_6_Sol.docx and docs/html.txt remain untracked and must not be staged.
+Current evidence: mandatory engineering preflight PASS; expected migrations present; git diff --check PASS; accepted deployment source isolated from documentation-only HEAD.
+Next action: inspect VPS inventory, active release, service configuration and certificate without exposing secrets; establish cleanup/backup/rehearsal gates before production mutation.
+
+### Previous Completed S-006 Record
 
 Task ID: S-006
 Agent/task name: Codex - Service final data-safety and readiness gate
