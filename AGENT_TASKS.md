@@ -4,19 +4,20 @@ This file is the single source of truth for implementation order and agent hando
 Every agent must read and update this file so another agent can continue without a chat summary.
 
 Last updated: 2026-09-07 (Asia/Saigon)
-Current product stage: Service S-003 DONE; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
+Current product stage: Service S-004 DONE; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
 Current active task: None
-Next task: S-004 - Service payments and receivables (READY, unclaimed)
-Service implementation gate: W-GATE DONE; SERVICE-INVENTORY-AUDIT DONE; S-001/S-002/S-003 DONE; S-004 READY; S-005/S-006 HOLD
+Next task: S-005 READY, unclaimed; S-006 HOLD
+Service implementation gate: W-GATE DONE; SERVICE-INVENTORY-AUDIT DONE; S-001/S-002/S-003/S-004 DONE; S-005 READY; S-006 HOLD
 Service foundation source: `babc96fc5ecba242e3f23d0612c3a46df3916dc3`, local only, not pushed or deployed; see `docs/S001_SERVICE_FOUNDATION.md`.
 Service order workflow source: `2f27ed81618403d7375b2af237025e6e931bbe3f`, local only, not pushed or deployed; see `docs/S002_SERVICE_ORDER_WORKFLOW.md`.
 Service completion source: `3413fc9a56f05e812bd4c19102b70ff69157836e`, including main implementation `18e9f02a279709ca01018f06933aec12de64cf12` plus the final UTC+07 calendar/history correction. Local only, not pushed or deployed; see `docs/S003_SERVICE_COMPLETION.md`.
+Service payment/settlement source: `2a93dfb847201fe87749d6dc7d4b267db16fad4c`, local only, not pushed or deployed; see `docs/S004_SERVICE_PAYMENTS.md`.
 
 Accepted Warranty implementation baseline:
 
 - W-008 source/test/evidence commit: `d1e8b5684d21eca3ee5586fe75913b60e24de190` (`fix(warranty): finalize accepted customer care safeguards`). Baseline SEALED on 2026-09-07, local only; not pushed or deployed.
 - Separate Service audit documentation commit: `6ef1def1812c6b25ed1ffd6caaff3eaa46c1a709`. This is not the W-008 implementation commit.
-- W-008 and W-GATE remain DONE. S-001/S-002/S-003 are complete in the local source commits above; S-004 is READY and unclaimed. Production remains the frozen Sales V1 release below.
+- W-008 and W-GATE remain DONE. S-001/S-002/S-003/S-004 are complete in the local source commits above; S-005 is READY and unclaimed. Production remains the frozen Sales V1 release below.
 
 Sales V1 release source:
 
@@ -149,8 +150,8 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | S-001 | Service module foundation and work catalog | DONE | SERVICE-INVENTORY-AUDIT |
 | S-002 | Service order aggregate, lines, permissions, and UI | DONE | S-001 |
 | S-003 | Service completion, FIFO issue, and schedule integration | DONE | S-002 |
-| S-004 | Service payments and receivables | READY | S-003 |
-| S-005 | Service and consolidated reports | HOLD | S-003, S-004 |
+| S-004 | Service payments, advances, receivables and refund settlement | DONE | S-003 |
+| S-005 | Service and consolidated reports | READY | S-003, S-004 |
 | S-006 | Service UAT, reconciliation, and rollout | HOLD | S-001..S-005 |
 
 ## 5. Warranty/CustomerCare Tasks
@@ -431,15 +432,16 @@ Status: DONE at source `3413fc9a56f05e812bd4c19102b70ff69157836e`, including imp
 
 ### S-004 - Service Payments And Receivables
 
-Status: READY, unclaimed. Reuse the S-003 ServiceOrder coordination boundary; do not fold payment into completion or infer historical unknown costs.
+Status: DONE. Claimed and completed 2026-09-07 on baseline 38cb145; implementation `2a93dfb847201fe87749d6dc7d4b267db16fad4c`. Local only; no push, migration application, external database access or deployment. S-005 READY, unclaimed.
 
-- Add separate Service payment ledger with Posted/Void/idempotency behavior.
-- Treat payment before completion as customer advance, not service revenue.
-- Keep SalesOrderPayments unchanged.
+- Delivered separate Service payment ledger, immutable factual partial refunds, reason/actor/time-audited void and canonical replay. Add retry after void never reposts money.
+- Payment before completion is advance, not revenue. Completed obligation uses S-003 actual snapshot; cancellation preserves cash and exposes refund due without automatic void/refund.
+- Shared existing ServiceOrder lock protects payment/void/refund with Cancel/Complete. Database-side order/customer projection, server-paged histories, ABP modals, permission/antiforgery and strict vi-VN binding delivered. SalesOrderPayments unchanged.
+- Verification, formulas, additive migration and known combined-Web limitation: `docs/S004_SERVICE_PAYMENTS.md`. Real SQL Server/Redis race and legacy migration rehearsal remain S-006.
 
 ### S-005 - Service And Consolidated Reports
 
-Status: HOLD
+Status: READY, unclaimed. S-004 is complete; do not begin without a separate task claim.
 
 - Add Service revenue/profit reports and consolidated Sales + Service read model with source dimension.
 - Keep existing Sales stored procedures unchanged.
@@ -453,6 +455,22 @@ Status: HOLD
 - Publish/deploy only with explicit approval and full regression/smoke evidence.
 
 ## 7. Active Work Record
+
+Task ID: S-004
+Agent/task name: Codex - Service payments and settlement
+Started at (Asia/Saigon): 2026-09-07
+Branch and starting commit: codex/warranty-release-review / 38cb1451b9e4acf2ee805eb66351df95e4b0098a
+Goal: Service-owned payments/advances, immutable factual refunds, reasoned void, canonical money projection, server-paged histories and ABP financial modals.
+Status: DONE - local implementation `2a93dfb847201fe87749d6dc7d4b267db16fad4c`; no active task. S-005 READY, unclaimed.
+Database/data boundary: Offline builds/design-time EF and isolated SQLite fixtures only. No VPL/production access, migration application, DbMigrator, deploy or push. No Sales payment changes or S-005.
+Intended files: Service Domain.Shared/Domain/Contracts/Application/EF/Web and focused tests; additive Service-only migration; S004 documentation and this handoff.
+Invariants: shared existing VPureLux:ServiceOrder lock; posted cash is not revenue; Void is not Refund; no overpay/over-refund/negative NetPaid; replay never resurrects voided receipts; no legacy rewrite.
+Verification completed: Final Release solution build 0 errors/1 existing Scriban NU1903 warning; Domain Service/Inventory 49/49; Application Service 11/11; EF Service/Sales/Inventory/Warranty/CustomerCare 226/226. Isolated Web groups: money/parser 11/11, order 9/9, completion 6/6, works/source 6/6, Warranty 13/13. Browser desktop 1440/mobile 390: payment, void, refund POST 204; both histories page 2, correct 1.38m refund remainder, no JS errors/document overflow; screenshots inspected. EF model drift NONE; diff/JS syntax PASS. Generated-only migration 20260907021302_AddServicePaymentSettlement is additive Service-only with no DML/backfill. Raw ignored evidence artifacts/s004 and artifacts/s004-browser; reproducible source tests and exact aborted-Web inventory in docs/S004_SERVICE_PAYMENTS.md.
+Verification caveat: One combined Service Web run aborted under bounded 1.5 GiB testhost memory with 13 PASS/9 FAIL; exact host was stopped. Pure parser no longer starts a host; split groups pass. No combined/full Web pass claimed. SQL Server query translation verified offline, not live distributed execution. Temporary SQLite browser proxy stopped; no 5099 listener remains.
+Current blocker: None. The requested Actual > Planned example is a projection/legacy test only because accepted S-003 caps actual quantities at planned; S-004 does not change completion rules. Old DOCX cancel-before-refund requirement is superseded by the user's explicit cancel-with-outstanding-refund rule.
+Next action: Stop after S-004. S-005 may be claimed separately; read S003/S004 docs and reuse persisted revenue/cost facts plus canonical settlement projections. Do not call advances revenue or subtract refunds from recognized revenue; preserve unknown labor cost. No deployment or VPL/production access without new authorization. Never stage docs/html.txt or the user-owned Sales review DOCX.
+
+### Previous Completed S-003 Record
 
 Task ID: S-003
 Agent/task name: Codex - Atomic Service completion
@@ -552,6 +570,16 @@ Verification completed: Branch pushed without force at `a4717aa`; detached artif
 Current blocker: None. Production had no Draft orders or Installed assets for non-destructive live coverage; those scenarios remain covered by accepted rehearsal evidence. W-GATE remains open and Service remains on HOLD.
 
 ## 8. Handoff Log
+
+### 2026-09-07 - S-004 Service payments and settlement sealed
+
+- Decision: S-004 COMPLETE. Baseline `38cb1451b9e4acf2ee805eb66351df95e4b0098a`; implementation `2a93dfb847201fe87749d6dc7d4b267db16fad4c` (`feat(service): add payments and settlement`, 37 files). Documentation is committed separately, without amend/squash/push. S-005 READY and unclaimed, S-006 HOLD, no active task.
+- Service-owned posted payments/advances, immutable factual refunds, auditable reasoned void, invariant command hashes, exact replay after void, caps and canonical DB-side order/customer monetary projection are delivered. No Sales payment/report change. Revenue stays zero before completion; completion uses S-003 actual snapshot independently of settlement.
+- Existing ServiceOrder coordinator is reused with Cancel/Complete. Deterministic payment/payment, payment/cancel, payment/complete, refund/refund and void/refund tests pass, including both authoritative orderings where relevant and rollback after business-audit insertion. Cancel with advance preserves receipt and creates refund due without waiting for accounting.
+- Fixed during verification: tracked principal stamp mutation by using no-tracking header reads; obsolete passive payment test assertion; SQL Server nested aggregate translation and nullable LEFT JOIN materialization. Audit failure injection is scoped explicitly to its test host. No completion/FIFO/care engine redesign.
+- Final build 0 errors, Domain 49/49, Application 11/11, EF regression 226/226. Separate Web money/parser 11/11, order 9/9, completion 6/6, works/source 6/6, Warranty 13/13. Browser actions/page2/mobile/desktop PASS. Earlier combined Web OOM produced 13 passed/9 failed and was stopped; do not claim a full Web pass. See S004 document for exact cases and reproduction.
+- Migration `20260907021302_AddServicePaymentSettlement` generated only: eight nullable ServicePayment columns, new ServiceRefund table, five indexes; no DML/backfill. EF drift NONE. No SQL Server/Redis/VPL/production access, DbMigrator, migration application, deployment, push or S-005 implementation. Only disposable SQLite fixtures were used; browser proxy stopped. Both user-owned documents remain untracked/unstaged.
+- Next agent: follow `docs/S004_SERVICE_PAYMENTS.md` and the active record above. S-006 still owns live SQL Server/Redis concurrency, legacy schema rehearsal/reconciliation and operator acceptance; local completion is not production approval.
 
 ### 2026-09-07 - Final S-003 calendar audit sealed
 
