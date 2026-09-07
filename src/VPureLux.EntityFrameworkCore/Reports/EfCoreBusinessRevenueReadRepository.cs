@@ -33,7 +33,8 @@ public class EfCoreBusinessRevenueReadRepository(IDbContextProvider<VPureLuxDbCo
             KnownMaterialCost = g.Sum(x => x.Source == BusinessRevenueSource.Service ? x.MaterialCost : 0),
             KnownLaborCost = g.Sum(x => x.Source == BusinessRevenueSource.Service ? x.TotalKnownCost - x.MaterialCost : 0),
             TotalKnownCost = g.Sum(x => x.TotalKnownCost),
-            CostIncompleteCount = g.LongCount(x => x.CostIncomplete == true),
+            // SQL Server cannot COUNT_BIG an untyped NULL when Sales folds this predicate to false.
+            CostIncompleteCount = g.Sum(x => x.CostIncomplete == true ? 1L : 0L),
             Profit = g.Any(x => x.CostIncomplete == true) ? null : g.Sum(x => x.Profit)
         });
 

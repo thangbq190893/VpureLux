@@ -27,7 +27,9 @@ public class BusinessRevenueSqlTests
         if (source != BusinessRevenueSource.Sales) sql.ShouldContain("AppServiceRefunds");
         var summary = (IQueryable<BusinessRevenueSummaryDto>)typeof(EfCoreBusinessRevenueReadRepository)
             .GetMethod("Totals", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, [query])!;
-        summary.ToQueryString().ShouldContain("SUM(");
+        var summarySql = summary.ToQueryString();
+        summarySql.ShouldContain("SUM(");
+        summarySql.ShouldNotContain("COUNT_BIG(NULL)");
         sql.ShouldNotContain("AppServiceWorks"); sql.ShouldNotContain("AppComponents"); sql.ShouldNotContain("AppBom");
     }
 }
