@@ -16,6 +16,47 @@ namespace VPureLux.Pages;
 
 public partial class ServiceOrderWebTests
 {
+    [Fact]
+    public async Task Completion_details_preserve_legacy_wall_time_and_convert_new_UTC_at_day_boundaries()
+    {
+        Enable();
+        var f = await CreateFixtureAsync("WEB-TIME", "Time boundary labor");
+        var service = GetRequiredService<IServiceOrderAppService>();
+        var repository = GetRequiredService<IServiceOrderRepository>();
+        foreach (var minutes in new[] { 0, 30, 90, 419, 420, 1439 })
+        {
+            var local = new DateTime(2026, 9, 7).AddMinutes(minutes);
+            foreach (var legacy in new[] { false, true })
+            {
+                var order = await service.CreateAsync(new()
+                {
+                    CustomerAssetId = f.AssetId, WarehouseId = f.WarehouseId,
+                    Lines = [new() { LineType = ServiceOrderLineType.Labor, CatalogItemId = f.WorkId, Quantity = 1, UnitPrice = 100 }]
+                });
+                order = await service.ConfirmAsync(order.Id, new() { ConcurrencyStamp = order.ConcurrencyStamp });
+                order = await service.StartAsync(order.Id, new() { ConcurrencyStamp = order.ConcurrencyStamp });
+                await service.CompleteAsync(order.Id, new()
+                {
+                    ConcurrencyStamp = order.ConcurrencyStamp, IdempotencyKey = Guid.NewGuid().ToString("N"),
+                    CompletedAt = new DateTimeOffset(local, TimeSpan.FromHours(7)),
+                    Lines = [new() { LineId = order.Lines.Single().Id, ActualQuantity = 1 }]
+                });
+                if (legacy)
+                {
+                    // Synthetic legacy facts in disposable SQLite only; never backfill external records.
+                    var entity = await repository.GetAsync(order.Id);
+                    typeof(ServiceOrder).GetProperty(nameof(ServiceOrder.CompletionCommandHash))!.SetValue(entity, null);
+                    typeof(ServiceOrder).GetProperty(nameof(ServiceOrder.CompletedAt))!.SetValue(entity, local);
+                    await repository.UpdateAsync(entity, autoSave: true);
+                }
+                (await service.GetAsync(order.Id)).IsLegacyCompletion.ShouldBe(legacy);
+                var page = await Client.GetAsync($"/Service/Details/{order.Id}");
+                page.StatusCode.ShouldBe(HttpStatusCode.OK);
+                (await page.Content.ReadAsStringAsync()).ShouldContain(local.ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture));
+            }
+        }
+    }
+
     [Theory]
     [InlineData("1", "2026-09-07T12:45", true)]
     [InlineData("1", "2026-09-07T01:30", true)]

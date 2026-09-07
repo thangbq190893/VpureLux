@@ -166,6 +166,7 @@ public class ServiceOrderDto : EntityDto<Guid>
     public DateTime? ConfirmedAt { get; set; }
     public DateTime? StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
+    public bool IsLegacyCompletion { get; set; }
     public DateTime? CancelledAt { get; set; }
     public string? CancellationReason { get; set; }
     public decimal PlannedAmount { get; set; }

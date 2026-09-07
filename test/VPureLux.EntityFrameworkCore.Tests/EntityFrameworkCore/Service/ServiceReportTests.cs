@@ -114,6 +114,7 @@ public partial class ServiceOrderWorkflowTests
         var zero = await StartOrderAsync(f, Labor(unknown.Id));
         var command = Completion(zero); command.Lines[0].ActualQuantity = 0;
         await Orders.CompleteAsync(zero.Id, command);
+        (await Orders.GetAsync(zero.Id)).IsLegacyCompletion.ShouldBeFalse();
         var zeroRow = (await Reports.GetServiceListAsync(ReportInput())).Items.Single();
         zeroRow.Revenue.ShouldBe(0); zeroRow.CostIncomplete.ShouldBe(false); zeroRow.LaborCost.ShouldBe(0); zeroRow.Profit.ShouldBe(0);
         await ReceiptAsync(f, 1, 200, 1);
@@ -129,6 +130,9 @@ public partial class ServiceOrderWorkflowTests
             await db.SaveChangesAsync();
         });
         var input = ReportInput(); input.FromDate = input.ToDate = new DateTime(2026, 9, 7);
+        var legacyDetails = await Orders.GetAsync(legacy.Id);
+        legacyDetails.IsLegacyCompletion.ShouldBeTrue();
+        legacyDetails.CompletedAt!.Value.Date.ShouldBe(new DateTime(2026, 9, 7));
         var row = (await Reports.GetServiceListAsync(input)).Items.Single(x => x.DocumentId == legacy.Id);
         row.DocumentDate.Date.ShouldBe(new DateTime(2026, 9, 7)); row.MaterialCost.ShouldBe(200);
         row.LaborCost.ShouldBeNull(); row.CostIncomplete.ShouldBe(true); row.Profit.ShouldBeNull();

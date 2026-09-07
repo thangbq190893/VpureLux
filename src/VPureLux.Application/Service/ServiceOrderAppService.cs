@@ -578,6 +578,7 @@ public class ServiceOrderAppService : ApplicationService, IServiceOrderAppServic
             ConfirmedAt = order.ConfirmedAt,
             StartedAt = order.StartedAt,
             CompletedAt = order.CompletedAt,
+            IsLegacyCompletion = order.CompletedAt.HasValue && order.CompletionCommandHash == null,
             CancelledAt = order.CancelledAt,
             CancellationReason = order.CancellationReason,
             PlannedAmount = lines.Sum(line => line.UnitPrice * line.PlannedQuantity),

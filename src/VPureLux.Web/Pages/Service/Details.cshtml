@@ -47,7 +47,7 @@
                         <dt class="col-5">@L["Service:ScheduledAt"]</dt><dd class="col-7">@Model.FormatDateTime(Model.Order.ScheduledAt)</dd>
                         @if (Model.Order.CompletedAt.HasValue)
                         {
-                            <dt class="col-5">@L["Service:CompletedAtLocal"]</dt><dd class="col-7">@Model.FormatDateTime(Model.Order.CompletedAt.Value.AddHours(7))</dd>
+                            <dt class="col-5">@L["Service:CompletedAtLocal"]</dt><dd class="col-7">@Model.FormatDateTime(Model.Order.IsLegacyCompletion ? Model.Order.CompletedAt.Value : Model.Order.CompletedAt.Value.AddHours(7))</dd>
                         }
                         <dt class="col-5">@L["Service:Technician"]</dt><dd class="col-7">@(Model.Order.TechnicianName ?? "-")</dd>
                         <dt class="col-5">@L["Service:Address"]</dt><dd class="col-7">@(Model.Order.ServiceAddress ?? "-")</dd>
