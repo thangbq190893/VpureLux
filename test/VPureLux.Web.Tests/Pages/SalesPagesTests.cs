@@ -33,6 +33,7 @@ using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Authorization;
 using Volo.Abp.Data;
+using Volo.Abp.DependencyInjection;
 using Volo.Abp.Uow;
 using Xunit;
 using CreateModel = VPureLux.Web.Pages.Sales.CreateModel;
@@ -89,6 +90,42 @@ public class SalesPagesTests : VPureLuxWebTestBase
         var redirect = result.ShouldBeOfType<RedirectToPageResult>();
         redirect.PageName.ShouldBe("/Sales/Details");
         redirect.RouteValues!["id"].ShouldBe(orderId);
+    }
+
+    [Fact]
+    public async Task Sales_Adjust_Page_Should_Ignore_Start_Validation_When_Confirming_Current_Form()
+    {
+        var orderId = Guid.NewGuid();
+        var revisionId = Guid.NewGuid();
+        var postConfirmation = Substitute.For<ISalesPostConfirmationAppService>();
+        postConfirmation.SubmitRevisionAsync(revisionId, Arg.Any<SubmitSalesOrderRevisionDto>())
+            .Returns(new SalesOrderRevisionDto { Id = revisionId, Status = SalesOrderRevisionStatus.Applied });
+        var model = new AdjustModel(
+            Substitute.For<ISalesOrderAppService>(),
+            postConfirmation,
+            Substitute.For<IProductAppService>(),
+            Substitute.For<IProductPricingContextLookupService>());
+        SetPageContext(model, GetRequiredService<IServiceProvider>());
+        model.Id = orderId;
+        model.RevisionId = revisionId;
+        model.UpdateInput = new UpdateSalesOrderRevisionDto
+        {
+            CustomerId = Guid.NewGuid(),
+            Lines = [new UpdateSalesOrderRevisionLineDto
+            {
+                RevisionLineId = Guid.NewGuid(),
+                ProductId = Guid.NewGuid(),
+                Quantity = 1,
+                ActualSellingPrice = 100
+            }]
+        };
+        // Razor Pages validates every bound property. StartInput is absent from the Confirm form.
+        model.ModelState.AddModelError("StartInput.Reason", "The Reason field is required.");
+
+        var result = await model.OnPostConfirmAsync();
+
+        result.ShouldBeOfType<RedirectToPageResult>().PageName.ShouldBe("/Sales/Details");
+        await postConfirmation.Received(1).SubmitRevisionAsync(revisionId, Arg.Any<SubmitSalesOrderRevisionDto>());
     }
 
     [Fact]
@@ -2697,21 +2734,25 @@ public class SalesPagesTests : VPureLuxWebTestBase
         return amount.ToString("#,0", vi) + " ₫";
     }
 
-    private static void SetPageContext(PageModel model, IServiceProvider? services = null)
+    private void SetPageContext(PageModel model, IServiceProvider? services = null)
     {
+        var pageServices = services ?? GetRequiredService<IServiceProvider>();
         var httpContext = new DefaultHttpContext
         {
             User = new ClaimsPrincipal(new ClaimsIdentity())
         };
-        if (services != null)
-        {
-            httpContext.RequestServices = services;
-        }
+        httpContext.RequestServices = pageServices;
 
         model.PageContext = new PageContext
         {
             HttpContext = httpContext
         };
+
+        if (model is global::VPureLux.Web.Pages.VPureLuxPageModel vplModel)
+        {
+            vplModel.LazyServiceProvider = pageServices.GetService(typeof(IAbpLazyServiceProvider)) as IAbpLazyServiceProvider
+                ?? throw new InvalidOperationException("A VPureLux page test requires IAbpLazyServiceProvider.");
+        }
     }
 
     private static string GetRepoFilePath(string relativePath)

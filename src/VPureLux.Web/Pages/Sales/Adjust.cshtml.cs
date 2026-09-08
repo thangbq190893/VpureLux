@@ -105,6 +105,7 @@ public class AdjustModel : VPureLuxPageModel
             return NotFound();
         }
 
+        RemoveStartInputModelState();
         NormalizeLines();
         if (!ModelState.IsValid)
         {
@@ -223,6 +224,18 @@ public class AdjustModel : VPureLuxPageModel
         if (UpdateInput.Lines.All(x => x.IsRemoved))
         {
             ModelState.AddModelError(string.Empty, L["Sales:AdjustmentRequiresLine"]);
+        }
+    }
+
+    private void RemoveStartInputModelState()
+    {
+        var prefix = nameof(StartInput);
+        foreach (var key in ModelState.Keys
+                     .Where(key => key.Equals(prefix, StringComparison.Ordinal) ||
+                                   key.StartsWith(prefix + ".", StringComparison.Ordinal))
+                     .ToArray())
+        {
+            ModelState.Remove(key);
         }
     }
 }
