@@ -5,8 +5,8 @@ Every agent must read and update this file so another agent can continue without
 
 Last updated: 2026-09-08 (Asia/Saigon)
 Current product stage: Service PRODUCTION ROLLOUT COMPLETE; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
-Current active task: None
-Next task: SALES-ADJUSTMENT-UAT-001 - rerun all four browser/VPL adjustment cases on fresh fixtures under separate explicit authorization
+Current active task: SALES-ADJUSTMENT-UAT-001
+Next task: Complete all four fresh-fixture browser/VPL cases, reconcile Sales/Inventory facts, then prepare SALES-ADJUSTMENT-RELEASE-REVIEW
 Service implementation gate: W-GATE DONE; SERVICE-INVENTORY-AUDIT DONE; S-001/S-002/S-003/S-004/S-005/S-006 DONE
 Service foundation milestone source: `babc96fc5ecba242e3f23d0612c3a46df3916dc3`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S001_SERVICE_FOUNDATION.md`.
 Service order workflow milestone source: `2f27ed81618403d7375b2af237025e6e931bbe3f`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S002_SERVICE_ORDER_WORKFLOW.md`.
@@ -160,7 +160,7 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | SERVICE-V1-ROLLOUT | Service V1 production rehearsal, migration, deployment, reconciliation, and release seal | DONE | S-006 |
 | SALES-ADJUSTMENT-FORENSIC-001 | Read-only forensic investigation of confirmed-order adjustment effectiveness and cross-module atomicity | DONE | None |
 | SALES-ADJUSTMENT-FIX-001 | Simplify confirmed-order adjustment submission and prove transactional rollback | DONE | SALES-ADJUSTMENT-FORENSIC-001 |
-| SALES-ADJUSTMENT-UAT-001 | Browser and VPL reconciliation for the four Sales adjustment operator cases | READY | SALES-ADJUSTMENT-FIX-001 |
+| SALES-ADJUSTMENT-UAT-001 | Browser and VPL reconciliation for the four Sales adjustment operator cases | IN_PROGRESS | SALES-ADJUSTMENT-FIX-001 |
 
 ## 5. Warranty/CustomerCare Tasks
 
@@ -465,17 +465,20 @@ Status: DONE. Decision READY FOR SERVICE PRODUCTION ROLLOUT after explicit C01 a
 ## 7. Active Work Record
 
 Task ID: SALES-ADJUSTMENT-UAT-001
-Agent/task name: Unclaimed - Sales adjustment browser/VPL UAT
-Started at (Asia/Saigon): Not started after the validation fix
-Branch and starting commit: To be recorded by the claiming agent
+Agent/task name: Codex - autonomous Sales adjustment browser/VPL UAT
+Started at (Asia/Saigon): 2026-09-08 14:19:21 +07:00
+Branch and starting commit: codex/warranty-release-review / 8458af8
 Goal: Obtain real authenticated Razor UI evidence and VPL-only reconciliation for price-only, quantity increase, add product, and decrease waiting for Warehouse.
-Status: READY. The first Case 1 attempt failed safely because Razor Pages validated the unrelated required `StartInput.Reason` on the Confirm handler. `SALES-ADJUSTMENT-FIX-001` now removes only those handler-inapplicable ModelState entries, and the exact focused PageModel regression passes. Rerun all four cases from fresh fixtures; do not reuse the old Case 1 fixture.
+Status: IN_PROGRESS. Trusted baseline `8458af8` verified with a clean tracked tree. Authorized for local Web against VPL, normal authenticated Razor flows, bounded UAT fixture creation, and read-only SQL reconciliation only. Production/VPS, migration, DbMigrator, deploy, push, existing non-UAT mutation, and GrossPosted/NetPaid remain forbidden.
+Fixture prefix: `UATADJ_20260908_141921`.
+Local runtime URL: `https://localhost:44326` (planned; verify the port before launch).
+Current checkpoint: preflight and trusted history verified; source/UI/test path inspected; database identity guard and fresh fixture creation are next.
 Authorization: VPL test/UAT only after proving `DB_NAME() = VPL`; isolated prefixed fixtures through application flows and read-only SQL verification are allowed. VPureLux production, deployment, migration, DbMigrator, push, and direct business-data manipulation are forbidden.
 Safety boundary: Use four independent non-machine UAT orders. Stop on the first business/data-integrity failure. Protected files remain untracked and must not be staged.
 Runtime evidence: local source `0b20eeb` was run on `https://localhost:44326` with an explicit connection string to the authorized catalog. Read-only SQL proved `DB_NAME() = VPL`; production was not accessed. The Development profile's default connection points to a different VPL instance lacking `WarningDate`, so it was not used for this UAT runtime.
 Fixture: `SO-202609-000005` / `1b799b75-4419-40d3-8e9e-3a239169fd08`, using the existing UATSALE2 non-machine product, UAT warehouse, and UATSVC customer. It was created and confirmed through the Razor UI. Do not reuse it as a clean Case 1 fixture; it has Draft revision `3eeb6f2a-9eba-c576-b809-3a23916acd23`.
 Case 1 observed: before price `100000`, quantity `1`, confirmed total `100000`; adjustment form entered `110000` and reason `UAT price-only`; POST `/Sales/Adjust/...?...handler=Confirm` returned `200` in about 1.7s and re-rendered the form. The revision remains status Draft (`1`), `AppliedAt` is NULL, effective line price remains `100000`, and no revision inventory transaction exists. No unhandled exception was logged. Cases 2-4 were not run, as required by the UAT stop-on-first-failure rule.
-Next action: claim this task only with renewed explicit VPL authorization, create four fresh independent fixtures through normal application flows, and rerun all four cases from Case 1 onward.
+Next action: prove `DB_NAME() = VPL`, launch the trusted source locally, create four independent prefixed orders through authenticated business flows, and execute Cases 1-4 with read-only reconciliation.
 
 ### Previous Adjustment Fix Record
 
