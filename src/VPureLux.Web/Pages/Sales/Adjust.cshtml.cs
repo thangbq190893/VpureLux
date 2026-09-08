@@ -5,6 +5,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using Microsoft.Extensions.Logging;
 using VPureLux.Catalog;
 using VPureLux.Catalog.Products;
 using VPureLux.Permissions;
@@ -26,7 +28,7 @@ public class AdjustModel : VPureLuxPageModel
 
     [BindProperty(SupportsGet = true)] public Guid Id { get; set; }
     [BindProperty(SupportsGet = true)] public Guid? RevisionId { get; set; }
-    [BindProperty] public OpenSalesOrderRevisionDto StartInput { get; set; } = new();
+    [BindProperty, ValidateNever] public OpenSalesOrderRevisionDto StartInput { get; set; } = new();
     [BindProperty] public UpdateSalesOrderRevisionDto UpdateInput { get; set; } = new();
     public SalesOrderDto Order { get; private set; } = new();
     public SalesOrderRevisionDto? Revision { get; private set; }
@@ -61,6 +63,7 @@ public class AdjustModel : VPureLuxPageModel
 
     public async Task<IActionResult> OnPostStartAsync()
     {
+        TryValidateModel(StartInput, nameof(StartInput));
         if (!ModelState.IsValid)
         {
             Order = await _sales.GetAsync(Id);
@@ -105,10 +108,16 @@ public class AdjustModel : VPureLuxPageModel
             return NotFound();
         }
 
-        RemoveStartInputModelState();
         NormalizeLines();
         if (!ModelState.IsValid)
         {
+            Logger.LogWarning(
+                "Sales adjustment confirm validation failed for order {OrderId}, revision {RevisionId}: {ValidationErrors}",
+                Id,
+                RevisionId,
+                string.Join("; ", ModelState
+                    .Where(entry => entry.Value?.Errors.Count > 0)
+                    .Select(entry => $"{entry.Key}: {string.Join(", ", entry.Value!.Errors.Select(error => error.ErrorMessage))}")));
             await LoadRevisionAsync(usePostedLines: true);
             return Page();
         }
@@ -224,18 +233,6 @@ public class AdjustModel : VPureLuxPageModel
         if (UpdateInput.Lines.All(x => x.IsRemoved))
         {
             ModelState.AddModelError(string.Empty, L["Sales:AdjustmentRequiresLine"]);
-        }
-    }
-
-    private void RemoveStartInputModelState()
-    {
-        var prefix = nameof(StartInput);
-        foreach (var key in ModelState.Keys
-                     .Where(key => key.Equals(prefix, StringComparison.Ordinal) ||
-                                   key.StartsWith(prefix + ".", StringComparison.Ordinal))
-                     .ToArray())
-        {
-            ModelState.Remove(key);
         }
     }
 }

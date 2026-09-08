@@ -14,6 +14,7 @@ using HtmlAgilityPack;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Localization;
 using NSubstitute;
@@ -93,39 +94,43 @@ public class SalesPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
-    public async Task Sales_Adjust_Page_Should_Ignore_Start_Validation_When_Confirming_Current_Form()
+    public async Task Sales_Adjust_Page_Should_Validate_Start_Reason_Only_In_Start_Handler()
     {
         var orderId = Guid.NewGuid();
         var revisionId = Guid.NewGuid();
+        typeof(AdjustModel).GetProperty(nameof(AdjustModel.StartInput))!
+            .GetCustomAttribute<ValidateNeverAttribute>()
+            .ShouldNotBeNull();
+
+        var sales = Substitute.For<ISalesOrderAppService>();
+        sales.GetAsync(orderId).Returns(new SalesOrderDto { Id = orderId });
         var postConfirmation = Substitute.For<ISalesPostConfirmationAppService>();
-        postConfirmation.SubmitRevisionAsync(revisionId, Arg.Any<SubmitSalesOrderRevisionDto>())
-            .Returns(new SalesOrderRevisionDto { Id = revisionId, Status = SalesOrderRevisionStatus.Applied });
+        postConfirmation.OpenRevisionAsync(orderId, Arg.Any<OpenSalesOrderRevisionDto>())
+            .Returns(new SalesOrderRevisionDto { Id = revisionId });
         var model = new AdjustModel(
-            Substitute.For<ISalesOrderAppService>(),
+            sales,
             postConfirmation,
             Substitute.For<IProductAppService>(),
             Substitute.For<IProductPricingContextLookupService>());
         SetPageContext(model, GetRequiredService<IServiceProvider>());
         model.Id = orderId;
-        model.RevisionId = revisionId;
-        model.UpdateInput = new UpdateSalesOrderRevisionDto
-        {
-            CustomerId = Guid.NewGuid(),
-            Lines = [new UpdateSalesOrderRevisionLineDto
-            {
-                RevisionLineId = Guid.NewGuid(),
-                ProductId = Guid.NewGuid(),
-                Quantity = 1,
-                ActualSellingPrice = 100
-            }]
-        };
-        // Razor Pages validates every bound property. StartInput is absent from the Confirm form.
-        model.ModelState.AddModelError("StartInput.Reason", "The Reason field is required.");
 
-        var result = await model.OnPostConfirmAsync();
+        var invalid = await model.OnPostStartAsync();
 
-        result.ShouldBeOfType<RedirectToPageResult>().PageName.ShouldBe("/Sales/Details");
-        await postConfirmation.Received(1).SubmitRevisionAsync(revisionId, Arg.Any<SubmitSalesOrderRevisionDto>());
+        invalid.ShouldBeOfType<PageResult>();
+        model.ModelState.IsValid.ShouldBeFalse();
+        await postConfirmation.DidNotReceive()
+            .OpenRevisionAsync(Arg.Any<Guid>(), Arg.Any<OpenSalesOrderRevisionDto>());
+
+        model.ModelState.Clear();
+        model.StartInput.Reason = "Correct confirmed order";
+        var valid = await model.OnPostStartAsync();
+
+        var redirect = valid.ShouldBeOfType<RedirectToPageResult>();
+        redirect.RouteValues!["id"].ShouldBe(orderId);
+        redirect.RouteValues["revisionId"].ShouldBe(revisionId);
+        await postConfirmation.Received(1)
+            .OpenRevisionAsync(orderId, Arg.Is<OpenSalesOrderRevisionDto>(input => input.Reason == "Correct confirmed order"));
     }
 
     [Fact]
