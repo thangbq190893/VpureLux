@@ -27,7 +27,7 @@ public class AdjustModel : VPureLuxPageModel
 
     [BindProperty(SupportsGet = true)] public Guid Id { get; set; }
     [BindProperty(SupportsGet = true)] public Guid? RevisionId { get; set; }
-    [BindProperty] public OpenSalesOrderRevisionDto? StartInput { get; set; }
+    [BindProperty] public OpenSalesOrderRevisionDto StartInput { get; set; } = new();
     [BindProperty] public UpdateSalesOrderRevisionDto UpdateInput { get; set; } = new();
     public SalesOrderDto Order { get; private set; } = new();
     public SalesOrderRevisionDto? Revision { get; private set; }
@@ -47,7 +47,6 @@ public class AdjustModel : VPureLuxPageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
-        StartInput ??= new OpenSalesOrderRevisionDto();
         Order = await _sales.GetAsync(Id);
         var state = await _postConfirmation.GetOrderStateAsync(Id);
         if (!RevisionId.HasValue && state.ActiveRevisionId.HasValue)
@@ -63,17 +62,13 @@ public class AdjustModel : VPureLuxPageModel
 
     public async Task<IActionResult> OnPostStartAsync()
     {
-        if (StartInput == null)
-        {
-            ModelState.AddModelError(nameof(StartInput), L["Sales:AdjustmentReason"]);
-        }
         if (!ModelState.IsValid)
         {
             Order = await _sales.GetAsync(Id);
             return Page();
         }
 
-        var revision = await _postConfirmation.OpenRevisionAsync(Id, StartInput!);
+        var revision = await _postConfirmation.OpenRevisionAsync(Id, StartInput);
         return RedirectToPage(new { id = Id, revisionId = revision.Id });
     }
 
@@ -111,6 +106,7 @@ public class AdjustModel : VPureLuxPageModel
             return NotFound();
         }
 
+        RemoveStartInputModelState();
         NormalizeLines();
         if (!ModelState.IsValid)
         {
@@ -236,6 +232,19 @@ public class AdjustModel : VPureLuxPageModel
         if (UpdateInput.Lines.All(x => x.IsRemoved))
         {
             ModelState.AddModelError(string.Empty, L["Sales:AdjustmentRequiresLine"]);
+        }
+    }
+
+    private void RemoveStartInputModelState()
+    {
+        var prefix = nameof(StartInput);
+        foreach (var key in ModelState.Keys
+                     .Where(key => key.Equals(nameof(ReasonDto.Reason), StringComparison.Ordinal) ||
+                                   key.Equals(prefix, StringComparison.Ordinal) ||
+                                   key.StartsWith(prefix + ".", StringComparison.Ordinal))
+                     .ToArray())
+        {
+            ModelState.Remove(key);
         }
     }
 }

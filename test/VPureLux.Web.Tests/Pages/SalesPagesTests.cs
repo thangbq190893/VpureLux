@@ -93,40 +93,40 @@ public class SalesPagesTests : VPureLuxWebTestBase
     }
 
     [Fact]
-    public async Task Sales_Adjust_Page_Should_Validate_Start_Reason_Only_In_Start_Handler()
+    public async Task Sales_Adjust_Page_Should_Ignore_Flattened_Start_Reason_Validation_When_Confirming()
     {
         var orderId = Guid.NewGuid();
         var revisionId = Guid.NewGuid();
-
-        var sales = Substitute.For<ISalesOrderAppService>();
-        sales.GetAsync(orderId).Returns(new SalesOrderDto { Id = orderId });
+        var customerId = Guid.NewGuid();
         var postConfirmation = Substitute.For<ISalesPostConfirmationAppService>();
-        postConfirmation.OpenRevisionAsync(orderId, Arg.Any<OpenSalesOrderRevisionDto>())
-            .Returns(new SalesOrderRevisionDto { Id = revisionId });
+        postConfirmation.SubmitRevisionAsync(revisionId, Arg.Any<SubmitSalesOrderRevisionDto>())
+            .Returns(new SalesOrderRevisionDto { Id = revisionId, Status = SalesOrderRevisionStatus.Applied });
         var model = new AdjustModel(
-            sales,
+            Substitute.For<ISalesOrderAppService>(),
             postConfirmation,
             Substitute.For<IProductAppService>(),
             Substitute.For<IProductPricingContextLookupService>());
         SetPageContext(model, GetRequiredService<IServiceProvider>());
         model.Id = orderId;
+        model.RevisionId = revisionId;
+        model.UpdateInput = new UpdateSalesOrderRevisionDto
+        {
+            CustomerId = customerId,
+            Lines = [new UpdateSalesOrderRevisionLineDto
+            {
+                RevisionLineId = Guid.NewGuid(),
+                ProductId = Guid.NewGuid(),
+                Quantity = 1,
+                ActualSellingPrice = 100
+            }]
+        };
+        model.ModelState.AddModelError(nameof(ReasonDto.Reason), "The Reason field is required.");
 
-        var invalid = await model.OnPostStartAsync();
+        var result = await model.OnPostConfirmAsync();
 
-        invalid.ShouldBeOfType<PageResult>();
-        model.ModelState.IsValid.ShouldBeFalse();
-        await postConfirmation.DidNotReceive()
-            .OpenRevisionAsync(Arg.Any<Guid>(), Arg.Any<OpenSalesOrderRevisionDto>());
-
-        model.ModelState.Clear();
-        model.StartInput = new OpenSalesOrderRevisionDto { Reason = "Correct confirmed order" };
-        var valid = await model.OnPostStartAsync();
-
-        var redirect = valid.ShouldBeOfType<RedirectToPageResult>();
-        redirect.RouteValues!["id"].ShouldBe(orderId);
-        redirect.RouteValues["revisionId"].ShouldBe(revisionId);
+        result.ShouldBeOfType<RedirectToPageResult>().PageName.ShouldBe("/Sales/Details");
         await postConfirmation.Received(1)
-            .OpenRevisionAsync(orderId, Arg.Is<OpenSalesOrderRevisionDto>(input => input.Reason == "Correct confirmed order"));
+            .SubmitRevisionAsync(revisionId, Arg.Is<SubmitSalesOrderRevisionDto>(input => input.CustomerId == customerId));
     }
 
     [Fact]
