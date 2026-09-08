@@ -6,7 +6,7 @@ Every agent must read and update this file so another agent can continue without
 Last updated: 2026-09-08 (Asia/Saigon)
 Current product stage: Service PRODUCTION ROLLOUT COMPLETE; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
 Current active task: None
-Next task: SALES-ADJUSTMENT-RELEASE-REVIEW (separate explicit task; no deployment is implied)
+Next task: SALES-ADJUSTMENT-PRODUCTION-READINESS (requires separate explicit production read-only authorization)
 Service implementation gate: W-GATE DONE; SERVICE-INVENTORY-AUDIT DONE; S-001/S-002/S-003/S-004/S-005/S-006 DONE
 Service foundation milestone source: `babc96fc5ecba242e3f23d0612c3a46df3916dc3`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S001_SERVICE_FOUNDATION.md`.
 Service order workflow milestone source: `2f27ed81618403d7375b2af237025e6e931bbe3f`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S002_SERVICE_ORDER_WORKFLOW.md`.
@@ -161,6 +161,7 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | SALES-ADJUSTMENT-FORENSIC-001 | Read-only forensic investigation of confirmed-order adjustment effectiveness and cross-module atomicity | DONE | None |
 | SALES-ADJUSTMENT-FIX-001 | Simplify confirmed-order adjustment submission and prove transactional rollback | DONE | SALES-ADJUSTMENT-FORENSIC-001 |
 | SALES-ADJUSTMENT-UAT-001 | Browser and VPL reconciliation for the four Sales adjustment operator cases | DONE | SALES-ADJUSTMENT-FIX-001 |
+| SALES-ADJUSTMENT-RELEASE-REVIEW | Final local source/release gate for the accepted confirmed-order adjustment | DONE | SALES-ADJUSTMENT-UAT-001 |
 
 ## 5. Warranty/CustomerCare Tasks
 
@@ -464,6 +465,22 @@ Status: DONE. Decision READY FOR SERVICE PRODUCTION ROLLOUT after explicit C01 a
 
 ## 7. Active Work Record
 
+Task ID: SALES-ADJUSTMENT-RELEASE-REVIEW
+Agent/task name: Codex - local Sales adjustment release review
+Started at (Asia/Saigon): 2026-09-08
+Branch and starting commit: codex/warranty-release-review / cf0078238e7d56ce6acd3442267a2de1fb3ac166
+Production source: b0bf197e8525acb2f254995af70b3da8a397a9f8
+UAT-tested application source: f92899b6725d099c9a722f52d1e1b1e552ee41b9
+Documentation HEAD at claim: cf0078238e7d56ce6acd3442267a2de1fb3ac166
+Goal: Determine locally whether the exact UAT-tested application source is a safe production release candidate.
+Status: DONE - `ACCEPT`. Exact application release candidate is `f92899b6725d099c9a722f52d1e1b1e552ee41b9`; documentation HEAD at review start was `cf0078238e7d56ce6acd3442267a2de1fb3ac166`.
+Authorization: Local Git/source/docs inspection only. Production, VPL, SQL Server, Redis, VPS/SSH, migration, DbMigrator, deploy, restart, tag, push, and external smoke are forbidden.
+Safety boundary: Inspect only production-to-candidate changes, final Sales adjustment source/tests, and directly relevant migration/config evidence. Preserve the two protected user-owned files untracked and unstaged.
+Current checkpoint: production-to-candidate ancestry PASS; final application source matches the UAT-tested tree; no unrelated application, migration, model, schema, config, connection, or secret change found. Final ModelState ownership, business semantics, coordinator transaction boundary, and changed query paths reviewed as safe. Reused accepted UAT 4/4, focused Web 4/4, focused EF 8/8, and Release build PASS evidence; `git diff --check` PASS.
+Next action: `SALES-ADJUSTMENT-PRODUCTION-READINESS` requires separate explicit production read-only authorization. Do not access production or deploy from this review.
+
+### Previous Completed Sales Adjustment UAT Record
+
 Task ID: SALES-ADJUSTMENT-UAT-001
 Agent/task name: Codex - autonomous Sales adjustment browser/VPL UAT
 Started at (Asia/Saigon): 2026-09-08 14:19:21 +07:00
@@ -677,6 +694,14 @@ Verification completed: Branch pushed without force at `a4717aa`; detached artif
 Current blocker: None. Production had no Draft orders or Installed assets for non-destructive live coverage; those scenarios remain covered by accepted rehearsal evidence. W-GATE remains open and Service remains on HOLD.
 
 ## 8. Handoff Log
+
+### 2026-09-08 - SALES-ADJUSTMENT-RELEASE-REVIEW Accepted
+
+- Decision: `ACCEPT`; exact application release candidate is the browser-UAT-tested `f92899b6725d099c9a722f52d1e1b1e552ee41b9`. Current production source `b0bf197e8525acb2f254995af70b3da8a397a9f8` is its verified ancestor; documentation HEAD at review start was `cf0078238e7d56ce6acd3442267a2de1fb3ac166`.
+- Scope gate: intervening application changes are limited to Sales confirmed-order adjustment and its testable CustomerCare seam. No unrelated application feature, migration/schema/model/config/connection/secret, or post-UAT application source change is bundled.
+- Safety review: final Confirm validation removes only Start-owned ModelState keys, preserves Update validation, Start reason validation, antiforgery, and permission checks. Current form values are authoritative; Warehouse-pending changes remain non-effective; the existing Sales coordinator remains the single transactional boundary.
+- Evidence reused: authenticated VPL Razor UAT 4/4, focused Web 4/4, focused EF 8/8, Release build 0 errors, and matching reconciliation from `docs/SALES_ADJUSTMENT_UAT_001.md`; `git diff --check` PASS. No test or UAT was rerun because the tested application tree is unchanged.
+- Boundary: production, VPL, SQL/Redis, VPS, migration, deployment, restart, tag, and push were not used. Next task is `SALES-ADJUSTMENT-PRODUCTION-READINESS`, which requires separate explicit production read-only authorization.
 
 ### 2026-09-08 - SALES-ADJUSTMENT-UAT-001 Passed 4/4
 
