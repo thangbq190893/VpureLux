@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.Extensions.Logging;
 using VPureLux.Catalog;
 using VPureLux.Catalog.Products;
@@ -28,7 +27,7 @@ public class AdjustModel : VPureLuxPageModel
 
     [BindProperty(SupportsGet = true)] public Guid Id { get; set; }
     [BindProperty(SupportsGet = true)] public Guid? RevisionId { get; set; }
-    [BindProperty, ValidateNever] public OpenSalesOrderRevisionDto StartInput { get; set; } = new();
+    [BindProperty] public OpenSalesOrderRevisionDto? StartInput { get; set; }
     [BindProperty] public UpdateSalesOrderRevisionDto UpdateInput { get; set; } = new();
     public SalesOrderDto Order { get; private set; } = new();
     public SalesOrderRevisionDto? Revision { get; private set; }
@@ -48,6 +47,7 @@ public class AdjustModel : VPureLuxPageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
+        StartInput ??= new OpenSalesOrderRevisionDto();
         Order = await _sales.GetAsync(Id);
         var state = await _postConfirmation.GetOrderStateAsync(Id);
         if (!RevisionId.HasValue && state.ActiveRevisionId.HasValue)
@@ -63,14 +63,17 @@ public class AdjustModel : VPureLuxPageModel
 
     public async Task<IActionResult> OnPostStartAsync()
     {
-        TryValidateModel(StartInput, nameof(StartInput));
+        if (StartInput == null)
+        {
+            ModelState.AddModelError(nameof(StartInput), L["Sales:AdjustmentReason"]);
+        }
         if (!ModelState.IsValid)
         {
             Order = await _sales.GetAsync(Id);
             return Page();
         }
 
-        var revision = await _postConfirmation.OpenRevisionAsync(Id, StartInput);
+        var revision = await _postConfirmation.OpenRevisionAsync(Id, StartInput!);
         return RedirectToPage(new { id = Id, revisionId = revision.Id });
     }
 

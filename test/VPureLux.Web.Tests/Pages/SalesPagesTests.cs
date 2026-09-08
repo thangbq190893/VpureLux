@@ -14,7 +14,6 @@ using HtmlAgilityPack;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Localization;
 using NSubstitute;
@@ -98,9 +97,6 @@ public class SalesPagesTests : VPureLuxWebTestBase
     {
         var orderId = Guid.NewGuid();
         var revisionId = Guid.NewGuid();
-        typeof(AdjustModel).GetProperty(nameof(AdjustModel.StartInput))!
-            .GetCustomAttribute<ValidateNeverAttribute>()
-            .ShouldNotBeNull();
 
         var sales = Substitute.For<ISalesOrderAppService>();
         sales.GetAsync(orderId).Returns(new SalesOrderDto { Id = orderId });
@@ -123,7 +119,7 @@ public class SalesPagesTests : VPureLuxWebTestBase
             .OpenRevisionAsync(Arg.Any<Guid>(), Arg.Any<OpenSalesOrderRevisionDto>());
 
         model.ModelState.Clear();
-        model.StartInput.Reason = "Correct confirmed order";
+        model.StartInput = new OpenSalesOrderRevisionDto { Reason = "Correct confirmed order" };
         var valid = await model.OnPostStartAsync();
 
         var redirect = valid.ShouldBeOfType<RedirectToPageResult>();
