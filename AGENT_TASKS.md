@@ -6,7 +6,7 @@ Every agent must read and update this file so another agent can continue without
 Last updated: 2026-09-08 (Asia/Saigon)
 Current product stage: Service PRODUCTION ROLLOUT COMPLETE; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
 Current active task: None
-Next task: SALES-ADJUSTMENT-PRODUCTION-READINESS (requires separate explicit production read-only authorization)
+Next task: SALES-ADJUSTMENT-PRODUCTION-ROLLOUT (HOLD; requires separate explicit user authorization)
 Service implementation gate: W-GATE DONE; SERVICE-INVENTORY-AUDIT DONE; S-001/S-002/S-003/S-004/S-005/S-006 DONE
 Service foundation milestone source: `babc96fc5ecba242e3f23d0612c3a46df3916dc3`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S001_SERVICE_FOUNDATION.md`.
 Service order workflow milestone source: `2f27ed81618403d7375b2af237025e6e931bbe3f`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S002_SERVICE_ORDER_WORKFLOW.md`.
@@ -162,6 +162,8 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | SALES-ADJUSTMENT-FIX-001 | Simplify confirmed-order adjustment submission and prove transactional rollback | DONE | SALES-ADJUSTMENT-FORENSIC-001 |
 | SALES-ADJUSTMENT-UAT-001 | Browser and VPL reconciliation for the four Sales adjustment operator cases | DONE | SALES-ADJUSTMENT-FIX-001 |
 | SALES-ADJUSTMENT-RELEASE-REVIEW | Final local source/release gate for the accepted confirmed-order adjustment | DONE | SALES-ADJUSTMENT-UAT-001 |
+| SALES-ADJUSTMENT-PRODUCTION-READINESS | Bounded production read-only compatibility audit for the accepted adjustment candidate | DONE - CONDITIONAL ACCEPT | SALES-ADJUSTMENT-RELEASE-REVIEW |
+| SALES-ADJUSTMENT-PRODUCTION-ROLLOUT | Backup, immutable application-only rollout, smoke, and reconciliation | HOLD | SALES-ADJUSTMENT-PRODUCTION-READINESS |
 
 ## 5. Warranty/CustomerCare Tasks
 
@@ -465,6 +467,21 @@ Status: DONE. Decision READY FOR SERVICE PRODUCTION ROLLOUT after explicit C01 a
 
 ## 7. Active Work Record
 
+Task ID: SALES-ADJUSTMENT-PRODUCTION-READINESS
+Agent/task name: Codex - bounded production readiness audit
+Started at (Asia/Saigon): 2026-09-08
+Branch and starting commit: codex/warranty-release-review / f946c962700613335d512c721e68ce81b4fe4ee9
+Candidate source: f92899b6725d099c9a722f52d1e1b1e552ee41b9
+Current production source: b0bf197e8525acb2f254995af70b3da8a397a9f8
+Goal: Determine whether current production facts and runtime are compatible with the accepted Sales adjustment candidate.
+Status: DONE - `CONDITIONAL ACCEPT`. Production facts are compatible with the candidate; only separately authorized rollout operations remain.
+Authorization: Read-only production database identity/schema/business facts and bounded VPS runtime/release/log metadata inspection.
+Safety boundary: No SQL or application mutation, fixture, migration, DbMigrator, seeding, backup, configuration change, restart, symlink change, publish, upload, deployment, tag, or push. Stop immediately if `DB_NAME()` is not exactly `VPureLux`.
+Current checkpoint: `DB_NAME() = VPureLux`; runtime source/release matches `b0bf197e8525acb2f254995af70b3da8a397a9f8`; service/health/rollback PASS. EF history is 24 with latest `20260907021302_AddServicePaymentSettlement`, no duplicate or missing relevant schema. Production has 50 Sales orders and 5 revisions (1 Draft, 4 Applied); all targeted revision/effective-line/Inventory/FIFO/CustomerCare/audit/payment boundary anomaly counts are zero. The one Draft is unchanged and has no effective or Inventory facts. Relevant application/journal/Nginx HTTP 500 count is zero.
+Next action: `SALES-ADJUSTMENT-PRODUCTION-ROLLOUT` remains HOLD until separate explicit user authorization. It must create a fresh verified backup and immutable artifact, preserve rollback, deploy atomically, and complete smoke/reconciliation. Do not infer rollout authorization from this readiness result.
+
+### Previous Completed Sales Adjustment Release Review
+
 Task ID: SALES-ADJUSTMENT-RELEASE-REVIEW
 Agent/task name: Codex - local Sales adjustment release review
 Started at (Asia/Saigon): 2026-09-08
@@ -694,6 +711,14 @@ Verification completed: Branch pushed without force at `a4717aa`; detached artif
 Current blocker: None. Production had no Draft orders or Installed assets for non-destructive live coverage; those scenarios remain covered by accepted rehearsal evidence. W-GATE remains open and Service remains on HOLD.
 
 ## 8. Handoff Log
+
+### 2026-09-08 - SALES-ADJUSTMENT-PRODUCTION-READINESS Conditional Accept
+
+- Decision: `CONDITIONAL ACCEPT`; production runtime/schema/data are compatible with candidate `f92899b6725d099c9a722f52d1e1b1e552ee41b9`. The condition is operational only: rollout needs separate explicit authorization, a fresh verified backup, immutable artifact verification, rollback preparation, deployment, and post-deploy smoke/reconciliation.
+- Identity/runtime: `DB_NAME() = VPureLux`; active release `/opt/vpurelux/releases/web-20260907-152000-service-v1-b0bf197`, source `b0bf197e8525acb2f254995af70b3da8a397a9f8`; Production environment, runtime catalog `VPureLux`, Service enabled, service active, health Healthy, rollback retained.
+- Schema/state: 24 migrations, latest `20260907021302_AddServicePaymentSettlement`, no duplicates or missing relevant objects. Sales has 50 orders and 5 revisions: 1 internally consistent unchanged Draft and 4 Applied revisions with 25 unchanged lines. All split-brain, timestamp, orphan, duplicate posting, premature Inventory, CustomerCare lock/asset, and audit anomaly counts are zero.
+- Logs/money: zero relevant application/journal errors and zero Sales Adjust HTTP 500 responses; 4 posted payments on revision orders, no voided payment or revision refund, and no payment blocker. GrossPosted/NetPaid remains separate and untouched.
+- Boundary: production access was read-only. No mutation, fixture, migration, DbMigrator, seed, backup, configuration change, restart, symlink change, publish, upload, deployment, tag, or push occurred. Next task `SALES-ADJUSTMENT-PRODUCTION-ROLLOUT` is HOLD pending explicit authorization.
 
 ### 2026-09-08 - SALES-ADJUSTMENT-RELEASE-REVIEW Accepted
 
