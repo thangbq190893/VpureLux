@@ -6,7 +6,7 @@ Every agent must read and update this file so another agent can continue without
 Last updated: 2026-09-08 (Asia/Saigon)
 Current product stage: Service PRODUCTION ROLLOUT COMPLETE; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
 Current active task: None
-Next task: Resolve the focused Web test-host result for SALES-ADJUSTMENT-FIX-001, then review and accept it; keep the separate Sales GrossPosted/NetPaid reporting defect as a new scoped task
+Next task: Diagnose and fix the SALES-ADJUSTMENT-UAT-001 Case 1 submit/re-render failure on an isolated VPL fixture, then rerun all four browser UAT cases; do not access production, deploy, migrate, or push
 Service implementation gate: W-GATE DONE; SERVICE-INVENTORY-AUDIT DONE; S-001/S-002/S-003/S-004/S-005/S-006 DONE
 Service foundation milestone source: `babc96fc5ecba242e3f23d0612c3a46df3916dc3`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S001_SERVICE_FOUNDATION.md`.
 Service order workflow milestone source: `2f27ed81618403d7375b2af237025e6e931bbe3f`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S002_SERVICE_ORDER_WORKFLOW.md`.
@@ -160,6 +160,7 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | SERVICE-V1-ROLLOUT | Service V1 production rehearsal, migration, deployment, reconciliation, and release seal | DONE | S-006 |
 | SALES-ADJUSTMENT-FORENSIC-001 | Read-only forensic investigation of confirmed-order adjustment effectiveness and cross-module atomicity | DONE | None |
 | SALES-ADJUSTMENT-FIX-001 | Simplify confirmed-order adjustment submission and prove transactional rollback | BLOCKED | SALES-ADJUSTMENT-FORENSIC-001 |
+| SALES-ADJUSTMENT-UAT-001 | Browser and VPL reconciliation for the four Sales adjustment operator cases | BLOCKED | SALES-ADJUSTMENT-FIX-001 |
 
 ## 5. Warranty/CustomerCare Tasks
 
@@ -463,6 +464,21 @@ Status: DONE. Decision READY FOR SERVICE PRODUCTION ROLLOUT after explicit C01 a
 
 ## 7. Active Work Record
 
+Task ID: SALES-ADJUSTMENT-UAT-001
+Agent/task name: Codex - Sales adjustment browser/VPL UAT
+Started at (Asia/Saigon): 2026-09-08
+Branch and starting commit: codex/warranty-release-review / 0b20eeb
+Goal: Obtain real authenticated Razor UI evidence and VPL-only reconciliation for price-only, quantity increase, add product, and decrease waiting for Warehouse.
+Status: BLOCKED on the first required case. The Case 1 price-only submit re-rendered the adjustment form with HTTP 200 instead of redirecting to Details. The revision remains Draft and the effective price/inventory remain unchanged, so data stayed consistent but the required operator success path did not occur.
+Authorization: VPL test/UAT only after proving `DB_NAME() = VPL`; isolated prefixed fixtures through application flows and read-only SQL verification are allowed. VPureLux production, deployment, migration, DbMigrator, push, and direct business-data manipulation are forbidden.
+Safety boundary: Use four independent non-machine UAT orders. Stop on the first business/data-integrity failure. Protected files remain untracked and must not be staged.
+Runtime evidence: local source `0b20eeb` was run on `https://localhost:44326` with an explicit connection string to the authorized catalog. Read-only SQL proved `DB_NAME() = VPL`; production was not accessed. The Development profile's default connection points to a different VPL instance lacking `WarningDate`, so it was not used for this UAT runtime.
+Fixture: `SO-202609-000005` / `1b799b75-4419-40d3-8e9e-3a239169fd08`, using the existing UATSALE2 non-machine product, UAT warehouse, and UATSVC customer. It was created and confirmed through the Razor UI. Do not reuse it as a clean Case 1 fixture; it has Draft revision `3eeb6f2a-9eba-c576-b809-3a23916acd23`.
+Case 1 observed: before price `100000`, quantity `1`, confirmed total `100000`; adjustment form entered `110000` and reason `UAT price-only`; POST `/Sales/Adjust/...?...handler=Confirm` returned `200` in about 1.7s and re-rendered the form. The revision remains status Draft (`1`), `AppliedAt` is NULL, effective line price remains `100000`, and no revision inventory transaction exists. No unhandled exception was logged. Cases 2-4 were not run, as required by the UAT stop-on-first-failure rule.
+Next action: diagnose why `OnPostConfirmAsync` returns Page/ModelState-invalid in this browser path even though the posted line is valid, repair it in a separate scoped task, then rerun all four cases on fresh UAT fixtures.
+
+### Previous Adjustment Fix Record
+
 Task ID: SALES-ADJUSTMENT-FIX-001
 Agent/task name: Codex - Sales adjustment UX and atomicity fix
 Started at (Asia/Saigon): 2026-09-07
@@ -656,6 +672,15 @@ Verification completed: Branch pushed without force at `a4717aa`; detached artif
 Current blocker: None. Production had no Draft orders or Installed assets for non-destructive live coverage; those scenarios remain covered by accepted rehearsal evidence. W-GATE remains open and Service remains on HOLD.
 
 ## 8. Handoff Log
+
+### 2026-09-08 - SALES-ADJUSTMENT-UAT-001 Blocked At Case 1
+
+- Decision: `BLOCKED`. The task stopped at the first required browser case; no source change was made.
+- Runtime/source: `0b20eeb` on a local runtime explicitly configured for VPL (`DB_NAME() = VPL`). The default Development profile was deliberately bypassed because it targets another VPL instance with stale Warranty schema. No production, VPS, migration, deploy, push, or protected-file staging occurred.
+- Fixture created through normal UI: `SO-202609-000005` (`1b799b75-4419-40d3-8e9e-3a239169fd08`), then confirmed. The fixture uses only pre-existing UAT-prefixed catalog/warehouse/customer records.
+- Case 1 price-only: the browser form accepted price `110000` and reason `UAT price-only`, but Confirm returned HTTP 200 to the same adjustment form rather than final success/Details. Read-only reconciliation shows revision `3eeb6f2a-9eba-c576-b809-3a23916acd23` remains Draft, `AppliedAt` NULL, effective Sales line stays at quantity `1` / price `100000`, and no revision inventory transaction was created. This is a safe failure, not split-brain.
+- The local log has no unhandled exception for that POST. The PageModel's ModelState-invalid branch is the leading observed path because the posted values are retained on re-render while the persisted revision is unchanged; this is not yet a proven root cause. Do not infer or patch it without a focused reproduction.
+- Cases 2 (increase), 3 (add product), and 4 (decrease/Warehouse wait) were not run. Resume with a separate fix task, use fresh fixtures, and rerun all four cases from scratch after the failure is resolved.
 
 ### 2026-09-08 - SALES-ADJUSTMENT-FIX-001 Validation Checkpoint
 

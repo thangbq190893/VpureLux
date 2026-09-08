@@ -2,7 +2,7 @@
 
 ## Current Decision
 
-Implementation and captured EF evidence are complete, but final acceptance is **BLOCKED** on the known Web test-host leak: the focused PageModel/UI run did not produce a final test result in this environment. Do not deploy from this checkpoint. Resume by obtaining a captured final result for the three focused `Sales_Adjust_Page` tests, then perform operator review.
+Implementation and captured EF evidence are complete, but final acceptance is **BLOCKED**. The original focused Web test-host did not produce a final result, and real browser/VPL UAT then stopped on the first required case: a price-only Confirm POST re-rendered the adjustment form instead of applying and redirecting. Do not deploy from this checkpoint. Diagnose that browser-path failure, fix it in a scoped task, then rerun all four operator cases on fresh UAT fixtures.
 
 ## Confirmed Root Cause
 
@@ -53,8 +53,20 @@ The separate known Sales `GrossPosted`/`NetPaid` reporting discrepancy remains o
 
 ## Environment Boundary
 
-Only local source, Release builds, and SQLite test infrastructure were used. VPL, VPureLux production, migrations, deployment, restart, and push were not used.
+Implementation evidence used local source, Release builds, and SQLite test infrastructure. The later UAT attempt used VPL only after an explicit `DB_NAME()` guard, through normal browser/application flows plus read-only SQL reconciliation. VPureLux production, migrations, deployment, restart, and push were not used.
+
+## Browser/VPL UAT Attempt - 2026-09-08
+
+Source tested: `0b20eeb fix(sales): simplify confirmed order adjustment`.
+
+The local Web runtime was explicitly configured for the authorized UAT catalog. A read-only SQL guard returned `DB_NAME() = VPL`. The normal Development configuration was not used because it targets a separate VPL instance with a stale Warranty schema; production `VPureLux` was not accessed.
+
+Fixture `SO-202609-000005` (`1b799b75-4419-40d3-8e9e-3a239169fd08`) was created and confirmed through the actual authenticated Razor flow with existing UAT-prefixed non-machine catalog/warehouse/customer records. The browser then opened Adjust, supplied reason `UAT price-only`, changed the visible unit price from `100000` to `110000`, and selected the only primary submit action, **Xac nhan dieu chinh**. Browser AX snapshots before submit and after the response are retained in the Codex UAT task transcript.
+
+Result: **Case 1 failed safely**. The POST to `Sales/Adjust/...?...handler=Confirm` returned HTTP 200 in about 1.7 seconds and re-rendered the same form; it did not show a final success message or redirect to Details. Read-only VPL reconciliation found the revision `3eeb6f2a-9eba-c576-b809-3a23916acd23` still Draft, `AppliedAt = NULL`, the effective line still quantity `1` / price `100000`, and no revision Inventory transaction. No unhandled server exception was logged. The retained posted values with unchanged persisted revision are consistent with the PageModel ModelState-invalid path, but that is an observation rather than a proven root cause.
+
+Cases 2-4 were deliberately not run because the approved UAT rule requires stopping on the first failure. No application code, migration, direct data manipulation, deployment, production/VPS access, or push occurred.
 
 ## Remaining Risk
 
-The new manager workflow has not yet received browser/operator acceptance, and the known Web test-host leak prevents claiming a captured runtime PASS for the focused PageModel tests in this environment. This is a review/UAT follow-up, not a reason to change Sales delta or payment behavior.
+The new manager workflow has not received browser/operator acceptance. A real VPL browser attempt exposed a safe submit/re-render failure in Case 1, in addition to the known Web test-host leak. Resolve the browser-path failure before any release review; do not change Sales delta or payment behavior as part of diagnosis unless the focused evidence requires it.
