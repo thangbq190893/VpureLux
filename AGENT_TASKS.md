@@ -6,7 +6,7 @@ Every agent must read and update this file so another agent can continue without
 Last updated: 2026-09-08 (Asia/Saigon)
 Current product stage: Service PRODUCTION ROLLOUT COMPLETE; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
 Current active task: None
-Next task: Diagnose and fix the SALES-ADJUSTMENT-UAT-001 Case 1 submit/re-render failure on an isolated VPL fixture, then rerun all four browser UAT cases; do not access production, deploy, migrate, or push
+Next task: SALES-ADJUSTMENT-UAT-001 - rerun all four browser/VPL adjustment cases on fresh fixtures under separate explicit authorization
 Service implementation gate: W-GATE DONE; SERVICE-INVENTORY-AUDIT DONE; S-001/S-002/S-003/S-004/S-005/S-006 DONE
 Service foundation milestone source: `babc96fc5ecba242e3f23d0612c3a46df3916dc3`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S001_SERVICE_FOUNDATION.md`.
 Service order workflow milestone source: `2f27ed81618403d7375b2af237025e6e931bbe3f`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S002_SERVICE_ORDER_WORKFLOW.md`.
@@ -159,8 +159,8 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | S-006 | Service UAT, reconciliation, and rollout | DONE | S-001..S-005 |
 | SERVICE-V1-ROLLOUT | Service V1 production rehearsal, migration, deployment, reconciliation, and release seal | DONE | S-006 |
 | SALES-ADJUSTMENT-FORENSIC-001 | Read-only forensic investigation of confirmed-order adjustment effectiveness and cross-module atomicity | DONE | None |
-| SALES-ADJUSTMENT-FIX-001 | Simplify confirmed-order adjustment submission and prove transactional rollback | BLOCKED | SALES-ADJUSTMENT-FORENSIC-001 |
-| SALES-ADJUSTMENT-UAT-001 | Browser and VPL reconciliation for the four Sales adjustment operator cases | BLOCKED | SALES-ADJUSTMENT-FIX-001 |
+| SALES-ADJUSTMENT-FIX-001 | Simplify confirmed-order adjustment submission and prove transactional rollback | DONE | SALES-ADJUSTMENT-FORENSIC-001 |
+| SALES-ADJUSTMENT-UAT-001 | Browser and VPL reconciliation for the four Sales adjustment operator cases | READY | SALES-ADJUSTMENT-FIX-001 |
 
 ## 5. Warranty/CustomerCare Tasks
 
@@ -465,17 +465,17 @@ Status: DONE. Decision READY FOR SERVICE PRODUCTION ROLLOUT after explicit C01 a
 ## 7. Active Work Record
 
 Task ID: SALES-ADJUSTMENT-UAT-001
-Agent/task name: Codex - Sales adjustment browser/VPL UAT
-Started at (Asia/Saigon): 2026-09-08
-Branch and starting commit: codex/warranty-release-review / 0b20eeb
+Agent/task name: Unclaimed - Sales adjustment browser/VPL UAT
+Started at (Asia/Saigon): Not started after the validation fix
+Branch and starting commit: To be recorded by the claiming agent
 Goal: Obtain real authenticated Razor UI evidence and VPL-only reconciliation for price-only, quantity increase, add product, and decrease waiting for Warehouse.
-Status: BLOCKED on the first required case. The Case 1 price-only submit re-rendered the adjustment form with HTTP 200 instead of redirecting to Details. The revision remains Draft and the effective price/inventory remain unchanged, so data stayed consistent but the required operator success path did not occur.
+Status: READY. The first Case 1 attempt failed safely because Razor Pages validated the unrelated required `StartInput.Reason` on the Confirm handler. `SALES-ADJUSTMENT-FIX-001` now removes only those handler-inapplicable ModelState entries, and the exact focused PageModel regression passes. Rerun all four cases from fresh fixtures; do not reuse the old Case 1 fixture.
 Authorization: VPL test/UAT only after proving `DB_NAME() = VPL`; isolated prefixed fixtures through application flows and read-only SQL verification are allowed. VPureLux production, deployment, migration, DbMigrator, push, and direct business-data manipulation are forbidden.
 Safety boundary: Use four independent non-machine UAT orders. Stop on the first business/data-integrity failure. Protected files remain untracked and must not be staged.
 Runtime evidence: local source `0b20eeb` was run on `https://localhost:44326` with an explicit connection string to the authorized catalog. Read-only SQL proved `DB_NAME() = VPL`; production was not accessed. The Development profile's default connection points to a different VPL instance lacking `WarningDate`, so it was not used for this UAT runtime.
 Fixture: `SO-202609-000005` / `1b799b75-4419-40d3-8e9e-3a239169fd08`, using the existing UATSALE2 non-machine product, UAT warehouse, and UATSVC customer. It was created and confirmed through the Razor UI. Do not reuse it as a clean Case 1 fixture; it has Draft revision `3eeb6f2a-9eba-c576-b809-3a23916acd23`.
 Case 1 observed: before price `100000`, quantity `1`, confirmed total `100000`; adjustment form entered `110000` and reason `UAT price-only`; POST `/Sales/Adjust/...?...handler=Confirm` returned `200` in about 1.7s and re-rendered the form. The revision remains status Draft (`1`), `AppliedAt` is NULL, effective line price remains `100000`, and no revision inventory transaction exists. No unhandled exception was logged. Cases 2-4 were not run, as required by the UAT stop-on-first-failure rule.
-Next action: diagnose why `OnPostConfirmAsync` returns Page/ModelState-invalid in this browser path even though the posted line is valid, repair it in a separate scoped task, then rerun all four cases on fresh UAT fixtures.
+Next action: claim this task only with renewed explicit VPL authorization, create four fresh independent fixtures through normal application flows, and rerun all four cases from Case 1 onward.
 
 ### Previous Adjustment Fix Record
 
@@ -484,14 +484,14 @@ Agent/task name: Codex - Sales adjustment UX and atomicity fix
 Started at (Asia/Saigon): 2026-09-07
 Branch and starting commit: codex/warranty-release-review / eeba88a
 Goal: Make the current submitted adjustment authoritative through one primary action while preserving Sales V1 delta semantics and proving late Inventory/CustomerCare rollback.
-Status: BLOCKED. The implementation is complete and focused EF evidence is green, but the focused Web PageModel/UI host did not emit a final result due to the known test-host leak. Do not claim FIX READY FOR REVIEW until that final result is captured.
+Status: DONE - `FIX READY FOR REVIEW`. The Confirm handler now removes only `StartInput` ModelState entries before validating current posted update values. Razor Pages had validated required `StartInput.Reason` even though the Confirm form does not post it, returning Page before `SubmitRevisionAsync`; the exact regression is now covered by a focused PageModel test.
 Authorization: Local source, builds, and isolated SQLite tests only. VPL, production, deployment, migration, push, and business-data operations are forbidden.
 Safety boundary: Reuse `SalesOrderOperationCoordinator`; price-only never posts Inventory; negative deltas retain Warehouse confirmation; no stale draft may be silently applied.
 Protected files: `docs/VPureLux_Sales_Flow_Design_Review_for_Codex_5_6_Sol.docx` and `docs/html.txt` remain untracked and must not be staged.
 Implementation: Added `SubmitRevisionAsync`, which updates from the posted form and applies in one coordinator/UoW when no Warehouse return is pending. The Adjust page exposes one primary `Xac nhan dieu chinh` action and validates the posted model before submission. A negative delta persists Draft only and communicates that the effective order is unchanged.
-Verification: Release Web and EF test-project builds passed with 0 warnings and 0 errors. Captured SQLite EF evidence: 8 passed across current-value-over-stale-draft price change, Warehouse-pending negative delta, injected failure after Inventory, injected failure after CustomerCare, increase/replay, replacement, add/remove delta isolation, and factual decrease reversal. Three focused Web PageModel/UI tests compile but the known Web test-host leak did not return a final runtime summary, so they are not counted as passing evidence. `docs/SALES_ADJUSTMENT_FIX_001.md` records the exact behavior, query review, and remaining review risk.
+Verification: Captured SQLite EF evidence: 8 passed across current-value-over-stale-draft price change, Warehouse-pending negative delta, injected failure after Inventory, injected failure after CustomerCare, increase/replay, replacement, add/remove delta isolation, and factual decrease reversal. The Release Web test project builds with 0 errors (only external `Microsoft.NET.Test.Sdk` CS7022 warning); focused `Sales_Adjust_Page` passes 4/4, including the exact cross-handler ModelState regression. `node --check src/VPureLux.Web/Pages/Sales/Adjust.js` and `git diff --check` pass. `docs/SALES_ADJUSTMENT_FIX_001.md` records behavior, query review, and remaining UAT risk.
 Data/deployment: No migration, database access, VPL, production access, deploy, restart, push, or business-data mutation. Protected user files remain untracked and excluded.
-Next action: Run only `Sales_Adjust_Page` focused Web tests in a stable host and capture the final count; then perform product review/acceptance of the simplified manager workflow. Keep GrossPosted/NetPaid separate; do not reopen this adjustment change merely to address reporting.
+Next action: Claim `SALES-ADJUSTMENT-UAT-001` only with separate VPL authorization. Run all four browser cases from fresh fixtures; keep GrossPosted/NetPaid separate and do not reopen this adjustment change for reporting.
 
 ### Previous Completed Sales Adjustment Forensic Record
 
@@ -672,6 +672,14 @@ Verification completed: Branch pushed without force at `a4717aa`; detached artif
 Current blocker: None. Production had no Draft orders or Installed assets for non-destructive live coverage; those scenarios remain covered by accepted rehearsal evidence. W-GATE remains open and Service remains on HOLD.
 
 ## 8. Handoff Log
+
+### 2026-09-08 - SALES-ADJUSTMENT-FIX-001 Ready For Review
+
+- Decision: `FIX READY FOR REVIEW`. The previous VPL Case 1 browser failure had no data impact because the Confirm handler re-rendered before any business service call. Local diagnosis proved that Razor Pages applied `[Required]` validation to `StartInput.Reason`, although that field belongs to the Start handler and is absent from the Confirm form.
+- Fix: `AdjustModel.OnPostConfirmAsync` removes only the `StartInput` ModelState entries before validating the current `UpdateInput` form. Start-handler validation remains unchanged. The existing call chain remains `AdjustModel -> SubmitRevisionAsync -> SalesOrderOperationCoordinator -> Sales/Inventory/CustomerCare`; no service, migration, database object, query shape, or delta-engine behavior was added or changed.
+- Verification: Release Web test project build passed with 0 errors (the only warning is external `Microsoft.NET.Test.Sdk` CS7022); focused `Sales_Adjust_Page` passed 4/4, including the exact unrelated-StartInput-validation regression. Previous accepted focused SQLite EF evidence remains 8/8 because no application/domain/EF adjustment code changed. `node --check` and `git diff --check` passed.
+- Safety: No VPL or production access, migration, deploy, restart, push, or database mutation occurred in this repair task. The two user-owned files remain untracked and unstaged. GrossPosted/NetPaid remains untouched.
+- Next action: `SALES-ADJUSTMENT-UAT-001` is READY, but must be explicitly authorized before VPL access. Rerun all four browser cases with fresh independent fixtures; do not reuse `SO-202609-000005`.
 
 ### 2026-09-08 - SALES-ADJUSTMENT-UAT-001 Blocked At Case 1
 

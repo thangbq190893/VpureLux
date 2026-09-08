@@ -2,13 +2,15 @@
 
 ## Current Decision
 
-Implementation and captured EF evidence are complete, but final acceptance is **BLOCKED**. The original focused Web test-host did not produce a final result, and real browser/VPL UAT then stopped on the first required case: a price-only Confirm POST re-rendered the adjustment form instead of applying and redirecting. Do not deploy from this checkpoint. Diagnose that browser-path failure, fix it in a scoped task, then rerun all four operator cases on fresh UAT fixtures.
+**FIX READY FOR REVIEW.** The browser/VPL Case 1 failure was reproduced as a focused Razor Page regression, fixed locally, and the focused PageModel suite now passes 4/4. This is not production-release approval: a separately authorized VPL browser UAT must rerun all four cases on fresh fixtures before any deployment decision.
 
 ## Confirmed Root Cause
 
 The old page exposed two operator actions: Save and Apply. Save only persisted a Draft revision; Apply later used that stored Draft and ignored the current unsaved form. This made a successful-looking sequence possible while the effective order remained unchanged.
 
 The confirmed-order adjustment page now has one primary operator command: **Xac nhan dieu chinh**. It submits the values currently posted by the form.
+
+The later browser diagnosis confirmed a second, handler-specific cause. Razor Pages validates all bound properties before `OnPostConfirmAsync`. `StartInput.Reason` is required for the Start handler but is not posted by the Confirm form, leaving an invalid `StartInput.Reason` ModelState entry. The page therefore re-rendered before it called `SubmitRevisionAsync`; no Sales, Inventory, or CustomerCare mutation occurred.
 
 ## Operator Flow
 
@@ -26,6 +28,8 @@ The existing `UpdateRevisionAsync` and `ApplyRevisionAsync` contracts remain for
 Call chain: `AdjustModel.OnPostConfirmAsync` -> `ISalesPostConfirmationAppService.SubmitRevisionAsync` -> `SalesOrderOperationCoordinator.ExecuteAsync` -> existing revision delta engine, Inventory/FIFO, CustomerCare reconciliation.
 
 `SubmitRevisionAsync` is the only added public command. It uses the posted form to update the Draft and either applies immediately under the same coordinator transaction or returns the Draft unchanged when Warehouse confirmation is required. No workflow service, command service, planner, executor, new database object, or migration was introduced. The small reconciler interface is only a DI seam; the fault probe/decorator exists only in the EF test assembly.
+
+For the Confirm handler only, `AdjustModel` removes `StartInput` ModelState entries before validating `UpdateInput`. This keeps Start validation intact for its own handler while ensuring a Confirm request validates only facts that its form actually posts. No Sales application/domain path or delta-engine behavior changed.
 
 ## Atomicity And Performance
 
@@ -45,7 +49,7 @@ Result: 4 passed. The fault-injection tests verify that a failure after Inventor
 
 Additional existing Sales regression evidence run individually: quantity increase and same-key replay (1 passed), product replacement reversal/issue (1 passed), add/remove only affected deltas (1 passed), and quantity decrease Warehouse return using factual cost (1 passed). Total captured EF evidence for this task: **8 passed**.
 
-The focused Web test project builds with 0 warnings and 0 errors. Three new PageModel/UI tests cover current-form submission, Details redirect only after `Applied`, Warehouse-pending redirect, and the single Confirm action. Its focused host was started, but did not return a final test summary before process exit, matching the already documented Web test-host leak. It is deliberately not counted as a pass; the code and test source remain available for a stable-host rerun.
+The focused Web test project builds successfully with 0 errors. The only warning is external to project code: `Microsoft.NET.Test.Sdk` `CS7022`. `Sales_Adjust_Page` now passes **4/4**: direct current-form submission/redirect, Warehouse-pending behavior, no final-success redirect before `Applied`, and the exact `StartInput.Reason` ModelState regression. The PageModel helper now supplies ABP's `IAbpLazyServiceProvider`, so these are handler executions rather than failures in the test harness.
 
 No dedicated business-audit completion fault probe was added. The Inventory and CustomerCare late-failure tests exercise the shared coordinator transaction. Adding an audit-only fault seam would require disproportionate test-only production infrastructure for this narrow fix.
 
@@ -63,10 +67,10 @@ The local Web runtime was explicitly configured for the authorized UAT catalog. 
 
 Fixture `SO-202609-000005` (`1b799b75-4419-40d3-8e9e-3a239169fd08`) was created and confirmed through the actual authenticated Razor flow with existing UAT-prefixed non-machine catalog/warehouse/customer records. The browser then opened Adjust, supplied reason `UAT price-only`, changed the visible unit price from `100000` to `110000`, and selected the only primary submit action, **Xac nhan dieu chinh**. Browser AX snapshots before submit and after the response are retained in the Codex UAT task transcript.
 
-Result: **Case 1 failed safely**. The POST to `Sales/Adjust/...?...handler=Confirm` returned HTTP 200 in about 1.7 seconds and re-rendered the same form; it did not show a final success message or redirect to Details. Read-only VPL reconciliation found the revision `3eeb6f2a-9eba-c576-b809-3a23916acd23` still Draft, `AppliedAt = NULL`, the effective line still quantity `1` / price `100000`, and no revision Inventory transaction. No unhandled server exception was logged. The retained posted values with unchanged persisted revision are consistent with the PageModel ModelState-invalid path, but that is an observation rather than a proven root cause.
+Result: **Case 1 failed safely**. The POST to `Sales/Adjust/...?...handler=Confirm` returned HTTP 200 in about 1.7 seconds and re-rendered the same form; it did not show a final success message or redirect to Details. Read-only VPL reconciliation found the revision `3eeb6f2a-9eba-c576-b809-3a23916acd23` still Draft, `AppliedAt = NULL`, the effective line still quantity `1` / price `100000`, and no revision Inventory transaction. No unhandled server exception was logged. Local source diagnosis subsequently proved the cause: automatic cross-handler validation of required `StartInput.Reason` prevented `OnPostConfirmAsync` from calling `SubmitRevisionAsync`.
 
 Cases 2-4 were deliberately not run because the approved UAT rule requires stopping on the first failure. No application code, migration, direct data manipulation, deployment, production/VPS access, or push occurred.
 
 ## Remaining Risk
 
-The new manager workflow has not received browser/operator acceptance. A real VPL browser attempt exposed a safe submit/re-render failure in Case 1, in addition to the known Web test-host leak. Resolve the browser-path failure before any release review; do not change Sales delta or payment behavior as part of diagnosis unless the focused evidence requires it.
+The new manager workflow still needs real browser/operator acceptance on fresh VPL fixtures. The submit/re-render defect is covered by focused PageModel regression evidence; rerun all four UAT cases before any release review. The known full/combined Web test-host leak remains separate and is not claimed as resolved. Do not change Sales delta or payment behavior as part of that UAT.
