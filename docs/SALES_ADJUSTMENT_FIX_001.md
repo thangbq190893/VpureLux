@@ -2,7 +2,7 @@
 
 ## Current Decision
 
-**FIX READY FOR REVIEW.** The browser/VPL Case 1 failure was reproduced as a focused Razor Page regression, fixed locally, and the focused PageModel suite now passes 4/4. This is not production-release approval: a separately authorized VPL browser UAT must rerun all four cases on fresh fixtures before any deployment decision.
+**DONE - READY FOR RELEASE REVIEW.** The focused Razor Page defect was repaired locally, the PageModel suite passes 4/4, and authenticated browser UAT plus read-only VPL reconciliation passes all four required operator cases. This is not production deployment approval.
 
 ## Confirmed Root Cause
 
@@ -73,4 +73,4 @@ Cases 2-4 were deliberately not run because the approved UAT rule requires stopp
 
 ## Remaining Risk
 
-The new manager workflow still needs real browser/operator acceptance on fresh VPL fixtures. The submit/re-render defect is covered by focused PageModel regression evidence; rerun all four UAT cases before any release review. The known full/combined Web test-host leak remains separate and is not claimed as resolved. Do not change Sales delta or payment behavior as part of that UAT.
+Final browser/VPL evidence is recorded in `docs/SALES_ADJUSTMENT_UAT_001.md`: price-only, quantity increase, add product, and decrease waiting for Warehouse all PASS. Production remains unchanged and requires a separate release review. The known full/combined Web test-host leak remains separate and is not claimed as resolved. GrossPosted/NetPaid also remains out of scope.

@@ -5,8 +5,8 @@ Every agent must read and update this file so another agent can continue without
 
 Last updated: 2026-09-08 (Asia/Saigon)
 Current product stage: Service PRODUCTION ROLLOUT COMPLETE; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
-Current active task: SALES-ADJUSTMENT-UAT-001
-Next task: Complete all four fresh-fixture browser/VPL cases, reconcile Sales/Inventory facts, then prepare SALES-ADJUSTMENT-RELEASE-REVIEW
+Current active task: None
+Next task: SALES-ADJUSTMENT-RELEASE-REVIEW (separate explicit task; no deployment is implied)
 Service implementation gate: W-GATE DONE; SERVICE-INVENTORY-AUDIT DONE; S-001/S-002/S-003/S-004/S-005/S-006 DONE
 Service foundation milestone source: `babc96fc5ecba242e3f23d0612c3a46df3916dc3`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S001_SERVICE_FOUNDATION.md`.
 Service order workflow milestone source: `2f27ed81618403d7375b2af237025e6e931bbe3f`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S002_SERVICE_ORDER_WORKFLOW.md`.
@@ -160,7 +160,7 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | SERVICE-V1-ROLLOUT | Service V1 production rehearsal, migration, deployment, reconciliation, and release seal | DONE | S-006 |
 | SALES-ADJUSTMENT-FORENSIC-001 | Read-only forensic investigation of confirmed-order adjustment effectiveness and cross-module atomicity | DONE | None |
 | SALES-ADJUSTMENT-FIX-001 | Simplify confirmed-order adjustment submission and prove transactional rollback | DONE | SALES-ADJUSTMENT-FORENSIC-001 |
-| SALES-ADJUSTMENT-UAT-001 | Browser and VPL reconciliation for the four Sales adjustment operator cases | IN_PROGRESS | SALES-ADJUSTMENT-FIX-001 |
+| SALES-ADJUSTMENT-UAT-001 | Browser and VPL reconciliation for the four Sales adjustment operator cases | DONE | SALES-ADJUSTMENT-FIX-001 |
 
 ## 5. Warranty/CustomerCare Tasks
 
@@ -469,16 +469,18 @@ Agent/task name: Codex - autonomous Sales adjustment browser/VPL UAT
 Started at (Asia/Saigon): 2026-09-08 14:19:21 +07:00
 Branch and starting commit: codex/warranty-release-review / 8458af8
 Goal: Obtain real authenticated Razor UI evidence and VPL-only reconciliation for price-only, quantity increase, add product, and decrease waiting for Warehouse.
-Status: IN_PROGRESS. Trusted baseline `8458af8` verified with a clean tracked tree. Authorized for local Web against VPL, normal authenticated Razor flows, bounded UAT fixture creation, and read-only SQL reconciliation only. Production/VPS, migration, DbMigrator, deploy, push, existing non-UAT mutation, and GrossPosted/NetPaid remain forbidden.
+Status: DONE - `UAT PASS - READY FOR RELEASE REVIEW`. All four authenticated Razor cases passed with matching read-only VPL reconciliation. Production/VPS, migration, DbMigrator, deploy, push, existing non-UAT mutation, and GrossPosted/NetPaid remained untouched.
 Fixture prefix: `UATADJ_20260908_141921`.
-Local runtime URL: `https://localhost:44326` (planned; verify the port before launch).
-Current checkpoint: preflight and trusted history verified; source/UI/test path inspected; database identity guard and fresh fixture creation are next.
+Local runtime URL: `https://localhost:44326` (stopped after UAT).
+Current checkpoint: complete. Final tested source `f92899b`; build PASS with 0 errors; focused Web PageModel tests 4/4; prior focused EF evidence 8/8 remains valid.
 Authorization: VPL test/UAT only after proving `DB_NAME() = VPL`; isolated prefixed fixtures through application flows and read-only SQL verification are allowed. VPureLux production, deployment, migration, DbMigrator, push, and direct business-data manipulation are forbidden.
 Safety boundary: Use four independent non-machine UAT orders. Stop on the first business/data-integrity failure. Protected files remain untracked and must not be staged.
 Runtime evidence: local source `0b20eeb` was run on `https://localhost:44326` with an explicit connection string to the authorized catalog. Read-only SQL proved `DB_NAME() = VPL`; production was not accessed. The Development profile's default connection points to a different VPL instance lacking `WarningDate`, so it was not used for this UAT runtime.
 Fixture: `SO-202609-000005` / `1b799b75-4419-40d3-8e9e-3a239169fd08`, using the existing UATSALE2 non-machine product, UAT warehouse, and UATSVC customer. It was created and confirmed through the Razor UI. Do not reuse it as a clean Case 1 fixture; it has Draft revision `3eeb6f2a-9eba-c576-b809-3a23916acd23`.
-Case 1 observed: before price `100000`, quantity `1`, confirmed total `100000`; adjustment form entered `110000` and reason `UAT price-only`; POST `/Sales/Adjust/...?...handler=Confirm` returned `200` in about 1.7s and re-rendered the form. The revision remains status Draft (`1`), `AppliedAt` is NULL, effective line price remains `100000`, and no revision inventory transaction exists. No unhandled exception was logged. Cases 2-4 were not run, as required by the UAT stop-on-first-failure rule.
-Next action: prove `DB_NAME() = VPL`, launch the trusted source locally, create four independent prefixed orders through authenticated business flows, and execute Cases 1-4 with read-only reconciliation.
+Final cases: Case 1 `SO-202609-000010` price `100000 -> 110000`, Inventory unchanged; Case 2 `SO-202609-000007` quantity `1 -> 3`, exact MAT_A FIFO delta `2`; Case 3 `SO-202609-000008` added Product B quantity `2`, exact MAT_B delta `2`, old Product A facts unchanged; Case 4 `SO-202609-000009` requested `3 -> 2`, remained Draft waiting Warehouse, effective quantity stayed `3`, no reversal, balance/lot unchanged.
+Repair during takeover: Razor flattened required Start-form `Reason` into Confirm ModelState. Local commits `1bffafa`, `ad51e9a`, and final exact regression repair `f92899b` culminate in handler-scoped clearing of only Start validation keys. The final runtime had no adjustment HTTP 500 or validation failure.
+Evidence: `docs/SALES_ADJUSTMENT_UAT_001.md` contains order/revision/transaction IDs, before/after facts, UI/log observations, build/test results, and safety boundaries.
+Next action: claim a separate `SALES-ADJUSTMENT-RELEASE-REVIEW` task only if release preparation is explicitly requested. Do not deploy from this UAT task.
 
 ### Previous Adjustment Fix Record
 
@@ -494,7 +496,7 @@ Protected files: `docs/VPureLux_Sales_Flow_Design_Review_for_Codex_5_6_Sol.docx`
 Implementation: Added `SubmitRevisionAsync`, which updates from the posted form and applies in one coordinator/UoW when no Warehouse return is pending. The Adjust page exposes one primary `Xac nhan dieu chinh` action and validates the posted model before submission. A negative delta persists Draft only and communicates that the effective order is unchanged.
 Verification: Captured SQLite EF evidence: 8 passed across current-value-over-stale-draft price change, Warehouse-pending negative delta, injected failure after Inventory, injected failure after CustomerCare, increase/replay, replacement, add/remove delta isolation, and factual decrease reversal. The Release Web test project builds with 0 errors (only external `Microsoft.NET.Test.Sdk` CS7022 warning); focused `Sales_Adjust_Page` passes 4/4, including the exact cross-handler ModelState regression. `node --check src/VPureLux.Web/Pages/Sales/Adjust.js` and `git diff --check` pass. `docs/SALES_ADJUSTMENT_FIX_001.md` records behavior, query review, and remaining UAT risk.
 Data/deployment: No migration, database access, VPL, production access, deploy, restart, push, or business-data mutation. Protected user files remain untracked and excluded.
-Next action: Claim `SALES-ADJUSTMENT-UAT-001` only with separate VPL authorization. Run all four browser cases from fresh fixtures; keep GrossPosted/NetPaid separate and do not reopen this adjustment change for reporting.
+Next action: Superseded by the completed `SALES-ADJUSTMENT-UAT-001` record above. The adjustment fix is DONE and ready only for a separate release review; keep GrossPosted/NetPaid separate.
 
 ### Previous Completed Sales Adjustment Forensic Record
 
@@ -675,6 +677,15 @@ Verification completed: Branch pushed without force at `a4717aa`; detached artif
 Current blocker: None. Production had no Draft orders or Installed assets for non-destructive live coverage; those scenarios remain covered by accepted rehearsal evidence. W-GATE remains open and Service remains on HOLD.
 
 ## 8. Handoff Log
+
+### 2026-09-08 - SALES-ADJUSTMENT-UAT-001 Passed 4/4
+
+- Decision: `UAT PASS - READY FOR RELEASE REVIEW`; `SALES-ADJUSTMENT-FIX-001` is DONE. Final tested source is `f92899b` on branch `codex/warranty-release-review`.
+- VPL guard: read-only `DB_NAME()` returned exactly `VPL` before every mutating phase. All fixture writes used authenticated application flows; SQL was read-only. Production `VPureLux`, VPS, migration, DbMigrator, deploy, push, non-UAT business data, and GrossPosted/NetPaid were not touched.
+- Browser results: price-only PASS with no Inventory change; quantity increase PASS with only FIFO delta `2`; add Product B PASS with only MAT_B delta `2` and original line/allocation unchanged; decrease PASS in explicit Warehouse-pending state with effective quantity and Inventory unchanged.
+- Focused defect repair: the Confirm request contained a flattened Start-form `Reason` validation error. Final local commit `f92899b` clears only the Start validation keys in Confirm; Start validation remains intact. Focused Web tests passed 4/4.
+- Final validation: solution Release build passed with 0 errors and 4 pre-existing warnings; prior focused EF adjustment evidence remains 8/8. Full browser and reconciliation evidence is in `docs/SALES_ADJUSTMENT_UAT_001.md`.
+- Next action: a separate release-review task may inspect local commits and prepare deployment only after explicit authorization. No deployment was performed here.
 
 ### 2026-09-08 - SALES-ADJUSTMENT-FIX-001 Ready For Review
 
