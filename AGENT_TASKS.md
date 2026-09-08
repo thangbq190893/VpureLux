@@ -4,9 +4,9 @@ This file is the single source of truth for implementation order and agent hando
 Every agent must read and update this file so another agent can continue without a chat summary.
 
 Last updated: 2026-09-08 (Asia/Saigon)
-Current product stage: Service PRODUCTION ROLLOUT COMPLETE; Sales Post-Confirmation V1 remains RELEASED / ACCEPTED
+Current product stage: Service PRODUCTION ROLLOUT COMPLETE; Sales Post-Confirmation V1 and Sales confirmed-order adjustment are PRODUCTION RELEASED / ACCEPTED
 Current active task: None
-Next task: SALES-ADJUSTMENT-PRODUCTION-ROLLOUT (HOLD; requires separate explicit user authorization)
+Next task: None; do not automatically start GrossPosted/NetPaid or another Sales backlog item
 Service implementation gate: W-GATE DONE; SERVICE-INVENTORY-AUDIT DONE; S-001/S-002/S-003/S-004/S-005/S-006 DONE
 Service foundation milestone source: `babc96fc5ecba242e3f23d0612c3a46df3916dc3`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S001_SERVICE_FOUNDATION.md`.
 Service order workflow milestone source: `2f27ed81618403d7375b2af237025e6e931bbe3f`; originally completed locally, with its accepted implementation included in production release `b0bf197e8525acb2f254995af70b3da8a397a9f8`; see `docs/S002_SERVICE_ORDER_WORKFLOW.md`.
@@ -163,7 +163,7 @@ These paths are not automatically in scope for W-001. Re-run preflight on every 
 | SALES-ADJUSTMENT-UAT-001 | Browser and VPL reconciliation for the four Sales adjustment operator cases | DONE | SALES-ADJUSTMENT-FIX-001 |
 | SALES-ADJUSTMENT-RELEASE-REVIEW | Final local source/release gate for the accepted confirmed-order adjustment | DONE | SALES-ADJUSTMENT-UAT-001 |
 | SALES-ADJUSTMENT-PRODUCTION-READINESS | Bounded production read-only compatibility audit for the accepted adjustment candidate | DONE - CONDITIONAL ACCEPT | SALES-ADJUSTMENT-RELEASE-REVIEW |
-| SALES-ADJUSTMENT-PRODUCTION-ROLLOUT | Backup, immutable application-only rollout, smoke, and reconciliation | HOLD | SALES-ADJUSTMENT-PRODUCTION-READINESS |
+| SALES-ADJUSTMENT-PRODUCTION-ROLLOUT | Backup, immutable application-only rollout, smoke, and reconciliation | DONE | SALES-ADJUSTMENT-PRODUCTION-READINESS |
 
 ## 5. Warranty/CustomerCare Tasks
 
@@ -467,6 +467,20 @@ Status: DONE. Decision READY FOR SERVICE PRODUCTION ROLLOUT after explicit C01 a
 
 ## 7. Active Work Record
 
+Task ID: SALES-ADJUSTMENT-PRODUCTION-ROLLOUT
+Agent/task name: Codex - authorized Sales adjustment production rollout
+Started at (Asia/Saigon): 2026-09-08
+Branch and starting commit: codex/warranty-release-review / 66574a8c55b48a9911ebe4478059faa0f806b728
+Application candidate: f92899b6725d099c9a722f52d1e1b1e552ee41b9
+Current production source/release: b0bf197e8525acb2f254995af70b3da8a397a9f8 / `/opt/vpurelux/releases/web-20260907-152000-service-v1-b0bf197`
+Goal: Back up production, build/upload the exact immutable candidate, switch atomically, verify non-mutating smoke/reconciliation, and seal the release.
+Status: DONE - `PRODUCTION ROLLOUT COMPLETE`. Sales confirmed-order adjustment is production RELEASED / ACCEPTED at candidate `f92899b6725d099c9a722f52d1e1b1e552ee41b9`, tag `release-2026-09-08-sales-adjustment`.
+Safety boundary: Application-only rollout. No migration, DbMigrator, seed, business DML, backfill, repair, FIFO rebuild, production fixture, or mutating browser/API smoke. Preserve protected user files and current release for rollback.
+Current checkpoint: Fresh backup `/var/opt/mssql/data/VPureLux-pre-sales-adjustment-20260908-180614.bak` passed `RESTORE VERIFYONLY WITH CHECKSUM`. Exact candidate artifact hash matched locally and on VPS (`c77452d51646dd37fd1a95ce87ab8d2153fa9685497c2d61a82126837ba55249`). Atomic release `/opt/vpurelux/releases/web-20260908-181200-sales-adjustment-f92899b` is active; service is active with zero restarts, three health probes passed, authenticated non-mutating GET smoke passed 16/16, and post-deploy Sales/Inventory/FIFO/CustomerCare/payment reconciliation passed with no rollout-caused business mutation or relevant HTTP 500/error. Production remained `VPureLux` at 24 migrations, latest `20260907021302_AddServicePaymentSettlement`.
+Next action: None. Keep this release frozen and start no deferred Sales task automatically. Immediate rollback release `/opt/vpurelux/releases/web-20260907-152000-service-v1-b0bf197` remains intact.
+
+### Previous Completed Sales Adjustment Production Readiness
+
 Task ID: SALES-ADJUSTMENT-PRODUCTION-READINESS
 Agent/task name: Codex - bounded production readiness audit
 Started at (Asia/Saigon): 2026-09-08
@@ -711,6 +725,14 @@ Verification completed: Branch pushed without force at `a4717aa`; detached artif
 Current blocker: None. Production had no Draft orders or Installed assets for non-destructive live coverage; those scenarios remain covered by accepted rehearsal evidence. W-GATE remains open and Service remains on HOLD.
 
 ## 8. Handoff Log
+
+### 2026-09-08 - Sales Adjustment Production Release Accepted
+
+- Decision: `PRODUCTION ROLLOUT COMPLETE`; exact application candidate `f92899b6725d099c9a722f52d1e1b1e552ee41b9` is active at `/opt/vpurelux/releases/web-20260908-181200-sales-adjustment-f92899b` and sealed by annotated tag `release-2026-09-08-sales-adjustment` (tag object `5e2f6aea469b4b6be9e47c9a668131f43ddc1443`, peeled target `f92899b6725d099c9a722f52d1e1b1e552ee41b9`).
+- Safety: production identity remained `VPureLux`; migration history remained 24/latest `20260907021302_AddServicePaymentSettlement`. No migration, DbMigrator, fixture, seed, business DML, backfill, repair, FIFO rebuild, or mutating business smoke was performed.
+- Recovery/artifact: fresh COPY_ONLY CHECKSUM backup `/var/opt/mssql/data/VPureLux-pre-sales-adjustment-20260908-180614.bak` (43,547,136 bytes) passed VERIFYONLY. Local/VPS archive SHA-256 matched at `c77452d51646dd37fd1a95ce87ab8d2153fa9685497c2d61a82126837ba55249`; immediate rollback `/opt/vpurelux/releases/web-20260907-152000-service-v1-b0bf197` remains intact.
+- Verification: service active with zero restarts; three sequential health probes Healthy; authenticated non-mutating GET smoke 16/16; Sales revision, Inventory/FIFO, CustomerCare, and payment facts remained consistent with all targeted anomalies at zero. No rollout-caused business mutation, application error, journal priority error, or Nginx HTTP 500 was found. Two known non-blocking EF startup mapping warnings remain.
+- Handoff: current active task is None. Sales adjustment is RELEASED / ACCEPTED; do not automatically claim GrossPosted/NetPaid or another deferred Sales task. Full evidence is in `docs/SALES_ADJUSTMENT_PRODUCTION_ROLLOUT_001.md`.
 
 ### 2026-09-08 - SALES-ADJUSTMENT-PRODUCTION-READINESS Conditional Accept
 
